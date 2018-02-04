@@ -35,5 +35,5 @@
 		"aliyuncs/oss-sdk-php": "~2.0",
 		"sabre/dav":"~3.2.0",
 		"upyun/sdk": "^3.3"
-	},
+	}
 }
