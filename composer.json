@@ -4,8 +4,7 @@
 	"keywords": ["php", "cloud", "ThinkPHP", "file-sharing"],
 	"homepage": "https://cloudreve.org",
 	"type": "project",
-	"license": "GPL-3.0-only",
-	"minimum-stability":"dev",	
+	"license": "GPL-3.0-only",	
 	"authors": [
 	        {
 	            "name": "Aaron",
@@ -32,10 +31,11 @@
 		"ext-fileinfo":"*",
 		"ext-gd":"*",
 		"topthink/think-captcha":"1.*",
-		"phpgangsta/googleauthenticator": "@dev",
+		"phpgangsta/googleauthenticator": "dev-master",
 		"endroid/qrcode": "1.*",
 		"aliyuncs/oss-sdk-php": "~2.0",
 		"sabre/dav":"~3.2.0",
 		"upyun/sdk": "^3.3"
-	}
+	},
+	"minimum-stability":"dev"
 }
