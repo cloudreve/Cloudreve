@@ -4,7 +4,7 @@
 	"keywords": ["php", "cloud", "ThinkPHP", "file-sharing"],
 	"homepage": "https://cloudreve.org",
 	"type": "project",
-	"license": "GPL-3.0",
+	"license": "GPL-3.0-only",
 	"authors": [
 	        {
 	            "name": "Aaron",
