@@ -64,6 +64,7 @@ location / {
 * 到 设置-基础设置 中更改站点URL，如果不更改，程序无法正常接受回调请求
 * 添加Crontab定时任务 ：你的域名/Cron
 * 如果你打算使用本地上传策略并且不准备开启外链功能，请将·public/uploads·目录设置为禁止外部访问
+* 如需启用二步验证功能，请执行`phpgangsta/googleauthenticator`安装二步验证支持库
 * 给本项目一个Star~
 
 许可证
