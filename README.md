@@ -43,7 +43,7 @@ cd Cloudreve
 composer install
 ```
 #### 3.配置MySQL
-将根目录下的`mysql.sql`到入到你的数据库，编辑`application/database_sample.php`文件，填写数据库信息，并重命名为`database_sample.php`
+将根目录下的`mysql.sql`到入到你的数据库，编辑`application/database_sample.php`文件，填写数据库信息，并重命名为`database.php`
 
 #### 4.URL重写
 对于Apache服务器，项目目录下的`.htaccess`已经配置好重写规则，如有需求酌情修改.
