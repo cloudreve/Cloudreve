@@ -30,7 +30,6 @@
 		"ext-fileinfo":"*",
 		"ext-gd":"*",
 		"topthink/think-captcha":"1.*",
-		"phpgangsta/googleauthenticator": "dev-master",
 		"endroid/qrcode": "1.*",
 		"aliyuncs/oss-sdk-php": "~2.0",
 		"sabre/dav":"~3.2.0",
