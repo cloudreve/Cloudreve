@@ -36,5 +36,4 @@
 		"sabre/dav":"~3.2.0",
 		"upyun/sdk": "^3.3"
 	},
-	"minimum-stability":"dev"
 }
