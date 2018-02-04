@@ -1,0 +1,229 @@
+{extend name="header_admin" /}
+{block name="title"}管理面板- {$options.siteName}{/block}
+{block name="content"}
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <!-- Breadcrumbs-->
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="#">管理面板</a>
+        </li>
+        <li class="breadcrumb-item active">数据概况</li>
+      </ol>
+      <!-- Icon Cards-->
+      <div class="row">
+        <div class="col-xl-3 col-sm-6 mb-3">
+          <div class="card text-white bg-primary o-hidden h-100">
+            <div class="card-body">
+              <div class="card-body-icon">
+                <i class="fa fa-fw fa-users"></i>
+              </div>
+              <div class="mr-5">{$statics.userNum} 位用户</div>
+            </div>
+            <a class="card-footer text-white clearfix small z-1" href="/Admin/Users">
+              <span class="float-left">查看详情</span>
+              <span class="float-right">
+                <i class="fa fa-angle-right"></i>
+              </span>
+            </a>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-3">
+          <div class="card text-white bg-warning o-hidden h-100">
+            <div class="card-body">
+              <div class="card-body-icon">
+                <i class="fa fa-fw fa-file"></i>
+              </div>
+              <div class="mr-5">{$statics.fileNum} 个文件</div>
+            </div>
+            <a class="card-footer text-white clearfix small z-1" href="/Admin/Files">
+              <span class="float-left">查看详情</span>
+              <span class="float-right">
+                <i class="fa fa-angle-right"></i>
+              </span>
+            </a>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-3">
+          <div class="card text-white bg-success o-hidden h-100">
+            <div class="card-body">
+              <div class="card-body-icon">
+                <i class="fa fa-fw fa-share-alt"></i>
+              </div>
+              <div class="mr-5">{$statics.publicShareNum} 个公开分享</div>
+            </div>
+            <a class="card-footer text-white clearfix small z-1" href="/Admin/Shares">
+              <span class="float-left">查看详情</span>
+              <span class="float-right">
+                <i class="fa fa-angle-right"></i>
+              </span>
+            </a>
+          </div>
+        </div>
+        <div class="col-xl-3 col-sm-6 mb-3">
+          <div class="card text-white bg-danger o-hidden h-100">
+            <div class="card-body">
+              <div class="card-body-icon">
+                <i class="fa fa-fw fa-lock"></i>
+              </div>
+              <div class="mr-5">{$statics.privateShareNum} 个私密分享</div>
+            </div>
+            <a class="card-footer text-white clearfix small z-1" href="/Admin/Shares">
+              <span class="float-left">查看详情</span>
+              <span class="float-right">
+                <i class="fa fa-angle-right"></i>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <!-- Area Chart Example-->
+      <div class="card mb-3">
+        <div class="card-header">
+          <i class="fa fa-area-chart"></i> 近期趋势</div>
+        <div class="card-body">
+          <canvas id="myAreaChart" width="100%" height="30"></canvas>
+        </div>
+        
+      </div>
+      <div class="row">
+        <div class="col-lg-8">
+          <!-- Example Bar Chart Card-->
+          <div class="card mb-3">
+            <div class="card-header">
+              <i class="fa fa-bell-o"></i> 订阅新闻</div>
+            <div class="list-group list-group-flush small" id="news">
+              
+            </div>
+            
+          </div>
+          <!-- Card Columns Example Social Feed-->
+        
+       
+          
+          <!-- /Card Columns-->
+        </div>
+        <div class="col-lg-4">
+          <!-- Example Pie Chart Card-->
+          <div class="card mb-3">
+            <div class="card-header">
+              <i class="fa fa-pie-chart"></i> 文件组成</div>
+            <div class="card-body">
+              <canvas id="myPieChart" width="100%" height="80"></canvas>
+            </div>
+            <div class="card-footer small text-muted">*此结果仅供参考</div>
+          </div>
+          <!-- Example Notifications Card-->
+        
+        </div>
+      </div>
+      <!-- Example DataTables Card-->
+
+    </div>
+    <!-- /.container-fluid-->
+    <!-- /.content-wrapper-->
+    <footer class="sticky-footer">
+      <div class="container">
+        <div class="text-center">
+          <small>Copyright © Cloudreve {php}echo date("Y");{/php} </small>
+        </div>
+      </div>
+    </footer>
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+      <i class="fa fa-angle-up"></i>
+    </a>
+    <!-- Logout Modal-->
+    
+    <!-- Bootstrap core JavaScript-->
+
+
+{/block}
+{block name="js"}
+<script type="text/javascript">
+$(document).ready(function() {
+  $.getJSON("https://cloudreve.org/api/notice/?callback=?",  function(data){
+    
+  $("#news").html(data[0]);
+    
+  })
+})
+Chart.defaults.global.defaultFontFamily = '-apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
+Chart.defaults.global.defaultFontColor = "#292b2c";
+var ctx = document.getElementById("myAreaChart"),
+myLineChart = new Chart(ctx, {
+    type: "line",
+    data: {
+        labels: [{$statics.trendDate}],
+        datasets: [{
+            label: "上传文件",
+            lineTension: .3,
+            backgroundColor: "rgba(2,117,216,0.2)",
+            borderColor: "rgba(2,117,216,1)",
+            pointRadius: 5,
+            pointBackgroundColor: "rgba(2,117,216,1)",
+            pointBorderColor: "rgba(255,255,255,0.8)",
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: "rgba(2,117,216,1)",
+            pointHitRadius: 20,
+            pointBorderWidth: 2,
+            data: [{$statics.trendFile}]
+        },{
+            label: "注册用户",
+            lineTension: .3,
+            backgroundColor: "rgba(83, 216, 2, 0.2)",
+            borderColor: "#4CAF50",
+            pointRadius: 5,
+            pointBackgroundColor: "#4CAF50",
+            pointBorderColor: "rgba(255,255,255,0.8)",
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: "#4CAF50",
+            pointHitRadius: 20,
+            pointBorderWidth: 2,
+            data: [{$statics.trendUser}]
+        },
+
+        ]
+    },
+    options: {
+        scales: {
+            xAxes: [{
+                time: {
+                    unit: "date"
+                },
+                gridLines: {
+                    display: !1
+                },
+                ticks: {
+                    maxTicksLimit: 7
+                }
+            }],
+            yAxes: [{
+                ticks: {
+                   
+                    maxTicksLimit: 5
+                },
+                gridLines: {
+                    color: "rgba(0, 0, 0, .125)"
+                }
+            }]
+        },
+        legend: {
+            display: !1
+        }
+    }
+}),
+
+ctx = document.getElementById("myPieChart"),
+myPieChart = new Chart(ctx, {
+    type: "pie",
+    data: {
+        labels: ["其他", "图片", "音频", "视频"],
+        datasets: [{
+            data: [{$statics.otherRate}, {$statics.imgRate}, {$statics.audioRate}, {$statics.videoRate}],
+            backgroundColor: ["#007bff", "#dc3545", "#ffc107", "#28a745"]
+        }]
+    }
+});
+</script>
+{/block}

@@ -1,0 +1,96 @@
+{extend name="header_admin" /}
+{block name="title"}注册访问- {$options.siteName}{/block}
+{block name="content"}
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <!-- Breadcrumbs-->
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="/Admin">管理面板</a>
+        </li>
+        <li class="breadcrumb-item active">设置</li>
+        <li class="breadcrumb-item active">杂项</li>
+      </ol>
+    
+      <!-- Area Chart Example-->
+
+           <div class="row">
+        <div class="col-12">
+          <h2>杂项设置</h2>
+          <br>
+          <form id="mailTemplate">
+
+<div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="maxEditSize" class="col-form-label col-form-label-sm">文本编辑大小限制</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="maxEditSize" value="{$optionsForSet.maxEditSize}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 用户可在线编辑的文本类文件的最大尺寸。单位：字节</div>
+              </div>
+
+<div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="maxEditSize" class="col-form-label col-form-label-sm">允许游客下载</label>
+                </div>
+                <div class="col-md-4"> 
+                 {eq name="$optionsForSet.allowdVisitorDownload" value="true"}
+                <input class="" type="radio" name="allowdVisitorDownload" id="inlineRadio1" value="true" checked>
+                  <label class="" for="inlineRadio1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                <input class="" type="radio" name="allowdVisitorDownload" id="inlineRadio2" value="false">
+                  <label class="" for="inlineRadio2">拒绝</label>
+                  {else}
+                  <input class="" type="radio" name="allowdVisitorDownload" id="inlineRadio1" value="true">
+                  <label class="" for="inlineRadio1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                <input class="" type="radio" name="allowdVisitorDownload" id="inlineRadio2" value="false" checked>
+                  <label class="" for="inlineRadio2">拒绝</label>
+                  {/eq}
+                </div>
+                <div class="col-md-4 option-des"> 是否允许未登录用户下载被分享的文件</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="hot_share_num" class="col-form-label col-form-label-sm">热门分享展示数量</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="hot_share_num" value="{$optionsForSet.hot_share_num}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 在用户个人主页展示的热门分享的个数</div>
+              </div>
+
+               <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="gravatar_server" class="col-form-label col-form-label-sm">Gravatar服务器</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="gravatar_server" value="{$optionsForSet.gravatar_server}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 用于展示用户头像的Gravatar服务器地址</div>
+              </div>
+
+  <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+ </div>
+ <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveTemplate">保存设置</button></div>
+  <div class="col-md-4 option-des"> </div>
+  <br><br><br>
+ </div>
+</form>
+        </div>
+      </div>
+      
+      <!-- Example DataTables Card-->
+
+    </div>
+    <!-- /.container-fluid-->
+    </div>
+
+    <!-- /.content-wrapper-->
+
+
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/setting.js"></script>
+<script type="text/javascript">
+
+</script>
+{/block}

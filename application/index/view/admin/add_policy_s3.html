@@ -1,0 +1,175 @@
+{extend name="header_admin" /}
+{block name="title"}添加上传策略- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="/Admin/PolicyAdd">上传策略</a>
+      </li>
+      <li class="breadcrumb-item active">添加</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>添加上传策略</h2>
+        <br>
+
+            
+       
+
+        <div class="alert alert-primary" role="alert">
+          创建储存桶后请在储存桶控制面板添加CORS跨域规则，允许本站的POST请求。请确保您的服务器和用户可以正常连接到AWS服务器。
+          </ul>
+        </div>
+        <div class="card" id="s3" >
+          <div class="card-header">
+            添加S3上传策略
+          </div>
+          <div class="card-body">
+            <form id="qiniuPolicy">
+              <input type="text" class="form-control" name="policy_type" value="s3" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="ak" class="col-form-label col-form-label-sm">AWSAccessKeyId </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="ak" required></div>
+                <div class="col-md-4 option-des"> AWS账户的访问秘钥信息，请在 控制面板 - 您的安全凭证 中创建</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="sk" class="col-form-label col-form-label-sm">AWSSecretKey </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="sk" required></div>
+                <div class="col-md-4 option-des"> 同上一项获取</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="bucketname" class="col-form-label col-form-label-sm">存储桶名称 </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="bucketname" required></div>
+                <div class="col-md-4 option-des"> 创建桶时填写的名称</div>
+              </div>
+
+             <input type="text" name="bucket_private" value="1" style="display: none">
+             <input type="text" name="origin_link" value="0" style="display: none">
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">下载根URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" required>
+                </div>
+                <div class="col-md-4 option-des"> 一般格式为：https://s3-分区名.amazonaws.com/储存桶名/ 结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">上传服务器URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="server" required>
+                </div>
+                <div class="col-md-4 option-des"> 一般格式为：https://储存桶名.s3-分区代号.amazonaws.com/</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">储存区域</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="op_name" required>
+                </div>
+                <div class="col-md-4 option-des"> 例如：ap-southeast-1</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">EndPoint</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="op_name" required>
+                </div>
+                <div class="col-md-4 option-des"> 一般格式为：s3-储存区域.amazonaws.com，只填写域名部分</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">允许的文件后缀</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="filetype" value="image/*,jpg,png,gif,bmp,mp4,mp3,txt" spellcheck="false">
+                </div>
+                <div class="col-md-4 option-des"> 多个请以半角逗号","隔开，留空表示不限制。如果允许图片类型文件，除了图片类型后缀外，请额外添加一项"image/*"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+
+              <input type="text" name="autoname" value="0" style="display: none">
+           
+                  <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{uid}" style="display: none" required>
+
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveQiniu">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+
+
+
+
+        <br>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/add_policy.js"></script>
+<script type="text/javascript">
+</script>
+{/block}

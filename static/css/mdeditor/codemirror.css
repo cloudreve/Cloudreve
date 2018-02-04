@@ -1,0 +1,447 @@
+/* BASICS */
+
+.CodeMirror {
+  /* Set height, width, borders, and global font properties here */
+  font-family: monospace;
+  height: 300px;
+  color: black;
+  direction: ltr;
+}
+
+/* PADDING */
+
+.CodeMirror-lines {
+  padding: 4px 0; /* Vertical padding around content */
+}
+.CodeMirror pre {
+  padding: 0 4px; /* Horizontal padding of content */
+}
+
+.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+  background-color: white; /* The little square between H and V scrollbars */
+}
+
+/* GUTTER */
+
+.CodeMirror-gutters {
+  border-right: 1px solid #ddd;
+  background-color: #f7f7f7;
+  white-space: nowrap;
+}
+.CodeMirror-linenumbers {}
+.CodeMirror-linenumber {
+  padding: 0 3px 0 5px;
+  min-width: 20px;
+  text-align: right;
+  color: #999;
+  white-space: nowrap;
+}
+
+.CodeMirror-guttermarker { color: black; }
+.CodeMirror-guttermarker-subtle { color: #999; }
+
+/* CURSOR */
+
+.CodeMirror-cursor {
+  border-left: 1px solid black;
+  border-right: none;
+  width: 0;
+}
+/* Shown when moving in bi-directional text */
+.CodeMirror div.CodeMirror-secondarycursor {
+  border-left: 1px solid silver;
+}
+.cm-fat-cursor .CodeMirror-cursor {
+  width: auto;
+  border: 0 !important;
+  background: #7e7;
+}
+.cm-fat-cursor div.CodeMirror-cursors {
+  z-index: 1;
+}
+.cm-fat-cursor-mark {
+  background-color: rgba(20, 255, 20, 0.5);
+  -webkit-animation: blink 1.06s steps(1) infinite;
+  -moz-animation: blink 1.06s steps(1) infinite;
+  animation: blink 1.06s steps(1) infinite;
+}
+.cm-animate-fat-cursor {
+  width: auto;
+  border: 0;
+  -webkit-animation: blink 1.06s steps(1) infinite;
+  -moz-animation: blink 1.06s steps(1) infinite;
+  animation: blink 1.06s steps(1) infinite;
+  background-color: #7e7;
+}
+@-moz-keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+@-webkit-keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+@keyframes blink {
+  0% {}
+  50% { background-color: transparent; }
+  100% {}
+}
+
+/* Can style cursor different in overwrite (non-insert) mode */
+.CodeMirror-overwrite .CodeMirror-cursor {}
+
+.cm-tab { display: inline-block; text-decoration: inherit; }
+
+.CodeMirror-rulers {
+  position: absolute;
+  left: 0; right: 0; top: -50px; bottom: -20px;
+  overflow: hidden;
+}
+.CodeMirror-ruler {
+  border-left: 1px solid #ccc;
+  top: 0; bottom: 0;
+  position: absolute;
+}
+
+/* DEFAULT THEME */
+
+.cm-s-default .cm-header {color: blue;}
+.cm-s-default .cm-quote {color: #090;}
+.cm-negative {color: #d44;}
+.cm-positive {color: #292;}
+.cm-header, .cm-strong {font-weight: bold;}
+.cm-em {font-style: italic;}
+.cm-link {text-decoration: underline;}
+.cm-strikethrough {text-decoration: line-through;}
+
+.cm-s-default .cm-keyword {color: #708;}
+.cm-s-default .cm-atom {color: #219;}
+.cm-s-default .cm-number {color: #164;}
+.cm-s-default .cm-def {color: #00f;}
+.cm-s-default .cm-variable,
+.cm-s-default .cm-punctuation,
+.cm-s-default .cm-property,
+.cm-s-default .cm-operator {}
+.cm-s-default .cm-variable-2 {color: #05a;}
+.cm-s-default .cm-variable-3, .cm-s-default .cm-type {color: #085;}
+.cm-s-default .cm-comment {color: #a50;}
+.cm-s-default .cm-string {color: #a11;}
+.cm-s-default .cm-string-2 {color: #f50;}
+.cm-s-default .cm-meta {color: #555;}
+.cm-s-default .cm-qualifier {color: #555;}
+.cm-s-default .cm-builtin {color: #30a;}
+.cm-s-default .cm-bracket {color: #997;}
+.cm-s-default .cm-tag {color: #170;}
+.cm-s-default .cm-attribute {color: #00c;}
+.cm-s-default .cm-hr {color: #999;}
+.cm-s-default .cm-link {color: #00c;}
+
+.cm-s-default .cm-error {color: #f00;}
+.cm-invalidchar {color: #f00;}
+
+.CodeMirror-composing { border-bottom: 2px solid; }
+
+/* Default styles for common addons */
+
+div.CodeMirror span.CodeMirror-matchingbracket {color: #0b0;}
+div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #a22;}
+.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }
+.CodeMirror-activeline-background {background: #e8f2ff;}
+
+/* STOP */
+
+/* The rest of this file contains styles related to the mechanics of
+   the editor. You probably shouldn't touch them. */
+
+.CodeMirror {
+  position: relative;
+  overflow: hidden;
+  background: white;
+}
+
+.CodeMirror-scroll {
+  overflow: scroll !important; /* Things will break if this is overridden */
+  /* 30px is the magic margin used to hide the element's real scrollbars */
+  /* See overflow: hidden in .CodeMirror */
+  margin-bottom: -30px; margin-right: -30px;
+  padding-bottom: 30px;
+  height: 100%;
+  outline: none; /* Prevent dragging from highlighting the element */
+  position: relative;
+}
+.CodeMirror-sizer {
+  position: relative;
+  border-right: 30px solid transparent;
+}
+
+/* The fake, visible scrollbars. Used to force redraw during scrolling
+   before actual scrolling happens, thus preventing shaking and
+   flickering artifacts. */
+.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {
+  position: absolute;
+  z-index: 6;
+  display: none;
+}
+.CodeMirror-vscrollbar {
+  right: 0; top: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
+.CodeMirror-hscrollbar {
+  bottom: 0; left: 0;
+  overflow-y: hidden;
+  overflow-x: scroll;
+}
+.CodeMirror-scrollbar-filler {
+  right: 0; bottom: 0;
+}
+.CodeMirror-gutter-filler {
+  left: 0; bottom: 0;
+}
+
+.CodeMirror-gutters {
+  position: absolute; left: 0; top: 0;
+  min-height: 100%;
+  z-index: 3;
+}
+.CodeMirror-gutter {
+  white-space: normal;
+  height: 100%;
+  display: inline-block;
+  vertical-align: top;
+  margin-bottom: -30px;
+}
+.CodeMirror-gutter-wrapper {
+  position: absolute;
+  z-index: 4;
+  background: none !important;
+  border: none !important;
+}
+.CodeMirror-gutter-background {
+  position: absolute;
+  top: 0; bottom: 0;
+  z-index: 4;
+}
+.CodeMirror-gutter-elt {
+  position: absolute;
+  cursor: default;
+  z-index: 4;
+}
+.CodeMirror-gutter-wrapper ::selection { background-color: transparent }
+.CodeMirror-gutter-wrapper ::-moz-selection { background-color: transparent }
+
+.CodeMirror-lines {
+  cursor: text;
+  min-height: 1px; /* prevents collapsing before first draw */
+}
+.CodeMirror pre {
+  /* Reset some styles that the rest of the page might have set */
+  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;
+  border-width: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  margin: 0;
+  white-space: pre;
+  word-wrap: normal;
+  line-height: inherit;
+  color: inherit;
+  z-index: 2;
+  position: relative;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-variant-ligatures: contextual;
+  font-variant-ligatures: contextual;
+}
+.CodeMirror-wrap pre {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: normal;
+}
+
+.CodeMirror-linebackground {
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  z-index: 0;
+}
+
+.CodeMirror-linewidget {
+  position: relative;
+  z-index: 2;
+  padding: 0.1px; /* Force widget margins to stay inside of the container */
+}
+
+.CodeMirror-widget {}
+
+.CodeMirror-rtl pre { direction: rtl; }
+
+.CodeMirror-code {
+  outline: none;
+}
+
+/* Force content-box sizing for the elements where we expect it */
+.CodeMirror-scroll,
+.CodeMirror-sizer,
+.CodeMirror-gutter,
+.CodeMirror-gutters,
+.CodeMirror-linenumber {
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+}
+
+.CodeMirror-measure {
+  position: absolute;
+  width: 100%;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.CodeMirror-cursor {
+  position: absolute;
+  pointer-events: none;
+}
+.CodeMirror-measure pre { position: static; }
+
+div.CodeMirror-cursors {
+  visibility: hidden;
+  position: relative;
+  z-index: 3;
+}
+div.CodeMirror-dragcursors {
+  visibility: visible;
+}
+
+.CodeMirror-focused div.CodeMirror-cursors {
+  visibility: visible;
+}
+
+.CodeMirror-selected { background: #d9d9d9; }
+.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }
+.CodeMirror-crosshair { cursor: crosshair; }
+.CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: #d7d4f0; }
+.CodeMirror-line::-moz-selection, .CodeMirror-line > span::-moz-selection, .CodeMirror-line > span > span::-moz-selection { background: #d7d4f0; }
+
+.cm-searching {
+  background-color: #ffa;
+  background-color: rgba(255, 255, 0, .4);
+}
+
+/* Used to force a border model for a node */
+.cm-force-border { padding-right: .1px; }
+
+@media print {
+  /* Hide the cursor when printing */
+  .CodeMirror div.CodeMirror-cursors {
+    visibility: hidden;
+  }
+}
+
+/* See issue #2901 */
+.cm-tab-wrap-hack:after { content: ''; }
+
+/* Help users use markselection to safely style text background */
+span.CodeMirror-selectedtext { background: none; }
+/*
+
+github.com style (c) Vasily Polovnyov <vast@whiteants.net>
+
+*/
+
+.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0.5em;
+  color: #333;
+  background: #f8f8f8;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #998;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #333;
+  font-weight: bold;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+  color: #008080;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #d14;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  color: #900;
+  font-weight: bold;
+}
+
+.hljs-subst {
+  font-weight: normal;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #458;
+  font-weight: bold;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-attribute {
+  color: #000080;
+  font-weight: normal;
+}
+
+.hljs-regexp,
+.hljs-link {
+  color: #009926;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  color: #990073;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #0086b3;
+}
+
+.hljs-meta {
+  color: #999;
+  font-weight: bold;
+}
+
+.hljs-deletion {
+  background: #fdd;
+}
+
+.hljs-addition {
+  background: #dfd;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+@charset "UTF-8";.auto-height,.auto-height .tui-editor-defaultUI{height:auto}.auto-height .tui-editor{position:relative}:not(.auto-height)>.tui-editor-defaultUI,:not(.auto-height)>.tui-editor-defaultUI>.te-editor-section{display:-ms-flexbox;display:flex;-ms-flex-direction:column;flex-direction:column}:not(.auto-height)>.tui-editor-defaultUI>.te-editor-section{-ms-flex:1;flex:1}.tui-editor-defaultUI-toolbar:after,.tui-editor:after{content:"";display:block;height:0;clear:both}.tui-editor{position:absolute;line-height:1;color:#181818;width:100%;height:inherit}.te-editor-section{min-height:0;position:relative;height:inherit}.te-md-container{display:none;overflow:hidden;height:100%}.te-md-container .te-editor{line-height:1.5}.te-md-container .te-editor,.te-md-container .te-preview{box-sizing:border-box;padding:0;height:inherit}.te-md-container .CodeMirror{font-size:13px;height:inherit}.te-md-container .te-preview{overflow:auto;padding:0 25px;height:100%}.te-md-container .te-preview>p:first-child{margin-top:0!important}.te-md-container .te-preview .tui-editor-contents{padding-top:11px}.tui-editor .te-preview-style-tab>.te-editor,.tui-editor .te-preview-style-tab>.te-preview{float:left;width:100%;display:none}.tui-editor .te-preview-style-tab>.te-tab-active{display:block}.tui-editor .te-preview-style-vertical>.te-tab-section{display:none}.tui-editor .te-preview-style-tab>.te-tab-section{display:block}.tui-editor .te-preview-style-vertical .te-editor{float:left;width:50%}.tui-editor .te-preview-style-vertical .te-preview{float:left;width:50%}.tui-editor .te-md-splitter{display:none;position:absolute;left:50%;top:0;height:100%;width:1px;border-left:1px solid #e5e5e5}.tui-editor .te-preview-style-vertical .te-md-splitter{display:block}.te-ww-container{display:none;overflow:hidden;z-index:10;height:inherit;background-color:#fff}.te-ww-container>.te-editor{overflow:auto;height:inherit}.te-ww-container .tui-editor-contents:focus{outline:0}.te-ww-container .tui-editor-contents{padding:0 25px}.te-ww-container .tui-editor-contents:first-child{box-sizing:border-box;margin:0;padding:16px 25px 0 25px;height:inherit}.te-ww-container .tui-editor-contents:last-child{margin-bottom:16px}.te-md-mode .te-md-container{display:block;z-index:100}.te-ww-mode .te-ww-container{display:block;z-index:100}.tui-editor-defaultUI.te-hide,.tui-editor.te-hide{display:none}.tui-editor-defaultUI .CodeMirror-lines{padding-top:13px;padding-bottom:13px}.tui-editor-defaultUI .CodeMirror-line{padding-left:25px;padding-right:25px}.tui-editor-contents td.te-cell-selected{background-color:#d8dfec}.tui-editor-contents td.te-cell-selected::selection{background-color:#d8dfec}.tui-editor-contents th.te-cell-selected{background-color:#908f8f}.tui-editor-contents th.te-cell-selected::selection{background-color:#908f8f}.tui-editor-defaultUI{position:relative;border:1px solid #e5e5e5;height:100%;font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}.tui-editor-defaultUI button{color:#fff;padding:0 14px 0 15px;height:28px;font-size:12px;border:none;cursor:pointer;outline:0}.tui-editor-defaultUI button.te-ok-button{background-color:#4b96e6}.tui-editor-defaultUI button.te-close-button{background-color:#777}.tui-editor-defaultUI-toolbar{padding:0 25px;height:31px;background-color:#fff;border:0;overflow:hidden}.tui-toolbar-divider{float:left;display:inline-block;width:1px;height:14px;background-color:#ddd;margin:9px 6px}.tui-toolbar-button-group{height:28px;border-right:1px solid #d9d9d9;float:left}.te-toolbar-section{height:32px;box-sizing:border-box;border-bottom:1px solid #e5e5e5}.tui-editor-defaultUI-toolbar button{float:left;box-sizing:border-box;outline:0;cursor:pointer;background-color:#fff;width:22px;height:22px;padding:3px;border-radius:0;margin:5px 3px;border:1px solid #fff}.tui-editor-defaultUI-toolbar button.active,.tui-editor-defaultUI-toolbar button:active,.tui-editor-defaultUI-toolbar button:hover{border:1px solid #aaa;background-color:#fff}.tui-editor-defaultUI-toolbar button:first-child{margin-left:0}.tui-editor-defaultUI-toolbar button:last-child{margin-right:0}.tui-editor-defaultUI-toolbar button.tui-scrollsync{width:auto;color:#777;border:0}.tui-editor-defaultUI button.tui-scrollsync:after{content:"Scroll off"}.tui-editor-defaultUI button.tui-scrollsync.active{color:#125de6;font-weight:700}.tui-editor-defaultUI button.tui-scrollsync.active:after{content:"Scroll on"}.tui-editor-defaultUI .te-mode-switch-section{background-color:#f9f9f9;border-top:1px solid #e5e5e5;height:20px;font-size:12px}.tui-editor-defaultUI .te-mode-switch{float:right;height:100%}.tui-editor-defaultUI .te-switch-button{width:92px;height:inherit;background:#e5e5e5;outline:0;color:#a0aabf;cursor:pointer;border:0;border-left:1px solid #ddd;border-right:1px solid #ddd}.tui-editor-defaultUI .te-switch-button.active{background-color:#fff;color:#000}.tui-editor-defaultUI .te-markdown-tab-section{float:left;height:31px;background:#fff}.te-markdown-tab-section .te-tab{margin:0 -7px 0 24px;background:#fff}.tui-editor-defaultUI .te-tab button{box-sizing:border-box;line-height:100%;position:relative;cursor:pointer;z-index:1;font-size:13px;background-color:#f9f9f9;border:solid 1px #e5e5e5;border-top:0;padding:0 9px;color:#777;border-radius:0;outline:0}.te-markdown-tab-section .te-tab button:last-child{margin-left:-1px}.te-markdown-tab-section .te-tab button.te-tab-active,.te-markdown-tab-section .te-tab button:hover.te-tab-active{background-color:#fff;color:#333;border-bottom:1px solid #fff;z-index:2}.te-markdown-tab-section .te-tab button:hover{background-color:#fff;color:#333}.tui-popup-modal-background{background-color:rgba(202,202,202,.6);position:fixed;margin:0;left:0;top:0;width:100%;height:100%;z-index:9999}.tui-popup-modal-background.fit-window .tui-popup-wrapper,.tui-popup-wrapper.fit-window{width:100%;height:100%}.tui-popup-wrapper{width:500px;margin-right:auto;border:1px solid #cacaca;background:#fff;z-index:9999}.tui-popup-modal-background .tui-popup-wrapper{position:absolute;margin:auto;top:0;right:0;bottom:0;left:0}.tui-popup-header{padding:10px;height:auto;line-height:normal;position:relative;border-bottom:1px solid #cacaca}.tui-popup-header .tui-popup-header-buttons{float:right}.tui-popup-header .tui-popup-header-buttons button{padding:0;background-color:transparent;background-size:cover;float:left}.tui-popup-header .tui-popup-close-button{margin:3px;width:13px;height:13px;background-image:url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSIxMHB4IiBoZWlnaHQ9IjEwcHgiIHZpZXdCb3g9IjAgMCAxMCAxMCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4gICAgICAgIDx0aXRsZT5GMjc2Qzc4MC0zM0JBLTQ3MTItQTM3OC04RkQwQUNDOTFDRTk8L3RpdGxlPiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggc2tldGNodG9vbC48L2Rlc2M+ICAgIDxkZWZzPjwvZGVmcz4gICAgPGcgaWQ9IlN5bWJvbHMiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgaWQ9ImxuYi1mb2xkZXItZGVsIiBmaWxsLXJ1bGU9Im5vbnplcm8iIGZpbGw9IiM3Nzc3NzciPiAgICAgICAgICAgIDxwYXRoIGQ9Ik01LDMuNTg1Nzg2NDQgTDEuNzA3MTA2NzgsMC4yOTI4OTMyMTkgTDAuMjkyODkzMjE5LDEuNzA3MTA2NzggTDMuNTg1Nzg2NDQsNSBMMC4yOTI4OTMyMTksOC4yOTI4OTMyMiBMMS43MDcxMDY3OCw5LjcwNzEwNjc4IEw1LDYuNDE0MjEzNTYgTDguMjkyODkzMjIsOS43MDcxMDY3OCBMOS43MDcxMDY3OCw4LjI5Mjg5MzIyIEw2LjQxNDIxMzU2LDUgTDkuNzA3MTA2NzgsMS43MDcxMDY3OCBMOC4yOTI4OTMyMiwwLjI5Mjg5MzIxOSBMNSwzLjU4NTc4NjQ0IFoiIGlkPSJDb21iaW5lZC1TaGFwZSI+PC9wYXRoPiAgICAgICAgPC9nPiAgICA8L2c+PC9zdmc+)}.tui-popup-header .tui-popup-title{font-size:13px;font-weight:700;color:#333;vertical-align:bottom}.tui-popup-body{padding:15px;font-size:12px}.tui-editor-popup{position:absolute;top:30px;left:50%;margin-left:-250px}.tui-editor-popup.tui-popup-modal-background{position:fixed;top:0;left:0;margin:0}.tui-editor-popup .tui-popup-body label{font-weight:700;color:#666;display:block;margin:10px 0 5px}.tui-editor-popup .tui-popup-body .te-button-section{margin-top:15px}.tui-editor-popup .tui-popup-body input[type=file],.tui-editor-popup .tui-popup-body input[type=text]{padding:4px 10px;border:1px solid #bfbfbf;box-sizing:border-box;width:100%}.tui-editor-popup .tui-popup-body input.wrong{border-color:red}.te-popup-add-link .tui-popup-wrapper{height:219px}.te-popup-add-image .tui-popup-wrapper{height:243px}.te-popup-add-image .te-tab{display:block;background:0 0;border-bottom:1px solid #ebebeb;margin-bottom:8px}.te-popup-add-image .te-url-type{display:none}.te-popup-add-image .te-file-type{display:none}.te-popup-add-image div.te-tab-active,.te-popup-add-image form.te-tab-active{display:block}.te-popup-add-image .te-tab button{border:1px solid #ccc;background:#eee;min-width:100px;margin-left:-1px;border-bottom:0;border-radius:3px 3px 0 0}.te-popup-add-image .te-tab button.te-tab-active{background:#fff}.te-popup-add-table .te-table-selection{position:relative}.te-popup-add-table .te-table-body{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAARCAYAAAAougcOAAAC7mlDQ1BJQ0MgUHJvZmlsZQAAeAGFVM9rE0EU/jZuqdAiCFprDrJ4kCJJWatoRdQ2/RFiawzbH7ZFkGQzSdZuNuvuJrWliOTi0SreRe2hB/+AHnrwZC9KhVpFKN6rKGKhFy3xzW5MtqXqwM5+8943731vdt8ADXLSNPWABOQNx1KiEWlsfEJq/IgAjqIJQTQlVdvsTiQGQYNz+Xvn2HoPgVtWw3v7d7J3rZrStpoHhP1A4Eea2Sqw7xdxClkSAog836Epx3QI3+PY8uyPOU55eMG1Dys9xFkifEA1Lc5/TbhTzSXTQINIOJT1cVI+nNeLlNcdB2luZsbIEL1PkKa7zO6rYqGcTvYOkL2d9H5Os94+wiHCCxmtP0a4jZ71jNU/4mHhpObEhj0cGDX0+GAVtxqp+DXCFF8QTSeiVHHZLg3xmK79VvJKgnCQOMpkYYBzWkhP10xu+LqHBX0m1xOv4ndWUeF5jxNn3tTd70XaAq8wDh0MGgyaDUhQEEUEYZiwUECGPBoxNLJyPyOrBhuTezJ1JGq7dGJEsUF7Ntw9t1Gk3Tz+KCJxlEO1CJL8Qf4qr8lP5Xn5y1yw2Fb3lK2bmrry4DvF5Zm5Gh7X08jjc01efJXUdpNXR5aseXq8muwaP+xXlzHmgjWPxHOw+/EtX5XMlymMFMXjVfPqS4R1WjE3359sfzs94i7PLrXWc62JizdWm5dn/WpI++6qvJPmVflPXvXx/GfNxGPiKTEmdornIYmXxS7xkthLqwviYG3HCJ2VhinSbZH6JNVgYJq89S9dP1t4vUZ/DPVRlBnM0lSJ93/CKmQ0nbkOb/qP28f8F+T3iuefKAIvbODImbptU3HvEKFlpW5zrgIXv9F98LZua6N+OPwEWDyrFq1SNZ8gvAEcdod6HugpmNOWls05Uocsn5O66cpiUsxQ20NSUtcl12VLFrOZVWLpdtiZ0x1uHKE5QvfEp0plk/qv8RGw/bBS+fmsUtl+ThrWgZf6b8C8/UXAeIuJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAOklEQVQ4EWO8e/fuPwYGBkYgphlgAZmspKREMwtABjPR1HSo4aOWkBTKo8E1GlwkhQBJikdT1wgNLgAMSwQgckFvTgAAAABJRU5ErkJggg==)}.te-popup-add-table .te-table-header{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAARCAYAAAAougcOAAAC7mlDQ1BJQ0MgUHJvZmlsZQAAeAGFVM9rE0EU/jZuqdAiCFprDrJ4kCJJWatoRdQ2/RFiawzbH7ZFkGQzSdZuNuvuJrWliOTi0SreRe2hB/+AHnrwZC9KhVpFKN6rKGKhFy3xzW5MtqXqwM5+8943731vdt8ADXLSNPWABOQNx1KiEWlsfEJq/IgAjqIJQTQlVdvsTiQGQYNz+Xvn2HoPgVtWw3v7d7J3rZrStpoHhP1A4Eea2Sqw7xdxClkSAog836Epx3QI3+PY8uyPOU55eMG1Dys9xFkifEA1Lc5/TbhTzSXTQINIOJT1cVI+nNeLlNcdB2luZsbIEL1PkKa7zO6rYqGcTvYOkL2d9H5Os94+wiHCCxmtP0a4jZ71jNU/4mHhpObEhj0cGDX0+GAVtxqp+DXCFF8QTSeiVHHZLg3xmK79VvJKgnCQOMpkYYBzWkhP10xu+LqHBX0m1xOv4ndWUeF5jxNn3tTd70XaAq8wDh0MGgyaDUhQEEUEYZiwUECGPBoxNLJyPyOrBhuTezJ1JGq7dGJEsUF7Ntw9t1Gk3Tz+KCJxlEO1CJL8Qf4qr8lP5Xn5y1yw2Fb3lK2bmrry4DvF5Zm5Gh7X08jjc01efJXUdpNXR5aseXq8muwaP+xXlzHmgjWPxHOw+/EtX5XMlymMFMXjVfPqS4R1WjE3359sfzs94i7PLrXWc62JizdWm5dn/WpI++6qvJPmVflPXvXx/GfNxGPiKTEmdornIYmXxS7xkthLqwviYG3HCJ2VhinSbZH6JNVgYJq89S9dP1t4vUZ/DPVRlBnM0lSJ93/CKmQ0nbkOb/qP28f8F+T3iuefKAIvbODImbptU3HvEKFlpW5zrgIXv9F98LZua6N+OPwEWDyrFq1SNZ8gvAEcdod6HugpmNOWls05Uocsn5O66cpiUsxQ20NSUtcl12VLFrOZVWLpdtiZ0x1uHKE5QvfEp0plk/qv8RGw/bBS+fmsUtl+ThrWgZf6b8C8/UXAeIuJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAOklEQVQ4EWO8e/fuPwYGBkYgphlgAZksLCxMMwtABjPR1HSo4aOWkBTKo8E1GlwkhQBJikdT1wgNLgDxKwPzTeWPdAAAAABJRU5ErkJggg==)}.te-popup-add-table .te-selection-area{position:absolute;top:0;left:0;background:#80d2ff;opacity:.3;z-index:999}.te-popup-add-table .te-description{margin:10px 0 0 0;text-align:center}.te-popup-table-utils{width:120px}.te-popup-table-utils .tui-popup-body{padding:0}.te-popup-table-utils button{width:100%;background-color:#fff;border:none;outline:0;padding:0 10px 0 10px;font-size:12px;line-height:28px;text-align:left;color:#777}.te-popup-table-utils button:hover{background-color:#f4f4f4}.te-popup-table-utils hr{background-color:#cacaca;border-style:none;height:1px}.te-heading-add{width:auto}.te-heading-add .tui-popup-body{padding:0}.te-heading-add h1,.te-heading-add h2,.te-heading-add h3,.te-heading-add h4,.te-heading-add h5,.te-heading-add h6,.te-heading-add p,.te-heading-add ul{padding:0;margin:0}.te-heading-add ul{list-style:none}.te-heading-add ul li{padding:2px 10px;cursor:pointer}.te-heading-add ul li:hover{background-color:#eee}.te-heading-add h1{font-size:24px}.te-heading-add h2{font-size:22px}.te-heading-add h3{font-size:20px}.te-heading-add h4{font-size:18px}.te-heading-add h5{font-size:16px}.te-heading-add h6{font-size:14px}.tui-popup-color{padding:0}.tui-popup-color .tui-colorpicker-container,.tui-popup-color .tui-colorpicker-palette-container{width:144px}.tui-popup-color .tui-colorpicker-container ul{width:144px;margin-bottom:8px}.tui-popup-color .tui-colorpicker-container li{padding:0 1px 1px 0}.tui-popup-color .tui-colorpicker-container li .tui-colorpicker-palette-button{border:0;width:17px;height:17px}.tui-popup-color .tui-popup-body{padding:10px}.tui-popup-color .tui-colorpicker-container .tui-colorpicker-palette-toggle-slider{display:none}.tui-popup-color .te-apply-button,.tui-popup-color .tui-colorpicker-palette-hex{float:right}.tui-popup-color .te-apply-button{height:21px;width:35px;background:#fff;border:1px solid #efefef;position:absolute;bottom:141px;right:10px}.tui-popup-color .tui-colorpicker-container .tui-colorpicker-palette-hex{border:1px solid #e1e1e1;padding:3px 14px;margin-left:-1px}.tui-popup-color .tui-colorpicker-container div.tui-colorpicker-clearfix{display:inline-block}.tui-popup-color .tui-colorpicker-container .tui-colorpicker-palette-preview{width:19px;height:19px}.tui-popup-color .tui-colorpicker-slider-container .tui-colorpicker-slider-right{width:22px}.tui-popup-color .tui-colorpicker-slider-container .tui-colorpicker-huebar-handle{display:none}.tui-tooltip{position:absolute;background-color:#222;z-index:999;opacity:.8;color:#fff;padding:2px 5px;font-size:10px}.tui-tooltip .arrow{content:"";display:inline-block;width:10px;height:10px;background-color:#222;-webkit-transform:rotate(45deg);-moz-transform:rotate(45deg);-ms-transform:rotate(45deg);-o-transform:rotate(45deg);transform:rotate(45deg);position:absolute;top:-3px;left:6px;z-index:-1}.tui-toolbar-icons{background:url(data:image/png;base64,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) top left no-repeat;display:inline-block;width:34px}.tui-toolbar-icons.tui-bold{background-position:-4px -4px}.tui-toolbar-icons.tui-color{background-position:-92px -70px}.tui-toolbar-icons.tui-italic{background-position:-4px -48px}.tui-toolbar-icons.tui-strike{background-position:-4px -26px}.tui-toolbar-icons.tui-quote{background-position:-4px -114px}.tui-toolbar-icons.tui-heading{background-position:-92px -48px}.tui-toolbar-icons.tui-hrline{background-position:-26px -92px}.tui-toolbar-icons.tui-task{background-position:-70px -48px}.tui-toolbar-icons.tui-ol{background-position:-26px -26px}.tui-toolbar-icons.tui-ul{background-position:-26px -4px}.tui-toolbar-icons.tui-table{background-position:-48px -92px}.tui-toolbar-icons.tui-code{background-position:-70px -92px}.tui-toolbar-icons.tui-codeblock{background-position:-70px -70px}.tui-toolbar-icons.tui-link{background-position:-70px -26px}.tui-toolbar-icons.tui-image{background-position:-70px -4px}.tui-colorpicker-svg-slider{border:1px solid #ebebeb}.tui-colorpicker-vml-slider{border:1px solid #ebebeb}.tui-colorpicker-svg-huebar{border:1px solid #ebebeb}.CodeMirror-sizer{margin-top:6px}.CodeMirror .cm-header{font-weight:700;color:inherit}.CodeMirror .cm-header-1{font-size:24px}.CodeMirror .cm-header-2{font-size:22px}.CodeMirror .cm-header-3{font-size:20px}.CodeMirror .cm-header-4{font-size:18px}.CodeMirror .cm-header-5{font-size:16px}.CodeMirror .cm-header-6{font-size:14px}.CodeMirror .cm-variable-2{color:inherit}.tui-editor-pseudo-clipboard{position:fixed;left:-1000px;top:-1000px;width:100px;height:100px}.te-ww-block-overlay.code-block-header{text-align:right;font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}.te-ww-block-overlay.code-block-header span{font-size:10px;font-weight:600;padding:0 10px;color:#333;cursor:default}.te-ww-block-overlay.code-block-header button{margin:8px;font-size:10px;color:#333;background-color:#f9f9f9;border:1px solid #ddd;padding:4px;height:auto}.te-popup-code-block-languages{position:fixed;box-sizing:border-box;width:130px}.te-popup-code-block-languages .tui-popup-body{max-height:169px;overflow:auto;padding:0}.te-popup-code-block-languages button{width:100%;background-color:#fff;border:none;outline:0;padding:0 10px 0 10px;font-size:12px;line-height:24px;text-align:left;color:#777}.te-popup-code-block-languages button.active{background-color:#f4f4f4}.tui-popup-code-block-editor .tui-popup-wrapper{width:70%;height:70%;margin:auto;display:-ms-flexbox;display:flex;-ms-flex-direction:column;flex-direction:column}.te-input-language{position:relative;margin-left:15px;cursor:pointer}.te-input-language input{font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:10px;padding:3px 5px;border:1px solid #ddd;background-color:#f9f9f9;box-sizing:border-box;width:130px;outline:0}.te-input-language input::-ms-clear{display:none}.te-input-language::after{content:url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSIxMnB4IiBoZWlnaHQ9IjE0cHgiIHZpZXdCb3g9IjAgMCAxMiAxNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4gICAgICAgIDx0aXRsZT42Q0NBRDk2QS0yMjYxLTRFNDAtOTk1RC1DRUUyQUREQUQ3NkQ8L3RpdGxlPiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggc2tldGNodG9vbC48L2Rlc2M+ICAgIDxkZWZzPjwvZGVmcz4gICAgPGcgaWQ9IlN5bWJvbHMiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgaWQ9ImNvbS10cmFuZ2xlLWQtc2lkZSIgZmlsbD0iIzU1NTU1NSI+ICAgICAgICAgICAgPHBvbHlnb24gaWQ9IlJlY3RhbmdsZS03IiBwb2ludHM9IjIgNSAxMCA1IDYgMTAiPjwvcG9seWdvbj4gICAgICAgIDwvZz4gICAgPC9nPjwvc3ZnPg==);position:absolute;top:1px;right:3px}.te-input-language.active::after{content:url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSIxMnB4IiBoZWlnaHQ9IjE0cHgiIHZpZXdCb3g9IjAgMCAxMiAxNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4gICAgICAgIDx0aXRsZT5BNEZDRkIzMy0zNjdBLTREMjAtOEEyNC1DQ0I2ODFBMDZDODg8L3RpdGxlPiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggc2tldGNodG9vbC48L2Rlc2M+ICAgIDxkZWZzPjwvZGVmcz4gICAgPGcgaWQ9IlN5bWJvbHMiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgaWQ9ImNvbS10cmFuZ2xlLXVwLXNpZGUiIGZpbGw9IiM1NTU1NTUiPiAgICAgICAgICAgIDxwb2x5Z29uIGlkPSJSZWN0YW5nbGUtNyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNi4wMDAwMDAsIDYuNTAwMDAwKSBzY2FsZSgxLCAtMSkgdHJhbnNsYXRlKC02LjAwMDAwMCwgLTYuNTAwMDAwKSAiIHBvaW50cz0iMiA0IDEwIDQgNiA5Ij48L3BvbHlnb24+ICAgICAgICA8L2c+ICAgIDwvZz48L3N2Zz4=)}.tui-popup-code-block-editor button{margin:-1px 3px}.tui-popup-code-block-editor .tui-popup-header-buttons{height:20px}.tui-popup-code-block-editor .popup-editor-toggle-preview::after{content:'Preview off';color:#777;margin-right:22px}.tui-popup-code-block-editor .popup-editor-toggle-preview.active::after{content:'Preview on';color:#4b96e6}.tui-popup-code-block-editor .popup-editor-toggle-scroll::after{content:'Scroll off';color:#777;margin-right:16px}.tui-popup-code-block-editor .popup-editor-toggle-scroll.active::after{content:'Scroll on';color:#4b96e6}.tui-popup-code-block-editor .popup-editor-toggle-fit{width:18px;height:18px;margin-top:4px;margin-right:14px;background-image:url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSIxOHB4IiBoZWlnaHQ9IjE4cHgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4gICAgICAgIDx0aXRsZT40OUQ4RTYyMy1GRTAyLTQ1RUUtQkQ5Ri0xMjUyQjEzRTU1MkQ8L3RpdGxlPiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggc2tldGNodG9vbC48L2Rlc2M+ICAgIDxkZWZzPjwvZGVmcz4gICAgPGcgaWQ9IlN5bWJvbHMiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgaWQ9ImNvbnRlbnRzLWV4cGFuZCIgZmlsbD0iIzU1NTU1NSI+ICAgICAgICAgICAgPHBhdGggZD0iTTMsMyBMOSwzIEw5LDUgTDUsNSBMNSw5IEwzLDkgTDMsMyBaIE0xNSwxNSBMOSwxNSBMOSwxMyBMMTMsMTMgTDEzLDkgTDE1LDkgTDE1LDE1IFoiIGlkPSJDb21iaW5lZC1TaGFwZSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoOS4wMDAwMDAsIDkuMDAwMDAwKSBzY2FsZSgtMSwgMSkgdHJhbnNsYXRlKC05LjAwMDAwMCwgLTkuMDAwMDAwKSAiPjwvcGF0aD4gICAgICAgICAgICA8cG9seWdvbiBpZD0iTGluZSIgZmlsbC1ydWxlPSJub256ZXJvIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMS41MDAwMDAsIDYuNTAwMDAwKSBzY2FsZSgtMSwgMSkgdHJhbnNsYXRlKC0xMS41MDAwMDAsIC02LjUwMDAwMCkgIiBwb2ludHM9IjkuMDg1Nzg2NDQgNS41IDEyLjUgOC45MTQyMTM1NiAxMy45MTQyMTM2IDcuNSAxMC41IDQuMDg1Nzg2NDQiPjwvcG9seWdvbj4gICAgICAgICAgICA8cG9seWdvbiBpZD0iTGluZS1Db3B5IiBmaWxsLXJ1bGU9Im5vbnplcm8iIHRyYW5zZm9ybT0idHJhbnNsYXRlKDYuNTAwMDAwLCAxMS41MDAwMDApIHNjYWxlKC0xLCAxKSB0cmFuc2xhdGUoLTYuNTAwMDAwLCAtMTEuNTAwMDAwKSAiIHBvaW50cz0iNC4wODU3ODY0NCAxMC41IDcuNSAxMy45MTQyMTM2IDguOTE0MjEzNTYgMTIuNSA1LjUgOS4wODU3ODY0NCI+PC9wb2x5Z29uPiAgICAgICAgPC9nPiAgICA8L2c+PC9zdmc+)}.tui-popup-code-block-editor .popup-editor-toggle-fit.active{background-image:url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIHdpZHRoPSIxOHB4IiBoZWlnaHQ9IjE4cHgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4gICAgICAgIDx0aXRsZT4wN0Q1MjlCRi1GNTIzLTREN0EtQTlGNi05NTUzNTU5RDNEMUE8L3RpdGxlPiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggc2tldGNodG9vbC48L2Rlc2M+ICAgIDxkZWZzPjwvZGVmcz4gICAgPGcgaWQ9IlN5bWJvbHMiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPiAgICAgICAgPGcgaWQ9ImNvbnRlbnRzLXJlZHVjZSIgZmlsbD0iIzU1NTU1NSI+ICAgICAgICAgICAgPHBvbHlnb24gaWQ9IlBhdGgtMzIiIGZpbGwtcnVsZT0ibm9uemVybyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNS41MDAwMDAsIDEyLjUwMDAwMCkgc2NhbGUoLTEsIDEpIHRyYW5zbGF0ZSgtNS41MDAwMDAsIC0xMi41MDAwMDApICIgcG9pbnRzPSIzLjA4NTc4NjQ0IDExLjUgNi41IDE0LjkxNDIxMzYgNy45MTQyMTM1NiAxMy41IDQuNSAxMC4wODU3ODY0Ij48L3BvbHlnb24+ICAgICAgICAgICAgPHBhdGggZD0iTTksOSBMMTUsOSBMMTUsMTEgTDExLDExIEwxMSwxNSBMOSwxNSBMOSw5IFogTTksOSBMMyw5IEwzLDcgTDcsNyBMNywzIEw5LDMgTDksOSBaIiBpZD0iQ29tYmluZWQtU2hhcGUiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDkuMDAwMDAwLCA5LjAwMDAwMCkgc2NhbGUoLTEsIDEpIHRyYW5zbGF0ZSgtOS4wMDAwMDAsIC05LjAwMDAwMCkgIj48L3BhdGg+ICAgICAgICAgICAgPHBvbHlnb24gaWQ9IlBhdGgtMzMiIGZpbGwtcnVsZT0ibm9uemVybyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTIuNTAwMDAwLCA1LjUwMDAwMCkgc2NhbGUoLTEsIDEpIHRyYW5zbGF0ZSgtMTIuNTAwMDAwLCAtNS41MDAwMDApICIgcG9pbnRzPSIxNC45MTQyMTM2IDYuNSAxMS41IDMuMDg1Nzg2NDQgMTAuMDg1Nzg2NCA0LjUgMTMuNSA3LjkxNDIxMzU2Ij48L3BvbHlnb24+ICAgICAgICA8L2c+ICAgIDwvZz48L3N2Zz4=)}.tui-popup-code-block-editor .tui-popup-close-button{margin-top:6px}.tui-popup-code-block-editor .tui-popup-body{z-index:-1;padding:0;display:-ms-flexbox;display:flex;-ms-flex-direction:column;flex-direction:column;-ms-flex:1;flex:1}.tui-popup-code-block-editor .popup-editor-body{position:relative;-ms-flex:1;flex:1;border-bottom:1px solid #cacaca}.tui-popup-code-block-editor .te-button-section{padding:15px}.tui-popup-code-block-editor .te-button-section button{float:left}.tui-popup-code-block-editor .tui-editor-contents pre{margin:0;background-color:transparent}.tui-popup-code-block-editor .CodeMirror{height:auto}.tui-popup-code-block-editor .CodeMirror-line{font-family:Consolas,Courier,"Apple SD 산돌고딕 Neo",-apple-system,"Lucida Grande","Apple SD Gothic Neo","맑은 고딕","Malgun Gothic","Segoe UI","돋움",dotum,sans-serif;font-size:13px;line-height:160%;letter-spacing:-.3px}.tui-popup-code-block-editor .popup-editor-editor-wrapper{min-height:100%}.tui-split-scroll-wrapper{position:relative}.tui-split-scroll{position:absolute}.tui-split-scroll,.tui-split-scroll-wrapper{width:100%;height:100%}.tui-split-scroll .tui-split-content-left,.tui-split-scroll .tui-split-content-right{position:absolute;top:0;width:50%;box-sizing:border-box}.tui-split-scroll .tui-split-content-left{left:0}.tui-split-scroll .tui-split-content-right{left:50%}.tui-split-scroll .tui-splitter{position:absolute;left:50%;top:0;height:100%;width:1px;border-left:1px solid #cacaca}.tui-split-scroll .tui-split-scroll-content{width:100%;height:100%;overflow:hidden;position:relative}.tui-split-scroll .tui-split-content-left,.tui-split-scroll .tui-split-content-right{height:100%;overflow-x:hidden;overflow-y:auto}.tui-split-scroll button.tui-scrollsync{top:10px;opacity:.2}.tui-split-scroll button.tui-scrollsync::after{content:"scroll off"}.tui-split-scroll.scroll-sync button.tui-scrollsync{opacity:.5}.tui-split-scroll.scroll-sync .tui-split-content-left,.tui-split-scroll.scroll-sync .tui-split-content-right{height:auto;overflow:initial}.tui-split-scroll.scroll-sync button.tui-scrollsync::after{content:"scroll on"}.tui-split-scroll.scroll-sync .tui-split-scroll-content{overflow-y:auto}.tui-split-scroll.single-content .tui-splitter{display:none}.tui-split-scroll.single-content .tui-split-content-left{width:100%}.tui-split-scroll.single-content .tui-split-content-right{display:none}.tui-split-scroll.single-content button.tui-scrollsync{display:none}@media all and (-ms-high-contrast:none),(-ms-high-contrast:active){.tui-split-scroll-wrapper .tui-splitter{left:calc(50% - 9px)}}@supports (-ms-accelerator:true){.tui-split-scroll-wrapper .tui-splitter{left:calc(50% - 9px)}}@media screen and (max-width:480px){.tui-popup-wrapper{max-width:300px}.tui-editor-popup{margin-left:-150px}}
+@charset "UTF-8";.CodeMirror,.tui-editor-contents{font-family:"Open Sans","Helvetica Neue",Helvetica,Arial,sans-serif}.tui-editor-contents :not(table){line-height:160%;box-sizing:content-box}.tui-editor-contents address,.tui-editor-contents cite,.tui-editor-contents dfn,.tui-editor-contents em,.tui-editor-contents i,.tui-editor-contents var{font-style:italic}.tui-editor-contents strong{font-weight:700}.tui-editor-contents p{margin:10px 0;color:#555}.tui-editor-contents>div>div:first-of-type h1,.tui-editor-contents>h1:first-of-type{margin-top:14px}.tui-editor-contents h1,.tui-editor-contents h2,.tui-editor-contents h3,.tui-editor-contents h5{font-weight:700}.tui-editor-contents h1{font-size:1.6rem;line-height:28px;border-bottom:3px double #999;margin:52px 0 15px 0;padding-bottom:7px;color:#000}.tui-editor-contents h2{font-size:1.3rem;line-height:23px;border-bottom:1px solid #dbdbdb;margin:30px 0 13px 0;padding-bottom:7px;color:#333}.tui-editor-contents h3,.tui-editor-contents h4{font-size:1.2rem;line-height:18px;margin:20px 0 2px;color:#333}.tui-editor-contents h5,.tui-editor-contents h6{font-size:1rem;line-height:17px;margin:10px 0 -4px;color:#333}.tui-editor-contents blockquote{margin:15px 0}.tui-editor-contents blockquote{border-left:4px solid #ddd;padding:0 15px;color:#777}.tui-editor-contents blockquote>:first-child{margin-top:0}.tui-editor-contents blockquote>:last-child{margin-bottom:0}.tui-editor-contents code,.tui-editor-contents pre{font-family:Consolas,Courier,"Apple SD 산돌고딕 Neo",-apple-system,"Lucida Grande","Apple SD Gothic Neo","맑은 고딕","Malgun Gothic","Segoe UI","돋움",dotum,sans-serif;border:0;border-radius:0}.tui-editor-contents pre{margin:2px 0 8px;padding:18px;background-color:#f5f7f8}.tui-editor-contents code{color:#c1788b;padding:4px 4px 2px 0;letter-spacing:-.3px}.tui-editor-contents pre code{padding:0;color:inherit;white-space:pre-wrap;background-color:transparent}.tui-editor-contents pre.addon{border:1px solid #e8ebed;background-color:#fff}.tui-editor-contents img{margin:4px 0 10px;box-sizing:border-box;vertical-align:top;max-width:100%}.tui-editor-contents table{margin:2px 0 14px;color:#555;width:auto;border-collapse:collapse;box-sizing:border-box}.tui-editor-contents table td,.tui-editor-contents table th{height:32px;padding:5px 14px 5px 12px}.tui-editor-contents table td{border:1px solid #eaeaea}.tui-editor-contents table th{border:1px solid #72777b;border-top:0;background-color:#7b8184;font-weight:300;color:#fff;padding-top:6px}.tui-editor-contents dir,.tui-editor-contents menu,.tui-editor-contents ol,.tui-editor-contents ul{display:block;list-style-type:disc;padding-left:17px;margin:6px 0 10px;color:#555}.tui-editor-contents ol{list-style-type:decimal}.tui-editor-contents ol ol,.tui-editor-contents ol ul,.tui-editor-contents ul ol,.tui-editor-contents ul ul{margin-top:0!important;margin-bottom:0!important}.tui-editor-contents ul li{position:relative}.tui-editor-contents ul p,ol p{margin:0}.tui-editor-contents pre ul li:before,.tui-editor-contents ul li.task-list-item:before{content:""}.tui-editor-contents hr{border-top:1px solid #eee;margin:16px 0}.tui-editor-contents a{text-decoration:underline;color:#5286bc}.tui-editor-contents a:hover{color:#007cff}.tui-editor-contents{font-size:13px;margin:0;padding:0}.tui-editor-contents .task-list-item{border:0;list-style:none;padding-left:22px;margin-left:-22px;background-repeat:no-repeat;background-size:16px 16px;background-position:0 2px;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAADdJREFUKBVjvHv37n8GMgALSI+SkhJJWu/du8fARJIOJMWjGpECA505GjjoIYLEB6dVUNojFQAA/1MJUFWet/4AAAAASUVORK5CYII=)}.tui-editor-contents .task-list-item.checked{background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAAAXNSR0IArs4c6QAAAMpJREFUKBVjjJ/64D8DGYCJDD1gLbTVyM3OxJDiJMzAxcYIdyALnIWDAdJU7i/OICfCxsDMxMgwc88bwk5F1vTs/W+GFUffwY2H+1FBlI2hLliCQYCbGSyJrqlzwwuGj9//YWoMtRBgUBJnZ6gMEGeQFWaFOw9kE7omkG5GWDyCPF7mJ86gIMbO8P//fwZGRkYGXJpAGuFO/fbrP0PXppcMD179JKgJRSOIA9N8/NZXrM4DqYEBjOgAaYYFOUwRNhruVGyS+MTI1ggAx8NTGcUtFVQAAAAASUVORK5CYII=)}.tui-editor-contents .task-list-item .task-list-item-checkbox,.tui-editor-contents .task-list-item input[type=checkbox]{margin-left:-17px;margin-right:3.8px;margin-top:3px}

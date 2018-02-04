@@ -1,0 +1,84 @@
+{extend name="header_admin" /}
+{block name="title"}基础设置- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">其他</li>
+      <li class="breadcrumb-item active">定时任务</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>定时任务</h2>
+        <br>
+        {eq name="neverExcute" value="true"}
+        <div class="alert alert-warning" role="alert">
+          定时任务从未执行！请将 {$options.siteURL}Cron 加入到您的定时任务列队中（如Crontab）。
+        </div>
+        {/eq}
+        {volist name="cron" id="c"}
+        <div class="card">
+          <div class="card-header">
+            {$c.name}
+          </div>
+          <div class="card-body">
+            <blockquote class="blockquote mb-0">
+              <p>{$c.des}</p>
+            </blockquote><form id="cronForm" method="post" action="/Admin/SaveCron">
+            <div class="row">
+            
+              <input type="text" name="id" value="{$c.id}" style="display: none;">
+              <div class="col-md-4">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1">优先级</span>
+                  </div>
+                  <input type="number" min="0" class="form-control" name="rank" placeholder="值越高越优先" value="{$c.rank}">
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1">执行间隔(s)</span>
+                  </div>
+                  <input type="number" min="1" class="form-control" name="interval_s"  value="{$c.interval_s}">
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon1">启用</span>
+                  </div>
+                  <input type="number" min="0" max="1" class="form-control" name="enable"  value="{$c.enable}">
+                </div>
+              </div>
+            
+            </div>
+            <input type="submit" class="btn btn-primary" value="保存">
+              </form>
+          </div>
+          <div class="card-footer text-muted">
+            上次执行：{eq name="c.last_excute" value="0"}从未执行{else/}{:date("Y-m-d H:i:s",$c.last_excute)}{/eq}
+          </div>
+        </div><br>
+        {/volist}
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script type="text/javascript">
+</script>
+{/block}

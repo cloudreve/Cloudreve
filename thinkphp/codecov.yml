@@ -1,0 +1,12 @@
+comment:
+  layout: header, changes, diff
+coverage:
+  ignore:
+  - base.php
+  - helper.php
+  - convention.php
+  - lang/zh-cn.php
+  - start.php
+  - console.php
+  status:
+    patch: false

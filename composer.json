@@ -1,0 +1,40 @@
+{
+	"name": "HFO4/Cloudreve",
+	"description": "A program help you build your own cloud in minutes.",
+	"keywords": ["php", "cloud", "ThinkPHP", "file-sharing"],
+	"homepage": "https://cloudreve.org",
+	"type": "project",
+	"license": "GPL-3.0",
+	"authors": [
+	        {
+	            "name": "Aaron",
+	            "email": "abslant@foxmail.com",
+	            "homepage": "https://aoaoao.me",
+	            "role": "Developer"
+	        },
+	        {
+	            "name": "Qnner",
+	            "email": "admin@qnner.com",
+	            "homepage": "http://me.qnner.com",
+	            "role": "Developer"
+	        },
+	        {
+	            "name": "dune",
+	            "email": "rainaysann@gmail.com",
+	            "homepage": "https://github.com/rainays",
+	            "role": "Developer"
+	        }
+	 ],
+	"require": {
+		"php": ">=5.6.0",
+		"ext-curl":"*",
+		"ext-fileinfo":"*",
+		"ext-gd":"*",
+		"topthink/think-captcha":"1.*",
+		"phpgangsta/googleauthenticator": "dev-master",
+		"endroid/qrcode": "1.*@dev",
+		"aliyuncs/oss-sdk-php": "~2.0",
+		"sabre/dav":"~3.2.0",
+		"upyun/sdk": "^3.3"
+	}
+}

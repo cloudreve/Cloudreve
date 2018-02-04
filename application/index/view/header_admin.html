@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh_cn">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <title>{block name="title"}{/block}</title>
+  <!-- Bootstrap core CSS-->
+  <link href="/static/css/bootstrap4/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom fonts for this template-->
+  <link href="/static/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+  <!-- Page level plugin CSS-->
+  <link href="/static/css/datatables/dataTables.bootstrap4.css" rel="stylesheet">
+  <link href="/static/css/toastr.min.css" rel="stylesheet">
+
+  <!-- Custom styles for this template-->
+  <link href="/static/css/sb-admin.css" rel="stylesheet">
+</head>
+
+<body class="{$options.admin_color_body}" id="page-top">
+  <!-- Navigation-->
+  <nav class="{$options.admin_color_nav}" id="mainNav">
+    <a class="navbar-brand" href="index.html">Cloudreve</a>
+    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav navbar-sidenav" id="exampleAccordion">
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="面板首页">
+          <a class="nav-link" href="/Admin">
+            <i class="fa fa-fw fa-dashboard"></i>
+            <span class="nav-link-text">面板首页</span>
+          </a>
+        </li>
+         <li class="nav-item" data-toggle="tooltip" data-placement="right" title="设置">
+          <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#collapseComponents" data-parent="#exampleAccordion">
+            <i class="fa fa-fw fa-wrench"></i>
+            <span class="nav-link-text">设置</span>
+          </a>
+          <ul class="sidenav-second-level collapse" id="collapseComponents">
+            <li>
+              <a href="/Admin/Setting">基础设置</a>
+            </li>
+            <li>
+              <a href="/Admin/SettingReg">注册访问</a>
+            </li>
+            <li>
+              <a href="/Admin/SettingMail">邮件发送</a>
+            </li>
+            <li>
+              <a href="/Admin/Config">配置文件</a>
+            </li>
+            <li>
+              <a href="/Admin/SettingOther">杂项</a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="模板">
+          <a class="nav-link" href="/Admin/Theme">
+            <i class="fa fa-fw fa-paint-brush"></i>
+            <span class="nav-link-text">模板</span>
+          </a>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="文件">
+          <a class="nav-link" href="/Admin/Files">
+            <i class="fa fa-fw fa-folder"></i>
+            <span class="nav-link-text">文件</span>
+          </a>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="分享">
+          <a class="nav-link" href="/Admin/Shares">
+            <i class="fa fa-fw fa-send"></i>
+            <span class="nav-link-text">分享</span>
+          </a>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="用户">
+          <a class="nav-link" href="/Admin/Users" data-parent="#user">
+            <i class="fa fa-fw fa-user"></i>
+            <span class="nav-link-text">用户</span>
+          </a>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="用户组">
+          <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#group" data-parent="#group">
+            <i class="fa fa-fw fa-users"></i>
+            <span class="nav-link-text">用户组</span>
+          </a>
+          <ul class="sidenav-second-level collapse" id="group">
+            <li>
+              <a href="/Admin/GroupList">管理</a>
+            </li>
+            <li>
+              <a href="/Admin/GroupAdd">添加</a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="上传策略">
+          <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#policy" data-parent="#policy">
+            <i class="fa fa-fw fa-upload"></i>
+            <span class="nav-link-text">上传策略</span>
+          </a>
+          <ul class="sidenav-second-level collapse" id="policy">
+            <li>
+              <a href="/Admin/PolicyList">管理</a>
+            </li>
+            <li>
+              <a href="/Admin/PolicyAdd">添加</a>
+            </li>
+          </ul>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="其他">
+          <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#else" data-parent="#else">
+            <i class="fa fa-fw fa-ellipsis-h"></i>
+            <span class="nav-link-text">其他</span>
+          </a>
+          <ul class="sidenav-second-level collapse" id="else">
+            <li>
+              <a href="/Admin/Cron">定时任务</a>
+            </li>
+            <li>
+              <a href="/Admin/About">关于</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+      <ul class="navbar-nav sidenav-toggler">
+        <li class="nav-item">
+          <a class="nav-link text-center" id="sidenavToggler">
+            <i class="fa fa-fw fa-angle-left"></i>
+          </a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ml-auto">
+       <li class="nav-item">
+          <a class="nav-link" href="javascript:void" id="toggleNavColor">
+          <i class="fa fa-fw fa-toggle-on" aria-hidden="true"></i>切换配色</a>
+        </li>
+    
+        <li class="nav-item">
+          <a class="nav-link" href="/">
+            <i class="fa fa-fw fa-home"></i>返回首页</a>
+        </li>
+    
+        <li class="nav-item">
+          <a class="nav-link" data-toggle="modal" data-target="#exampleModal">
+            <i class="fa fa-fw fa-sign-out"></i>登出</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  {block name="content"}{/block}
+  <footer class="sticky-footer">
+  <div class="container">
+    <div class="text-center">
+      <small>Copyright © Cloudreve {php}echo date("Y");{/php} </small>
+    </div>
+  </div>
+</footer>
+<!-- Scroll to Top Button-->
+<a class="scroll-to-top rounded" href="#page-top">
+  <i class="fa fa-angle-up"></i>
+</a>
+  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">确认</h5>
+            <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <div class="modal-body">点击“登出”按钮退出当前账户。</div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" type="button" data-dismiss="modal">取消</button>
+            <a class="btn btn-primary" href="/Member/LogOut">登出</a>
+          </div>
+        </div>
+      </div>
+    </div>
+   <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap4/bootstrap.bundle.min.js"></script>
+    <!-- Core plugin JavaScript-->
+    <script src="/static/js/chart.js/Chart.min.js"></script>
+    <!-- Custom scripts for all pages-->
+    <script src="/static/js/sb-admin.min.js"></script>
+    <script type="text/javascript" src="/static/js/toastr.min.js"></script>
+    {block name="js"}
+    {/block}
+  </div>
+</body>
+
+</html>

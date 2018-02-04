@@ -1,0 +1,110 @@
+{extend name="header_admin" /}
+{block name="title"}文件列表- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">分享</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>分享</h2>
+        <br>
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-tags"></i> 条件检索</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">排序方式</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="order">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="id DESC">日期</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="download_num DESC">下载次数</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="view_num DESC">浏览次数</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+    
+          </div>
+        </div>
+        
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-table"></i> 分享列表</div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <div id="dataTable_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4"><div class="row"><div class="col-sm-12 col-md-6"><div class="dataTables_length" ><label>每页展示 <select id="dataTable_length" aria-controls="dataTable" class="form-control form-control-sm"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> 个</label></div></div><div class="col-sm-12 col-md-6"><div id="dataTable_filter" class="dataTables_filter"><label>搜索:<input type="search" class="form-control form-control-sm" placeholder="" id="searchFrom"></label></div></div></div><div class="row"><div class="col-sm-12">
+              <div class="table-responsive">
+                <table class="table table-bordered dataTable" id="dataTable" width="100%" cellspacing="0" role="grid" aria-describedby="dataTable_info" style="width: 100%;">
+                  <thead>
+                    <tr role="row" class="textCenter"><th><input type="checkbox" data-type="all"></th><th>分享名称</th><th class="textCenter">分享者</th><th class="textCenter">类型</th><th class="textCenter">日期</th><th class="textCenter">浏览次数</th><th class="textCenter">下载次数</th><th class="textCenter">操作</th></tr>
+                  </thead>
+                  <tfoot>
+                  <tr><th rowspan="1" colspan="1" class="textCenter"><input type="checkbox" data-type="all"></th><th rowspan="1" colspan="1" class="textCenter">分享名称</th><th rowspan="1" colspan="1" class="textCenter">分享者</th><th rowspan="1" colspan="1" class="textCenter">类型</th><th rowspan="1" colspan="1" class="textCenter">日期</th><th rowspan="1" colspan="1" class="textCenter">浏览次数</th><th rowspan="1" colspan="1" class="textCenter">下载次数</th><th rowspan="1" colspan="1" class="textCenter">操作</th></tr>
+                  </tfoot>
+                  <tbody>
+                    <tr role="row" class="odd" id="fileList">
+                      
+                      {volist name='list' id='share'}
+                      <tr role="row" class="odd">
+                        <td class="sorting_1 textCenter"><input type="checkbox" data-type="mark" data-id="{$share.id}"></td>
+                        <td>
+                          {eq name="$share.source_type" value="dir"}
+                          <i class="fa fa-folder-open-o" aria-hidden="true"></i> <a href="/S/{$share.share_key}?pwd={$share.share_pwd}" class="noAColor" target="_blank">{:htmlspecialchars(getDirName($share.source_name),ENT_NOQUOTES)}</a>
+                          {else}
+                           <i class="fa fa-file" aria-hidden="true"></i> <a href="/S/{$share.share_key}?pwd={$share.share_pwd}" class="noAColor" target="_blank">{$share.origin_name|htmlspecialchars=ENT_NOQUOTES}</a>
+                          {/eq}
+                        </td>
+                        <td class="textCenter">{$originList[$key]["user"]["user_nick"]}</td>
+                        <td class="textCenter">
+                        {eq name="share.type" value="public"}
+                        <i class="fa fa-eye" aria-hidden="true"></i> 公开
+                        {else/}
+                        <i class="fa fa-lock" aria-hidden="true"></i> 私密
+                        {/eq}
+                        </td>
+                        <td class="textCenter">{$share.share_time}</td>
+                        <td class="textCenter">{$share.view_num}</td>
+                        <td class="textCenter">{$share.download_num}</td>
+                        <td class="textCenter"><button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="删除" data-action="delete" data-id="{$share.id}"><i class="fa fa-trash" aria-hidden="true"></i></button> <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="变更分享类型" data-action="change" data-id="{$share.share_key}"><i class="fa fa-lock" aria-hidden="true"></i></button></td>
+                      </tr>
+                      {/volist}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-md-5 mb-2 mt-2" style="display: none" id="del">
+                  <button type="button" class="btn btn-danger" id="delAll"><i class="fa fa-trash" aria-hidden="true"></i> 删除选中文件</button>
+                </div>
+                </div></div><div class="row"><div class="col-sm-12 col-md-5"><div class="dataTables_info" id="dataTable_info" role="status" aria-live="polite">展示第 {$pageNow} 页，共 {$pageTotal} 页 {$dataTotal} 条数据</div></div><div class="col-sm-12 col-md-7">
+                <div class="dataTables_paginate paging_simple_numbers" id="dataTable_paginate">
+                  {$list->render()}
+                </div></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Example DataTables Card-->
+    </div>
+    <!-- /.container-fluid-->
+  </div>
+  <!-- /.content-wrapper-->
+  {/block}
+  {block name="js"}
+  <script src="/static/js/admin/shares.js"></script>
+  <script type="text/javascript">
+  </script>
+  {/block}

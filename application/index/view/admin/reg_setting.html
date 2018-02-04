@@ -1,0 +1,134 @@
+{extend name="header_admin" /}
+{block name="title"}注册访问- {$options.siteName}{/block}
+{block name="content"}
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <!-- Breadcrumbs-->
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="/Admin">管理面板</a>
+        </li>
+        <li class="breadcrumb-item active">设置</li>
+        <li class="breadcrumb-item active">注册访问</li>
+      </ol>
+    
+      <!-- Area Chart Example-->
+
+           <div class="row">
+        <div class="col-12">
+          <h2>注册与访问</h2>
+          <br>
+          <form id="basicOptionsForm">
+ <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">允许注册</label>
+
+ </div>
+ <div class="col-md-4"> 
+ {eq name="$optionsForSet.regStatus" value="0"}
+<input class="" type="radio" name="regStatus" id="inlineRadio1" value="0"checked>
+  <label class="" for="inlineRadio1" >是</label>
+  &nbsp;&nbsp;&nbsp;
+<input class="" type="radio" name="regStatus" id="inlineRadio2" value="1">
+  <label class="" for="inlineRadio2">否</label>
+  {else}
+  <input class="" type="radio" name="regStatus" id="inlineRadio1" value="0">
+  <label class="" for="inlineRadio1" >是</label>
+  &nbsp;&nbsp;&nbsp;
+<input class="" type="radio" name="regStatus" id="inlineRadio2" value="1" checked>
+  <label class="" for="inlineRadio2">否</label>
+  {/eq}
+ </div>
+  <div class="col-md-4 option-des"> 是否允许新用户注册</div>
+ </div>
+
+  <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">默认用户组</label>
+ </div>
+ <div class="col-md-4">
+ <select class="form-control" name="defaultGroup">
+ {volist name="groups" id="group"}
+ {eq name="$group.id" value="$optionsForSet.defaultGroup"}
+<option value="{$group.id}" selected>{$group.group_name}</option>
+{else}
+<option value="{$group.id}">{$group.group_name}</option>
+{/eq}
+{/volist}
+ 
+</select>
+ </div>
+  <div class="col-md-4 option-des"> 用户注册后默认属于的用户组</div>
+ </div>
+
+   <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">邮件激活</label>
+ </div>
+ <div class="col-md-4"> 
+ <input  type="checkbox" id="inlineCheckbox3" name="email_active" value="1" {eq name="$optionsForSet.email_active" value="1" }checked{/eq}> 
+  <label for="inlineCheckbox3">启用</label>
+  </div>
+  <div class="col-md-4 option-des"> 启用后，新用户注册需要点击邮件中的激活链接才能完成。请确认邮件发送设置是否正确，否则激活邮件无法送达</div>
+ </div>
+
+   <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">登录验证码</label>
+ </div>
+ <div class="col-md-4">  <input  type="checkbox" id="login_captcha" name="login_captcha" value="1" {eq name="$optionsForSet.login_captcha" value="1" }checked{/eq}> 
+  <label for="login_captcha">启用</label>
+  </div>
+  <div class="col-md-4 option-des"> 是否启用登录表单验证码</div>
+ </div>
+
+   <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">注册验证码</label>
+ </div>
+ <div class="col-md-4">  <input  type="checkbox" id="reg_captcha" name="reg_captcha" value="1" {eq name="$optionsForSet.reg_captcha" value="1" }checked{/eq}> 
+  <label for="reg_captcha">启用</label>
+  </div>
+  <div class="col-md-4 option-des"> 是否启用注册表单验证码</div>
+ </div>
+
+    <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">找回密码验证码</label>
+ </div>
+ <div class="col-md-4">  <input  type="checkbox" id="forget_captcha" name="forget_captcha" value="1" {eq name="$optionsForSet.forget_captcha" value="1" }checked{/eq}> 
+  <label for="forget_captcha">启用</label>
+  </div>
+  <div class="col-md-4 option-des"> 是否启用找回密码表单验证码</div>
+ </div>
+
+
+
+  <div class="row form-setting">
+ <div class="col-md-1 form-label ">
+ </div>
+ <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveReg">保存设置</button></div>
+  <div class="col-md-4 option-des"> </div>
+  <br><br><br>
+ </div>
+</form>
+        </div>
+      </div>
+      
+      <!-- Example DataTables Card-->
+
+    </div>
+    <!-- /.container-fluid-->
+    </div>
+
+    <!-- /.content-wrapper-->
+
+
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/setting.js"></script>
+<script type="text/javascript">
+
+</script>
+{/block}

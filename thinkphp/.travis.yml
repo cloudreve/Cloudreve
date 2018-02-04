@@ -1,0 +1,47 @@
+sudo: false
+
+language: php
+
+services:
+  - memcached
+  - mongodb
+  - mysql
+  - postgresql
+  - redis-server
+
+matrix:
+  fast_finish: true
+  include:
+    - php: 5.4
+    - php: 5.5
+    - php: 5.6
+    - php: 7.0
+    - php: hhvm
+  allow_failures:
+    - php: hhvm
+
+cache:
+  directories:
+    - $HOME/.composer/cache
+
+before_install:
+  - composer self-update
+  - mysql -e "create database IF NOT EXISTS test;" -uroot
+  - psql -c 'DROP DATABASE IF EXISTS test;' -U postgres
+  - psql -c 'create database test;' -U postgres
+
+install:
+  - ./tests/script/install.sh
+
+script:
+  ## LINT
+  - find . -path ./vendor -prune -o -type f -name \*.php -exec php -l {} \;
+  ## PHP Copy/Paste Detector
+  - vendor/bin/phpcpd --verbose --exclude vendor ./ || true
+  ## PHPLOC
+  - vendor/bin/phploc --exclude vendor ./
+  ## PHPUNIT
+  - vendor/bin/phpunit --coverage-clover=coverage.xml --configuration=phpunit.xml
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

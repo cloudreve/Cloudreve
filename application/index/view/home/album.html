@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<!--
+	Multiverse by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>图片集 - {$options.siteName}</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<!--[if lte IE 8]><script src="https://file.aoaoao.me/content/themes/material/pages/js/ie/html5shiv.js"></script><![endif]-->
+		<link rel="stylesheet" href="/static/css/main.css" />
+		  <link href="/static/css/font-awesome.min.css" rel="stylesheet">
+		<!--[if lte IE 9]><link rel="stylesheet" href="https://file.aoaoao.me/content/themes/material/pages/css/ie9.css" /><![endif]-->
+		<!--[if lte IE 8]><link rel="stylesheet" href="https://file.aoaoao.me/content/themes/material/pages/css/ie8.css" /><![endif]-->
+		<style type="text/css">
+			body{
+				font-family: "微软雅黑","黑体";
+			}
+		</style>
+	</head>
+
+	<body>
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+			<!-- Header -->
+	
+					<div id="main">
+	    {volist name='list' id='pic'}
+								<article class="thumb">
+							<a href="/File/Preview?action=preview&path={$pic.dir|urlencode}/{$pic.orign_name|urlencode}" class="image"><img src="/File/Preview?action=preview&path={$pic.dir|urlencode}/{$pic.orign_name|urlencode}" alt="" /></a>
+							<h2>{$pic.orign_name}</h2>
+							
+						</article>	
+						{/volist}		
+					</div>
+				<header id="header">
+						<h1><a href="/Home"><strong>图片集</strong> {$options.siteName}</a></h1>
+						<nav>
+							<ul>
+								<li><a href="javascript:previous();" class="icon fa-arrow-circle-left">上一页</a></li>
+								{$page}/{$pageCount}								<li><a href="javascript:next();" class="icon fa-arrow-circle-right">下一页</a></li>
+							</ul>
+						</nav>
+					</header>
+
+				<!-- Main -->
+				<!-- Footer -->
+
+
+			</div>
+
+		<!-- Scripts -->
+			<script src = "/static/js/jquery.min.js"></script>
+			<script src="/static/js/jquery.poptrox.min.js"></script>
+			<script src="/static/js/skel.min.js"></script>
+			<script src="/static/js/util.js"></script>
+			<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
+			<script src="/static/js/album.js"></script>
+			<script type="text/javascript">
+			pageNow = {$page};
+			pageTotal = {$pageCount};
+				function next(){
+					if(pageNow == pageTotal){
+
+					}else{
+						window.location.href="/Home/Album?page="+(pageNow+1);
+					}
+				}
+				function previous(){
+					if(pageNow == 1){
+
+					}else{
+						window.location.href="/Home/Album?page="+(pageNow-1);
+					}
+				}
+			</script>
+{$options.js_code}
+	</body>
+</html> 

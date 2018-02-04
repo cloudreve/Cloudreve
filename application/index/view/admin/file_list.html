@@ -1,0 +1,194 @@
+{extend name="header_admin" /}
+{block name="title"}文件列表- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">文件</li>
+    </ol>
+    <div class="row">
+      <div class="col-12">
+        <h2>文件</h2>
+        <br>
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-tags"></i> 条件检索</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">排序方式</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="order">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="id DESC">日期</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="orign_name ASC">文件名</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="size DESC">大小</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">上传策略</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="policy_select">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-policy="">全部</a>
+                  </li>
+                  {volist name="policy" id="policy"}
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-policy="{$policy.id}">{$policy.policy_name}</a>
+                  </li>
+                  {/volist}
+                </ul>
+              </div>
+            </div>
+            <div class="row" style="margin-top: 5px;">
+              <div class="col-1 form-label-search mb-2">高级检索</div>
+              <div class="col-md-10">
+              <div class="row">
+                <div class="col-md-2">
+                  <select class="form-control form-control-sm" id="searchCol">
+                    <option value="id" selected>ID</option>
+                    <option value="orign_name">文件名</option>
+                    <option value="pre_name">实际文件名</option>
+                    <option value="upload_user">上传者UID</option>
+                    <option value="upload_date">上传日期</option>
+                    <option value="pic_info">图像尺寸</option>
+                    <option value="parent_folder">所属目录ID</option>
+                    <option value="policy_id">上传策略ID</option>
+                    <option value="dir">目录路径</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm"  placeholder="检索表达式" id="searchValue">
+                </div>
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-primary btn-sm" id="applySearch">应用</button>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-table"></i> 文件列表</div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <div id="dataTable_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4"><div class="row"><div class="col-sm-12 col-md-6"><div class="dataTables_length" ><label>每页展示 <select id="dataTable_length" aria-controls="dataTable" class="form-control form-control-sm"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> 个</label></div></div><div class="col-sm-12 col-md-6"><div id="dataTable_filter" class="dataTables_filter"><label>搜索:<input type="search" class="form-control form-control-sm" placeholder="" id="searchFrom"></label></div></div></div><div class="row"><div class="col-sm-12">
+              <div class="table-responsive">
+                <table class="table table-bordered dataTable" id="dataTable" width="100%" cellspacing="0" role="grid" aria-describedby="dataTable_info" style="width: 100%;">
+                  <thead>
+                    <tr role="row" class="textCenter"><th><input type="checkbox" data-type="all"></th><th>文件名</th><th class="textCenter">大小</th><th class="textCenter">上传者</th><th class="textCenter">日期</th><th class="textCenter">操作</th></tr>
+                  </thead>
+                  <tfoot>
+                  <tr><th rowspan="1" colspan="1" class="textCenter"><input type="checkbox" data-type="all"></th><th rowspan="1" colspan="1">文件名</th><th rowspan="1" colspan="1" class="textCenter">大小</th><th rowspan="1" colspan="1" class="textCenter">上传者</th><th rowspan="1" colspan="1" class="textCenter">日期</th><th rowspan="1" colspan="1" class="textCenter">操作</th></tr>
+                  </tfoot>
+                  <tbody>
+                    <tr role="row" class="odd" id="fileList">
+                      
+                      {volist name='list' id='file'}
+                      <tr role="row" class="odd">
+                        <td class="sorting_1 textCenter"><input type="checkbox" data-type="mark" data-path="{:rtrim($file.dir,'/')}/{$file.orign_name}" data-uid="{$file.upload_user}"></td>
+                        <td>
+                          {eq name=":isPreview($file.orign_name)" value="yes"}
+                          <a href="/Admin/Preview/id/{$file.id}" class="noAColor" target="_blank">{$file.orign_name|htmlspecialchars=ENT_NOQUOTES}</a>
+                          {else}
+                          <a href="/Admin/Download/id/{$file.id}" class="noAColor" target="_blank">{$file.orign_name|htmlspecialchars=ENT_NOQUOTES}</a>
+                          {/eq}
+                        </td>
+                        <td class="textCenter">{:countSize($file.size)}</td>
+                        <td class="textCenter">{$originList[$key]["user"]["user_nick"]}</td>
+                        <td class="textCenter">{$file.upload_date}</td>
+                        <td class="textCenter"><button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="删除" data-action="delete" data-id="{$file.id}"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                          <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="下载" data-action="download" data-id="{$file.id}"><i class="fa fa-download" aria-hidden="true"></i></button>
+                          <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="详情" data-action="info" data-id="{$file.id}"><i class="fa fa-info-circle" aria-hidden="true"></i></button>
+                        </td>
+                      </tr>
+                      {/volist}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-md-5 mb-2 mt-2" style="display: none" id="del">
+                  <button type="button" class="btn btn-danger" id="delAll"><i class="fa fa-trash" aria-hidden="true"></i> 删除选中文件</button>
+                </div>
+                </div></div><div class="row"><div class="col-sm-12 col-md-5"><div class="dataTables_info" id="dataTable_info" role="status" aria-live="polite">展示第 {$pageNow} 页，共 {$pageTotal} 页 {$dataTotal} 条数据</div></div><div class="col-sm-12 col-md-7">
+                <div class="dataTables_paginate paging_simple_numbers" id="dataTable_paginate">
+                  {$list->render()}
+                </div></div></div></div>
+              </div>
+            </div>
+           
+          </div>
+        </div>
+      </div>
+      
+      <!-- Example DataTables Card-->
+    </div>
+    <!-- /.container-fluid-->
+  </div>
+  <div class="modal fade bd-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true" id="fileInfo">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">文件详情</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12"><strong>ID:</strong></div>
+            <div class="col-md-12 break" id="fileId">12</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>文件名:</strong></div>
+            <div class="col-md-12 break" id="fileName">5c06e532e7afdb4389e4ae846ea7876c_w - 副本 - 副本.jpg</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>源文件名:</strong></div>
+            <div class="col-md-12 break" id="fileOrigin">5c06e532e7afdb4389e4ae846ea7876c_w - 副本 - 副本.jpg</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>上传者UID:</strong></div>
+            <div class="col-md-12 break" id="fileUID">17</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>大小（字节）:</strong></div>
+            <div class="col-md-12 break" id="fileSize">7481817</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>图像尺寸:</strong></div>
+            <div class="col-md-12 break" id="filePic">147,445</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>上传策略:</strong></div>
+            <div class="col-md-12 break" id="filePolicy">147,445</div>
+          </div>
+          <div class="row">
+            <div class="col-md-12"><strong>所属目录:</strong></div>
+            <div class="col-md-12 break" id="fileDir">147,445</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- /.content-wrapper-->
+  {/block}
+  {block name="js"}
+  <script src="/static/js/admin/files.js"></script>
+  <script type="text/javascript">
+  </script>
+  {/block}

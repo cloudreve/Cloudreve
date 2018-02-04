@@ -1,0 +1,171 @@
+{extend name="header_admin" /}
+{block name="title"}注册访问- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">用户组</li>
+      <li class="breadcrumb-item active">编辑用户组</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>编辑用户组</h2>
+        <br>
+        <form id="editGroup">
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+            <input type="text" name="id" value="{$group.id}" style="display: none">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">用户组名</label>
+            </div>
+            <div class="col-md-4"> <input type="text" class="form-control" name="group_name" value="{$group.group_name}" required></div>
+            <div class="col-md-4 option-des"> 用户组的名称</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">上传策略</label>
+            </div>
+            <div class="col-md-4"> 
+            <select name="policy_name" required class="form-control" >
+              {volist name="policy" id="p"}
+              <option value="{$p.id}">{$p.policy_name}</option>
+              {/volist}
+            </select>
+
+            </div>
+            <div class="col-md-4 option-des"> 为该用户组绑定一个上传策略</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">初始容量</label>
+            </div>
+            <div class="col-md-4 input-group mb-3">
+              <input type="number" class="form-control" name="max_storage"  spellcheck="false" min="0" value="{:countSize($group.max_storage,true)[0]}" required>
+              <div class="input-group-append">
+                <span class="input-group-text" id="basic-addon2">
+                  <select name="sizeTimes" class="selectIn" data-value="{:countSize($group.max_storage,true)[1]}">
+                    <option value="1">B</option>
+                    <option value="1024">KB</option>
+                    <option value="1048576" selected>MB</option>
+                    <option value="1073741824">GB</option>
+                  </select>
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 option-des"> 该用户组初始最大可用容量</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">下载限速</label>
+            </div>
+            <div class="col-md-4 input-group mb-3">
+              <input type="number" class="form-control" name="speed"  spellcheck="false" min="0" placeholder="留空表示不限速，0表示禁止下载" value="{$group.speed}">
+              <div class="input-group-append">
+                <span class="input-group-text" id="basic-addon2">
+                  Kb/s
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4 option-des"> 限制该用户组下的用户上传的文件的下载速度，<strong>此设置仅对本地上传方案有效</strong></div>
+          </div>
+          
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">断点续传及多线程下载</label>
+            </div>
+            <div class="col-md-4"> <input class="" type="radio" name="range_transfer"  value="1" id="allow_range_1">
+                  <label class="" for="allow_range_1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="range_transfer" id="allow_range_0" value="0" >
+                  <label class="" for="allow_range_0">禁止</label></div>
+            <div class="col-md-4 option-des"> 是否断点续传及多线程下载，关闭后预览视频不支持拖拽播放，<strong>此设置仅对本地上传方案有效</strong></div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">创建分享</label>
+            </div>
+            <div class="col-md-4"> <input class="" type="radio" name="allow_share"  value="1" id="allow_share_1" checked>
+                  <label class="" for="allow_share_1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="allow_share" id="allow_share_0" value="0" >
+                  <label class="" for="allow_share_0">禁止</label></div>
+            <div class="col-md-4 option-des"> 是否允许创建文件分享链接</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">WebDAV支持</label>
+            </div>
+            <div class="col-md-4"> <input class="" type="radio" name="webdav"  value="1" id="webdav1" checked>
+                  <label class="" for="webdav1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="webdav" id="webdav0" value="0" >
+                  <label class="" for="webdav0">禁止</label></div>
+            <div class="col-md-4 option-des"> 是否允许用户使用WebDAV协议同步文件。目前此功能仅支持本地上传方案</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">用户组标志色</label>
+            </div>
+            <div class="col-md-4"> 
+                  <input class="" type="radio" name="color"  value="default" id="default" checked>
+                  <label class="" for="default" ><span class="badge badge-primary">蓝色</span></label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="color"  value="primary" id="primary">
+                  <label class="" for="primary" ><span class="badge badge-secondary">灰色</span></label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="color"  value="success" id="success">
+                  <label class="" for="success" ><span class="badge badge-success">绿色</span></label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="color"  value="danger" id="danger">
+                  <label class="" for="danger" ><span class="badge badge-danger">红色</span></label>
+                  <br>
+                  <input class="" type="radio" name="color"  value="warning" id="warning">
+                  <label class="" for="warning" ><span class="badge badge-warning">黄色</span></label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="color"  value="info" id="info">
+                  <label class="" for="info" ><span class="badge badge-info">浅蓝色</span></label>
+                  &nbsp;&nbsp;&nbsp;
+            </div>
+            <div class="col-md-4 option-des"> 用户个人主页展示用户组时的徽章颜色</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
+            </div>
+            <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveGroup">保存</button></div>
+            <div class="col-md-4 option-des"> </div>
+            <br><br><br>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+<!-- /.content-wrapper-->
+{/block}
+{block name="js"}
+<script src="/static/js/admin/add_group.js"></script>
+<script type="text/javascript">
+$("option[value='{$group.policy_name}']").attr("selected",true);
+$("option[value='{$group.max_storage}']").attr("selected",true);
+$("input[name='range_transfer'][value='{$group.range_transfer}']").attr("checked",true);
+$("input[name='allow_share'][value='{$group.allow_share}']").attr("checked",true);
+$("input[name='color'][value='{$group.color}']").attr("checked",true);
+$("input[name='webdav'][value='{$group.webdav}']").attr("checked",true);
+</script>
+{/block}

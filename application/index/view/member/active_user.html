@@ -1,0 +1,59 @@
+{extend name="header_public" /}
+{block name="title"}注册成功- {$options.siteName}{/block}
+{block name="content"}
+   <link rel="stylesheet" href="/static/css/login.css" />
+   	<link rel="stylesheet" href="/static/css/photoswipe.css"> 
+	<link rel="stylesheet" href="/static/css/default-skin/default-skin.css"> 
+        <script src="/static/js/jquery.color.js"></script>
+    </head>
+    <body data-ma-header="teal">
+
+
+        <nav class="navbar navbar-inverse" >
+            <div class="container-fluid">
+                <div class="container" >
+{include file="navbar_public" loginStatus=$loginStatus userData=$userData /}
+                <div class="header-panel shadow-z-2">
+                    <div class="container-fluid">
+                        <div class="row">
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="container main" >
+                    <div class="col-md-4"></div>
+                    <div class="col-md-4">
+                        <div class="jumbotron" >
+                            <div class="card_top">
+                                <div class="row top-color">
+                                    <div class="card-top-row">
+                                     <div class="login-icon"><i class="fa fa-check" aria-hidden="true"></i></div>
+                                     <div class="login-text">注册成功</div>
+                                        </div>
+                                    </div>
+                                </div>
+                          
+                                <div class="card_botom">
+                                <div class="row bottom-width">
+                               <br>
+                                您已成功激活账号。<br><br>
+                              <a class="btn btn-raised btn-primary" href="/Login">立即登录</a> 
+                                </div>
+                                </div>
+                            </div>
+                            </div>
+                            
+                            
+                        </div></div>
+                        <div class="col-md-4"></div>
+                    </div>
+                </div>
+            </body>
+
+            <script type="text/javascript">
+        
+
+            </script>
+            <script src="/static/js/two_step.js"> </script>
+            {$options.js_code}
+            {/block}

@@ -1,0 +1,51 @@
+{extend name="header_admin" /}
+{block name="title"}基础设置- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">设置</li>
+      <li class="breadcrumb-item active">配置文件</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>配置文件</h2>
+          {$path}
+          <br> <br>
+        <div class="row">
+        <div class="col-md-9">
+          <input type="text" id="configType" value="{$type}" style="display: none">
+            <textarea rows="15" class="form-control" spellcheck="false">{$content}</textarea>
+            <br>
+            <button class="btn btn-primary" id="save">保存</button>
+            <br><br>
+          </div>
+          <div class="col-md-3">
+            <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+              <a class="nav-link" id="v-pills-home-tab" href="/Admin/Config/type/common" role="tab" data-type="common">系统公共配置</a>
+              <a class="nav-link" id="v-pills-profile-tab" href="/Admin/Config/type/database" role="tab" data-type="database">数据库</a>
+              <a class="nav-link" id="v-pills-messages-tab" href="/Admin/Config/type/route" role="tab" data-type="route">路由</a>
+              <a class="nav-link" id="v-pills-settings-tab" href="/Admin/Config/type/tags" role="tab" data-type="tags">行为扩展</a>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script src="/static/js/admin/config.js"></script>
+<script type="text/javascript">
+</script>
+{/block}

@@ -1,0 +1,76 @@
+{extend name="header_public" /}
+{block name="title"}“{$keyWords}”搜索结果 - {$options.siteName}{/block}
+{block name="content"}
+<link rel="stylesheet" href="/static/css/search.css" />
+</head>
+<body data-ma-header="teal">
+<nav class="navbar navbar-inverse" >
+    <div class="container-fluid">
+        <div class="container" >
+            {include file="navbar_public"  /}
+            <div class="header-panel shadow-z-2">
+                <div class="container-fluid">
+                    <div class="row">
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="container main-h">
+          
+                <div class="col-md-12">
+                <h1>搜索分享</h1>
+                    <input type="text" placeholder="请输入关键词，回车键发起搜索" value="{$keyWords}" autofocus="true"><br><br>
+                    <div class="table-responsive">
+                                                    <table class="table table-striped">
+                                                        <thead>
+                                                            <tr>
+                                                                <th width="50%">文件名 </th>
+                                                                <th class="cent">分享日期</th>
+                                                                <th class="cent">下载次数</th>
+                                                                <th class="cent">浏览次数</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>{volist name='list' id='shares'}
+                                                        <tr>
+                                                                <td >{switch $shares.source_type}
+                                                                {case file}<i class="fa fa-file" aria-hidden="true"></i> {/case}
+                                                                {case dir}<i class="fa fa-folder-open blue" aria-hidden="true"></i> {/case}
+
+                                                            {/switch} <a href="/s/{$shares.share_key}" class="notWave" target="_blank">{$shares.fileData|htmlspecialchars=ENT_NOQUOTES}</a></td>
+                                                             <td class="cent">{$shares.share_time}</td>
+                                                             <td align="center">{$shares.download_num}</td>
+                                                             <td align="center">{$shares.view_num}</td>
+                                                            </tr>
+
+                                                            {/volist}
+                                                        </tbody>
+                                                    </table>
+
+                                                </div>
+                                                {$listOrigin->render()}
+                                </div>
+
+                            </div>
+                        </div>
+                    </body>
+                    <script type="text/javascript">
+                    </script>
+                    <script src="/static/js/material.js"></script>
+                    <script > 
+                    $.material.init();
+                    document.onkeydown=function(){
+                             if (event.keyCode == 13){
+                                keyWords = $("input").val();
+                                if(keyWords ==""){
+                                    toastr["warning"]("关键字不能为空");
+                                }else{
+                                    window.location="/Explore/S/"+keyWords;
+                                }
+                             }
+                             else{
+
+                             }
+                         }
+                    </script>
+                    {$options.js_code}
+                    {/block}

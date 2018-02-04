@@ -1,0 +1,115 @@
+{extend name="header_public" /}
+{block name="title"}用户主页 - {$options.siteName}{/block}
+{block name="content"}
+<link rel="stylesheet" href="/static/css/profile.css" />
+</head>
+<body data-ma-header="teal">
+<nav class="navbar navbar-inverse" >
+    <div class="container-fluid">
+        <div class="container" >
+            {include file="navbar_public"  /}
+            <div class="header-panel shadow-z-2">
+                <div class="container-fluid">
+                    <div class="row">
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="container main-h">
+                <div class="col-md-3">
+                    <div class="card type--profile">
+                        <header class="card-heading card-background" id="card_img_02">
+                            <img src="/Member/Avatar/{$userInfo.id}/l" alt="" class="img-circle">
+                            <ul class="card-actions icons  right-top">
+                                <li class="dropdown" style="display: none;">
+                                    <a href="javascript:void(0)" data-toggle="dropdown" aria-expanded="false">
+                                        <i class="zmdi zmdi-more-vert text-white"></i>
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-right">
+                                        <li>
+                                            <a href="javascript:void(0)">Option One</a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)">Option Two</a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)">Option Three</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </header>
+                        <div class="card-body">
+                            <h3 class="name">{$userInfo.user_nick|htmlspecialchars=ENT_NOQUOTES}</h3>
+                            <span class="title span-fix"><span class="label span-fix label-{$groupData.color}">{$groupData.group_name}</span></span>
+                            
+                        </div>
+                        <footer class="card-footer border-top">
+                            <div class="row row p-t-10 p-b-10">
+                                <div class="col-xs-4"><span class="count">{$shareCount}</span><span>公开分享</span></div>
+                                <div class="col-xs-4"><span class="count">{$regDays}</span><span>注册天数</span></div>
+                                <div class="col-xs-4"><span class="count">{$userInfo.id}</span><span>用户编号</span></div>
+                            </div>
+                        </footer>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="jumbotron">
+                        <div class="card_botom">
+                            <div class="row bottom-width">
+                                <ul class="nav nav-tabs" >
+                                    <li id="all"><a href="?page=1"  aria-expanded="true">全部分享<div class="ripple-container"></div></a></li>
+                                    <li id="hot"><a href="?type=hot"  aria-expanded="false">热门分享<div class="ripple-container"></div></a></li>
+                                    
+                                </ul>
+                                <div id="myTabContent" class="tab-content">
+                                    <div class="tab-pane fade active in">
+                                        <div class="panel panel-default">
+                                            <div class="panel-body" >
+                                             
+                                                <div class="table-responsive">
+                                                    <table class="table table-striped">
+                                                        <thead>
+                                                            <tr>
+                                                                <th width="50%">文件名 </th>
+                                                                <th class="cent">分享日期</th>
+                                                                <th class="cent">下载次数</th>
+                                                                <th class="cent">浏览次数</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>{volist name='list' id='shares'}
+                                                        <tr>
+                                                                <td >{switch $shares.source_type}
+                                                                {case file}<i class="fa fa-file" aria-hidden="true"></i> {/case}
+                                                                {case dir}<i class="fa fa-folder-open blue" aria-hidden="true"></i> {/case}
+
+                                                            {/switch} <a href="/s/{$shares.share_key}" class="fname" target="_blank">{$shares.fileData|htmlspecialchars=ENT_NOQUOTES}</a></td>
+                                                             <td class="cent">{$shares.share_time}</td>
+                                                             <td align="center">{$shares.download_num}</td>
+                                                             <td align="center">{$shares.view_num}</td>
+                                                            </tr>
+
+                                                            {/volist}
+                                                        </tbody>
+                                                    </table>
+
+                                                </div>
+                                                <div class="navi">
+                                                 {eq name="$type" value="hot"}
+                                                  {else/}
+                                                {$listOrigin->render()}
+                                                {/eq}
+                                                </div>
+                                            </div></div></div></div>
+                                        </div>
+                                    </div>
+                                </div></div>
+                            </div>
+                        </div>
+                    </body>
+                    <script type="text/javascript">
+                    </script>
+                    <script src="/static/js/material.js"></script>
+                    <script src="/static/js/profile.js"> </script>
+                    {$options.js_code}
+                    {/block}

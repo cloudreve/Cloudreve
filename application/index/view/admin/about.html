@@ -1,0 +1,72 @@
+{extend name="header_admin" /}
+{block name="title"}基础设置- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">其他</li>
+      <li class="breadcrumb-item active">关于</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>关于</h2>
+        <br>
+      
+       <div class="row">
+           <div class="col">
+               <div class="card">
+                   <div class="card-header"  >
+                       <i class="fa fa-eye fa-fw" aria-hidden="true"></i>
+                        系统信息
+                   </div>
+                   <div class="card-body">
+                   <ul>
+                       <li>服务器信息：{:$_SERVER ['SERVER_SOFTWARE']}</li>
+                       <li>服务端系统：{:PHP_OS}</li>
+                       <li>最大上传限制：{:get_cfg_var ("upload_max_filesize")?get_cfg_var ("upload_max_filesize"):"不允许上传"}</li>
+                       <li>脚本最大执行时间：{:get_cfg_var("max_execution_time")."s "}</li>
+                       <li>脚本最大内存：{:get_cfg_var ("memory_limit")?get_cfg_var("memory_limit"):"无"}</li>
+                       <li>PHP扩展：curl{eq name=":extension_loaded('curl')" value="true"}√{else/}×{/eq} openssl{eq name=":extension_loaded('openssl')" value="true"}√{else/}×{/eq} GD{eq name=":extension_loaded('gd')" value="true"}√{else/}×{/eq} fileinfo{eq name=":extension_loaded('fileinfo')" value="true"}√{else/}×{/eq}</li>
+                    </ul>
+                   </div>
+               </div>
+           </div>
+           <div class="col">
+               <div class="card" style="min-height: 269px;">
+                   <div class="card-header">
+                       <i class="fa fa-cloud fa-fw" aria-hidden="true"></i>
+                      关于Cloudreve
+                   </div>
+                   <div class="card-body">
+                       <h5 class="card-title">Cloudreve {$programVersion.type} {$programVersion.version}</h5>
+                       <ul>
+                       <li>主页：<a href="https://cloudreve.org" target="_blank">https://cloudreve.org</a></li>
+                       <li>Github：<a href="https://github.com/HFO4/Cloudreve" target="_blank">https://github.com/HFO4/Cloudreve</a></li>
+                       <li>许可证：<a href="https://github.com/HFO4/Cloudreve/LICENSE" target="_blank">GPL V3</a>(社区版)</li>
+                       <li>其他链接：<a href="https://github.com/HFO4/Cloudreve/graphs/contributors" target="_blank">代码贡献者</a> <a href="https://cloudreve.org/joingroup" target="_blank">Telegram群组</a> <a href="https://forum.cloudreve.org" target="_blank">社区</a></li>
+                       </ul>
+
+                   </div>
+               </div>
+           </div>
+       </div>
+
+       
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script type="text/javascript">
+</script>
+{/block}

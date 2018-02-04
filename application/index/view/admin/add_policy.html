@@ -1,0 +1,815 @@
+{extend name="header_admin" /}
+{block name="title"}添加上传策略- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="/Admin/PolicyAdd">上传策略</a>
+      </li>
+      <li class="breadcrumb-item active">添加</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>添加上传策略</h2>
+        <br>
+        <div id="choose">
+          <div class="row">
+            <div class="col-md-3 md-2 mt-2">
+              <div class="card cloud">
+                <img class="card-img-top" src="/static/img/local.png" alt="Card image cap">
+                <div class="card-body">
+                  <h5 class="card-title">本地服务器</h5>
+                  <p class="card-text">将文件存放在Cloudreve主程序的同一个服务器上</p>
+                  <a href="javascript:void()" class="btn btn-primary" id="addLocal">添加</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 md-2 mt-2">
+              <div class="card cloud">
+                <img class="card-img-top" src="/static/img/qiniu.png" alt="Card image cap">
+                <div class="card-body">
+                  <h5 class="card-title">七牛云存储</h5>
+                  <p class="card-text">使用<a href="https://www.qiniu.com/" target="_blank">七牛云</a>提供的云存储及CDN服务</p>
+                  <a href="javascript:void();" class="btn btn-primary" id="addQiniu">添加</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 md-2 mt-2">
+              <div class="card cloud">
+                <img class="card-img-top" src="/static/img/oss.png" alt="Card image cap">
+                <div class="card-body">
+                  <h5 class="card-title">阿里云OSS</h5>
+                  <p class="card-text">使用<a href="https://www.aliyun.com/product/oss?spm=5176.doc54464.765261.286.v2y7Hk" target="_blank">OSS对象存储</a>存放文件，推荐配合阿里云CDN使用</p>
+                  <a href="javascript:void()" class="btn btn-primary" id="addOss">添加</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 md-2 mt-2">
+              <div class="card cloud">
+                <img class="card-img-top" src="/static/img/upyun.png" alt="Card image cap">
+                <div class="card-body">
+                  <h5 class="card-title">又拍云</h5>
+                  <p class="card-text">使用<a href="https://console.upyun.com/register/?invite=ryPX265PW" target="_blank">又拍云存储</a>提供的服务，每月有一定免费额度</p>
+                  <a href="javascript:void()" class="btn btn-primary" id="addUpyun">添加</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-3 mt-2 md-2">
+              <div class="card cloud">
+                <img class="card-img-top" src="/static/img/s3.png" alt="Card image cap">
+                <div class="card-body">
+                  <h5 class="card-title">Amazon S3</h5>
+                  <p class="card-text"><a href="https://aws.amazon.com/cn/s3/?nc1=h_ls" target="_blank">Amazon S3</a>专为从任意位置存储和检索任意数量的数据而构建的对象存储</p>
+                  <a href="/Admin/PolicyAddS3" class="btn btn-primary">添加</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+            
+       
+
+        <div class="card" id="local" style="display: none">
+          <div class="card-header">
+            添加本地上传策略
+          </div>
+          <div class="card-body">
+            <form id="localPolicy">
+              <input type="text" class="form-control" name="policy_type" value="local" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">允许获取外链</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="origin_link" id="local_allowd_origin1" value="1" >
+                  <label class="" for="local_allowd_origin1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="origin_link" id="local_allowd_origin2" value="0" checked>
+                  <label class="" for="local_allowd_origin2">禁止</label>
+                </div>
+                <div class="col-md-4 option-des"> 是否允许获取文件的源URL，推荐禁止</div>
+              </div>
+              <div class="row form-setting" id="localOrigin" style="display: none">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">外链根URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" value="{$options.siteURL}public/uploads/">
+                </div>
+                <div class="col-md-4 option-des"> 一般保持默认。如果你设置了融合CDN等产品，这里可以填写CDN域名,结尾要加"/"</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">允许的文件后缀</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="filetype" value="image/*,jpg,png,gif,bmp,mp4,mp3,txt" spellcheck="false">
+                </div>
+                <div class="col-md-4 option-des"> 多个请以半角逗号","隔开，留空表示不限制。如果允许图片类型文件，除了图片类型后缀外，请额外添加一项"image/*"</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="autoname" id="autoname1" value="1" checked>
+                  <label class="" for="autoname1" >开启</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="autoname" id="autoname2" value="0" >
+                  <label class="" for="autoname2">关闭</label>
+                </div>
+                <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+              </div>
+              <div class="row form-setting" id="autoname_form" >
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="namerule" value="{uid}_{randomkey8}_{originname}" spellcheck="false" required>
+                </div>
+                <div class="col-md-4 option-des"> 你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTable">变量对照表</a>中的字段填写</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" id="basic-addon2">
+                      /public/uploads/
+                    </span>
+                  </div>
+                  <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+                </div>
+                <div class="col-md-4 option-des"> 文件存放的目录，你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTableFolder">目录变量对照表</a>中的字段填写</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="savePolicy">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+
+        <div class="card" id="qiniu" style="display: none">
+          <div class="card-header">
+            添加七牛上传策略
+          </div>
+          <div class="card-body">
+            <form id="qiniuPolicy">
+              <input type="text" class="form-control" name="policy_type" value="qiniu" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="ak" class="col-form-label col-form-label-sm">AccessKey </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="ak" required></div>
+                <div class="col-md-4 option-des"> 七牛账号的AccessKey，请在七牛控制面板查看</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="sk" class="col-form-label col-form-label-sm">SecretKey </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="sk" required></div>
+                <div class="col-md-4 option-des"> 七牛账号的SecretKey，请在七牛控制面板查看</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="bucketname" class="col-form-label col-form-label-sm">存储空间名称 </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="bucketname" required></div>
+                <div class="col-md-4 option-des"> 创建空间时填写的空间名</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">空间属性</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="bucket_private" id="bucket_private_1" value="1" checked>
+                  <label class="" for="bucket_private_1" >私有空间</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="bucket_private" id="bucket_private_0" value="0">
+                  <label class="" for="bucket_private_0">公开空间</label>
+                </div>
+                <div class="col-md-4 option-des"> 与七牛空间访问控制设置保持一致，推荐设置为私有空间</div>
+              </div>
+
+              <div class="row form-setting" id="outlink" style="display: none">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">允许获取外链</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="origin_link" id="qiniu_allowd_origin1" value="1" >
+                  <label class="" for="qiniu_allowd_origin1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="origin_link" id="qiniu_allowd_origin2" value="0" checked>
+                  <label class="" for="qiniu_allowd_origin2">禁止</label>
+                </div>
+                <div class="col-md-4 option-des"> 是否允许获取文件的源URL，推荐禁止</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">空间域名</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" required>
+                </div>
+                <div class="col-md-4 option-des"> 七牛空间绑定的域名，结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">允许的文件后缀</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="filetype" value="image/*,jpg,png,gif,bmp,mp4,mp3,txt" spellcheck="false">
+                </div>
+                <div class="col-md-4 option-des"> 多个请以半角逗号","隔开，留空表示不限制。如果允许图片类型文件，除了图片类型后缀外，请额外添加一项"image/*"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="mimetype" class="col-form-label col-form-label-sm">允许的mimeType</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="mimetype" spellcheck="false">
+                </div>
+                <div class="col-md-4 option-des"> 多个请以半角分号";"隔开，留空表示不限制。示例：image/*表示只允许上传图片类型，image/jpeg;image/png表示只允许上传jpg和png类型的图片，!application/json;text/plain表示禁止上传json文本和纯文本。注意最前面的感叹号！</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="autoname" id="qiniu_autoname1" value="1" checked>
+                  <label class="" for="qiniu_autoname1" >开启</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="autoname" id="qiniu_autoname2" value="0" >
+                  <label class="" for="qiniu_autoname2">关闭</label>
+                </div>
+                <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+              </div>
+              <div class="row form-setting" id="qiniu_autoname_form" >
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="namerule" value="{uid}_{randomkey8}_{originname}" spellcheck="false" required>
+                </div>
+                <div class="col-md-4 option-des"> 你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTable">变量对照表</a>中的字段填写</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+           
+                  <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+                </div>
+                <div class="col-md-4 option-des"> 文件存放的目录，你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTableFolder">目录变量对照表</a>中的字段填写</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveQiniu">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+        <div id="oss" style="display: none">  
+        <div class="alert alert-primary" role="alert">
+          阿里云OSS创建空间后请进行如下操作，否则无法正常上传。
+          <ul>
+          <li>转到 空间管理 - 基础设置 - 跨域设置;</li>
+          <li>创建规则，其中来源填写“*”，允许 Methods全部勾选，允许 Headers填写“*”,其他保持默认，点击确定保存.</li>
+          </ul>
+        </div>
+          <div class="card" >
+            <div class="card-header">
+              添加阿里云OSS上传策略
+            </div>
+            <div class="card-body">
+              <form id="ossPolicy">
+                <input type="text" class="form-control" name="policy_type" value="oss" style="display: none">
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                  </div>
+                  <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                  <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+                </div>
+                
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="ak" class="col-form-label col-form-label-sm">Access Key ID </label>
+                  </div>
+                  <div class="col-md-4"> <input type="text" class="form-control" name="ak" pattern="[^\s]+"  title="请不要包含空格" required></div>
+                  <div class="col-md-4 option-des"> 阿里云账号的Access Key ID，请在阿里云控制面板-Access Key管理中创建或查看</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="sk" class="col-form-label col-form-label-sm"> Access Key Secret </label>
+                  </div>
+                  <div class="col-md-4"> <input type="text" class="form-control" name="sk" pattern="[^\s]+"  title="请不要包含空格" required></div>
+                  <div class="col-md-4 option-des"> 获取方法同上一项</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="bucketname" class="col-form-label col-form-label-sm">Bucket名称 </label>
+                  </div>
+                  <div class="col-md-4"> <input type="text" class="form-control" name="bucketname" required></div>
+                  <div class="col-md-4 option-des"> 创建空间时填写的Bucket名</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="policy_name" class="col-form-label col-form-label-sm">读写权限</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input class="" type="radio" name="bucket_private" id="oss_private_1" value="1" checked>
+                    <label class="" for="oss_private_1" >私有</label>
+                    &nbsp;&nbsp;&nbsp;
+                    <input class="" type="radio" name="bucket_private" id="oss_private_0" value="0">
+                    <label class="" for="oss_private_0">公共读</label>
+                  </div>
+                  <div class="col-md-4 option-des"> 与OSS空间访问控制设置保持一致，推荐设置为私有空间</div>
+                </div>
+
+                <div class="row form-setting" id="oss_outlink" style="display: none">
+                  <div class="col-md-1 form-label ">
+                    <label for="policy_name" class="col-form-label col-form-label-sm">允许获取外链</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input class="" type="radio" name="origin_link" id="oss_allowd_origin1" value="1" >
+                    <label class="" for="oss_allowd_origin1" >允许</label>
+                    &nbsp;&nbsp;&nbsp;
+                    <input class="" type="radio" name="origin_link" id="oss_allowd_origin2" value="0" checked>
+                    <label class="" for="oss_allowd_origin2">禁止</label>
+                  </div>
+                  <div class="col-md-4 option-des"> 是否允许获取文件的源URL，推荐禁止</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="url" class="col-form-label col-form-label-sm">空间域名</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="url" required>
+                  </div>
+                  <div class="col-md-4 option-des"> OSS空间绑定的域名，用于文件下载、访问，结尾要加"/"（推荐配合阿里云CDN使用，此处填写CDN域名）</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="server" class="col-form-label col-form-label-sm">上传域名</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="server" required>
+                  </div>
+                  <div class="col-md-4 option-des"> OSS空间的域名，一般与上一项保持一致。（如果上一项填写的是CDN域名，则此处与上一项不应相同）</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="filetype" class="col-form-label col-form-label-sm">允许的文件后缀</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="filetype" value="image/*,jpg,png,gif,bmp,mp4,mp3,txt" spellcheck="false">
+                  </div>
+                  <div class="col-md-4 option-des"> 多个请以半角逗号","隔开，留空表示不限制。如果允许图片类型文件，除了图片类型后缀外，请额外添加一项"image/*"</div>
+                </div>
+
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                  </div>
+                  <div class="col-md-4 input-group mb-3">
+                    <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                    <div class="input-group-append">
+                      <span class="input-group-text" id="basic-addon2">
+                        <select name="sizeTimes" class="selectIn">
+                          <option value="1">B</option>
+                          <option value="1024">KB</option>
+                          <option value="1048576" selected>MB</option>
+                          <option value="1073741824">GB</option>
+                        </select>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+                </div>
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input class="" type="radio" name="autoname" id="oss_autoname1" value="1" checked>
+                    <label class="" for="oss_autoname1" >开启</label>
+                    &nbsp;&nbsp;&nbsp;
+                    <input class="" type="radio" name="autoname" id="oss_autoname2" value="0" >
+                    <label class="" for="oss_autoname2">关闭</label>
+                  </div>
+                  <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+                </div>
+                <div class="row form-setting" id="oss_autoname_form" >
+                  <div class="col-md-1 form-label ">
+                    <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+                  </div>
+                  <div class="col-md-4">
+                    <input type="text" class="form-control" name="namerule" value="{uid}_{randomkey8}_{originname}" spellcheck="false" required>
+                  </div>
+                  <div class="col-md-4 option-des"> 你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTable">变量对照表</a>中的字段填写</div>
+                </div>
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                    <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+                  </div>
+                  <div class="col-md-4 input-group mb-3">
+             
+                    <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+                  </div>
+                  <div class="col-md-4 option-des"> 文件存放的目录，你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTableFolder">目录变量对照表</a>中的字段填写</div>
+                </div>
+                
+                <div class="row form-setting">
+                  <div class="col-md-1 form-label ">
+                  </div>
+                  <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveOss">保存设置</button></div>
+                  <div class="col-md-4 option-des"> </div>
+                  <br> <br>
+                </div>
+              </form>
+            </div>
+            <bn>
+          </div>
+        </div>
+
+        <div class="card" id="upyun" style="display: none">
+          <div class="card-header">
+            又拍云
+          </div>
+          <div class="card-body">
+            <form id="upyunPolicy">
+              <input type="text" class="form-control" name="policy_type" value="upyun" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="ak" class="col-form-label col-form-label-sm">操作员名称 </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="op_name" required></div>
+                <div class="col-md-4 option-des"> 创建存储服务时授权的操作员名称</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="sk" class="col-form-label col-form-label-sm">操作员密码 </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="op_pwd" required></div>
+                <div class="col-md-4 option-des"> 创建存储服务时授权的操作员密码</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="bucketname" class="col-form-label col-form-label-sm">存储服务名 </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="bucketname" required></div>
+                <div class="col-md-4 option-des"> 创建存储服务时填写的名称</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">Token 防盗链</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="bucket_private" id="upyun_bucket_private_1" value="1" checked>
+                  <label class="" for="upyun_bucket_private_1" >开启</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="bucket_private" id="upyun_bucket_private_0" value="0">
+                  <label class="" for="upyun_bucket_private_0">关闭</label>
+                </div>
+                <div class="col-md-4 option-des"> 与 功能配置-访问配置-Token 防盗链 保持一致，推荐设置为开启</div>
+              </div>
+
+              <div class="row form-setting" id="upyun_token" style="">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">防盗链密钥</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="sk"></div>
+                <div class="col-md-4 option-des"> 与 功能配置-访问配置-Token防盗链 中的密钥保持一致</div>
+              </div>
+
+              <div class="row form-setting" id="upyun_outlink" style="display: none">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">允许获取外链</label>
+                </div>
+                <div class="col-md-4">
+                  <input class="" type="radio" name="origin_link" id="upyun_allowd_origin1" value="1" >
+                  <label class="" for="upyun_allowd_origin1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="origin_link" id="upyun_allowd_origin2" value="0" checked>
+                  <label class="" for="upyun_allowd_origin2">禁止</label>
+                </div>
+                <div class="col-md-4 option-des"> 是否允许获取文件的源URL，推荐禁止</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">空间域名</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" required>
+                </div>
+                <div class="col-md-4 option-des"> 绑定的域名，开头要加http(s)://结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">允许的文件后缀</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="filetype" value="image/*,jpg,png,gif,bmp,mp4,mp3,txt" spellcheck="false">
+                </div>
+                <div class="col-md-4 option-des"> 多个请以半角逗号","隔开，留空表示不限制。如果允许图片类型文件，除了图片类型后缀外，请额外添加一项"image/*"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+              <input type="text" name="autoname" value="1" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+           
+                  <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+                </div>
+                <div class="col-md-4 option-des"> 文件存放的目录，你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTableFolder">目录变量对照表</a>中的字段填写</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveUpyun">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+
+        <br>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+<!-- /.content-wrapper-->
+<div class="modal fade" tabindex="-1" role="dialog" id="varTable">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">自动重命名变量对照表</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th >变量字段</th>
+                <th >说明</th>
+                <th >示例</th>
+                <th >适用范围</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td >{date}</td>
+                <td>上传日期</td>
+                <td>20180118</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{datetime}</td>
+                <td>上传日期时间</td>
+                <td>20180118121049</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{uid}</td>
+                <td>上传者UID</td>
+                <td>154</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{timestamp}</td>
+                <td>时间戳</td>
+                <td>1516277624</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{randomkey16}</td>
+                <td>16位随机字符</td>
+                <td>16D8lhjErTDWAQjW</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{randomkey8}</td>
+                <td>8位随机字符</td>
+                <td>hM4Tpdh6</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{originname}</td>
+                <td>原始文件名</td>
+                <td>plus1s.jpg</td>
+                <td>全部</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" tabindex="-1" role="dialog" id="varTableFolder">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">目录变量对照表</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th >变量字段</th>
+                <th >说明</th>
+                <th >示例</th>
+                <th >适用范围</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td >{date}</td>
+                <td>上传日期</td>
+                <td>20180118</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{datetime}</td>
+                <td>上传日期时间</td>
+                <td>20180118121049</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{uid}</td>
+                <td>上传者UID</td>
+                <td>154</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{timestamp}</td>
+                <td>时间戳</td>
+                <td>1516277624</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{randomkey16}</td>
+                <td>16位随机字符</td>
+                <td>16D8lhjErTDWAQjW</td>
+                <td>全部</td>
+              </tr>
+              <tr>
+                <td >{randomkey8}</td>
+                <td>8位随机字符</td>
+                <td>hM4Tpdh6</td>
+                <td>全部</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+{/block}
+{block name="js"}
+<script src="/static/js/admin/add_policy.js"></script>
+<script type="text/javascript">
+</script>
+{/block}

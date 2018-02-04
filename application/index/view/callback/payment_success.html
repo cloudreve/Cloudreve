@@ -1,0 +1,23 @@
+{extend name="header_public" /}
+{block name="title"}支付成功 - {$options.siteName}{/block}
+{block name="content"}
+<link rel="stylesheet" href="/static/css/error.css" />
+</head>
+<body data-ma-header="teal">
+
+<div class="container" align="center">
+<header align="left">
+<br>
+<img src="/img/logo_s.png" style="width:192px;">
+</header>
+    <div class="error_content" >
+        <div class="jumbotron animated bounce" style="padding-left:30px;">
+            <h1>支付成功</h1>
+            <br>
+            <p>  付款成功，您所购买的服务已开通。</p>
+            <p><a class="btn btn-primary btn-lg" href="/Home/Quota">查看详情</a></p>
+        </div>
+    </div>
+</div>
+</body>
+{/block}

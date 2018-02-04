@@ -1,0 +1,298 @@
+{extend name="header_admin" /}
+{block name="title"}文件列表- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">用户</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>用户 <button class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#addUser"><li class="fa fa-plus"></li></button></h2>
+        <br>
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-tags"></i> 条件检索</div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">排序方式</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="order">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="user_nick ASC">用户名</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="id DESC">注册日期</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-method="used_storage DESC">已用空间</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">用户组</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="groupS">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-group="">全部</a>
+                  </li>
+                  {volist name="group" id="group"}
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-group="{$group.id}">{$group.group_name}</a>
+                  </li>
+                  {/volist}
+                </ul>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-1 form-label-search mb-2">用户状态</div>
+              <div class="col-md-10">
+                <ul class="nav nav-pills" id="status">
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-status="">全部</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-status="1">正常</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link selectLab" href="javascript:void()" data-status="2">封禁/未激活</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="row" style="margin-top: 5px;">
+              <div class="col-1 form-label-search mb-2">高级检索</div>
+              <div class="col-md-10">
+                <div class="row">
+                  <div class="col-md-2">
+                    <select class="form-control form-control-sm" id="searchColUser">
+                      <option value="id">用户UID</option>
+                      <option value="user_nick">用户昵称</option>
+                      <option value="user_date">注册日期</option>
+                      <option value="user_email">邮箱</option>
+                      <option value="group_primary">初始用户组</option>
+                      <option value="user_activation_key">邮箱激活密钥</option>
+                      <option value="used_storage">已用空间</option>
+                      <option value="delay_time">用户组过期日期</option>
+                      <option value="avatar">头像标识</option>
+                      <option value="profile">个人主页状态</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <input type="text" class="form-control form-control-sm"  placeholder="检索表达式" id="searchValueUser">
+                  </div>
+                  <div class="col-md-1">
+                    <button type="button" class="btn btn-primary btn-sm" id="applySearch">应用</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card mb-3">
+          <div class="card-header">
+          <i class="fa fa-table"></i> 用户列表 </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <div id="dataTable_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4"><div class="row"><div class="col-sm-12 col-md-6"><div class="dataTables_length" ><label>每页展示 <select id="dataTable_length" aria-controls="dataTable" class="form-control form-control-sm"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> 个</label></div></div><div class="col-sm-12 col-md-6"><div id="dataTable_filter" class="dataTables_filter"><label>搜索:<input type="search" class="form-control form-control-sm" placeholder="" id="searchFrom"></label></div></div></div><div class="row"><div class="col-sm-12">
+              <div class="table-responsive">
+                <table class="table table-bordered dataTable" id="dataTable" width="100%" cellspacing="0" role="grid" aria-describedby="dataTable_info" style="width: 100%;">
+                  <thead>
+                    <tr role="row" class="textCenter"><th><input type="checkbox" data-type="all"></th><th>UID</th><th>昵称</th><th class="textCenter">邮箱</th><th class="textCenter">用户组</th><th class="textCenter">空间用量</th><th class="textCenter">状态</th><th class="textCenter">操作</th></tr>
+                  </thead>
+                  <tfoot>
+                  <tr><th rowspan="1" colspan="1" class="textCenter"><input type="checkbox" data-type="all"></th><th rowspan="1" colspan="1" class="textCenter">UID</th><th rowspan="1" colspan="1" class="textCenter">昵称</th><th rowspan="1" colspan="1" class="textCenter">邮箱</th><th rowspan="1" colspan="1" class="textCenter">用户组</th><th rowspan="1" colspan="1" class="textCenter">空间用量</th><th rowspan="1" colspan="1" class="textCenter">状态</th><th rowspan="1" colspan="1" class="textCenter">操作</th></tr>
+                  </tfoot>
+                  <tbody>
+                    <tr role="row" class="odd" id="userList">
+                      
+                      {volist name='list' id='user'}
+                      <tr role="row" class="odd">
+                        <td class="sorting_1 textCenter"><input type="checkbox" data-type="mark"  data-id="{$user.id}"></td>
+                        <td class="textCenter">{$user.id}</td>
+                        <td class="textCenter">{$user.user_nick}</td>
+                        <td class="textCenter">{$user.user_email}</td>
+                        <td class="textCenter">{:$originList[$key]["group"]["group_name"]}</td>
+                        <td class="textCenter">{:countSize($user.used_storage)}</td>
+                        <td class="textCenter">
+                          {eq name="user.user_status" value="0"}
+                          <span class="order_success">正常</span>
+                          {else/}
+                          <span class="order_warning">封禁/未激活</span>
+                          {/eq}
+                        </td>
+                        <td class="textCenter">
+                          <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="删除" data-action="delete" data-id="{$user.id}" data-unable="{eq name="user.used_storage" value="0"}0{else/}1{/eq}"><i class="fa fa-trash" aria-hidden="true"></i></button>
+                          <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="编辑" data-action="edit" data-id="{$user.id}"><i class="fa fa-id-card" aria-hidden="true"></i></button>
+                          <button type="button" class="btn btn-secondary fix" data-toggle="tooltip" data-placement="top" title="封号/解封" data-action="ban" data-id="{$user.id}"><i class="fa fa-ban" aria-hidden="true"></i></button>
+                        </td>
+                      </tr>
+                      {/volist}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-md-5 mb-2 mt-2" style="display: none" id="del">
+                  <button type="button" class="btn btn-danger" id="delAll"><i class="fa fa-trash" aria-hidden="true"></i> 删除选中用户</button>
+                </div>
+                </div></div><div class="row"><div class="col-sm-12 col-md-5"><div class="dataTables_info" id="dataTable_info" role="status" aria-live="polite">展示第 {$pageNow} 页，共 {$pageTotal} 页 {$dataTotal} 条数据</div></div><div class="col-sm-12 col-md-7">
+                <div class="dataTables_paginate paging_simple_numbers" id="dataTable_paginate">
+                  {$list->render()}
+                </div></div></div></div>
+              </div>
+            </div>
+           
+          </div>
+        </div>
+      </div>
+      
+      <!-- Example DataTables Card-->
+    </div>
+    <!-- /.container-fluid-->
+  </div>
+  <div class="modal fade bd-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true" id="editUser">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">用户详情</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="editUserForm">
+            <div class="form-group">
+              <label>
+                头像
+              </label>
+              <img src="" id="user_avatar">
+            </div>
+            <div class="form-group">
+              <label for="name">UID</label>
+              <input type="text" name="uid" id="uid" style="display: none;">
+              <input class="form-control" id="id" type="text" value="17" readonly>
+            </div>
+            <div class="form-group">
+              <label for="lovelyname">昵称</label>
+              <input type="text " class="form-control" id="user_nick" name="user_nick" required>
+            </div>
+            <div class="form-group">
+              <label for="InputPassword1">密码</label>
+              <input type="password" class="form-control" id="user_pass" name="user_pass" placeholder="如果不修改密码则留空" >
+            </div>
+            <div class="form-group">
+              <label for="InputEmail1">邮箱</label>
+              <input type="email" class="form-control" id="user_email" name="user_email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+              <label for="date">注册日期</label>
+              <input class="form-control" id="user_date" type="text" value="2017.12.31" readonly>
+            </div>
+            <div class="form-group">
+              <label for="space">已用空间</label>
+              <input class="form-control" id="used_storage" type="text" value="500M" readonly>
+            </div>
+            <div class="form-group">
+              <label for="openid">二步验证秘钥</label>
+              <input type="text " class="form-control" id="two_step" name="two_step" placeholder="取消二步验证请填写0" required="">
+            </div>
+            <div class="form-group">
+              <label for="inputState">用户状态</label>
+              <select class="form-control" id="user_status" name="user_status">
+                <option value="0">正常</option>
+                <option value="1">封禁/未激活</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inputState">用户组</label>
+              <select id="user_group" class="form-control" name="user_group">
+                {foreach $groups as $g} 
+                    <option value="{$g.id}">{$g.group_name}</option>
+                  {/foreach}
+              </select>
+            </div>
+            <div class="form-group">
+            <label for="inputState">个人主页状态</label>
+              <div class="radio">
+                <label>
+                  <input type="radio" name="profile" id="profile1" value="1">
+                  开启
+                </label>
+                <label>
+                  <input type="radio" name="profile" id="profile0" value="0">
+                  关闭
+                </label>
+              </div>
+            </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary" id="editUserSubmit">保存</button>
+        </div></form>
+      </div>
+    </div>
+</div>
+    <div class="modal fade bd-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true" id="addUser">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">添加用户</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="addUserForm">
+            <div class="form-group">
+              <label for="lovelyname">昵称</label>
+              <input type="text " class="form-control" id="user_nick" name="user_nick" required>
+            </div>
+            <div class="form-group">
+              <label for="InputPassword1">密码</label>
+              <input type="password" class="form-control" id="user_pass" name="user_pass" required>
+            </div>
+            <div class="form-group">
+              <label for="InputEmail1">邮箱</label>
+              <input type="email" class="form-control" id="user_email" name="user_email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+              <label for="inputState">用户状态</label>
+              <select class="form-control"  name="user_status">
+                <option value="0">正常</option>
+                <option value="1">封禁/未激活</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inputState">用户组</label>
+              <select  class="form-control" name="user_group">
+                {foreach $groups as $g} 
+                    <option value="{$g.id}">{$g.group_name}</option>
+                  {/foreach}
+              </select>
+            </div>
+
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+          <button type="submit" class="btn btn-primary" id="addUserSubmit">保存</button>
+        </div></form>
+      </div>
+    </div>
+  </div>
+  <!-- /.content-wrapper-->
+  {/block}
+  {block name="js"}
+  <script src="/static/js/admin/users.js"></script>
+  <script type="text/javascript">
+  </script>
+  {/block}

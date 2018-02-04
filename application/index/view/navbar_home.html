@@ -1,0 +1,140 @@
+<nav class="navbar navbar-inverse" >
+	<div class="container-fluid">
+		<!-- Brand and toggle get grouped for better mobile display -->
+		<div class="navbar-header">
+			<a class="navbar-brand" href="/">
+				
+			</a>
+			
+			<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+			<span class="sr-only">Toggle navigation</span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			</button>
+			
+		</div>
+		<!-- Collect the nav links, forms, and other content for toggling -->
+		<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+			<ul class="nav navbar-nav navbar-right">
+				
+				<li class="dropdown">
+					<a href="#" class="dropdown-toggle avatar-a" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><img src="/Member/Avatar/{$userInfo.uid}/s" class="img-circle avatar-s"> {$userInfo.userNick} <span class="caret"></span></a>
+					<ul class="dropdown-menu">
+						<li><a href="/Profile/{$userInfo.uid}">个人主页</a></li>
+						<li><a href="/Member/Setting">设置</a></li>
+						<li role="separator" class="divider"></li>
+						<li><a href="/Member/LogOut">退出登录</a></li>
+					</ul>
+				</li>
+			</ul>
+			</div><!-- /.navbar-collapse -->
+			</div><!-- /.container-fluid -->
+		</nav>
+
+<!-- Modal -->
+<div class="modal fade" id="upload_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" onclick = "closeUpload()" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+          <span class="sr-only">Close</span>
+        </button>
+        <h4 class="modal-title" id="myModalLabel">上传文件</h4>
+      </div>
+      <div class="modal-body">
+                <div class="row" style="margin-top: 20px;">
+                    <input type="hidden" id="domain" value="http://7xocov.com1.z0.glb.clouddn.com/">
+                    <input type="hidden" id="uptoken_url" value="uptoken">
+          <div class="up_button col-md-4">
+                        
+                        <div id="container">
+
+                            <button class="btn btn-raised btn-info btn-lg upload_button" id="pickfiles"  >
+                                <i class="glyphicon glyphicon-plus"></i>
+                                <span id="up_text"></span>
+                            </button>
+                            </div>
+                    </div>
+                    <div style="display:none" id="success" class="indo col-md-8">
+                        <div class="alert alert-success">
+                            队列全部文件处理完毕
+                        </div>
+                    </div>
+                    <div class="col-md-12 " align="center">
+                     <div class="info_box"  id="info_box">
+                     <br>
+                     <div class="drag_info">
+							<span class="info_icon"><i class="glyphicon glyphicon-inbox"></i></span>
+							<div class="info_text">拖动文件至此开始上传</div>
+              </div>
+                     </div>
+                    <div class="upload_box" style="display:none;" id="upload_box">
+                        <table class="table table-striped table-hover text-left"   style="display:none;">
+                            <thead>
+                              <tr>
+                                <th class="col-md-4">文件名</th>
+                                <th class="col-md-2">大小</th>
+                                <th class="col-md-6">进度</th>
+                              </tr>
+                            </thead>
+                            <tbody id="fsUploadProgress">
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+
+
+
+    <div class="container" style="display: none;">
+
+        <div class="body">
+
+        </div>
+
+
+    </div>
+
+      </div>
+      <div class="modal-footer">
+
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+  <div class="col-md-2 s"  id="side">
+        <div class="list-group" id="b">
+          <a href="/Home" class="list-group-item">
+            <i class="fa fa-file" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 我的文件
+          </a>
+          <a href="/Share/My" class="list-group-item"> <i class="fa fa-share-alt" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 我的分享
+          </a>
+          <a href="/Explore/Search" class="list-group-item">
+            <i class="fa fa-search" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 搜索分享
+          </a>
+          <a href="/Home/Album" class="list-group-item">
+           <i class="fa fa-picture-o" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 图片集
+          </a>
+        </div>
+        <div  clss="usage" style="  visibility: visible;
+          position: absolute;
+          width: 100%;
+          height: 100px;
+          top: auto;
+          bottom: 0px;
+        
+          background-color: #f9f9f9;padding: 15px">
+          <div class="usage-title">容量使用：</div>
+          <div class="usage-bar">
+            <div class="progress progress-striped active">
+              <div class="progress-bar" id="memory_bar"></div>
+            </div>
+          </div>
+          <div class="usage-text"><span id="used">--</span>/<span id="total">--</span></div>
+        </div>
+      </div>
+    
+
+

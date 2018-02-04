@@ -1,0 +1,47 @@
+{extend name="header_public" /}
+{block name="title"}用户主页 - {$options.siteName}{/block}
+{block name="content"}
+<link rel="stylesheet" href="/static/css/search.css" />
+</head>
+<body data-ma-header="teal">
+<nav class="navbar navbar-inverse" >
+    <div class="container-fluid">
+        <div class="container" >
+            {include file="navbar_public"  /}
+            <div class="header-panel shadow-z-2">
+                <div class="container-fluid">
+                    <div class="row">
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="container main-h">
+          
+                <div class="col-md-12">
+                <h1>搜索分享</h1>
+                    <input type="text" placeholder="请输入关键词，回车键发起搜索" autofocus="true">
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </body>
+                    <script type="text/javascript">
+                    </script>
+                    <script src="/static/js/material.js"></script>
+                    <script > 
+                    document.onkeydown=function(){
+                             if (event.keyCode == 13){
+                                keyWords = $("input").val();
+                                if(keyWords ==""){
+                                    toastr["warning"]("关键字不能为空");
+                                }else{
+                                    window.location="/Explore/S/"+keyWords;
+                                }
+                             }
+                             else{
+
+                             }
+                         }
+                    </script>
+                    {$options.js_code}
+                    {/block}

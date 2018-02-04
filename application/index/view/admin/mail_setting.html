@@ -1,0 +1,206 @@
+{extend name="header_admin" /}
+{block name="title"}邮件收发- {$options.siteName}{/block}
+{block name="content"}
+<link href="/static/css/admin/summernote.css" rel="stylesheet">
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">设置</li>
+      <li class="breadcrumb-item active">邮件设置</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>邮件收发</h2>
+        <br>
+        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#basic" role="tab" aria-controls="pills-home" aria-selected="true">基本设置</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="pills-profile-tab" data-toggle="pill" href="#test" role="tab" aria-controls="pills-profile" aria-selected="false">发信测试</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="pills-contact-tab" data-toggle="pill" href="#template" role="tab" aria-controls="pills-contact" aria-selected="false">邮件模板</a>
+          </li>
+        </ul>
+        <div class="tab-content" >
+          <div class="tab-pane fade show active" id="basic" role="tabpanel" aria-labelledby="pills-home-tab">
+            <form id="basicOptionsForm">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">发件人姓名</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="fromName" value="{$optionsForSet.fromName}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 显示在邮件发件邮箱旁的发件人姓名</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromAdress" class="col-form-label col-form-label-sm">发件人邮箱</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="fromAdress" value="{$optionsForSet.fromAdress}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 发件邮箱的地址</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="smtpHost" class="col-form-label col-form-label-sm">SMTP服务器</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="smtpHost" value="{$optionsForSet.smtpHost}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 发信邮箱的SMTP服务器地址</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="smtpPort" class="col-form-label col-form-label-sm">端口</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="smtpPort" value="{$optionsForSet.smtpPort}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 发信邮箱SMTP服务器的端口</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="smtpPort" class="col-form-label col-form-label-sm">加密方式</label>
+                </div>
+                <div class="col-md-4">
+                  <select class="form-control" name="encriptionType">
+                    <option value="no" {eq name="$optionsForSet.encriptionType" value="no"}selected{/eq}>不启用</option>
+                    <option value="tls" {eq name="$optionsForSet.encriptionType" value="tls"}selected{/eq}>TLS</option>
+                    <option value="ssl" {eq name="$optionsForSet.encriptionType" value="ssl"}selected{/eq}>SSL</option>
+                  </select>
+                </div>
+                <div class="col-md-4 option-des"> </div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="smtpUser" class="col-form-label col-form-label-sm">用户名</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="smtpUser" value="{$optionsForSet.smtpUser}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 发信邮箱用户名，一般与邮箱相同</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="smtpPass" class="col-form-label col-form-label-sm">密码</label>
+                </div>
+                <div class="col-md-4"> <input type="password" class="form-control" name="smtpPass" value="{$optionsForSet.smtpPass}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 发信邮箱密码</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="replyTo" class="col-form-label col-form-label-sm">回信邮箱</label>
+                </div>
+                <div class="col-md-4"> <input type="email" class="form-control" name="replyTo" value="{$optionsForSet.replyTo}" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 用户回复系统发送的邮件时，用于接收回信的邮箱</div>
+              </div>
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveMail">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br><br><br>
+              </div>
+            </form>
+          </div>
+
+          <div class="tab-pane fade" id="test" role="tabpanel" aria-labelledby="pills-profile-tab">
+           <form id="testMail">
+            <div class="row form-setting">
+
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">收件人邮箱</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="receiveMail" spellcheck="false"></div>
+                <div class="col-md-4 option-des"> 接受测试邮件的收件人邮箱</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">主题</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="subject" spellcheck="false" value="这是一封测试邮件"></div>
+                <div class="col-md-4 option-des"> 测试邮件的主题</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">正文</label>
+                </div>
+                <div class="col-md-8"> <textarea class="form-control" name="content" spellcheck="false"  id="content" > 这是一封由Cloudreve发出的测试邮件，用于测试邮件设置是否正常工作。</textarea></div>
+                
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="button" class="btn btn-primary" id="sendMail">发送测试邮件</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br><br><br>
+              </div>
+            
+           </form>
+          </div>
+
+  <div class="tab-pane fade" id="template" role="tabpanel" aria-labelledby="pills-profile-tab">
+           <form id="mailTemplate">
+
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">账户激活</label>
+                </div>
+                <div class="col-md-8"> <textarea class="form-control textEdit" name="mail_activation_template" spellcheck="false" > {$optionsForSet.mail_activation_template}</textarea>
+                </div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="fromName" class="col-form-label col-form-label-sm">重设密码</label>
+                </div>
+                  <div class="col-md-8"> <textarea class="form-control textEdit" name="mail_reset_pwd_template" spellcheck="false" > {$optionsForSet.mail_reset_pwd_template}</textarea>
+                </div>
+                
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveTemplate">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br><br><br>
+              </div>
+            
+           </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/summernote.min.js"></script>
+<script src="/static/js/admin/summernote-zh-CN.min.js"></script>
+<script src="/static/js/admin/setting.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+  $('#content').summernote({
+    lang:"zh-CN",
+     height: 150,
+  });
+});
+$(document).ready(function() {
+  $('.textEdit').summernote({
+    lang:"zh-CN",
+     height: 300,
+  });
+});
+</script>
+{/block}

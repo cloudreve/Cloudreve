@@ -1,0 +1,122 @@
+{extend name="header_public" /}
+{block name="title"}登录- {$options.siteName}{/block}
+{block name="content"}
+   <link rel="stylesheet" href="/static/css/login.css" />
+   	<link rel="stylesheet" href="/static/css/photoswipe.css"> 
+	<link rel="stylesheet" href="/static/css/default-skin/default-skin.css"> 
+        <script src="/static/js/jquery.color.js"></script>
+    </head>
+    <body data-ma-header="teal">
+
+
+        <nav class="navbar navbar-inverse" >
+            <div class="container-fluid">
+                <div class="container" >
+{include file="navbar_public" loginStatus=$loginStatus userData=$userData /}
+                <div class="header-panel shadow-z-2">
+                    <div class="container-fluid">
+                        <div class="row">
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="container main" >
+                    <div class="col-md-4"></div>
+                    <div class="col-md-4">
+                        <div class="jumbotron" id="logForm">
+                            <div class="card_top">
+                                <div class="row top-color">
+                                    <div class="card-top-row">
+                                     <div class="login-icon"><i class="fa fa-user-circle-o" aria-hidden="true"></i></div>
+                                     <div class="login-text">登录后方可享用精彩内容</div>
+                                        </div>
+                                    </div>
+                                </div>
+                          
+                                <div class="card_botom">
+                                <div class="row bottom-width">
+                                <form id="loginForm">
+                                    <div class="form-group  label-floating">
+                                    <label class="control-label" for="inputEmail">Email 电子邮箱</label>
+                                    <input type="text" class="form-control" id="inputEmail" name="userMail">
+                                    </div>
+                                    <div class="form-group  label-floating">
+                                    <label class="control-label" for="inputPwd">密码</label>
+                                    <input type="password" class="form-control" id="inputPwd" name="userPass">
+                                    </div>
+                                    {eq name="$RegOptions.login_captcha" value="1"}
+
+                                    <div class="input-group form-group label-floating">
+                                    <label class="control-label" for="captcha">验证码</label>
+                                        <input type="text" id="captcha" class="form-control" name="captchaCode">
+                                                  <span class="input-group-btn">
+                                                      <div class="captcha_img">{:captcha_img()}</div>
+                                                  </span>
+                                   </div>
+                                    
+                                    {else/}
+                                    {/eq}
+
+                                </form> <button class="btn btn-raised btn-primary" id="loginButton">登录</button> <button class="btn btn-raised btn-info" ><i class="fa fa-qq" aria-hidden="true"></i> 使用QQ账号登录</button><div class="link-group">
+                                <a href="#" class="noWave">创建一个账户</a><br>
+                                <a href="#" class="noWave">忘记密码？</a>
+                                </div>
+                                </div>
+                            </div>
+                            </div>
+                            
+                            <div class="jumbotron" id="regForm">
+                            <div class="card_top">
+                                <div class="row top-color">
+                                    <div class="card-top-row">
+                                     <div class="login-icon"><i class="fa fa-user-circle-o" aria-hidden="true"></i></div>
+                                     <div class="login-text">登录后方可享用精彩内容</div>
+                                        </div>
+                                    </div>
+                                </div>
+                          
+                                <div class="card_botom">
+                                <div class="row bottom-width">
+                                <form id="loginForm">
+                                    <div class="form-group  label-floating">
+                                    <label class="control-label" for="inputEmail">Email 电子邮箱</label>
+                                    <input type="text" class="form-control" id="inputEmail" name="userMail">
+                                    </div>
+                                    <div class="form-group  label-floating">
+                                    <label class="control-label" for="inputPwd">密码</label>
+                                    <input type="password" class="form-control" id="inputPwd" name="userPass">
+                                    </div>
+                                    {eq name="$RegOptions.login_captcha" value="1"}
+
+                                    <div class="input-group form-group label-floating">
+                                    <label class="control-label" for="captcha">验证码</label>
+                                        <input type="text" id="captcha" class="form-control" name="captchaCode">
+                                                  <span class="input-group-btn">
+                                                      <div class="captcha_img">{:captcha_img()}</div>
+                                                  </span>
+                                   </div>
+                                    
+                                    {else/}
+                                    {/eq}
+
+                                </form> <button class="btn btn-raised btn-primary" id="loginButton">登录</button> <button class="btn btn-raised btn-info" ><i class="fa fa-qq" aria-hidden="true"></i> 使用QQ账号登录</button><div class="link-group">
+                                <a href="#" class="noWave">创建一个账户</a><br>
+                                <a href="#" class="noWave">忘记密码？</a>
+                                </div>
+                                </div>
+                            </div>
+                            </div>
+
+                        </div></div>
+                        <div class="col-md-4"></div>
+                    </div>
+                </div>
+            </body>
+
+            <script type="text/javascript">
+        
+
+            </script>
+            <script src="/static/js/login_bind.js"> </script>
+            {$options.js_code}
+            {/block}
