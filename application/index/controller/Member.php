@@ -39,7 +39,7 @@ class Member extends Controller{
 	}
 
 	public function ForgetPwd(){
-		if(input('?post.regEmail') && input('?post.captchaCode') && !empty(input('post.captchaCode')) && !empty(input('post.regEmail'))){
+		if(input('?post.regEmail')  && !empty(input('post.regEmail'))){
 			$findAction = User::findPwd(input('post.regEmail'),input('post.captchaCode'));
 			if ($findAction[0]){
 				return json(['code' => '200','message' => $findAction[1]]);
