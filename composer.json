@@ -5,6 +5,7 @@
 	"homepage": "https://cloudreve.org",
 	"type": "project",
 	"license": "GPL-3.0-only",
+	"minimum-stability":"dev",	
 	"authors": [
 	        {
 	            "name": "Aaron",
