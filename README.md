@@ -27,7 +27,7 @@ Cloudreve - Make the cloud easy for everyone
 
 安装需求
 ------------
-* LNMP/LAMP With PHP5.6+
+* LNMP/AMP With PHP5.6+
 * curl、fileinfo、gd扩展
 * Composer
 
