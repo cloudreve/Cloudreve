@@ -2,8 +2,9 @@
 
 Cloudreve - Make the cloud easy for everyone
 =========================
-[![GitHub release](https://img.shields.io/github/release/HFO4/Cloudreve.svg)]()
-[![GPL Licence](https://badges.frapsoft.com/os/gpl/gpl.svg?v=103)](https://opensource.org/licenses/GPL-3.0/)
+[![Latest Stable Version](https://poser.pugx.org/hfo4/cloudreve/v/stable)](https://packagist.org/packages/hfo4/cloudreve)
+[![Latest Unstable Version](https://poser.pugx.org/hfo4/cloudreve/v/unstable)](https://packagist.org/packages/hfo4/cloudreve)
+[![License](https://poser.pugx.org/hfo4/cloudreve/license)](https://packagist.org/packages/hfo4/cloudreve)
 
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
