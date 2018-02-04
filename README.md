@@ -33,8 +33,38 @@ Cloudreve - Make the cloud easy for everyone
 
 简要安装说明
 ------------
+#### 1.克隆代码
+```
+git clone https://github.com/HFO4/Cloudreve.git
+cd Cloudreve
+```
+#### 2.安装依赖库
+```
+composer install
+```
+#### 3.配置MySQL
+将根目录下的`mysql.sql`到入到你的数据库，编辑`application/database_sample.php`文件，填写数据库信息，并重命名为`database_sample.php`
 
-Coming Soon...
+#### 4.URL重写
+对于Apache服务器，项目目录下的`.htaccess`已经配置好重写规则，如有需求酌情修改.
+对于Nginx服务器，以下是一个可供参考的配置：
+```
+location / {
+   if (!-e $request_filename) {
+   rewrite  ^(.*)$  /index.php?s=/$1  last;
+   break;
+    }
+ }
+ ```
+#### 5.完成
+后台地址：`http://您的域名/Admin` 初始用户名：`admin@cloudreve.org` 初始密码：`admin`
+#### 5.后续操作
+以下操作不是必须的，但仍推荐你完成这些操作：
+* 修改初始账户密码
+* 到 设置-基础设置 中更改站点URL，如果不更改，程序无法正常接受回调请求
+* 添加Crontab定时任务 ：你的域名/Cron
+* 如果你打算使用本地上传策略并且不准备开启外链功能，请将·public/uploads·目录设置为禁止外部访问
+* 给本项目一个Star~
 
 许可证
 ------------
