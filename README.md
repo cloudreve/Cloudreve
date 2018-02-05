@@ -33,19 +33,38 @@ Cloudreve - Make the cloud easy for everyone
 
 简要安装说明
 ------------
-#### 1.克隆代码
+#### 1.使用Composer安装主程序
 ```
-git clone https://github.com/HFO4/Cloudreve.git
-cd Cloudreve
+#安装开发版
+$ composer create-project hfo4/cloudreve:dev-master
 ```
-#### 2.安装依赖库
-```
-composer install
-```
-#### 3.配置MySQL
-将根目录下的`mysql.sql`到入到你的数据库，编辑`application/database_sample.php`文件，填写数据库信息，并重命名为`database.php`
 
-#### 4.URL重写
+```
+#等待安装依赖库后，会自动执行安装脚本，按照提示输入数据库账户信息
+   ___ _                 _                    
+  / __\ | ___  _   _  __| |_ __ _____   _____ 
+ / /  | |/ _ \| | | |/ _` | '__/ _ \ \ / / _ \
+/ /___| | (_) | |_| | (_| | | |  __/\ V /  __/
+\____/|_|\___/ \__,_|\__,_|_|  \___| \_/ \___|
+        
+                Ver XX
+================================================
+#按提示输入信息
+......
+```
+
+```
+#出现如下提示表示安装完成
+Congratulations! Cloudreve has benn install successfully.
+
+Here's some informatioin about yor Cloudreve:
+Homepage: https://pan.aoaoao.me/
+Admin Panel: https://pan.aoaoao.me/Admin
+Default username: admin@cloudreve.org
+Default password: admin
+```
+
+#### 2.URL重写
 对于Apache服务器，项目目录下的`.htaccess`已经配置好重写规则，如有需求酌情修改.
 对于Nginx服务器，以下是一个可供参考的配置：
 ```
@@ -56,7 +75,7 @@ location / {
     }
  }
  ```
-#### 5.完成
+#### 3.完成
 后台地址：`http://您的域名/Admin` 初始用户名：`admin@cloudreve.org` 初始密码：`admin`
 #### 后续操作
 以下操作不是必须的，但仍推荐你完成这些操作：
@@ -64,7 +83,7 @@ location / {
 * 到 设置-基础设置 中更改站点URL，如果不更改，程序无法正常接受回调请求
 * 添加Crontab定时任务 ：你的域名/Cron
 * 如果你打算使用本地上传策略并且不准备开启外链功能，请将·public/uploads·目录设置为禁止外部访问
-* 如需启用二步验证功能，请执行`composer require phpgangsta/googleauthenticator`安装二步验证支持库
+* 如需启用二步验证功能，请依次执行`composer require phpgangsta/googleauthenticator:dev-master` `composer require endroid/qrcode`安装二步验证支持库
 * 给本项目一个Star~
 
 许可证
