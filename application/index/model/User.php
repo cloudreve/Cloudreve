@@ -87,7 +87,7 @@ class User extends Model{
 	 * @return [type]            [description]
 	 */
 	static function register($userEmail,$userPass,$captchaCode){
-		if(Option::getValue("login_captcha")=="1"){
+		if(Option::getValue("reg_captcha")=="1"){
 			if(!self::checkCaptcha($captchaCode)){
 				return [false,"验证码错误"];
 			}
@@ -193,7 +193,7 @@ class User extends Model{
 	}
 
 	static function findPwd($email,$captchaCode){
-		if(Option::getValue("login_captcha")=="1"){
+		if(Option::getValue("forget_captcha")=="1"){
 			if(!self::checkCaptcha($captchaCode)){
 				return [false,"验证码错误"];
 			}
