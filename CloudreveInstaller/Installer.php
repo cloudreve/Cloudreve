@@ -86,7 +86,7 @@ class Installer{
 		$hostname=$ioContext->ask("Input the hostname of your MySQL server (Default:127.0.0.1):","127.0.0.1");
 		$database=$ioContext->ask("The database name:","127.0.0.1");
 		$username=$ioContext->ask("The username of your MySQL server (Default:root):","root");
-		$password=$ioContext->askAndHideAnswer("The password of your MySQL server:");
+		$password=$ioContext->ask("The password of your MySQL server:");
 		$hostport=$ioContext->ask("The hostport of your MySQL server (Default:3306):","3306");
 		$mysqli = @new \mysqli($hostname, $username,  $password,  $database,  $hostport);
 		if ($mysqli->connect_error) {
