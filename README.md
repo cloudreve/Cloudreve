@@ -55,7 +55,7 @@ $ composer create-project hfo4/cloudreve:dev-master
 
 ```
 #出现如下提示表示安装完成
-Congratulations! Cloudreve has benn install successfully.
+Congratulations! Cloudreve has been installed successfully.
 
 Here's some informatioin about yor Cloudreve:
 Homepage: https://pan.aoaoao.me/

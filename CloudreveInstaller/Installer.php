@@ -48,7 +48,7 @@ class Installer{
 			$ioContext->write("=======================");
 		}
 		$ioContext->write("");
-		$ioContext->write("Congratulations! Cloudreve has benn install successfully.");
+		$ioContext->write("Congratulations! Cloudreve has been installed successfully.");
 		$ioContext->write("");
 		$ioContext->write("Here's some informatioin about yor Cloudreve:");
 		$ioContext->write("Homepage: $siteUrl");
