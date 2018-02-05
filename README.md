@@ -64,7 +64,10 @@ Default username: admin@cloudreve.org
 Default password: admin
 ```
 
-#### 2.URL重写
+#### 2.目录权限
+`runtime`目录需要写入权限，如果你使用本地存储，`public` 目录也需要有写入权限
+
+#### 3.URL重写
 对于Apache服务器，项目目录下的`.htaccess`已经配置好重写规则，如有需求酌情修改.
 对于Nginx服务器，以下是一个可供参考的配置：
 ```
@@ -74,8 +77,9 @@ location / {
    break;
     }
  }
- ```
-#### 3.完成
+```
+
+#### 4.完成
 后台地址：`http://您的域名/Admin` 初始用户名：`admin@cloudreve.org` 初始密码：`admin`
 #### 后续操作
 以下操作不是必须的，但仍推荐你完成这些操作：
