@@ -42,6 +42,9 @@
 	"scripts": {
 		"post-install-cmd": [
 			"CloudreveInstaller\\Installer::startInstall"
+		],
+		"post-create-project-cmd" : [
+			"CloudreveInstaller\\Installer::startInstall"
 		]
 	}
 }
