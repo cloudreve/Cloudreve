@@ -6,33 +6,42 @@
 	"type": "project",
 	"license": "GPL-3.0-only",	
 	"authors": [
-	        {
-	            "name": "Aaron",
-	            "email": "abslant@foxmail.com",
-	            "homepage": "https://aoaoao.me",
-	            "role": "Developer"
-	        },
-	        {
-	            "name": "Qnner",
-	            "email": "admin@qnner.com",
-	            "homepage": "http://me.qnner.com",
-	            "role": "Developer"
-	        },
-	        {
-	            "name": "dune",
-	            "email": "rainaysann@gmail.com",
-	            "homepage": "https://github.com/rainays",
-	            "role": "Developer"
-	        }
+			{
+				"name": "Aaron",
+				"email": "abslant@foxmail.com",
+				"homepage": "https://aoaoao.me",
+				"role": "Developer"
+			},
+			{
+				"name": "Qnner",
+				"email": "admin@qnner.com",
+				"homepage": "http://me.qnner.com",
+				"role": "Developer"
+			},
+			{
+				"name": "dune",
+				"email": "rainaysann@gmail.com",
+				"homepage": "https://github.com/rainays",
+				"role": "Developer"
+			}
 	 ],
 	"require": {
 		"ext-curl":"*",
 		"ext-fileinfo":"*",
 		"ext-gd":"*",
 		"topthink/think-captcha":"1.*",
-		"endroid/qrcode": "1.*",
 		"aliyuncs/oss-sdk-php": "~2.0",
 		"sabre/dav":"~3.2.0",
 		"upyun/sdk": "^3.3"
+	},
+	"autoload": {
+		"psr-0": {
+			"CloudreveInstaller\\Installer" : ""
+		}
+	},
+	"scripts": {
+		"post-install-cmd": [
+			"CloudreveInstaller\\Installer::startInstall"
+		]
 	}
 }
