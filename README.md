@@ -33,6 +33,7 @@ Cloudreve - Make the cloud easy for everyone
 
 简要安装说明
 ------------
+
 #### 1.使用Composer安装主程序
 ```
 #安装开发版
@@ -89,6 +90,11 @@ location / {
 * 如果你打算使用本地上传策略并且不准备开启外链功能，请将·public/uploads·目录设置为禁止外部访问
 * 如需启用二步验证功能，请依次执行`composer require phpgangsta/googleauthenticator:dev-master` `composer require endroid/qrcode`安装二步验证支持库
 * 给本项目一个Star~
+
+文档
+------------
+* [完整安装说明](https://github.com/HFO4/Cloudreve/wiki/%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E)
+* [安装及初次使用FAQ](https://github.com/HFO4/Cloudreve/wiki/%E5%AE%89%E8%A3%85%E5%8F%8A%E5%88%9D%E6%AC%A1%E4%BD%BF%E7%94%A8FAQ)
 
 许可证
 ------------
