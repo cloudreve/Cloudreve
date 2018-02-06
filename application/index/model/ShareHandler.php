@@ -21,6 +21,7 @@ class ShareHandler extends Model{
 		$this->shareData = Db::name('shares')->where('share_key',$key)->find();
 		if(empty($this->shareData)){
 			$this->querryStatus = false;
+			die($key);
 		}else{
 			if($notExist){
 				if($this->shareData["source_type"] == "file"){

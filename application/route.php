@@ -15,7 +15,7 @@ Route::rule([
 	's/:key'=>'index/Share/index',
 	'Share/Download/:key'=>'index/Share/Download',
 	'Share/Preview/:key'=>'index/Share/Preview',
-	'Share/List/:key'=>'index/Share/List',
+	'Share/ListFile/:key'=>'index/Share/ListFile',
 	'Login'=>'index/Member/LoginForm',
 	'Member/emailActivate/:key'=>'index/Member/emailActivate',
 	'Member/resetPwd/:key'=>'index/Member/resetPwd',
