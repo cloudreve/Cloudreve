@@ -14,8 +14,8 @@
 
             });
             jQuery.ajaxSetup({
-            cache: true
-        });
+                cache: true
+            });
 
             function getSize(size) {
                 var filetype = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
@@ -27,12 +27,12 @@
             }
             Date.prototype.format = function(fmt) {
                 var o = {
-                    "M+": this.getMonth() + 1, 
+                    "M+": this.getMonth() + 1,
                     "d+": this.getDate(),
-                    "h+": this.getHours(), 
-                    "m+": this.getMinutes(), 
-                    "s+": this.getSeconds(), 
-                    "q+": Math.floor((this.getMonth() + 3) / 3), 
+                    "h+": this.getHours(),
+                    "m+": this.getMinutes(),
+                    "s+": this.getSeconds(),
+                    "q+": Math.floor((this.getMonth() + 3) / 3),
                     "S": this.getMilliseconds()
                 };
                 if (/(y+)/.test(fmt)) {
@@ -45,8 +45,10 @@
                 }
                 return fmt;
             }
+
             function audioPause() {
                 document.getElementById('preview-target').pause();
+                dp.pause();
             }
             $("#size").html(getSize(shareInfo.fileSize));
             $("#down_num").html(shareInfo.downloadNum);
@@ -64,16 +66,55 @@
                     }
                 });
             });
-            var openPhotoSwipe = function(pic,ww,hh) {
+            vplayderLoad = false;
+        function includeCss(filename) {
+            var head = document.getElementsByTagName('head')[0];
+            var link = document.createElement('link');
+            link.href = filename;
+            link.rel = 'stylesheet';
+            link.type = 'text/css';
+            head.appendChild(link)
+        }
+        var loadDPlayer = function(url){
+            if (!vplayderLoad) {
+                toastr["info"]("加载预览组件...");
+                includeCss("/static/css/DPlayer.min.css");
+                $.getScript("/static/js/DPlayer.min.js").done(function() {
+                    toastr.clear();
+                    vplayderLoad = 1;
+                    playVideo(url);
+                });
+            }else{
+                playVideo(url);
+            }
+        }
+        var playVideo = function(url){
+             dp = new DPlayer({
+                container: document.getElementById("preview-target"),
+                screenshot: true,
+                video: {
+                    url: url
+                },
+            });
+            dp.on("fullscreen", function(){
+                $(".modal-backdrop").hide();
+                $("#side").hide();
+                return false;
+            });
+            dp.on("fullscreen_cancel", function(){
+                $(".modal-backdrop").show();
+                $("#side").show();
+                return false;
+            })
+        }
+            var openPhotoSwipe = function(pic, ww, hh) {
                 var pswpElement = document.querySelectorAll('.pswp')[0];
-                items= [
-                        {
-                            src: pic,
-                            w: ww,
-                            h: hh
-                        }
-                    ];
-                     var options = {
+                items = [{
+                    src: pic,
+                    w: ww,
+                    h: hh
+                }];
+                var options = {
                     history: false,
                     focus: false,
                     showAnimationDuration: 5,
@@ -86,57 +127,57 @@
                 var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, options);
                 gallery.init();
             };
-            if(/\.(gif|jpg|jpeg|png|svg|SVG|GIF|JPG|PNG)$/.test(shareInfo.fileName)){
+
+            if (/\.(gif|jpg|jpeg|png|svg|SVG|GIF|JPG|PNG)$/.test(shareInfo.fileName)) {
                 $.getScript("/static/js/photoswipe.min.js").done(function() {
                     $.getScript("/static/js/photoswipe-ui-default.js").done(function() {
-                        $("#previewButton").click(function(){
-                            if(shareInfo.allowPreview){
+                        $("#previewButton").click(function() {
+                            if (shareInfo.allowPreview) {
                                 x = shareInfo.picSize.split(",")[0];
                                 y = shareInfo.picSize.split(",")[1];
-                                openPhotoSwipe("/Share/Preview/"+shareInfo.shareId,x,y);
-                            }else{
+                                openPhotoSwipe("/Share/Preview/" + shareInfo.shareId, x, y);
+                            } else {
                                 toastr["error"]("请先登录")
                             }
                         })
-                        
+
                     })
 
                 })
-            }else if(/\.(mp4|flv|avi|tff|MP4|FLV|AVI|TFF)$/.test(shareInfo.fileName)){
+            } else if (/\.(mp4|flv|avi|tff|MP4|FLV|AVI|TFF)$/.test(shareInfo.fileName)) {
                 $(".file-sign").html('<i class="fa fa-file-movie-o" aria-hidden="true"></i>')
-                $("#previewButton").click(function(){
-                    if(shareInfo.allowPreview){
-                        $(".previewContent").html('<video id="preview-target" style="width: 100%;object-fit: fill" controls="controls" class="preview"  src="/Share/Preview/'+shareInfo.shareId+'" ></video>');
+                $("#previewButton").click(function() {
+                    if (shareInfo.allowPreview) {
+                        $(".previewContent").html('<div id="preview-target" style="width: 100%;object-fit: fill" class="preview"></div>');
                         $('#previewModal').modal();
-                    }else{
+                        loadDPlayer('/Share/Preview/' + shareInfo.shareId);
+                    } else {
                         toastr["error"]("请先登录")
                     }
                 })
-            }
-            else if(/\.(MP3|mp3|wav|WAV|ogg|OGG)$/.test(shareInfo.fileName)){
+            } else if (/\.(MP3|mp3|wav|WAV|ogg|OGG)$/.test(shareInfo.fileName)) {
                 $(".file-sign").html('<i class="fa fa-file-audio-o" aria-hidden="true"></i>');
-                $("#previewButton").click(function(){
-                    if(shareInfo.allowPreview){
-                        $(".previewContent").html('<audio id="preview-target" style="width: 100%;object-fit: fill" controls="controls" class="preview"  src="/Share/Preview/'+shareInfo.shareId+'" ></audio>');
+                $("#previewButton").click(function() {
+                    if (shareInfo.allowPreview) {
+                        $(".previewContent").html('<audio id="preview-target" style="width: 100%;object-fit: fill" controls="controls" class="preview"  src="/Share/Preview/' + shareInfo.shareId + '" ></audio>');
                         $('#previewModal').modal();
-                    }else{
+                    } else {
                         toastr["error"]("请先登录")
                     }
                 })
-            }else{
-                 $("#previewButton").click(function(){
-                     toastr["warning"]("当前文件暂不支持预览")
-                 });
-                 if(/\.(doc|DOC|docx|DOCX|ogg)$/.test(shareInfo.fileName)){
-                     $(".file-sign").html('<i class="fa fa-file-word-o" aria-hidden="true"></i>');
-                 }else if(/\.(ppt|PPT|pptx|PPTX)$/.test(shareInfo.fileName)){
+            } else {
+                $("#previewButton").click(function() {
+                    toastr["warning"]("当前文件暂不支持预览")
+                });
+                if (/\.(doc|DOC|docx|DOCX|ogg)$/.test(shareInfo.fileName)) {
+                    $(".file-sign").html('<i class="fa fa-file-word-o" aria-hidden="true"></i>');
+                } else if (/\.(ppt|PPT|pptx|PPTX)$/.test(shareInfo.fileName)) {
                     $(".file-sign").html('<i class="fa fa-file-powerpoint-o" aria-hidden="true"></i>');
-                 }else if(/\.(pdf|PDF)$/.test(shareInfo.fileName)){
+                } else if (/\.(pdf|PDF)$/.test(shareInfo.fileName)) {
                     $(".file-sign").html('<i class="fa fa-file-pdf-o" aria-hidden="true"></i>');
-                 }
-                 else if(/\.(zip|ZIP|RAR|rar|7z|7Z)$/.test(shareInfo.fileName)){
+                } else if (/\.(zip|ZIP|RAR|rar|7z|7Z)$/.test(shareInfo.fileName)) {
                     $(".file-sign").html('<i class="fa fa-file-archive-o" aria-hidden="true"></i>');
-                 }else{
+                } else {
                     $(".file-sign").html('<i class="fa fa-file-text" aria-hidden="true"></i>');
-                 }
+                }
             }

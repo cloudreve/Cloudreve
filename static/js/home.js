@@ -62,27 +62,27 @@
 			cache: true
 		});
 		openUpload = function() {
-		    $("#pickfiles").css("z-index", "9999");
-		    $('#upload_modal').modal();
-		    if (!upload_load) {
-		        $("#up_text").html("正在加载上传组件...");
-		        $.getScript("/static/js/moxie.js").done(function() {
-		            $.getScript("/static/js/plupload.dev.js").done(function() {
-		                $.getScript("/static/js/i18n/zh_CN.js").done(function() {
-		                    $.getScript("/static/js/ui.js").done(function() {
-		                        $.getScript("/static/js/qiniu.js").done(function() {
-		                            $.getScript("/static/js/main.js");
-		                            $("#up_text").html("选择文件");
-		                            toastr.clear();
-		                            upload_load = 1;
-		                        });
-		                    });
-		                });
-		            });
-		        });
-		    } else {
-		        $("[class='moxie-shim moxie-shim-html5']").show();
-		    }
+			$("#pickfiles").css("z-index", "9999");
+			$('#upload_modal').modal();
+			if (!upload_load) {
+				$("#up_text").html("正在加载上传组件...");
+				$.getScript("/static/js/moxie.js").done(function() {
+					$.getScript("/static/js/plupload.dev.js").done(function() {
+						$.getScript("/static/js/i18n/zh_CN.js").done(function() {
+							$.getScript("/static/js/ui.js").done(function() {
+								$.getScript("/static/js/qiniu.js").done(function() {
+									$.getScript("/static/js/main.js");
+									$("#up_text").html("选择文件");
+									toastr.clear();
+									upload_load = 1;
+								});
+							});
+						});
+					});
+				});
+			} else {
+				$("[class='moxie-shim moxie-shim-html5']").show();
+			}
 		 }
 		function closeUpload() {
 			$('#upload_modal').modal('hide');
@@ -95,12 +95,12 @@
 			})
 		});
 		function includeCss(filename) {
-		    var head = document.getElementsByTagName('head')[0];
-		    var link = document.createElement('link');
-		    link.href = filename;
-		    link.rel = 'stylesheet';
-		    link.type = 'text/css';
-		    head.appendChild(link)
+			var head = document.getElementsByTagName('head')[0];
+			var link = document.createElement('link');
+			link.href = filename;
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			head.appendChild(link)
 		}
 		function loadMdEditor(result){
 			if (mdLoad == 0) {
@@ -114,17 +114,17 @@
 									$.getScript("/static/js/mdeditor/squire-raw.js").done(function() {
 										$.when(
 											$.ajax({
-											    async: false,
-											    url: "/static/js/mdeditor/tui-editor-Editor-all.min.js",
-											    dataType: "script"
+												async: false,
+												url: "/static/js/mdeditor/tui-editor-Editor-all.min.js",
+												dataType: "script"
 											})).done(function(){
 												editor = new tui.Editor({
-												        el: document.querySelector('#md'),
-												        initialEditType: 'markdown',
-												        previewStyle: 'vertical',
-												        height: 'auto',
-												        initialValue: result,
-												        language:"zh",
+														el: document.querySelector('#md'),
+														initialEditType: 'markdown',
+														previewStyle: 'vertical',
+														height: 'auto',
+														initialValue: result,
+														language:"zh",
 												});
 
 												toastr.clear();
@@ -154,7 +154,7 @@
 
 		function audioPause() {
 			document.getElementById('audiopreview-target').pause();
-			document.getElementById('videopreview-target').pause();
+			dp.pause()
 		}
 
 		
@@ -190,6 +190,39 @@
 				openPhotoSwipe(t);
 			}
 		}
+		vplayderLoad = false;
+		var loadDPlayer = function(url){
+			if (!vplayderLoad) {
+				toastr["info"]("加载预览组件...");
+				includeCss("/static/css/DPlayer.min.css");
+				$.getScript("/static/js/DPlayer.min.js").done(function() {
+					toastr.clear();
+					vplayderLoad = 1;
+					playVideo(url);
+				});
+			}else{
+				playVideo(url);
+			}
+		}
+		var playVideo = function(url){
+			 dp = new DPlayer({
+				container: document.getElementById("videopreview-target"),
+				screenshot: true,
+				video: {
+					url: url
+				},
+			});
+			dp.on("fullscreen", function(){
+				$(".modal-backdrop").hide();
+				$("#side").hide();
+				return false;
+			});
+			dp.on("fullscreen_cancel", function(){
+				$(".modal-backdrop").show();
+				$("#side").show();
+				return false;
+			})
+		}
 		function suffix($fname){
 			alert($fname);
 		}	
@@ -198,15 +231,15 @@
 			$('a[ng-click|="selectOrUnselect(item, $event)"]').click(function(event){ 
 				var menu = $("#context-menu");
 				if (event.pageX >= window.innerWidth - menu.width()) {
-				            event.pageX -= menu.width();
-				        }
-				        if (event.pageY >= window.innerHeight - menu.height()) {
-				            event.pageY -= menu.height();
-				        }
+							event.pageX -= menu.width();
+						}
+						if (event.pageY >= window.innerHeight - menu.height()) {
+							event.pageY -= menu.height();
+						}
 				  $("#context-menu").css({
-                        "left": event.pageX,
-                        "top": event.pageY
-                    });
+						"left": event.pageX,
+						"top": event.pageY
+					});
 				$(this).contextmenu();
 				return false;
 			})

@@ -21,6 +21,14 @@
                     }),
                 });
             }]);
+            function includeCss(filename) {
+                var head = document.getElementsByTagName('head')[0];
+                var link = document.createElement('link');
+                link.href = filename;
+                link.rel = 'stylesheet';
+                link.type = 'text/css';
+                head.appendChild(link)
+            }
             previewLoad = 0;
             var openPhotoSwipe = function(items) {
                 var pswpElement = document.querySelectorAll('.pswp')[0];
@@ -55,6 +63,39 @@
             } else {
                 openPhotoSwipe(t);
             }
+        }
+        vplayderLoad = false;
+        var loadDPlayer = function(url){
+            if (!vplayderLoad) {
+                toastr["info"]("加载预览组件...");
+                includeCss("/static/css/DPlayer.min.css");
+                $.getScript("/static/js/DPlayer.min.js").done(function() {
+                    toastr.clear();
+                    vplayderLoad = 1;
+                    playVideo(url);
+                });
+            }else{
+                playVideo(url);
+            }
+        }
+        var playVideo = function(url){
+             dp = new DPlayer({
+                container: document.getElementById("videopreview-target"),
+                screenshot: true,
+                video: {
+                    url: url
+                },
+            });
+            dp.on("fullscreen", function(){
+                $(".modal-backdrop").hide();
+                $("#side").hide();
+                return false;
+            });
+            dp.on("fullscreen_cancel", function(){
+                $(".modal-backdrop").show();
+                $("#side").show();
+                return false;
+            })
         }
         function mobileBind(){
             if($(window).width()<768){
