@@ -338,6 +338,10 @@ class FileManage extends Model{
 				$Redirect = $this->s3Preview();
 				return $Redirect;
 				break;
+			case 'remote':
+				$Redirect = $this->remotePreview();
+				return $Redirect;
+				break;
 			default:
 				# code...
 				break;
@@ -383,6 +387,9 @@ class FileManage extends Model{
 				break;
 			case 's3':
 				return $DownloadHandler = $this->s3Download();
+				break;
+			case 'remote':
+				return $DownloadHandler = $this->remoteDownload();
 				break;
 			default:
 				# code...
@@ -473,6 +480,8 @@ class FileManage extends Model{
 				self::upyunDelete($value,$uniquePolicy["upyunPolicyData"][$key][0]);
 			}else if(in_array($key,$uniquePolicy["s3List"])){
 				self::s3Delete($value,$uniquePolicy["s3PolicyData"][$key][0]);
+			}else if(in_array($key,$uniquePolicy["remoteList"])){
+				self::remoteDelete($value,$uniquePolicy["remotePolicyData"][$key][0]);
 			}
 		}
 		return ["result"=>["success"=>true,"error"=>null]];
@@ -580,6 +589,12 @@ class FileManage extends Model{
 		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
+	static function remoteDelete($fileList,$policyData){
+		$remoteObj = new Remote($policyData);
+		$remoteObj->remove(array_column($fileList, 'pre_name'));
+		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
+	}
+
 	static function deleteFileRecord($id,$size,$uid){
 		Db::name('files')->where([
 		'id' => ["in",$id],
@@ -673,6 +688,11 @@ class FileManage extends Model{
 		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"])];
 	}
 
+	public function remotePreview(){
+		$remote = new Remote($this->policyData);
+		return [1,$remote->preview($this->fileData["pre_name"])];
+	}
+
 	public function upyunPreview($base=null,$name=null){
 		if(!$this->policyData['bucket_private']){
 			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?auth=0";
@@ -751,6 +771,11 @@ class FileManage extends Model{
 	public function s3Download(){
 		$timeOut = Option::getValue("timeout");
 		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"],array(),false)];
+	}
+
+	private function remoteDownload(){
+		$remote = new Remote($this->policyData);
+		return [1,$remote->download($this->fileData["pre_name"],$this->fileData["orign_name"])];
 	}
 
 	public function ossDownload(){
@@ -1145,6 +1170,8 @@ class FileManage extends Model{
 		$upyunPolicyData = [];
 		$s3List = [];
 		$s3PolicyData = [];
+		$remoteList = [];
+		$remotePolicyData = [];
 		foreach ($data as $key => $value) {
 			if(!in_array($value['policy_id'],$tempList)){
 				array_push($tempList,$value['policy_id']);
@@ -1185,6 +1212,13 @@ class FileManage extends Model{
 						}
 						array_push($s3PolicyData[$value['policy_id']],$policyTempData);
 						break;
+					case 'remote':
+						array_push($remoteList,$value['policy_id']);
+						if(empty($remotePolicyData[$value['policy_id']])){
+							$remotePolicyData[$value['policy_id']] = [];
+						}
+						array_push($remotePolicyData[$value['policy_id']],$policyTempData);
+						break;
 					default:
 						# code...
 						break;
@@ -1203,6 +1237,8 @@ class FileManage extends Model{
 			'upyunPolicyData' => $upyunPolicyData,
 			's3List' => $s3List,
 			's3PolicyData' => $s3PolicyData,
+			'remoteList' => $remoteList,
+			'remotePolicyData' => $remotePolicyData,
 		);
 		return $returenValue;
 	}

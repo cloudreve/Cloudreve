@@ -81,4 +81,11 @@ class Callback extends Controller{
 		$handllerObj -> s3Handler($callbackKey);
 	}
 
+	public function Remote(){
+		ob_end_clean();
+		header('Content-Type: application/json');
+		$handllerObj = new CallbackHandler(file_get_contents("php://input"));
+		$handllerObj -> remoteHandler(Request::instance()->header('Authorization'));
+	}
+
 }

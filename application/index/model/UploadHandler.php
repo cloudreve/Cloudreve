@@ -228,6 +228,9 @@ class UploadHandler extends Model{
 			case 's3':
 				return $this->getS3Token();
 				break;
+			case 'remote':
+				return $this->getRemoteToken();
+				break;
 			default:
 				# code...
 				break;
@@ -292,6 +295,35 @@ class UploadHandler extends Model{
 			$policy = array_merge($policy,array("mimeLimit" => $this->policyContent['mimetype']));
 		}
 		$token = $auth->uploadToken($this->policyContent['bucketname'], null, 3600, $policy);
+		return $token;
+	}
+
+	private function getRemoteToken(){
+		$callbackKey = $this->getRandomKey();
+		$sqlData = [
+			'callback_key' => $callbackKey,
+			'pid' => $this->policyId,
+			'uid' => $this->userId
+		];
+		Db::name('callback')->insert($sqlData);
+		$policy = array(
+			'callbackUrl' =>Option::getValue("siteURL").'Callback/Remote',
+			'callbackKey' => $callbackKey,
+			'callbackBodyType' => 'application/json',
+			'fsizeLimit' => (int)$this->policyContent['max_size'],
+			'uid' => $this->userId,
+		);
+		$dirName = $this->getObjName($this->policyContent['dirrule']);
+		if($this->policyContent["autoname"]){
+			$policy = array_merge($policy,array("saveKey" => $dirName.(empty($dirName)?"":"/").$this->getObjName($this->policyContent['namerule'])));
+		}else{
+			$policy = array_merge($policy,array("saveKey" => $dirName.(empty($dirName)?"":"/")."$(fname)"));
+		}
+		if(!empty($this->policyContent['mimetype'])){
+			$policy = array_merge($policy,array("mimeLimit" => $this->policyContent['mimetype']));
+		}
+		$signingKey = hash_hmac("sha256",json_encode($policy),"UPLOAD".$this->policyContent['sk']);
+		$token = $signingKey. ":" .base64_encode(json_encode($policy));
 		return $token;
 	}
 

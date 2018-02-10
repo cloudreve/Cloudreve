@@ -20,6 +20,28 @@ class CallbackHandler extends Model{
 		$this->CallbackData = $data;
 	}
 
+	public function remoteHandler($header){
+		$jsonData = json_decode(base64_decode($this->CallbackData),true);
+		$CallbackSqlData = Db::name('callback')->where('callback_key',$jsonData['callbackkey'])->find();
+		$this->policyData = Db::name('policy')->where('id',$CallbackSqlData['pid'])->find();
+		if(!$this->IsRemoteCallback($header)){
+			$this->setError("Undelegated Request");
+		}
+		if($this->policyData == null){
+			$this->setError("CallbackKey Not Exist.");
+		}
+		if(!FileManage::sotrageCheck($CallbackSqlData["uid"],$jsonData["fsize"])){
+			$this->setError("空间容量不足",true);
+		}
+		$picInfo = $jsonData["picinfo"];
+		$addAction = FileManage::addFile($jsonData,$this->policyData,$CallbackSqlData["uid"],$picInfo);
+		if(!$addAction[0]){
+			$this->setError($addAction[1],true);
+		}
+		FileManage::storageCheckOut($CallbackSqlData["uid"],$jsonData["fsize"]);
+		$this->setSuccess($jsonData['fname']);
+	}
+
 	public function qiniuHandler($header){
 		$jsonData = json_decode($this->CallbackData,true);
 		$CallbackSqlData = Db::name('callback')->where('callback_key',$jsonData['callbackkey'])->find();
@@ -170,6 +192,11 @@ class CallbackHandler extends Model{
 		} else {
 			return false;
 		}
+	}
+
+	private function IsRemoteCallback($header){
+		$signKey = hash_hmac("sha256",$this->CallbackData,$this->policyData["sk"]);
+		return ($signKey == $header);
 	}
 
 	public function IsOssCallback($auth,$pubKey){
