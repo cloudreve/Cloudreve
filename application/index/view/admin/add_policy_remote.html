@@ -1,0 +1,170 @@
+{extend name="header_admin" /}
+{block name="title"}添加上传策略- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="/Admin/PolicyAdd">上传策略</a>
+      </li>
+      <li class="breadcrumb-item active">添加</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>添加上传策略</h2>
+        <br>
+
+
+        <div class="card" id="s3" >
+          <div class="card-header">
+            添加远程上传策略
+          </div>
+          <div class="card-body">
+            <form id="qiniuPolicy">
+              <input type="text" class="form-control" name="policy_type" value="remote" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="ak" class="col-form-label col-form-label-sm">AccessToken </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="sk" required></div>
+                <div class="col-md-4 option-des"> 默认随机生成，请与远程服务端配置文件中保持一致</div>
+              </div>
+
+           <input type="text" class="form-control" name="ak" value="0" style="display: none" required>
+
+             <input type="text" name="bucket_private" value="1" style="display: none">
+             <input type="text" name="origin_link" value="0" style="display: none">
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">服务端URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="server" required>
+                </div>
+                <div class="col-md-4 option-des"> 结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">下载根URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" required>
+                </div>
+                <div class="col-md-4 option-des"> 一般与上一步保持一致，结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+               </div>
+               <div class="col-md-4">
+                 <input class="" type="radio" name="autoname" id="autoname1" value="1" checked>
+                 <label class="" for="autoname1" >开启</label>
+                 &nbsp;&nbsp;&nbsp;
+                 <input class="" type="radio" name="autoname" id="autoname2" value="0" >
+                 <label class="" for="autoname2">关闭</label>
+               </div>
+               <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+             </div>
+             <div class="row form-setting" id="autoname_form" >
+               <div class="col-md-1 form-label ">
+                 <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+               </div>
+               <div class="col-md-4">
+                 <input type="text" class="form-control" name="namerule" value="{uid}_{randomkey8}_{originname}" spellcheck="false" required>
+               </div>
+               <div class="col-md-4 option-des"> 你可以使用变量对照表中的字段填写</div>
+             </div>
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+               </div>
+               <div class="col-md-4 input-group mb-3">
+                 <div class="input-group-prepend">
+                   <span class="input-group-text" id="basic-addon2">
+                     /public/uploads/
+                   </span>
+                 </div>
+                 <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+               </div>
+               <div class="col-md-4 option-des"> 文件存放的目录，你可以使用目录变量对照表中的字段填写</div>
+             </div>
+
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveQiniu">保存设置</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+
+
+
+
+        <br>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/add_policy.js"></script>
+<script type="text/javascript">
+function randomString(len) {
+　　len = len || 32;
+　　var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';
+　　var maxPos = $chars.length;
+　　var pwd = '';
+　　for (i = 0; i < len; i++) {
+　　　　pwd += $chars.charAt(Math.floor(Math.random() * maxPos));
+　　}
+　　return pwd;
+}
+$("[name='sk']").val(randomString(32));
+</script>
+{/block}

@@ -67,6 +67,9 @@ class FileManage extends Model{
 				case 's3':
 					$fileContent = $this->getS3FileContent();
 					break;
+				case 'remote':
+					$fileContent = $this->getRemoteFileContent();
+					break;
 				default:
 					# code...
 					break;
@@ -101,6 +104,10 @@ class FileManage extends Model{
 		return file_get_contents($this->s3Preview()[1]);
 	}
 
+	public function getRemoteFileContent(){
+		return file_get_contents($this->remotePreview()[1]);
+	}
+
 	public function saveContent($content){
 		$contentSize = strlen($content);
 		$originSize = $this->fileData["size"];
@@ -124,6 +131,9 @@ class FileManage extends Model{
 				break;
 			case 's3':
 				$this->saveS3Content($content);
+				break;
+			case 'remote':
+				$this->saveRemoteContent($content);
 				break;
 			default:
 				# code...
@@ -178,6 +188,11 @@ class FileManage extends Model{
 		$s3 = new \S3\S3($this->policyData["ak"], $this->policyData["sk"],false,$this->policyData["op_pwd"]);
 		$s3->setSignatureVersion('v4');
 		$s3->putObjectString($content, $this->policyData["bucketname"], $this->fileData["pre_name"]);
+	}
+
+	public function saveRemoteContent($content){
+		$remote = new Remote($this->policyData);
+		$remote->updateContent($this->fileData["pre_name"],$content);
 	}
 
 	static function fileNameValidate($value){
@@ -364,6 +379,10 @@ class FileManage extends Model{
 			case 'upyun':
 				$Redirect = $this->getUpyunThumb();
 				return $Redirect;
+				break;
+			case 'remote':
+				$remote = new Remote($this->policyData);
+				return [1,$remote->thumb($this->fileData["pre_name"],explode(",",$this->fileData["pic_info"]))];
 				break;
 			default:
 				# code...
@@ -1263,7 +1282,10 @@ class FileManage extends Model{
 				$delayTime = time()+$timeOut;
 				$key=$this->fileData["id"].":".$delayTime.":".md5($this->userData["user_pass"].$this->fileData["id"].$delayTime.config("salt"));
 				return $options['siteURL']."Callback/TmpPreview/key/".$key;
-				break;	
+				break;
+			case 'remote':
+				return $this->remotePreview()[1];
+				break;
 			default:
 				# code...
 				break;

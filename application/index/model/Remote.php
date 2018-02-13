@@ -25,13 +25,27 @@ class Remote extends Model{
 		return $this->signUrl($this->policy["url"]."object.php?action=preview&name=".urlencode($fname)."&expires=".(time()+(int)Option::getValue("timeout")));
 	}
 
+	public function clean(){
+		return $this->signUrl($this->policy["url"]."object.php?action=clean&expires=".(time()+(int)Option::getValue("timeout")));
+	}
+
 	public function download($fname,$attnanme){
 		return $this->signUrl($this->policy["url"]."object.php?action=download&name=".urlencode($fname)."&attaname=".urlencode($attnanme)."&expires=".(time()+(int)Option::getValue("timeout")));
+	}
+	
+	public function thumb($fname,$picInfo){
+		return $this->signUrl($this->policy["url"]."object.php?action=thumb&name=".urlencode($fname)."&expires=".(time()+(int)Option::getValue("timeout"))."&w=".$picInfo[0]."&h=".$picInfo[1]);
 	}
 
 	public function signUrl($url){
 		$signKey = hash_hmac("sha256",$url,"GET".$this->policy["sk"]);
 		return $url."&auth=".$signKey;
+	}
+
+	public function updateContent($fname,$content){
+		$object = ["fname"=>$fname,"content"=>$content];
+		$signKey = $this->sign($object,"UPDATE");
+		$this->send("manager.php",$signKey,"UPDATE",base64_encode(json_encode($object)));
 	}
 
 	public function send($target,$auth,$action,$object){

@@ -409,6 +409,12 @@ class Admin extends Controller{
 		]);
 	}
 
+	public function PolicyAddRemote(){
+		return view('add_policy_remote', [
+			'options' => $this->siteOptions,
+		]);
+	}
+
 	public function About(){
 		$verison = json_decode(file_get_contents(ROOT_PATH . "application/version.json"),true);
 		return view('about', [

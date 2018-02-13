@@ -684,7 +684,7 @@
        {case value="s3"}
        <div class="card" id="s3" >
          <div class="card-header">
-           添加S3上传策略
+           编辑S3上传策略
          </div>
          <div class="card-body">
            <form id="Policy">
@@ -790,6 +790,130 @@
                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
              </div>
 
+             
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+               </div>
+               <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="savePolicy">保存设置</button></div>
+               <div class="col-md-4 option-des"> </div>
+               <br> <br>
+             </div>
+           </form>
+         </div>
+         <bn>
+       </div>
+
+       {/case}
+       {case value="remote"}
+       <div class="card" id="remote" >
+         <div class="card-header">
+           编辑远程上传策略
+         </div>
+         <div class="card-body">
+           <form id="Policy">
+             <input type="text" value="{$policy.id}" name="id" style="display: none">
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+               </div>
+               <div class="col-md-4"> <input type="text" class="form-control" value="{$policy.policy_name}" name="policy_name" required></div>
+               <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+             </div>
+             
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="ak" class="col-form-label col-form-label-sm">AccessToken </label>
+               </div>
+               <div class="col-md-4"> <input type="text" class="form-control" name="sk" value="{$policy.sk}" required></div>
+               <div class="col-md-4 option-des"> 默认随机生成，请与远程服务端配置文件中保持一致</div>
+             </div>
+
+           <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">服务端URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="server" value="{$policy.server}" required>
+                </div>
+                <div class="col-md-4 option-des"> 结尾要加"/"</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">下载根URL</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="url" value="{$policy.url}" required>
+                </div>
+                <div class="col-md-4 option-des"> 一般与上一步保持一致，结尾要加"/"</div>
+              </div>
+
+
+
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+               </div>
+               <div class="col-md-4 input-group mb-3">
+                 <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="{:countSize($policy.max_size,true)[0]}" required>
+                 <div class="input-group-append">
+                   <span class="input-group-text" id="basic-addon2">
+                     <select name="sizeTimes" class="selectIn" data-value="{:countSize($policy.max_size,true)[1]}">
+                       <option value="1">B</option>
+                       <option value="1024">KB</option>
+                       <option value="1048576" >MB</option>
+                       <option value="1073741824">GB</option>
+                     </select>
+                   </span>
+                 </div>
+               </div>
+               <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+             </div>
+
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+               </div>
+               <div class="col-md-4">
+               {eq name="$policy.autoname" value="1"}
+                 <input class="" type="radio" name="autoname" id="autoname1" value="1" checked>
+                 <label class="" for="autoname1" >开启</label>
+                 &nbsp;&nbsp;&nbsp;
+                 <input class="" type="radio" name="autoname" id="autoname2" value="0" >
+                 <label class="" for="autoname2">关闭</label>
+               {else/}
+                 <input class="" type="radio" name="autoname" id="autoname1" value="1" >
+                 <label class="" for="autoname1" >开启</label>
+                 &nbsp;&nbsp;&nbsp;
+                 <input class="" type="radio" name="autoname" id="autoname2" value="0" checked>
+                 <label class="" for="autoname2" >关闭</label>
+               {/eq}
+               </div>
+               <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+             </div>
+             <div class="row form-setting" id="autoname_form" style=" {eq name="$policy.autoname" value="0"}display:none{/eq}">
+               <div class="col-md-1 form-label ">
+                 <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+               </div>
+               <div class="col-md-4">
+                 <input type="text" class="form-control" name="namerule" value="{$policy.namerule}" spellcheck="false" required>
+               </div>
+               <div class="col-md-4 option-des"> 你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTable">变量对照表</a>中的字段填写</div>
+             </div>
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+               </div>
+               <div class="col-md-4 input-group mb-3">
+                 <div class="input-group-prepend">
+                   <span class="input-group-text" id="basic-addon2">
+                     /public/uploads/
+                   </span>
+                 </div>
+                 <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{$policy.dirrule}" required>
+               </div>
+               <div class="col-md-4 option-des"> 文件存放的目录，你可以使用<a href="javascript:void()" data-toggle="modal" data-target="#varTableFolder">目录变量对照表</a>中的字段填写</div>
+             </div>
              
              <div class="row form-setting">
                <div class="col-md-1 form-label ">
