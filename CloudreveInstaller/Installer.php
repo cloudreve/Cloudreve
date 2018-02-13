@@ -60,6 +60,7 @@ class Installer{
 		$ioContext->write("IMPORTANT! You may still have to configure the URL Rewrite to set everthing to work.");
 		$ioContext->write("Refer to the install manual for more informatioin.");
 		$ioContext->write("=======================");
+		self::sendFeedBack($siteUrl);
 	}
 
 	 public static function writrConfig(Event $event,$sqlInfo){
@@ -103,6 +104,10 @@ class Installer{
 		"password" =>  $password,
 		"hostport" =>  $hostport,
 		];
+	}
+
+	public static function sendFeedBack($url){
+		@file_get_contents("http://aoaoao.me/api/feedback.php?url=".urlencode($url));
 	}
 
 }
