@@ -6,7 +6,7 @@ use think\Db;
 use Sabre\DAV;
 use \app\index\model\FileManage;
 
-class Object extends DAV\File{
+class Objects extends DAV\File{
 
 	private $myPath;
 	public $id;

@@ -7,7 +7,7 @@ use think\Db;
 use \app\index\model\Option;
 use \app\index\model\User;
 use \app\index\model\Directory;
-use \app\index\model\Object;
+use \app\index\model\Objects;
 use \app\index\model\DavAuth;
 use \app\index\model\BasicCallBack;
 

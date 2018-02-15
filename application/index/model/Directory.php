@@ -120,7 +120,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 
 	function getChildFile($name){
 		$path = $this->uid.rtrim($this->myPath,"/") . '/' . $name["orign_name"];
-		return new Object($path);
+		return new Objects($path);
 	}
 
 	function getChildDir($name){
@@ -142,12 +142,12 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 			$returnObj = new Directory($path);
 			return $returnObj;
 		}else{
-			return new Object($path);
+			return new Objects($path);
 		}
 	}
 
 	function childExists($name) {
-		$fileObj = new Object($this->uid.rtrim($this->myPath,"/") . '/' . $name);
+		$fileObj = new Objects($this->uid.rtrim($this->myPath,"/") . '/' . $name);
 		if($this->findDir(rtrim($this->myPath,"/") . '/' . $name) || $fileObj->isExist){
 			return true;
 		}
