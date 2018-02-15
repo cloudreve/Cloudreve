@@ -825,7 +825,7 @@ class FileManage extends Model{
 		$rangeTransfer = $speedLimit["range_transfer"];
 		$speedLimit = $speedLimit["speed"];
 		$sendFileOptions = Option::getValues(["download"]);
-		if($sendFileOptions["sendfile"] == "1" $$ !empty($sendFileOptions)){
+		if($sendFileOptions["sendfile"] == "1" && !empty($sendFileOptions)){
 			$this->sendFile($speedLimit,$rangeTransfer,false,$sendFileOptions["header"]);
 		}else{
 			if($isAdmin){
