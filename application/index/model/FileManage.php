@@ -824,18 +824,23 @@ class FileManage extends Model{
 		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
 		$rangeTransfer = $speedLimit["range_transfer"];
 		$speedLimit = $speedLimit["speed"];
-		if($isAdmin){
-			$speedLimit="";
-		}
-		if($speedLimit == "0"){
-			exit();
-		}else if(empty($speedLimit)){
-			header("Cache-Control: max-age=10800");
-			$this->outputWithoutLimit(false,$rangeTransfer);
-			exit();
-		}else if((int)$speedLimit > 0){
-			header("Cache-Control: max-age=10800");
-			$this->outputWithLimit($speedLimit);
+		$sendFileOptions = Option::getValues(["download"]);
+		if($sendFileOptions["sendfile"] == "1"){
+			$this->sendFile($speedLimit,$rangeTransfer,false,$sendFileOptions["header"]);
+		}else{
+			if($isAdmin){
+				$speedLimit="";
+			}
+			if($speedLimit == "0"){
+				exit();
+			}else if(empty($speedLimit)){
+				header("Cache-Control: max-age=10800");
+				$this->outputWithoutLimit(false,$rangeTransfer);
+				exit();
+			}else if((int)$speedLimit > 0){
+				header("Cache-Control: max-age=10800");
+				$this->outputWithLimit($speedLimit);
+			}
 		}
 	}
 
@@ -843,16 +848,38 @@ class FileManage extends Model{
 		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
 		$rangeTransfer = $speedLimit["range_transfer"];
 		$speedLimit = $speedLimit["speed"];
-		if($isAdmin){
-			$speedLimit = "";
+		$sendFileOptions = Option::getValues(["download"]);
+		if($sendFileOptions["sendfile"] == "1"){
+			$this->sendFile($speedLimit,$rangeTransfer,true,$sendFileOptions["header"]);
+		}else{
+			if($isAdmin){
+				$speedLimit = "";
+			}
+			if($speedLimit == "0"){
+				exit();
+			}else if(empty($speedLimit)){
+				$this->outputWithoutLimit(true,$rangeTransfer);
+				exit();
+			}else if((int)$speedLimit > 0){
+				$this->outputWithLimit($speedLimit,true);
+			}
 		}
-		if($speedLimit == "0"){
-			exit();
-		}else if(empty($speedLimit)){
-			$this->outputWithoutLimit(true,$rangeTransfer);
-			exit();
-		}else if((int)$speedLimit > 0){
-			$this->outputWithLimit($speedLimit,true);
+	}
+
+	private function sendFile($speed,$range,$download=false,$header="X-Sendfile"){
+		if($download){
+			$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+			header('Content-Disposition: attachment; filename="' . str_replace(",","",$this->fileData["orign_name"]) . '"');
+			header("Content-type: application/octet-stream");
+			$filePath = str_replace("\\","/",$filePath);
+			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
+		}else{
+			$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+			$filePath = str_replace("\\","/",$filePath);
+			header('Content-Type: '.self::getMimetype($filePath)); 
+			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
+			ob_flush();
+			flush();
 		}
 	}
 

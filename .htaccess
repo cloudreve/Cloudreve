@@ -6,4 +6,3 @@
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteRule ^(.*)$ index.php?/$1 [QSA,PT,L]
 </IfModule>
-SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
