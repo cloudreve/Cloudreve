@@ -867,16 +867,30 @@ class FileManage extends Model{
 	}
 
 	private function sendFile($speed,$range,$download=false,$header="X-Sendfile"){
+		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+		$realPath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+		if($header == "X-Accel-Redirect"){
+			$filePath = '/public/uploads/' . $this->fileData["pre_name"];
+		}
 		if($download){
-			$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
 			header('Content-Disposition: attachment; filename="' . str_replace(",","",$this->fileData["orign_name"]) . '"');
 			header("Content-type: application/octet-stream");
+			header('Content-Length: ' .(string)(filesize($realPath)) );
 			$filePath = str_replace("\\","/",$filePath);
+			if($header == "X-Accel-Redirect"){
+				ob_flush();
+				flush();
+				echo "s";
+			}
 			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
 		}else{
-			$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
 			$filePath = str_replace("\\","/",$filePath);
-			header('Content-Type: '.self::getMimetype($filePath)); 
+			header('Content-Type: '.self::getMimetype($realPath)); 
+			if($header == "X-Accel-Redirect"){
+				ob_flush();
+				flush();
+				echo "s";
+			}
 			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
 			ob_flush();
 			flush();
