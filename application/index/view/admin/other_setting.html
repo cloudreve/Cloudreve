@@ -66,6 +66,37 @@
                 <div class="col-md-4 option-des"> 用于展示用户头像的Gravatar服务器地址</div>
               </div>
 
+               <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="gravatar_server" class="col-form-label col-form-label-sm">文件数据发送模式</label>
+                </div>
+                <div class="col-md-4"> 
+                 <select class="form-control" name="sendfile">
+                <option value="0">传统</option>
+                <option value="1" {eq name="optionsForSet.sendfile" value="1"}selected{/eq}>X-Sendfile</option>
+                 
+                </select>
+
+                </div>
+                <div class="col-md-4 option-des"> 推荐使用X-Sendfile以获得高效的文件传输，启用前请确保服务器安装X-Sendfile模块并在站点配置文件中启用。</div>
+              </div>
+
+               <div class="row form-setting" style="{eq name="optionsForSet.sendfile" value="0"}display:none{/eq}" id="sendfile_header">
+                <div class="col-md-1 form-label ">
+                  <label for="gravatar_server" class="col-form-label col-form-label-sm">Sendfile Header</label>
+                </div>
+                <div class="col-md-4"> 
+                 <select class="form-control" name="header">
+                <option value="X-Sendfile" {eq name="optionsForSet.header" value="X-Sendfile"}selected{/eq}>X-Sendfile [Apache,Lighttpd v1.5,Cherokee]</option>
+                <option value="X-LIGHTTPD-send-file" {eq name="optionsForSet.header" value="X-LIGHTTPD-send-file"}selected{/eq}>X-LIGHTTPD-send-file [Lighttpd v1.4]</option>
+                <option value="X-Accel-Redirect" {eq name="optionsForSet.header" value="X-Accel-Redirect"}selected{/eq}>X-Accel-Redirect [Nginx,Cherokee]</option>
+                 
+                </select>
+
+                </div>
+                <div class="col-md-4 option-des"> 请根据你所使用的服务器软件选择合适的header</div>
+              </div>
+
   <div class="row form-setting">
  <div class="col-md-1 form-label ">
  </div>

@@ -192,7 +192,9 @@ INSERT INTO `sd_options` (`id`, `option_name`, `option_value`, `option_type`) VA
 (44, 'gravatar_server', 'https://v2ex.assets.uxengine.net/gravatar/', 'avatar'),
 (45, 'admin_color_body', 'fixed-nav sticky-footer bg-light', 'admin'),
 (46, 'admin_color_nav', 'navbar navbar-expand-lg fixed-top navbar-light bg-light', 'admin'),
-(47, 'js_code', '<script type=\"text/javascript\">\r\n\r\n</script>', 'basic');
+(47, 'js_code', '<script type=\"text/javascript\">\r\n\r\n</script>', 'basic'),
+(50, 'sendfile', '0', 'download'),
+(51, 'header', 'X-Sendfile', 'download');
 
 -- --------------------------------------------------------
 

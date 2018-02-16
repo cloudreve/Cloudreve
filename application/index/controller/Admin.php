@@ -120,7 +120,7 @@ class Admin extends Controller{
 	public function SettingOther(){
 		return view('other_setting', [
 			'options'  => $this->siteOptions,
-			'optionsForSet'  =>  Option::getValues(["file_edit","share","avatar","admin","storage_policy"]),
+			'optionsForSet'  =>  Option::getValues(["file_edit","share","avatar","admin","storage_policy","download"]),
 		]);
 	}
 

@@ -128,3 +128,10 @@ $("#saveYz").click(function() {
 		}
 	});
 })
+$("[name='sendfile']").change(function(){
+  if($(this).val()=="1"){
+  	$("#sendfile_header").slideDown();
+  }else{
+  	$("#sendfile_header").slideUp();
+  }
+});
