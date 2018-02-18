@@ -1,0 +1,6 @@
+language: php
+php:
+  - 7.1
+before_script:
+  - composer install
+script: ./deploy.sh
