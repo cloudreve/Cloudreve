@@ -18,16 +18,16 @@ class TwoFactor extends Model{
 		$this->ga = new PHPGangsta_GoogleAuthenticator();
 	}
 
- 	public function qrcodeRender(){
-                ob_end_clean();
-                $this->secretKey = $this->ga->createSecret();
-                session("two_factor_enable",$this->secretKey);
-                $qrCode = new QrCode(urldecode($this->ga->getQRCodeGoogleUrl(Option::getValue("siteName"), $this->secretKey)));
-                $qrCode->setSize(165);
-                $qrCode->setMargin(0);
-                header('Content-Type: '.$qrCode->getContentType());
-                echo $qrCode->writeString();
-        }
+	public function qrcodeRender(){
+		ob_end_clean();
+		$this->secretKey = $this->ga->createSecret();
+		session("two_factor_enable",$this->secretKey);
+		$qrCode = new QrCode(urldecode(str_replace("https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=","",$this->ga->getQRCodeGoogleUrl(Option::getValue("siteName"), $this->secretKey))));
+		$qrCode->setSize(165);
+		$qrCode->setMargin(0);
+		header('Content-Type: '.$qrCode->getContentType());
+		echo $qrCode->writeString();
+	}
 
 
 	public function confirmCode($key,$code){
