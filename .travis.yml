@@ -3,4 +3,5 @@ php:
   - 7.1
 before_script:
   - composer install
+  - chmod +x ./deploy.sh
 script: ./deploy.sh
