@@ -13,6 +13,10 @@ class Index extends Controller{
     public function index(){
 
     	$this->userObj = new User(cookie('user_id'),cookie('login_key'));
+    	if($this->userObj->loginStatus){
+    		$this->redirect(url('/Home','',''));
+    		exit();
+    	}
     	$userInfo = $this->userObj->getInfo();
     	return view('index', [
     		'options'  => Option::getValues(['basic']),
