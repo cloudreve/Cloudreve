@@ -6,6 +6,8 @@ Cloudreve - Make the cloud easy for everyone
 [![Latest Unstable Version](https://poser.pugx.org/hfo4/cloudreve/v/unstable)](https://packagist.org/packages/hfo4/cloudreve)
 [![License](https://poser.pugx.org/hfo4/cloudreve/license)](https://packagist.org/packages/hfo4/cloudreve)
 
+[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | |[Telegram群组](https://github.com/HFO4/Cloudreve)
+
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
 ![homepage.png](https://download.aoaoao.me/homepage.png)
