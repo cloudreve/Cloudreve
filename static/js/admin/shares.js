@@ -32,7 +32,7 @@ $("#order").children().click(function() {
 	$.cookie('orderMethodShare', $(this).children().attr("data-method"));
 	location.href = "/Admin/Shares?page=1";
 })
-$("[data-action='delete'").click(function() {
+$("[data-action='delete']").click(function() {
 	var shareId = $(this).attr("data-id");
 	$(this).attr("disabled", "true");
 	var thisObj = $(this);
