@@ -50,7 +50,7 @@ $("[data-action='delete']").click(function() {
 		}
 	});
 })
-$("[data-action='change'").click(function() {
+$("[data-action='change']").click(function() {
 	var shareId = $(this).attr("data-id");
 	$(this).attr("disabled", "true");
 	var thisObj = $(this);
