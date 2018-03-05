@@ -313,18 +313,18 @@ class User extends Model{
 		->where('uid',$this->uid)
 		->where('dlay_time',">",time())
 		->sum('pack_size');
-		$returnData["used"] = self::countSize((int)$usedMemory);
+		$returnData["used"] = self::countSize($usedMemory);
 		$returnData["total"] = self::countSize($groupStorage+$packetStorage);
-		$returnData["rate"] = floor((int)$usedMemory/($groupStorage+$packetStorage)*100);
-		$returnData["basic"] = self::countSize((int)$groupStorage);
-		$returnData["pack"] = self::countSize((int)$packetStorage);
+		$returnData["rate"] = floor($usedMemory/($groupStorage+$packetStorage)*100);
+		$returnData["basic"] = self::countSize($groupStorage);
+		$returnData["pack"] = self::countSize($packetStorage);
 		if($usedMemory > $groupStorage){
-			$returnData["r1"] = floor((int)$usedMemory/($groupStorage+$packetStorage)*100);
+			$returnData["r1"] = floor($usedMemory/($groupStorage+$packetStorage)*100);
 			$returnData["r2"] = 0;
 			$returnData["r3"] = 100-$returnData["r1"];
 		}else{
-			$returnData["r1"] = floor((int)$usedMemory/($groupStorage+$packetStorage)*100);
-			$returnData["r2"] = floor(((int)$groupStorage-$usedMemory)/($groupStorage+$packetStorage)*100);;
+			$returnData["r1"] = floor($usedMemory/($groupStorage+$packetStorage)*100);
+			$returnData["r2"] = floor(($groupStorage-$usedMemory)/($groupStorage+$packetStorage)*100);;
 			$returnData["r3"] = 100-$returnData["r1"]-$returnData["r2"];
 		}
 		if($notEcho){
