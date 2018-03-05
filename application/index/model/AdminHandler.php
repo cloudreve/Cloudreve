@@ -337,7 +337,7 @@ class AdminHandler extends Model{
 	}
 
 	public function listFile(){
-		$pageSize = empty(cookie('pageSize')) ? 10 : cookie('pageSize');
+		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
 		$orderType = empty(cookie('orderMethodFile')) ? "id DESC" : cookie('orderMethodFile');
 		$this->pageData = Db::name("files")
 		->where(function ($query) {
@@ -392,7 +392,7 @@ class AdminHandler extends Model{
 	}
 
 	public function listUser(){
-		$pageSize = empty(cookie('pageSize')) ? 10 : cookie('pageSize');
+		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
 		$orderType = empty(cookie('orderMethodUser')) ? "id DESC" : cookie('orderMethodUser');
 		$this->pageData = Db::name("users")
 		->where(function ($query) {
@@ -461,7 +461,7 @@ class AdminHandler extends Model{
 	}
 
 	public function listShare(){
-		$pageSize = empty(cookie('pageSize')) ? 10 : cookie('pageSize');
+		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
 		$orderType = empty(cookie('orderMethodShare')) ? "id DESC" : cookie('orderMethodShare');
 		$this->pageData = Db::name("shares")
 		->where(function ($query) {
@@ -506,7 +506,7 @@ class AdminHandler extends Model{
 	}
 
 	public function listPolicy(){
-		$pageSize = empty(cookie('pageSize')) ? 10 : cookie('pageSize');
+		$pageSize =!cookie('?pageSize') ? 10 : cookie('pageSize');
 		$this->pageData = Db::name("policy")
 		->where(function ($query) {
 			if(!empty(cookie('policySearch'))){
