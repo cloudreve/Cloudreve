@@ -26,8 +26,13 @@ changeColor("#4e64d9","#3f51b5");
 $(".captcha_img").click(function() {
 	$("[alt='captcha']:visible").attr('src', "/captcha");
 })
+function updateMetaThemeColor(themeColor) {
+    $('meta[name=theme-color]').remove();
+    $('head').append('<meta name="theme-color" content="'+themeColor+'">');
+}
 function switchToReg(){
 	changeColor("#46adff","#2196F3");
+	updateMetaThemeColor("#2196F3");
 	$("#logForm").hide();
 	$("#regForm").show();
 	$("[alt='captcha']:visible").attr('src', "/captcha");
@@ -36,6 +41,7 @@ function switchToReg(){
 }
 function switchToLog(){
 	changeColor("#4e64d9","#3f51b5");
+	updateMetaThemeColor("#3f51b5");
 	$("#regForm").hide();
 	$("#forgetForm").hide();
 	$("#logForm").show();
@@ -45,6 +51,7 @@ function switchToLog(){
 }
 function switchToEmail(){
 	changeColor("#009688","#4CAF50");
+	updateMetaThemeColor("#4CAF50");
 	$("#regForm").hide();
 	$("#emailCheck").show();
 	$("#emailCheck").removeClass("animated zoomIn");
@@ -52,6 +59,7 @@ function switchToEmail(){
 }
 function switchToForget(){
 	changeColor("#FF9800","#F44336");
+	updateMetaThemeColor("#F44336");	
 	$("#regForm").hide();
 	$("#logForm").hide();
 	$("#forgetForm").show();
