@@ -98,6 +98,19 @@ location / {
 * [完整安装说明](https://github.com/HFO4/Cloudreve/wiki/%E5%AE%89%E8%A3%85%E8%AF%B4%E6%98%8E)
 * [安装及初次使用FAQ](https://github.com/HFO4/Cloudreve/wiki/%E5%AE%89%E8%A3%85%E5%8F%8A%E5%88%9D%E6%AC%A1%E4%BD%BF%E7%94%A8FAQ)
 
+感谢
+------------
+
+Cloudreve的诞生离不开以下开源项目的支持：
+
+* [ThinkPHP](https://github.com/top-think/thinkphp)
+* [sabre/dav](https://github.com/sabre-io/dav)
+* [angular-filemanager](https://github.com/joni2back/angular-filemanager)
+* [Bootstrap](https://github.com/twbs/bootstrap)
+* [DPlayer](https://github.com/MoePlayer/DPlayer)
+* [Waves](https://github.com/fians/Waves)
+* ······
+
 许可证
 ------------
 GPLV3
