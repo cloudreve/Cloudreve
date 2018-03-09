@@ -80,6 +80,10 @@
                 video: {
                     url: url
                 },
+                danmaku: {
+                       id: 'Cloudreve_'+shareInfo.shareId,
+                       api: 'https://api.prprpr.me/dplayer/'
+                }
             });
             dp.on("fullscreen", function(){
                 $(".modal-backdrop").hide();
@@ -133,9 +137,9 @@
                 $(".file-sign").html('<i class="fa fa-file-movie-o" aria-hidden="true"></i>')
                 $("#previewButton").click(function() {
                     if (shareInfo.allowPreview) {
-                        $(".previewContent").html('<div id="preview-target" style="width: 100%;object-fit: fill" class="preview"></div>');
-                        $('#previewModal').modal();
+                        $(".previewContent").html('<div id="preview-target" style="width: 100%;object-fit: fill;height:400px" class="preview"></div>');
                         loadDPlayer('/Share/Preview/' + shareInfo.shareId);
+                        $('#previewModal').modal();
                     } else {
                         toastr["error"]("请先登录")
                     }
