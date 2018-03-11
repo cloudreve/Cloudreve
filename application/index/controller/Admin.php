@@ -29,10 +29,42 @@ class Admin extends Controller{
 	}
 
 	public function index(){
+		if($this->adminObj->checkDbVersion()){
+			$this->redirect(url('/Admin/UpdateDb','',''));
+			exit();
+		}
 		return view('admin_index', [
 			'options'  => $this->siteOptions,
 			'statics' => $this->adminObj->getStatics(),
 		]);
+	}
+
+	public function UpdateDb(){
+		if(!$this->adminObj->checkDbVersion()){
+			$this->redirect(url('/Admin','',''));
+			exit();
+		}
+		echo "<meta charset='utf-8'>";
+		echo "准备升级数据库，当前数据库版本:".$this->adminObj->dbVerInfo["now"];
+		echo ", 目标数据库版本:".$this->adminObj->dbVerInfo["require"].";<br>";
+		$updatePath = ROOT_PATH . "update_".$this->adminObj->dbVerInfo["now"]."to".$this->adminObj->dbVerInfo["require"].".sql";
+		if(!file_exists($updatePath)){
+			die("数据库更新文件(".$updatePath.")不存在，升级中止.");
+		}
+		echo "获取升级SQL文件(".$updatePath.")<br>";
+		$updateContent = file_get_contents($updatePath);
+		echo "将执行以下指令：<br>";
+		echo "<code>".htmlspecialchars($updateContent)."</code><br>";
+		$sqlSingle = explode(";", $updateContent);
+		foreach ($sqlSingle as $key => $value){
+			if(empty($value)){
+				continue;
+			}
+			if(!Db::execute($value)){
+				echo "<strong>执行$value 时出现错误</strong><br>";
+			}
+		}
+		echo "<strong>升级完成,<a href='/Admin'>返回管理面板</a></strong>";
 	}
 
 	public function Setting(){
