@@ -23,10 +23,22 @@
 					<ul class="dropdown-menu">
 						<li><a href="/Profile/{$userInfo.uid}">个人主页</a></li>
 						<li><a href="/Member/Setting">设置</a></li>
-						<li role="separator" class="divider"></li>
+            {eq name="$userInfo.groupId" value="1"}
+            <li><a href="/Admin">管理面板</a></li>
+            {/eq}
+            <li role="separator" class="divider"></li>
 						<li><a href="/Member/LogOut">退出登录</a></li>
 					</ul>
 				</li>
+        <li class="mobile-addition">
+          <a href="/Share/My" role="button" aria-haspopup="true" ><i class="fa fa-share-alt" aria-hidden="true"></i> 我的分享</a>
+        </li>
+        <li class="mobile-addition">
+          <a href="/Explore/Search" role="button" aria-haspopup="true" ><i class="fa fa-search" aria-hidden="true"></i> 搜索分享</a>
+        </li>
+        <li class="mobile-addition">
+          <a href="/Home/Album" role="button" aria-haspopup="true" ><i class="fa fa-picture-o" aria-hidden="true"></i> 图片集</a>
+        </li>
 			</ul>
 			</div><!-- /.navbar-collapse -->
 			</div><!-- /.container-fluid -->
