@@ -799,8 +799,7 @@ class FileManage extends Model{
 
 	public function ossDownload(){
 		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?response-content-disposition=".urlencode('attachment; filename='.$this->fileData["orign_name"]);
-			return[true,$fileUrl];
+			return[true,"/File/OssDownload?url=".urlencode($this->policyData["url"].$this->fileData["pre_name"])."&name=".urlencode($this->fileData["orign_name"])];
 		}else{
 			$accessKeyId = $this->policyData["ak"];
 			$accessKeySecret = $this->policyData["sk"];
