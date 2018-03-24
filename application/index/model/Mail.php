@@ -45,13 +45,16 @@ class Mail extends Model{
 		$mail->Username =$this->smtpUser;
 		$mail->Password = $this->smtpPass;
 		$mail->From = $this->fromAdress;
+		$mail->SMTPDebug = 1;
+		$mail->Debugoutput = function($str, $level) {
+			$this->errorMsg .= $str;
+		}; 
 		$mail->isHTML(true); 
 		$mail->addAddress($to,$name);
 		$mail->Subject = $title;
 		$mail->Body = $content;
 		$status = $mail->send();
 		if(!$status){
-			$this->errorMsg =  $mail->ErrorInfo;
 			return false;
 		}
 		return true;
