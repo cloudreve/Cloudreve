@@ -1148,7 +1148,7 @@ function QiniuJsSDK() {
 					// http://developer.qiniu.com/docs/v6/api/reference/up/bput.html
 					if(uploadConfig.saveType == "remote"){
 						up.setOption({
-						    'url': qiniuUploadUrl + 'chunk.php',
+						    'url': qiniuUploadUrl + 'chunk',
 						    'multipart': false,
 						    'chunk_size': chunk_size,
 						    'required_features': "chunks",
@@ -1213,7 +1213,7 @@ function QiniuJsSDK() {
 				});
 				if(uploadConfig.saveType == "remote"){
 					up.setOption({
-					'url': qiniuUploadUrl + 'chunk.php'
+					'url': qiniuUploadUrl + 'chunk'
 				});
 				}
 				logger.debug("up.setOption url: ", qiniuUploadUrl + '/mkblk/' + leftSize);
@@ -1501,7 +1501,7 @@ function QiniuJsSDK() {
 						local_path = '/path/'+that.URLSafeBase64Encode(pathTmp);
 					}
 					if(uploadConfig.saveType == "remote"){
-						var url = qiniuUploadUrl + 'mkfile.php?size=' + file.size +"&key="+ key+"&fname="+ fname +"&path="+local_path;
+						var url = qiniuUploadUrl + 'mkfile?size=' + file.size +"&key="+ key+"&fname="+ fname +"&path="+local_path;
 					}else{
 						var url = qiniuUploadUrl + '/mkfile/' + file.size + key + fname + x_vars_url+local_path;
 					}
