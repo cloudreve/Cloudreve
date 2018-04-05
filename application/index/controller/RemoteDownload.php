@@ -35,6 +35,7 @@ class RemoteDownload extends Controller{
 		}
 		$aria2Options = Option::getValues(["aria2"]);
 		$aria2 = new Aria2($aria2Options);
+		$downloadStart = $aria2->addUrl(input("post.url"));
 	}
 
 }

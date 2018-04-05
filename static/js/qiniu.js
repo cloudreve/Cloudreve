@@ -1501,6 +1501,8 @@ function QiniuJsSDK() {
 						local_path = '/path/'+that.URLSafeBase64Encode(pathTmp);
 					}
 					if(uploadConfig.saveType == "remote"){
+						pathTmp = file.path;
+						local_path = that.URLSafeBase64Encode(pathTmp);
 						var url = qiniuUploadUrl + 'mkfile.php?size=' + file.size +"&key="+ key+"&fname="+ fname +"&path="+local_path;
 					}else{
 						var url = qiniuUploadUrl + '/mkfile/' + file.size + key + fname + x_vars_url+local_path;
