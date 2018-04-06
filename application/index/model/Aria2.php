@@ -81,9 +81,9 @@ class Aria2 extends Model{
 					"info" => json_encode([
 							"completedLength" => $respondData["result"]["completedLength"],
 							"totalLength" => $respondData["result"]["totalLength"],
-							"dir" => $respondData["result"]["dir"],
+							"dir" => $respondData["result"]["files"][0]["path"],
 							"downloadSpeed" => $respondData["result"]["downloadSpeed"],
-							"errorMessage" => $respondData["result"]["errorMessage"],
+							"errorMessage" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
 						]),
 					]);
 				switch ($respondData["result"]["status"]) {
@@ -109,18 +109,52 @@ class Aria2 extends Model{
 	}
 
 	private function setComplete($quenInfo,$sqlData){
-		FileManage::storageCheckOut($this->uid,(int)$quenInfo["totalLength"]);
 		if($this->policy["policy_type"] != "local"){
+			//取消任务
 			return false;
 		}
 		$suffixTmp = explode('.', $quenInfo["dir"]);
 		$fileSuffix = array_pop($suffixTmp);
-		$allowedSuffix = explode(',', UploadHandler::getAllowedExt(json_decode($this->policy["filetype"],true)));
+		$uploadHandller = new UploadHandler($this->policy["id"],$this->uid);
+		$allowedSuffix = explode(',', $uploadHandller->getAllowedExt(json_decode($this->policy["filetype"],true)));
 		$sufficCheck = !in_array($fileSuffix,$allowedSuffix);
-		if(empty(UploadHandler::getAllowedExt(json_decode($this->policy["filetype"],true)))){
+		if(empty($uploadHandller->getAllowedExt(json_decode($this->policy["filetype"],true)))){
 			$sufficCheck = false;
 		}
-		var_dump($sufficCheck);
+		if($sufficCheck){
+			//取消任务
+			$this->setError();
+			return false;
+		}
+		if($this->policy['autoname']){
+			$fileName = $uploadHandller->getObjName($this->policy['namerule'],"local",basename($quenInfo["files"][0]["path"]));
+		}else{
+			$fileName = basename($quenInfo["files"][0]["path"]);
+		}
+		$generatePath = $uploadHandller->getDirName($this->policy['dirrule']);
+		$savePath = ROOT_PATH . 'public/uploads/'.$generatePath.DS.$fileName;
+		is_dir(dirname($savePath))? :mkdir(dirname($savePath),0777,true);
+		rename($quenInfo["files"][0]["path"],$savePath);
+		@unlink(dirname($quenInfo["files"][0]["path"]));
+		$jsonData = array(
+			"path" => "", 
+			"fname" => basename($quenInfo["files"][0]["path"]),
+			"objname" => $generatePath.DS.$fileName,
+			"fsize" => $quenInfo["totalLength"],
+		);
+		@list($width, $height, $type, $attr) = getimagesize($savePath);
+		$picInfo = empty($width)?" ":$width.",".$height;
+		$addAction = FileManage::addFile($jsonData,$this->policy,$this->uid,$picInfo);
+		if(!$addAction[0]){
+			//取消任务
+			$this->setError();
+			return false;
+		}
+		FileManage::storageCheckOut($this->uid,(int)$quenInfo["totalLength"]);
+	}
+
+	private function setError(){
+
 	}
 
 	private function storageCheck($quenInfo,$sqlData){
