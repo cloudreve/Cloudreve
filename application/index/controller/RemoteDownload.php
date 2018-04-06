@@ -29,6 +29,19 @@ class RemoteDownload extends Controller{
 		return true;
 	}
 
+	private function insertRecord($aria2,$url){
+		Db::name("download")->insert([
+				"pid" => $aria2->pid,
+				"path_id" => $aria2->pathId,
+				"owner" => $this->userObj->uid,
+				"save_dir" => 1,
+				"status" => "ready",
+				"msg" => "",
+				"info"=>"",
+				"source" =>$url,
+			]);
+	}
+
 	public function addUrl(){
 		if(!$this->checkPerimission(0)){
 			return json(['error'=>1,'message'=>'您当前的无用户无法执行此操作']);
@@ -36,6 +49,11 @@ class RemoteDownload extends Controller{
 		$aria2Options = Option::getValues(["aria2"]);
 		$aria2 = new Aria2($aria2Options);
 		$downloadStart = $aria2->addUrl(input("post.url"));
+		if($aria2->reqStatus){
+			$this->insertRecord($aria2,input("post.url"));
+		}else{
+			return json(['error'=>1,'message'=>$aria2->reqMsg]);
+		}
 	}
 
 }
