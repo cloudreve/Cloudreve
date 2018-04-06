@@ -156,7 +156,7 @@ return [
     'exception_tmpl'         => THINK_PATH . 'tpl' . DS . 'think_exception.tpl',
 
     // 错误显示信息,非调试模式有效
-    'error_message'          => '出现错误,我们都有不顺利的时候，请坐和放宽',
+    'error_message'          => '很抱歉,出现错误 :(',
     // 显示错误信息
     'show_error_msg'         => false,
     // 异常处理handle类 留空使用 \think\exception\Handle
