@@ -43,7 +43,8 @@ class RemoteDownload extends Controller{
 	}
 
 	public function addUrl(){
-		if(!$this->checkPerimission(0)){
+		$policyData = Db::name("policy")->where("id",$this->userObj->groupData["policy_name"])->find();
+		if(!$this->checkPerimission(0) || $policyData["policy_type"] != "local"){
 			return json(['error'=>1,'message'=>'您当前的无用户无法执行此操作']);
 		}
 		$aria2Options = Option::getValues(["aria2"]);
@@ -52,6 +53,18 @@ class RemoteDownload extends Controller{
 		if($aria2->reqStatus){
 			$this->insertRecord($aria2,input("post.url"));
 		}else{
+			return json(['error'=>1,'message'=>$aria2->reqMsg]);
+		}
+	}
+
+	public function FlushStatus(){
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		if(!input("?post.id")){
+			return json(['error'=>1,'message'=>"信息不完整"]);
+		}
+		$policyData = Db::name("policy")->where("id",$this->userObj->groupData["policy_name"])->find();
+		if(!$aria2->flushStatus(input("post.id"),$this->userObj->uid,$policyData)){
 			return json(['error'=>1,'message'=>$aria2->reqMsg]);
 		}
 	}
