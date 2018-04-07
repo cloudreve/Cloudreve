@@ -39,6 +39,8 @@ class RemoteDownload extends Controller{
 				"msg" => "",
 				"info"=>"",
 				"source" =>$url,
+				"file_index" => 0,
+				"is_single" => 1,
 			]);
 	}
 
@@ -52,6 +54,22 @@ class RemoteDownload extends Controller{
 		$downloadStart = $aria2->addUrl(input("post.url"));
 		if($aria2->reqStatus){
 			$this->insertRecord($aria2,input("post.url"));
+		}else{
+			return json(['error'=>1,'message'=>$aria2->reqMsg]);
+		}
+	}
+
+	public function AddTorrent(){
+		$policyData = Db::name("policy")->where("id",$this->userObj->groupData["policy_name"])->find();
+		if(!$this->checkPerimission(0) || $policyData["policy_type"] != "local"){
+			return json(['error'=>1,'message'=>'您当前的无用户无法执行此操作']);
+		}
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		$torrentObj = new \app\index\model\FileManage(input("post.path"),$this->userObj->uid);
+		$downloadStart = $aria2->addTorrent($torrentObj->signTmpUrl());
+		if($aria2->reqStatus){
+			$this->insertRecord($aria2,input("post.path"));
 		}else{
 			return json(['error'=>1,'message'=>$aria2->reqMsg]);
 		}

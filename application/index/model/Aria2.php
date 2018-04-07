@@ -46,6 +46,28 @@ class Aria2 extends Model{
 		}
 	}
 
+	public function addTorrent($torrentUrl){
+		$this->pathId = uniqid();
+		$reqFileds = [
+				"params" => ["token:".$this->authToken,
+						[$torrentUrl],["dir" => $this->savePath.$this->pathId],
+					],
+				"jsonrpc" => "2.0",
+				"id" => $this->pathId,
+				"method" => "aria2.addUri"
+			];
+		$reqFileds["params"][2] = array_merge($reqFileds["params"][2],$this->saveOptions);
+		$reqFileds = json_encode($reqFileds,JSON_OBJECT_AS_ARRAY);
+		$respondData = $this->sendReq($reqFileds);
+		if(isset($respondData["result"])){
+			$this->reqStatus = 1;
+			$this->pid = $respondData["result"];
+		}else{
+			$this->reqStatus = 0;
+			$this->reqMsg = $respondData["error"]["message"];
+		}
+	}
+
 	public function flushStatus($id,$uid,$policy){
 		$this->uid = $uid;
 		$this->policy = $policy;
@@ -74,14 +96,25 @@ class Aria2 extends Model{
 		$respondData = $this->sendReq($reqFileds);
 		if(isset($respondData["result"])){
 			if($this->storageCheck($respondData["result"],$downloadInfo)){
+				if($downloadInfo["is_single"] && count($respondData["result"]["files"]) >1){
+					$this->updateToMuiltpe($respondData["result"],$downloadInfo);
+					return false;
+				}
+				if(isset($respondData["result"]["followedBy"])){
+					Db::name("download")->where("id",$id)
+						->update([
+								"pid" => $respondData["result"]["followedBy"][0],
+							]);
+					return false;
+				}
 				Db::name("download")->where("id",$id)
 				->update([
 					"status" => $respondData["result"]["status"],
 					"last_update" => date("Y-m-d h:i:s"),
 					"info" => json_encode([
-							"completedLength" => $respondData["result"]["completedLength"],
-							"totalLength" => $respondData["result"]["totalLength"],
-							"dir" => $respondData["result"]["files"][0]["path"],
+							"completedLength" => $respondData["result"]["files"][$downloadInfo["file_index"]]["completedLength"],
+							"totalLength" => $respondData["result"]["files"][$downloadInfo["file_index"]]["length"],
+							"dir" => $respondData["result"]["files"][$downloadInfo["file_index"]]["path"],
 							"downloadSpeed" => $respondData["result"]["downloadSpeed"],
 							"errorMessage" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
 						]),
@@ -105,8 +138,28 @@ class Aria2 extends Model{
 		}else{
 			$this->reqStatus = 0;
 			$this->reqMsg = $respondData["error"]["message"];
+			$this->setError($respondData,$downloadInfo,$respondData["error"]["message"],"error",false);
+				return false;
 		}
 		return true;
+	}
+
+	private function updateToMuiltpe($quenInfo,$sqlData){
+		foreach ($quenInfo["files"] as $key => $value) {
+			Db::name("download")->insert([
+				"pid" => $sqlData["pid"],
+				"path_id" => $sqlData["path_id"],
+				"owner" => $sqlData["owner"],
+				"save_dir" => 1,
+				"status" => "ready",
+				"msg" => "",
+				"info"=>"",
+				"source" =>$sqlData["source"],
+				"file_index" => $key,
+				"is_single" => 0,
+			]);
+		}
+		Db::name("download")->where("id",$sqlData["id"])->delete();
 	}
 
 	private function setComplete($quenInfo,$sqlData){
@@ -128,20 +181,20 @@ class Aria2 extends Model{
 			return false;
 		}
 		if($this->policy['autoname']){
-			$fileName = $uploadHandller->getObjName($this->policy['namerule'],"local",basename($quenInfo["files"][0]["path"]));
+			$fileName = $uploadHandller->getObjName($this->policy['namerule'],"local",basename($quenInfo["files"][$sqlData["file_index"]]["path"]));
 		}else{
-			$fileName = basename($quenInfo["files"][0]["path"]);
+			$fileName = basename($quenInfo["files"][$sqlData["file_index"]]["path"]);
 		}
 		$generatePath = $uploadHandller->getDirName($this->policy['dirrule']);
 		$savePath = ROOT_PATH . 'public/uploads/'.$generatePath.DS.$fileName;
 		is_dir(dirname($savePath))? :mkdir(dirname($savePath),0777,true);
-		rename($quenInfo["files"][0]["path"],$savePath);
-		@unlink(dirname($quenInfo["files"][0]["path"]));
+		rename($quenInfo["files"][$sqlData["file_index"]]["path"],$savePath);
+		@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
 		$jsonData = array(
 			"path" => "", 
-			"fname" => basename($quenInfo["files"][0]["path"]),
+			"fname" => basename($quenInfo["files"][$sqlData["file_index"]]["path"]),
 			"objname" => $generatePath.DS.$fileName,
-			"fsize" => $quenInfo["totalLength"],
+			"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
 		);
 		@list($width, $height, $type, $attr) = getimagesize($savePath);
 		$picInfo = empty($width)?" ":$width.",".$height;
@@ -151,15 +204,17 @@ class Aria2 extends Model{
 			$this->setError($quenInfo,$sqlData,$addAction[1]);
 			return false;
 		}
-		FileManage::storageCheckOut($this->uid,(int)$quenInfo["totalLength"]);
+		FileManage::storageCheckOut($this->uid,(int)$quenInfo["files"][$sqlData["file_index"]]["length"]);
 	}
 
-	private function setError($quenInfo,$sqlData,$msg,$status="error"){
+	private function setError($quenInfo,$sqlData,$msg,$status="error",$delete=true){
 		$this->Remove($sqlData["pid"],$sqlData);
 		$this->removeDownloadResult($sqlData["pid"],$sqlData);
-		if(file_exists($quenInfo["files"][0]["path"])){
-			@unlink($quenInfo["files"][0]["path"]);
-			@unlink(dirname($quenInfo["files"][0]["path"]));
+		if($delete){
+			if(file_exists($quenInfo["files"][$sqlData["file_index"]]["path"])){
+				@unlink($quenInfo["files"][$sqlData["file_index"]]["path"]);
+				@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
+			}
 		}
 		Db::name("download")->where("id",$sqlData["id"])->update([
 			"msg" => $msg,
@@ -209,18 +264,18 @@ class Aria2 extends Model{
 
 	private function sendReq($data){
 		$curl = curl_init();
-	    curl_setopt($curl, CURLOPT_URL, $this->apiUrl."jsonrpc");
-	    curl_setopt($curl, CURLOPT_POST, 1);
-	    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-	    curl_setopt($curl, CURLOPT_TIMEOUT, 15); 
-	    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-	    $tmpInfo = curl_exec($curl);
-	    if (curl_errno($curl)) {
-	    	$this->reqStatus = 0;
-	    	$this->reqMsg = "请求失败,".curl_error($curl);
-	    }
-	    curl_close($curl);
-	    return json_decode($tmpInfo,true);
+		curl_setopt($curl, CURLOPT_URL, $this->apiUrl."jsonrpc");
+		curl_setopt($curl, CURLOPT_POST, 1);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+		curl_setopt($curl, CURLOPT_TIMEOUT, 15); 
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		$tmpInfo = curl_exec($curl);
+		if (curl_errno($curl)) {
+			$this->reqStatus = 0;
+			$this->reqMsg = "请求失败,".curl_error($curl);
+		}
+		curl_close($curl);
+		return json_decode($tmpInfo,true);
 	}
 
 }
