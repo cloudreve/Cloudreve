@@ -85,6 +85,7 @@ class Aria2 extends Model{
 							"downloadSpeed" => $respondData["result"]["downloadSpeed"],
 							"errorMessage" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
 						]),
+					"msg" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
 					]);
 				switch ($respondData["result"]["status"]) {
 					case 'complete':
@@ -98,7 +99,7 @@ class Aria2 extends Model{
 			}else{
 				$this->reqStatus = 0;
 				$this->reqMsg = "空间容量不足";
-				//取消离线下载
+				$this->setError($respondData["result"],$downloadInfo,"空间容量不足");
 				return false;
 			}
 		}else{
@@ -110,7 +111,7 @@ class Aria2 extends Model{
 
 	private function setComplete($quenInfo,$sqlData){
 		if($this->policy["policy_type"] != "local"){
-			//取消任务
+			$this->setError($quenInfo,$sqlData,"您当前的上传策略无法使用离线下载");
 			return false;
 		}
 		$suffixTmp = explode('.', $quenInfo["dir"]);
@@ -123,7 +124,7 @@ class Aria2 extends Model{
 		}
 		if($sufficCheck){
 			//取消任务
-			$this->setError();
+			$this->setError($quenInfo,$sqlData,"文件类型不被允许");
 			return false;
 		}
 		if($this->policy['autoname']){
@@ -147,14 +148,53 @@ class Aria2 extends Model{
 		$addAction = FileManage::addFile($jsonData,$this->policy,$this->uid,$picInfo);
 		if(!$addAction[0]){
 			//取消任务
-			$this->setError();
+			$this->setError($quenInfo,$sqlData,$addAction[1]);
 			return false;
 		}
 		FileManage::storageCheckOut($this->uid,(int)$quenInfo["totalLength"]);
 	}
 
-	private function setError(){
+	private function setError($quenInfo,$sqlData,$msg,$status="error"){
+		$this->Remove($sqlData["pid"],$sqlData);
+		$this->removeDownloadResult($sqlData["pid"],$sqlData);
+		if(file_exists($quenInfo["files"][0]["path"])){
+			@unlink($quenInfo["files"][0]["path"]);
+			@unlink(dirname($quenInfo["files"][0]["path"]));
+		}
+		Db::name("download")->where("id",$sqlData["id"])->update([
+			"msg" => $msg,
+			"status" => $status,
+			]);
+	}
 
+	public function Remove($gid,$sqlData){
+		$reqFileds = [
+				"params" => ["token:".$this->authToken,$gid],
+				"jsonrpc" => "2.0",
+				"id" => uniqid(),
+				"method" => "aria2.remove"
+			];
+		$reqFileds = json_encode($reqFileds,JSON_OBJECT_AS_ARRAY);
+		$respondData = $this->sendReq($reqFileds);
+		if(isset($respondData["result"])){
+			return true;
+		}
+		return false;
+	}
+
+	public function removeDownloadResult($gid,$sqlData){
+		$reqFileds = [
+				"params" => ["token:".$this->authToken,$gid],
+				"jsonrpc" => "2.0",
+				"id" => uniqid(),
+				"method" => "aria2.removeDownloadResult"
+			];
+		$reqFileds = json_encode($reqFileds,JSON_OBJECT_AS_ARRAY);
+		$respondData = $this->sendReq($reqFileds);
+		if(isset($respondData["result"])){
+			return true;
+		}
+		return false;
 	}
 
 	private function storageCheck($quenInfo,$sqlData){
