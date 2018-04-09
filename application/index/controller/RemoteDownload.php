@@ -54,8 +54,9 @@ class RemoteDownload extends Controller{
 		$downloadStart = $aria2->addUrl(input("post.url"));
 		if($aria2->reqStatus){
 			$this->insertRecord($aria2,input("post.url"));
+			return json(["result"=>['success'=>true,'error'=>null]]);
 		}else{
-			return json(['error'=>1,'message'=>$aria2->reqMsg]);
+			return json(["result"=>['success'=>false,'error'=>$aria2->reqMsg]]);
 		}
 	}
 

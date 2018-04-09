@@ -129,6 +129,13 @@ class Aria2 extends Model{
 						# code...
 						break;
 				}
+				if(($respondData["result"]["files"][$downloadInfo["file_index"]]["completedLength"] == $respondData["result"]["files"][$downloadInfo["file_index"]]["length"]) && $respondData["result"]["status"]=="active"){
+					$this->setComplete($respondData["result"],$downloadInfo);
+					Db::name("download")->where("id",$id)
+				    ->update([
+				    		"status" => "complete",
+				    	]);
+				}
 			}else{
 				$this->reqStatus = 0;
 				$this->reqMsg = "空间容量不足";
