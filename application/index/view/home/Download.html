@@ -1,0 +1,79 @@
+{extend name="header_home" /}
+{block name="title"}离线下载管理- {$options.siteName}{/block}
+{block name="content"}
+    <script src="/static/js/remoteDownload.js"></script>
+    <style type="text/css">
+    .col-md-3{
+    padding-right: 15px;
+    padding-left: 15px;
+    }
+    </style>
+  </head>
+  <body >
+    <div id="container">
+      {include file="navbar_home" /}
+      
+      <div class="col-md-10 quota_content">
+        <h1>离线下载管理</h1>
+        <br>
+        <div class="fix_side">
+         
+          
+          <div class="fix">
+            <div class="col-md-12">
+              <div class="panel panel-primary">
+               <div class="panel-heading">正在进行中</div>
+               <div class="panel-body centerTable" id="loadStatus">
+               更新状态数据中...
+               </div>
+  <div class="table-responsive" style="display: none">
+                  <table class="table">
+        <thead>
+          <tr>
+            <th width="5%" class="centerTable">#</th>
+            <th width="50%" >文件名</th>
+            <th class="centerTable">大小</th>
+            <th class="centerTable">储存位置</th>
+            <th class="centerTable">进度</th>
+            <th class="centerTable">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="tr-bar">
+            <th scope="row">1</th>
+            <td>Mark</td>
+            <td>Otto</td>
+            <td>@mdo</td> <td>the Bird</td>
+            <td>@twitter</td>
+          </tr>
+          <tr>
+            <th scope="row">2</th>
+            <td>Jacob</td>
+            <td>Thornton</td>
+            <td>@fat</td> <td>the Bird</td>
+            <td>@twitter</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td>Larry</td>
+            <td>the Bird</td>
+            <td>@twitter</td> <td>the Bird</td>
+            <td>@twitter</td>
+          </tr>
+        </tbody>
+      </table>
+</div>
+            </div>
+          </div>
+          
+        </div>
+        <br>
+          </div>
+        </body>
+        <script src="/static/js/material.js"></script>
+        <script type="text/javascript">
+        upload_load=0;
+        </script>
+        {$options.js_code}
+      </html>
+    {/block}

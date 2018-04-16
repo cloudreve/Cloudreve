@@ -29,12 +29,12 @@ class RemoteDownload extends Controller{
 		return true;
 	}
 
-	private function insertRecord($aria2,$url){
+	private function insertRecord($aria2,$url,$path){
 		Db::name("download")->insert([
 				"pid" => $aria2->pid,
 				"path_id" => $aria2->pathId,
 				"owner" => $this->userObj->uid,
-				"save_dir" => 1,
+				"save_dir" => $path,
 				"status" => "ready",
 				"msg" => "",
 				"info"=>"",
@@ -53,7 +53,7 @@ class RemoteDownload extends Controller{
 		$aria2 = new Aria2($aria2Options);
 		$downloadStart = $aria2->addUrl(input("post.url"));
 		if($aria2->reqStatus){
-			$this->insertRecord($aria2,input("post.url"));
+			$this->insertRecord($aria2,input("post.url"),input("post.path"));
 			return json(["result"=>['success'=>true,'error'=>null]]);
 		}else{
 			return json(["result"=>['success'=>false,'error'=>$aria2->reqMsg]]);
@@ -67,12 +67,13 @@ class RemoteDownload extends Controller{
 		}
 		$aria2Options = Option::getValues(["aria2"]);
 		$aria2 = new Aria2($aria2Options);
-		$torrentObj = new \app\index\model\FileManage(input("post.path"),$this->userObj->uid);
+		$torrentObj = new \app\index\model\FileManage(input("post.id"),$this->userObj->uid,true);
 		$downloadStart = $aria2->addTorrent($torrentObj->signTmpUrl());
 		if($aria2->reqStatus){
-			$this->insertRecord($aria2,input("post.path"));
+			$this->insertRecord($aria2,input("post.id"),input("post.savePath"));
+			return json(["result"=>['success'=>true,'error'=>null]]);
 		}else{
-			return json(['error'=>1,'message'=>$aria2->reqMsg]);
+			return json(["result"=>['success'=>false,'error'=>$aria2->reqMsg]]);
 		}
 	}
 
@@ -86,6 +87,23 @@ class RemoteDownload extends Controller{
 		if(!$aria2->flushStatus(input("post.id"),$this->userObj->uid,$policyData)){
 			return json(['error'=>1,'message'=>$aria2->reqMsg]);
 		}
+	}
+
+	public function FlushUser(){
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		$toBeFlushed = Db::name("download")
+		->where("owner",$this->userObj->uid)
+		->where("status","<>","complete")
+		->where("status","<>","error")
+		->select();
+		foreach ($toBeFlushed as $key => $value) {
+			$aria2->flushStatus($value["id"],$this->userObj->uid,$this->userObj->getPolicy());
+		}
+	}
+
+	public function ListDownloading(){
+		return json(["s"=>"s"]);
 	}
 
 }

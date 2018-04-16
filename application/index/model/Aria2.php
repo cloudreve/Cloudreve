@@ -157,7 +157,7 @@ class Aria2 extends Model{
 				"pid" => $sqlData["pid"],
 				"path_id" => $sqlData["path_id"],
 				"owner" => $sqlData["owner"],
-				"save_dir" => 1,
+				"save_dir" => $sqlData["save_dir"],
 				"status" => "ready",
 				"msg" => "",
 				"info"=>"",
@@ -198,7 +198,7 @@ class Aria2 extends Model{
 		rename($quenInfo["files"][$sqlData["file_index"]]["path"],$savePath);
 		@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
 		$jsonData = array(
-			"path" => "", 
+			"path" => ltrim(str_replace("/", ",", $sqlData["save_dir"]),","),
 			"fname" => basename($quenInfo["files"][$sqlData["file_index"]]["path"]),
 			"objname" => $generatePath.DS.$fileName,
 			"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
