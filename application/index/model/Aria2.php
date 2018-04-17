@@ -124,7 +124,9 @@ class Aria2 extends Model{
 					case 'complete':
 						$this->setComplete($respondData["result"],$downloadInfo);
 						break;
-					
+					case 'removed':
+						$this->setCanceled($respondData["result"],$downloadInfo);
+						break;
 					default:
 						# code...
 						break;
@@ -151,6 +153,31 @@ class Aria2 extends Model{
 		return true;
 	}
 
+	private function setCanceled($quenInfo,$sqlData){
+		@self::remove_directory(ROOT_PATH."public".DS."downloads".DS.$sqlData["path_id"]);
+		if(!is_dir(ROOT_PATH."public".DS."downloads".DS.$sqlData["path_id"])){
+			Db::name("download")->where("id",$sqlData["id"])->update([
+				"status" => "canceled",
+			]);
+		}
+	}
+
+	static function remove_directory($dir){
+		if($handle=opendir("$dir")){
+			while(false!==($item=readdir($handle))){
+				if($item!="."&&$item!=".."){
+					if(is_dir("$dir/$item")){
+						self::remove_directory("$dir/$item");
+					}else{
+						unlink("$dir/$item");
+					}
+				}
+			}
+			closedir($handle);
+			rmdir($dir);
+		}
+	}
+
 	private function updateToMuiltpe($quenInfo,$sqlData){
 		foreach ($quenInfo["files"] as $key => $value) {
 			Db::name("download")->insert([
@@ -174,6 +201,7 @@ class Aria2 extends Model{
 			$this->setError($quenInfo,$sqlData,"您当前的上传策略无法使用离线下载");
 			return false;
 		}
+		$this->forceRemove($sqlData["pid"]);
 		$suffixTmp = explode('.', $quenInfo["dir"]);
 		$fileSuffix = array_pop($suffixTmp);
 		$uploadHandller = new UploadHandler($this->policy["id"],$this->uid);
@@ -220,7 +248,7 @@ class Aria2 extends Model{
 		if($delete){
 			if(file_exists($quenInfo["files"][$sqlData["file_index"]]["path"])){
 				@unlink($quenInfo["files"][$sqlData["file_index"]]["path"]);
-				@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
+				@self::remove_directory(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
 			}
 		}
 		Db::name("download")->where("id",$sqlData["id"])->update([
@@ -250,6 +278,21 @@ class Aria2 extends Model{
 				"jsonrpc" => "2.0",
 				"id" => uniqid(),
 				"method" => "aria2.removeDownloadResult"
+			];
+		$reqFileds = json_encode($reqFileds,JSON_OBJECT_AS_ARRAY);
+		$respondData = $this->sendReq($reqFileds);
+		if(isset($respondData["result"])){
+			return true;
+		}
+		return false;
+	}
+
+	public function forceRemove($gid){
+		$reqFileds = [
+				"params" => ["token:".$this->authToken,$gid],
+				"jsonrpc" => "2.0",
+				"id" => uniqid(),
+				"method" => "aria2.forceRemove"
 			];
 		$reqFileds = json_encode($reqFileds,JSON_OBJECT_AS_ARRAY);
 		$respondData = $this->sendReq($reqFileds);

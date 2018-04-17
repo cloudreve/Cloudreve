@@ -96,14 +96,50 @@ class RemoteDownload extends Controller{
 		->where("owner",$this->userObj->uid)
 		->where("status","<>","complete")
 		->where("status","<>","error")
+		->where("status","<>","canceled")
+		//取消的
 		->select();
 		foreach ($toBeFlushed as $key => $value) {
 			$aria2->flushStatus($value["id"],$this->userObj->uid,$this->userObj->getPolicy());
 		}
 	}
 
-	public function ListDownloading(){
-		return json(["s"=>"s"]);
+	public function Cancel(){
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		$downloadItem =  Db::name("download")->where("owner",$this->userObj->uid)->where("id",input("post.id"))->find();
+		if(empty($downloadItem)){
+			return json(['error'=>1,'message'=>"未找到下载记录"]);
+		}
+		if($aria2->Remove($downloadItem["pid"],"")){
+			return json(['error'=>0,'message'=>"下载已取消"]);
+		}else{
+			return json(['error'=>1,'message'=>"取消失败"]);
+		}
 	}
+
+	public function ListDownloading(){
+		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","in",["active","ready"])->order('id desc')->select();
+		foreach ($downloadItems as $key => $value) {
+			$connectInfo = json_decode($value["info"],true);
+			if(isset($connectInfo["dir"])){
+				$downloadItems[$key]["fileName"] = basename($connectInfo["dir"]);
+				$downloadItems[$key]["completedLength"] = $connectInfo["completedLength"];
+				$downloadItems[$key]["totalLength"] = $connectInfo["totalLength"];
+				$downloadItems[$key]["downloadSpeed"] = $connectInfo["downloadSpeed"];
+			}else{
+				if(floor($value["source"])==$value["source"]){
+					$downloadItems[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name");
+				}else{
+					$downloadItems[$key]["fileName"] = $value["source"];
+				}
+				$downloadItems[$key]["completedLength"] = 0;
+				$downloadItems[$key]["totalLength"] = 0;
+				$downloadItems[$key]["downloadSpeed"] = 0;
+			}
+		}
+		return json($downloadItems);
+	}
+
 
 }
