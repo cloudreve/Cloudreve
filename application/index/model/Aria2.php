@@ -119,6 +119,7 @@ class Aria2 extends Model{
 							"errorMessage" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
 						]),
 					"msg" => isset($respondData["result"]["errorMessage"]) ? $respondData["result"]["errorMessage"] : "",
+					"total_size" =>  $respondData["result"]["files"][$downloadInfo["file_index"]]["length"],
 					]);
 				switch ($respondData["result"]["status"]) {
 					case 'complete':
@@ -191,6 +192,7 @@ class Aria2 extends Model{
 				"source" =>$sqlData["source"],
 				"file_index" => $key,
 				"is_single" => 0,
+				"total_size" => 0,
 			]);
 		}
 		Db::name("download")->where("id",$sqlData["id"])->delete();
@@ -239,7 +241,7 @@ class Aria2 extends Model{
 			$this->setError($quenInfo,$sqlData,$addAction[1]);
 			return false;
 		}
-		FileManage::storageCheckOut($this->uid,(int)$quenInfo["files"][$sqlData["file_index"]]["length"]);
+		FileManage::storageCheckOut($this->uid,$quenInfo["files"][$sqlData["file_index"]]["length"]);
 	}
 
 	private function setError($quenInfo,$sqlData,$msg,$status="error",$delete=true){
@@ -303,10 +305,10 @@ class Aria2 extends Model{
 	}
 
 	private function storageCheck($quenInfo,$sqlData){
-		if(!FileManage::sotrageCheck($this->uid,(int)$quenInfo["totalLength"])){
+		if(!FileManage::sotrageCheck($this->uid,$quenInfo["totalLength"])){
 			return false;
 		}
-		if(!FileManage::sotrageCheck($this->uid,(int)$quenInfo["completedLength"])){
+		if(!FileManage::sotrageCheck($this->uid,$quenInfo["completedLength"])){
 			return false;
 		}
 		return true;

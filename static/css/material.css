@@ -7,3 +7,17 @@ body{background-color:#EEE}body.inverse{background:#333}body.inverse,body.invers
   background-image: -webkit-gradient(linear, left top, right top, from(#ecefff), to(white), color-stop(0.5, #ecefff), color-stop(0.5, white));
   background-image: -moz-linear-gradient(0, #ecefff 0%, #ecefff 50%, white 50%, white 100%);
   }
+  .download-error{
+  	    color: #F44336;
+    font-weight: 700;
+  }
+  .td-error{
+  	background-color:#ffebea;
+  }
+  .download-success{
+  	color:#009688;
+  	font-weight: 700;
+  }
+  .td-success{
+  	background-color:#edffee;
+  }

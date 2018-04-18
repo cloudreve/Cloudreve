@@ -41,6 +41,7 @@ class RemoteDownload extends Controller{
 				"source" =>$url,
 				"file_index" => 0,
 				"is_single" => 1,
+				"total_size" => 0,
 			]);
 	}
 
@@ -64,6 +65,15 @@ class RemoteDownload extends Controller{
 		$policyData = Db::name("policy")->where("id",$this->userObj->groupData["policy_name"])->find();
 		if(!$this->checkPerimission(0) || $policyData["policy_type"] != "local"){
 			return json(['error'=>1,'message'=>'您当前的无用户无法执行此操作']);
+		}
+		$downloadingLength = Db::name("download")
+		->where("owner",$this->userObj->uid)
+		->where("status","<>","complete")
+		->where("status","<>","error")
+		->where("status","<>","canceled")
+		->sum("total_size");
+		if(!\app\index\model\FileManage::sotrageCheck($this->userObj->uid,$downloadingLength)){
+			return json(["result"=>['success'=>false,'error'=>"容量不足"]]);
 		}
 		$aria2Options = Option::getValues(["aria2"]);
 		$aria2 = new Aria2($aria2Options);
@@ -120,6 +130,30 @@ class RemoteDownload extends Controller{
 
 	public function ListDownloading(){
 		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","in",["active","ready"])->order('id desc')->select();
+		foreach ($downloadItems as $key => $value) {
+			$connectInfo = json_decode($value["info"],true);
+			if(isset($connectInfo["dir"])){
+				$downloadItems[$key]["fileName"] = basename($connectInfo["dir"]);
+				$downloadItems[$key]["completedLength"] = $connectInfo["completedLength"];
+				$downloadItems[$key]["totalLength"] = $connectInfo["totalLength"];
+				$downloadItems[$key]["downloadSpeed"] = $connectInfo["downloadSpeed"];
+			}else{
+				if(floor($value["source"])==$value["source"]){
+					$downloadItems[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name");
+				}else{
+					$downloadItems[$key]["fileName"] = $value["source"];
+				}
+				$downloadItems[$key]["completedLength"] = 0;
+				$downloadItems[$key]["totalLength"] = 0;
+				$downloadItems[$key]["downloadSpeed"] = 0;
+			}
+		}
+		return json($downloadItems);
+	}
+
+	public function ListFinished(){
+		$page = input("get.page");
+		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","not in",["active","ready"])->order('id desc')->page($page.',10')->select();
 		foreach ($downloadItems as $key => $value) {
 			$connectInfo = json_decode($value["info"],true);
 			if(isset($connectInfo["dir"])){
