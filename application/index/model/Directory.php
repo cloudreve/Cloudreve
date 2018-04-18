@@ -47,7 +47,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 		}
 		$fileSize = fstat($data)["size"];
 		if(empty($fileSize)){
-			$fileSize = 0;
+			$fileSize = -1;
 		}
 		if($fileSize>$policyData["max_size"]){
 			throw new DAV\Exception\InsufficientStorage('File is to large');
@@ -66,6 +66,9 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 			mkdir($savePath,0777,true);
 		}
 		file_put_contents($savePath."/".$fileName, $data);
+		if($fileSize<=0){
+			$fileSize = filesize($savePath."/".$fileName);
+		}
 		$jsonData = array(
 			"path" => str_replace("/",",",ltrim($this->myPath,"/")), 
 			"fname" => $name,
