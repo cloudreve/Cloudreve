@@ -38,6 +38,16 @@ class Home extends Controller{
 		]);
 	}
 
+	public function Download(){
+		$userInfo = $this->userObj->getInfo();
+		$groupData =  $this->userObj->getGroupData();
+		return view('download', [
+			'options'  => Option::getValues(['basic','group_sell']),
+			'userInfo' => $userInfo,
+			'groupData' => $groupData,
+		]);
+	}
+
 	public function Album(){
 		$userInfo = $this->userObj->getInfo();
 		$list = Db::name("files")->where("upload_user",$this->userObj->uid)
@@ -60,7 +70,7 @@ class Home extends Controller{
 		$listData = $list->all();
 		$pageNow = input("?get.page")?input("get.page"):1;
 		if($pageNow>$pageCount){
-			$this->error('页面不存在',404,Option::getValues(['basic','group_sell']));
+			$this->error('您当前没有上传任何图片',404,Option::getValues(['basic','group_sell']));
 		}
 		return view('album', [
 			'options'  => Option::getValues(['basic','group_sell']),

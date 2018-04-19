@@ -129,6 +129,11 @@
           <a href="/Home/Album" class="list-group-item">
            <i class="fa fa-picture-o" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 图片集
           </a>
+          {eq name=':(explode(",",$groupData.aria2)[0] OR explode(",",$groupData.aria2)[1])' value="1"}
+            <a href="/Home/Download" class="list-group-item">
+           <i class="fa fa-cloud-download" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 离线下载
+          </a>
+            {/eq}
         </div>
         <div  clss="usage" style="  visibility: visible;
           position: absolute;

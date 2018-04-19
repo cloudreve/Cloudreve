@@ -49,6 +49,9 @@
 					changePermissions: false,
 					upload: false,
 					shareFile: uploadConfig.allowShare == "1" ? true : false,
+					allowRemoteDownload: uploadConfig.allowRemoteDownload,
+					allowTorrentDownload: uploadConfig.allowTorrentDownload,
+
 				}),
 			});
 		}]);

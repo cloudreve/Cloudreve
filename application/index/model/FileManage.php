@@ -22,12 +22,17 @@ class FileManage extends Model{
 	public $policyData;
 	public $deleteStatus = true;
 
-	public function __construct($path,$uid){
-		$this->filePath = $path;
-		$fileInfo = $this->getFileName($path);
-		$fileName = $fileInfo[0];
-		$path = $fileInfo[1];
-		$fileRecord = Db::name('files')->where('upload_user',$uid)->where('orign_name',$fileName)->where('dir',$path)->find();
+	public function __construct($path,$uid,$byId=false){
+		if($byId){
+			$fileRecord = Db::name('files')->where('id',$path)->find();
+			$this->filePath = rtrim($fileRecord["dir"],"/")."/".$fileRecord["orign_name"];
+		}else{
+			$this->filePath = $path;
+			$fileInfo = $this->getFileName($path);
+			$fileName = $fileInfo[0];
+			$path = $fileInfo[1];
+			$fileRecord = Db::name('files')->where('upload_user',$uid)->where('orign_name',$fileName)->where('dir',$path)->find();
+		}
 		if (empty($fileRecord)){
 			die('{ "result": { "success": false, "error": "文件不存在" } }');
 		}
