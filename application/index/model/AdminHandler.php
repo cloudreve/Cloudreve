@@ -172,6 +172,7 @@ class AdminHandler extends Model{
 		unset($options["id"]);
 		$options["max_storage"] = $options["max_storage"]*$options["sizeTimes"];
 		unset($options["sizeTimes"]);
+		$options["aria2"] = $options["aria2"] ? "1,1,1" : "0,0,0";
 		try {
 			Db::name("groups")->where("id",$groupId)->update($options);
 		} catch (Exception $e) {
