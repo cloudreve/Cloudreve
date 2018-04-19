@@ -7,6 +7,7 @@ use \think\Session;
 use \app\index\model\FileManage;
 use \app\index\model\Option;
 use \app\index\model\Mail;
+use \app\index\model\Aria2;
 
 class CronHandler extends Model{
 
@@ -40,6 +41,11 @@ class CronHandler extends Model{
 						$this->deleteCallbackData($value["interval_s"]);
 					}
 					break;
+				case 'flush_aria2':
+					if($this->checkInterval($value["interval_s"],$value["last_excute"])){
+						$this->flushAria2($value["interval_s"]);
+					}
+					break;
 				default:
 					# code...
 					break;
@@ -67,6 +73,22 @@ class CronHandler extends Model{
 		Db::name("callback")->delete(true);
 		echo("Complete<br>");
 		$this->setComplete("delete_callback_data");
+	}
+
+	public function flushAria2($interval){
+		echo("flushingAria2Status...");
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		$toBeFlushed = Db::name("download")
+		->where("status","<>","complete")
+		->where("status","<>","error")
+		->where("status","<>","canceled")
+		->select();
+		foreach ($toBeFlushed as $key => $value) {
+			$aria2->flushStatus($value["id"],$value["owner"],null);
+		}
+		echo("Complete<br>");
+		$this->setComplete("flush_aria2");
 	}
 
 }

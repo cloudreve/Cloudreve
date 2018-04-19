@@ -104,6 +104,10 @@ class AdminHandler extends Model{
 		return $this->saveOptions($options);
 	}
 
+	public function saveAria2Setting($options){
+		return $this->saveOptions($options);
+	}
+
 	public function saveMailTemplate($options){
 		return $this->saveOptions($options);
 	}
@@ -113,6 +117,7 @@ class AdminHandler extends Model{
 		unset($options["sizeTimes"]);
 		$options["grade_policy"] = 0;
 		$options["policy_list"] = $options["policy_name"];
+		$options["aria2"] = $options["aria2"] ? "1,1,1" : "0,0,0";
 		try {
 			Db::name("groups")->insert($options);
 		} catch (Exception $e) {
@@ -345,6 +350,46 @@ class AdminHandler extends Model{
 		$userData = Db::name("users")->where("id",$id)->find();
 		$userData["used_storage"] =getSize($userData["used_storage"]);
 		return $userData;
+	}
+
+	public function listDownloads(){
+		$pageSize = 10;
+		$this->pageData = Db::name("download")
+		->order("id desc")
+		->paginate($pageSize);
+		$this->dataTotal = Db::name("download")
+		->order("id desc")
+		->count();
+		$this->pageTotal = ceil($this->dataTotal/$pageSize);
+		$this->listData = $this->pageData->all();
+		$userCache=[];
+		$userCacheList=[];
+		foreach ($this->listData as $key => $value) {
+			if(in_array($value["owner"], $userCacheList)){
+				$this->listData[$key]["user"] = $userCache[$value["owner"]];
+			}else{
+				$this->listData[$key]["user"] = Db::name("users")->where("id",$value["owner"])->find();
+				array_push($userCacheList,$value["owner"]);
+				$userCache[$value["owner"]] = $this->listData[$key]["user"];
+			}
+			$connectInfo = json_decode($value["info"],true);
+			if(isset($connectInfo["dir"])){
+				$this->listData[$key]["fileName"] = basename($connectInfo["dir"]);
+				$this->listData[$key]["completedLength"] = $connectInfo["completedLength"];
+				$this->listData[$key]["totalLength"] = $connectInfo["totalLength"];
+				$this->listData[$key]["downloadSpeed"] = $connectInfo["downloadSpeed"];
+			}else{
+				if(floor($value["source"])==$value["source"]){
+					$this->listData[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name")[0];
+				}else{
+					$this->listData[$key]["fileName"] = $value["source"];
+				}
+				$this->listData[$key]["completedLength"] = 0;
+				$this->listData[$key]["totalLength"] = 0;
+				$this->listData[$key]["downloadSpeed"] = 0;
+			}
+		}
+		$this->pageNow = input("?get.page")?input("get.page"):1;
 	}
 
 	public function listFile(){

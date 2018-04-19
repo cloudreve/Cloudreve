@@ -71,7 +71,8 @@ CREATE TABLE `sd_corn` (
 
 INSERT INTO `sd_corn` (`id`, `rank`, `name`, `des`, `last_excute`, `interval_s`, `enable`) VALUES
 (1, 2, 'delete_unseful_chunks', '删除分片上传产生的失效文件块', 0, 3600, 1),
-(5, 1, 'delete_callback_data', '删除callback记录', 0, 86400, 1);
+(5, 1, 'delete_callback_data', '删除callback记录', 0, 86400, 1),
+(NULL, 1, 'flush_aria2', '刷新离线下载状态', 0, 30, 1);
 
 -- --------------------------------------------------------
 
@@ -132,17 +133,18 @@ CREATE TABLE `sd_groups` (
   `color` text NOT NULL,
   `policy_list` text NOT NULL,
   `range_transfer` tinyint(1) NOT NULL,
-  `webdav` tinyint(1) NOT NULL
+  `webdav` tinyint(1) NOT NULL,
+  `aria2` text NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 --
 -- 转存表中的数据 `sd_groups`
 --
 
-INSERT INTO `sd_groups` (`id`, `group_name`, `policy_name`, `max_storage`, `grade_policy`, `speed`, `allow_share`, `color`, `policy_list`, `range_transfer`, `webdav`) VALUES
-(1, '管理员', 1, 1073741824, '', '', 1, 'danger', '1', 1, 1),
-(2, '游客', 1, 0, '', '', 1, 'default', '1', 0, 0),
-(3, '注册会员', 1, 52428800, '', '', 1, 'default', '1', 1, 1);
+INSERT INTO `sd_groups` (`id`, `group_name`, `policy_name`, `max_storage`, `grade_policy`, `speed`, `allow_share`, `color`, `policy_list`, `range_transfer`, `webdav`,`aria2`) VALUES
+(1, '管理员', 1, 1073741824, '', '', 1, 'danger', '1', 1, 1, "0,0,0"),
+(2, '游客', 1, 0, '', '', 1, 'default', '1', 0, 0, "0,0,0"),
+(3, '注册会员', 1, 52428800, '', '', 1, 'default', '1', 1, 1, "0,0,0");
 
 -- --------------------------------------------------------
 
@@ -194,7 +196,11 @@ INSERT INTO `sd_options` (`id`, `option_name`, `option_value`, `option_type`) VA
 (46, 'admin_color_nav', 'navbar navbar-expand-lg fixed-top navbar-light bg-light', 'admin'),
 (47, 'js_code', '<script type=\"text/javascript\">\r\n\r\n</script>', 'basic'),
 (50, 'sendfile', '0', 'download'),
-(51, 'header', 'X-Sendfile', 'download');
+(51, 'header', 'X-Sendfile', 'download'),
+(52, 'aria2_tmppath', '/path/to/public/download', 'aria2'),
+(53, 'aria2_token', 'your token', 'aria2'),
+(54, 'aria2_rpcurl', 'http://127.0.0.1:6800/', 'aria2'),
+(55, 'aria2_options', '{\"max-tries\":5}', 'aria2');
 
 -- --------------------------------------------------------
 
@@ -295,7 +301,25 @@ CREATE TABLE `sd_users` (
 
 INSERT INTO `sd_users` (`id`, `user_email`, `user_nick`, `user_pass`, `user_date`, `user_status`, `user_group`, `group_primary`, `user_activation_key`, `used_storage`, `two_step`, `delay_time`, `avatar`, `profile`, `webdav_key`) VALUES
 (1, 'admin@cloudreve.org', 'Admin', 'd8446059f8846a2c111a7f53515665fb', '2018-01-30 02:13:34', 0, 1, 0, 'n', 0, '0', 0, 'default', 1, 'd8446059f8846a2c111a7f53515665fb');
-
+CREATE TABLE `sd_download` (
+  `id` int(11) NOT NULL,
+  `pid` text NOT NULL,
+  `path_id` text NOT NULL,
+  `owner` int(11) NOT NULL,
+  `save_dir` text NOT NULL,
+  `status` text NOT NULL,
+  `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `msg` text NOT NULL,
+  `info` text NOT NULL,
+  `source` text NOT NULL,
+  `file_index` int(11) NOT NULL,
+  `is_single` tinyint(1) NOT NULL,
+  `total_size` bigint(20) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
+ALTER TABLE `sd_download`
+  ADD PRIMARY KEY (`id`);
+ALTER TABLE `sd_download`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 --
 -- Indexes for dumped tables
 --

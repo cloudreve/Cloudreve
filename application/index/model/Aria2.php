@@ -42,7 +42,7 @@ class Aria2 extends Model{
 			$this->pid = $respondData["result"];
 		}else{
 			$this->reqStatus = 0;
-			$this->reqMsg = $respondData["error"]["message"];
+			$this->reqMsg = isset($respondData["error"]["message"]) ? $respondData["error"]["message"] : $this->reqMsg;
 		}
 	}
 
@@ -70,6 +70,11 @@ class Aria2 extends Model{
 
 	public function flushStatus($id,$uid,$policy){
 		$this->uid = $uid;
+		if(empty($policy)){
+			$user = Db::name("users")->where("id",$uid)->find();
+			$group = Db::name("groups")->where("id",$user["user_group"])->find();
+			$policy = Db::name("policy")->where("id",$group["policy_name"])->find();
+		}
 		$this->policy = $policy;
 		$downloadInfo = Db::name("download")->where("id",$id)->find();
 		if(empty($downloadInfo)){
@@ -148,15 +153,15 @@ class Aria2 extends Model{
 		}else{
 			$this->reqStatus = 0;
 			$this->reqMsg = $respondData["error"]["message"];
-			$this->setError($respondData,$downloadInfo,$respondData["error"]["message"],"error",false);
+			$this->setError($respondData,$downloadInfo,$respondData["error"]["message"],"error",true);
 				return false;
 		}
 		return true;
 	}
 
 	private function setCanceled($quenInfo,$sqlData){
-		@self::remove_directory(ROOT_PATH."public".DS."downloads".DS.$sqlData["path_id"]);
-		if(!is_dir(ROOT_PATH."public".DS."downloads".DS.$sqlData["path_id"])){
+		@self::remove_directory($this->savePath.$sqlData["path_id"]);
+		if(!is_dir($this->savePath.$sqlData["path_id"])){
 			Db::name("download")->where("id",$sqlData["id"])->update([
 				"status" => "canceled",
 			]);

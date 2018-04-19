@@ -16,6 +16,7 @@ Cloudreve - Make the cloud easy for everyone
 
 * 快速对接多家云存储，支持七牛、又拍云、阿里云OSS、AWS S3、自建远程服务器，当然，还有本地存储
 * 可限制单文件最大大小、MIMEType、文件后缀、用户可用容量
+* 基于Aria2的离线下载
 * 图片、音频、视频、文本、Markdown、Ofiice文档 在线预览
 * 移动端全站响应式布局
 * 文件、目录分享系统，可创建私有分享或公开分享链接

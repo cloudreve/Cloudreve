@@ -129,7 +129,7 @@ class RemoteDownload extends Controller{
 	}
 
 	public function ListDownloading(){
-		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","in",["active","ready"])->order('id desc')->select();
+		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","in",["active","ready","waiting"])->order('id desc')->select();
 		foreach ($downloadItems as $key => $value) {
 			$connectInfo = json_decode($value["info"],true);
 			if(isset($connectInfo["dir"])){
@@ -153,7 +153,7 @@ class RemoteDownload extends Controller{
 
 	public function ListFinished(){
 		$page = input("get.page");
-		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","not in",["active","ready"])->order('id desc')->page($page.',10')->select();
+		$downloadItems = Db::name("download")->where("owner",$this->userObj->uid)->where("status","not in",["active","ready","waiting"])->order('id desc')->page($page.',10')->select();
 		foreach ($downloadItems as $key => $value) {
 			$connectInfo = json_decode($value["info"],true);
 			if(isset($connectInfo["dir"])){

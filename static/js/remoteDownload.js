@@ -48,7 +48,6 @@ $(function() {
 							row = row +'<td class="centerTable"><span class="download-success">完成</span></td>'
 							break;
 					}
-					row = row + '<td class="centerTable"><a href="javascript:" onclick="delete('+e["id"]+')" >删除记录</a></td>'
 					return row + "</tr>";
 				});
 				switch(e["status"]){
@@ -101,7 +100,7 @@ function loadDownloadingList() {
 
 	function bytesToSize(bytes) {
 		if (bytes === 0) return '0 B';
-		var k = 1000, // or 1024
+		var k = 1024, // or 1024
 			sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
 			i = Math.floor(Math.log(bytes) / Math.log(k));
 
@@ -119,7 +118,6 @@ function loadDownloadingList() {
 
 	function cancel(id){
 		$.post("/RemoteDownload/Cancel", {id:id}, function(data){
-			console.log(data);
 			if(data.error){
 				toastr["warning"](data.message);
 			}else{
