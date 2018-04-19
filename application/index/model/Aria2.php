@@ -64,7 +64,7 @@ class Aria2 extends Model{
 			$this->pid = $respondData["result"];
 		}else{
 			$this->reqStatus = 0;
-			$this->reqMsg = $respondData["error"]["message"];
+			$this->reqMsg = isset($respondData["error"]["message"]) ? $respondData["error"]["message"] : $this->reqMsg;
 		}
 	}
 
@@ -253,7 +253,7 @@ class Aria2 extends Model{
 		$this->Remove($sqlData["pid"],$sqlData);
 		$this->removeDownloadResult($sqlData["pid"],$sqlData);
 		if($delete){
-			if(file_exists($quenInfo["files"][$sqlData["file_index"]]["path"])){
+			if(isset($quenInfo["files"][$sqlData["file_index"]]["path"]) && file_exists($quenInfo["files"][$sqlData["file_index"]]["path"])){
 				@unlink($quenInfo["files"][$sqlData["file_index"]]["path"]);
 				@self::remove_directory(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
 			}
