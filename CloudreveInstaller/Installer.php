@@ -107,7 +107,7 @@ class Installer{
 	}
 
 	public static function sendFeedBack($url){
-		@file_get_contents("http://aoaoao.me/api/feedback.php?url=".urlencode($url));
+		@file_get_contents("http://toy.aoaoao.me/feedback.php?url=".urlencode($url));
 	}
 
 }

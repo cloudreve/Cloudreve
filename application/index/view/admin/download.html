@@ -91,7 +91,7 @@
                       <td class="textCenter">{:$originList[$key]['user']["user_nick"]}</td>
                       <td class="textCenter">{:countSize($download.total_size)}</td>
                       <td class="textCenter">{$download.status}</td>
-                      <td class="textCenter">{:floor($originList[$key]['completedLength']/$originList[$key]['totalLength']*10000)/100}%</td>
+                      <td class="textCenter">{eq name="$originList[$key]['totalLength']" value="0"}-{else/}{:floor($originList[$key]['completedLength']/$originList[$key]['totalLength']*10000)/100}%{/eq}</td>
                       <td class="textCenter">{eq name="download.status" value="active"}<a href="javascript:" onclick="cancel('{$download.id}')">取消任务</a>{else/} - {/eq}</td>
                     </tr>
                   {/volist}

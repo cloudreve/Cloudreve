@@ -381,7 +381,7 @@ class AdminHandler extends Model{
 				$this->listData[$key]["downloadSpeed"] = $connectInfo["downloadSpeed"];
 			}else{
 				if(floor($value["source"])==$value["source"]){
-					$this->listData[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name")[0];
+					$this->listData[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name");
 				}else{
 					$this->listData[$key]["fileName"] = $value["source"];
 				}
