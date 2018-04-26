@@ -137,7 +137,7 @@ class Aria2 extends Model{
 						# code...
 						break;
 				}
-				if(($respondData["result"]["files"][$downloadInfo["file_index"]]["completedLength"] == $respondData["result"]["files"][$downloadInfo["file_index"]]["length"]) && $respondData["result"]["status"]=="active"){
+				if(($respondData["result"]["files"][$downloadInfo["file_index"]]["completedLength"] == $respondData["result"]["files"][$downloadInfo["file_index"]]["length"] && ($respondData["result"]["files"][$downloadInfo["file_index"]]["length"] !=0 )) && $respondData["result"]["status"]=="active"){
 					$this->setComplete($respondData["result"],$downloadInfo);
 					Db::name("download")->where("id",$id)
 				    ->update([
