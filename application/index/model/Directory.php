@@ -30,6 +30,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function createFile($name, $data = NULL){
+		$name = str_replace(" ","",$name);
 		$userData = Db::name("users")->where("id",$this->uid)->find();
 		$groupData = Db::name("groups")->where("id",$userData["user_group"])->find();
 		$policyData = Db::name("policy")->where("id",$groupData["policy_name"])->find();
@@ -137,6 +138,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function getChild($name) {
+		$name = str_replace(" ","",$name);
 		if(!$this->childExists($name)){
 			throw new DAV\Exception\NotFound('File with name ' . $name . ' could not be located');
 		}
@@ -150,6 +152,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function childExists($name) {
+		$name = str_replace(" ","",$name);
 		$fileObj = new Objects($this->uid.rtrim($this->myPath,"/") . '/' . $name);
 		if($this->findDir(rtrim($this->myPath,"/") . '/' . $name) || $fileObj->isExist){
 			return true;
