@@ -34,7 +34,7 @@ To-do:
 * - [ ] 增加保存其他用户的分享到自己账户（限Pro版）
 * - [ ] 推出辅助程序GoDriver,用于驱动php或客户端实现不了的功能，并借此实现:
    * - [ ] 压缩包解压缩、文件压缩
-* - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后由GoDriver中转
+   * - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后由GoDriver中转
 * - [ ] 用Golang重写的远程服务端
 
 安装需求
