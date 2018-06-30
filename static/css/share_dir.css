@@ -310,12 +310,11 @@ textarea.code {
 .sidebar {
 	display: none;
 	background: #fafafa;
-	margin-top: 2px;
 	padding: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
 	border-right: 1px solid #eee;
-	height: 100%;
+	    height: calc(100% - 61px);
 }
 
 .btn-go-back {
@@ -375,7 +374,10 @@ textarea.code {
 }
 
 .iconset {
-	padding: 10px
+	padding: 10px;
+	overflow: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
 }
 
 .col-120 {
@@ -548,7 +550,9 @@ a:active,a:focus,a:hover,table th>a:active,table th>a:focus,table th>a:hover {
 }
 
 .main {
-	overflow-y: auto
+	    overflow: auto;
+    overflow-x: hidden;
+    height: calc(100% - 61px)
 }
 
 @media (min-width:768px) {
@@ -617,7 +621,7 @@ a:active,a:focus,a:hover,table th>a:active,table th>a:focus,table th>a:hover {
 	border-top: none;
 	box-shadow: none;
 	padding: 0;
-	margin: 0 0
+	margin: 5px 0
 }
 
 .breadcrumb {
@@ -626,7 +630,9 @@ a:active,a:focus,a:hover,table th>a:active,table th>a:focus,table th>a:hover {
 	font-size: 17px;
 	margin: 12px;
 	overflow: hidden;
-	max-height: 30px
+	max-height: 30px;
+	margin-bottom: 17px;
+    margin-top: 18px;
 }
 
 .breadcrumb a,.breadcrumb>.active {
@@ -652,7 +658,7 @@ a:active,a:focus,a:hover,table th>a:active,table th>a:focus,table th>a:hover {
 
 .btn.btn-flat {
 	background: 0 0;
-	color: #777
+	color:#bbc5e3
 }
 
 .btn-group.open>.btn-flat,.btn.btn-flat,.btn.btn-flat:active {
@@ -774,7 +780,7 @@ td {
 }
 
 .pull-left.visible-xs.ng-binding.ng-scope {
-	color: #777
+	color: #bbc5e3
 }
 
 .a,a:focus,a:hover {
@@ -1021,4 +1027,17 @@ video {
     border: 0;
     border-radius: 0;
     color: #fff;
+}
+.btn:not(.btn-raised).btn-primary, .input-group-btn .btn:not(.btn-raised).btn-primary {
+    color: #b9c3e2;
+}
+.btn-primary:not(.btn-raised):not(.btn-link):focus, .btn-primary:not(.btn-raised):not(.btn-link):hover, .input-group-btn .btn-primary:not(.btn-raised):not(.btn-link):focus, .input-group-btn .btn-primary:not(.btn-raised):not(.btn-link):hover {
+    background-color: #eeeeee;
+    box-shadow: 5px 3px 10px 4px rgba(0,0,0,.12), 0 1px 1px 0 rgba(0,0,0,.24);
+}
+.indent{
+	width: initial;
+}
+.btn-group-vertical.open>.dropdown-toggle.btn, .btn-group-vertical.open>.dropdown-toggle.btn.btn-default, .btn-group.open>.dropdown-toggle.btn, .btn-group.open>.dropdown-toggle.btn.btn-default {
+    background-color: #5468d6;
 }

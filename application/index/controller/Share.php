@@ -132,6 +132,18 @@ class Share extends Controller{
 		return $shareObj->listPic($shareId,$filePath);
 	}
 
+	public function Thumb(){
+		$filePath = input("get.path");
+		if(input("get.isImg") != "true"){
+			return "";
+		}
+		$fileObj = new FileManage($filePath,$this->userObj->uid);
+		$Redirect = $fileObj->getThumb();
+		if($Redirect[0]){
+			$this->redirect($Redirect[1],302);
+		}
+	}
+
 	public function Delete(){
 		$shareId = input('post.id');
 		$shareObj = new ShareHandler($shareId,false);
