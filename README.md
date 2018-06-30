@@ -6,7 +6,7 @@ Cloudreve - Make the cloud easy for everyone
 [![Latest Unstable Version](https://poser.pugx.org/hfo4/cloudreve/v/unstable)](https://packagist.org/packages/hfo4/cloudreve)
 [![License](https://poser.pugx.org/hfo4/cloudreve/license)](https://packagist.org/packages/hfo4/cloudreve)
 
-[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | |[Telegram群组](https://github.com/HFO4/Cloudreve)
+[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | [QQ群](https://jq.qq.com/?_wv=1027&k=5TX6sJY) |[Telegram群组](https://github.com/HFO4/Cloudreve)
 
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
@@ -27,6 +27,15 @@ Cloudreve - Make the cloud easy for everyone
 * 多上传策略，可为不同用户组分配不同策略
 * 用户组基础权限设置、二步验证
 * WebDAV协议支持
+
+To-do:
+
+* - [ ] 重写目录分享和单文件分享页面样式
+* - [ ] 增加保存其他用户的分享到自己账户（限Pro版）
+* - [ ] 推出辅助程序GoDriver,用于驱动php或客户端实现不了的功能，并借此实现:
+   * - [ ] 压缩包解压缩、文件压缩
+   * - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后由GoDriver中转
+* - [ ] 用Golang重写的远程服务端
 
 安装需求
 ------------
