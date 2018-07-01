@@ -1104,7 +1104,7 @@ class FileManage extends Model{
 		->where('uid',$uid)
 		->where('dlay_time',">",time())
 		->sum('pack_size');
-		return (int)$addOnStorage+(int)$basicStronge["max_storage"];
+		return $addOnStorage+$basicStronge["max_storage"];
 	}
 
 	static function getUsedStorage($uid){

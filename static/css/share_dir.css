@@ -1041,3 +1041,10 @@ video {
 .btn-group-vertical.open>.dropdown-toggle.btn, .btn-group-vertical.open>.dropdown-toggle.btn.btn-default, .btn-group.open>.dropdown-toggle.btn, .btn-group.open>.dropdown-toggle.btn.btn-default {
     background-color: #5468d6;
 }
+.smallImg {
+    max-width: 90px;
+    max-height: 39px;
+}
+.item-icon{
+	min-height: 39px;
+}

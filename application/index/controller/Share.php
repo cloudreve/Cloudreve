@@ -133,14 +133,17 @@ class Share extends Controller{
 	}
 
 	public function Thumb(){
-		$filePath = input("get.path");
+		$shareId = input('get.shareKey');
+		$filePath = input('get.path');
 		if(input("get.isImg") != "true"){
 			return "";
 		}
-		$fileObj = new FileManage($filePath,$this->userObj->uid);
-		$Redirect = $fileObj->getThumb();
+		$shareObj = new ShareHandler($shareId,false);
+		$Redirect = $shareObj->getThumb($this->userObj,$filePath);
 		if($Redirect[0]){
 			$this->redirect($Redirect[1],302);
+		}else{
+			$this->error($Redirect[1],403,$this->siteOptions);
 		}
 	}
 
