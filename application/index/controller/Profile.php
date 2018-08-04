@@ -35,7 +35,7 @@ class Profile extends Controller{
 				$list = Db::name('shares')
 				->where('owner',$userId)
 				->where('type',"public")
-				->order('id DESC')
+				->order('share_time DESC')
 				->paginate(10);
 				break;
 			case 'hot':
@@ -49,7 +49,7 @@ class Profile extends Controller{
 				$list = Db::name('shares')
 				->where('owner',$userId)
 				->where('type',"public")
-				->order('id DESC')
+				->order('share_time DESC')
 				->paginate(10);
 				break;
 		}

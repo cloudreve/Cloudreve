@@ -35,7 +35,7 @@ class Explore extends Controller{
 		$list = Db::name('shares')
 				->where('type',"public")
 				->where('origin_name',"like","%".$keyWords."%")
-				->order('id DESC')
+				->order('share_time DESC')
 				->paginate(10);
 		$listData = $list->all();
 		foreach ($listData as $key => $value) {

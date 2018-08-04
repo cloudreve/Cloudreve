@@ -178,7 +178,7 @@ class Share extends Controller{
 		}
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
-		$list = Db::name('shares')->where('owner',$this->userObj->uid)->paginate(10);
+		$list = Db::name('shares')->where('owner',$this->userObj->uid)->order('share_time DESC')->paginate(30);
 		$listData = $list->all();
 		foreach ($listData as $key => $value) {
 			if($value["source_type"]=="file"){
