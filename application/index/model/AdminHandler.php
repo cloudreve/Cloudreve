@@ -519,7 +519,7 @@ class AdminHandler extends Model{
 
 	public function listShare(){
 		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
-		$orderType = empty(cookie('orderMethodShare')) ? "id DESC" : cookie('orderMethodShare');
+		$orderType = empty(cookie('orderMethodShare')) ? "share_time DESC" : cookie('orderMethodShare');
 		$this->pageData = Db::name("shares")
 		->where(function ($query) {
 			if(!empty(cookie('shareSearch'))){
