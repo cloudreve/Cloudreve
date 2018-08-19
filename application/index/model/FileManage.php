@@ -877,16 +877,33 @@ class FileManage extends Model{
 			$filePath = '/public/uploads/' . $this->fileData["pre_name"];
 		}
 		if($download){
-			header('Content-Disposition: attachment; filename="' . str_replace(",","",$this->fileData["orign_name"]) . '"');
-			header("Content-type: application/octet-stream");
-			header('Content-Length: ' .(string)(filesize($realPath)) );
 			$filePath = str_replace("\\","/",$filePath);
 			if($header == "X-Accel-Redirect"){
 				ob_flush();
 				flush();
 				echo "s";
 			}
-			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
+			//保证如下顺序，否则最终浏览器中得到的content-type为'text/html'
+			//1,写入 X-Sendfile 头信息
+			$pathToFile = str_replace('%2F', '/', rawurlencode($filePath));
+			header($header.": ".$pathToFile);
+			//2,写入Content-Type头信息
+			$mime_type = self::getMimetypeOnly($realPath);
+			header('Content-Type: '.$mime_type);
+			//3,写入正确的附件文件名头信息
+			$orign_fname = $this->fileData["orign_name"];
+			$ua = $_SERVER["HTTP_USER_AGENT"]; // 处理不同浏览器的兼容性
+			if (preg_match("/Firefox/", $ua)) {
+				$encoded_filename = rawurlencode($orign_fname);
+				header("Content-Disposition: attachment; filename*=\"utf8''" . $encoded_filename . '"');
+			} else if (preg_match("/MSIE/", $ua) || preg_match("/Edge/", $ua) || preg_match("/rv:/", $ua)) {
+				$encoded_filename = rawurlencode($orign_fname);
+				header('Content-Disposition: attachment; filename="' . $encoded_filename . '"');
+			} else {
+				// for Chrome,Safari etc.
+				header('Content-Disposition: attachment;filename="'. $orign_fname .'";filename*=utf-8'."''". $orign_fname);
+			}
+			exit;
 		}else{
 			$filePath = str_replace("\\","/",$filePath);
 			header('Content-Type: '.self::getMimetype($realPath)); 
@@ -918,7 +935,8 @@ class FileManage extends Model{
 			header('Cache-control: private');
 			header('Content-Type: application/octet-stream'); 
 			header('Content-Length: '.filesize($filePath)); 
-			header('Content-Disposition: filename='.str_replace(",","",$this->fileData["orign_name"])); 
+			$encoded_fname = rawurlencode($this->fileData["orign_name"]);
+			header('Content-Disposition: attachment;filename="'.$encoded_fname.'";filename*=utf-8'."''".$encoded_fname); 
 			ob_flush();
 			flush();
 		}
@@ -950,7 +968,8 @@ class FileManage extends Model{
 			header('Cache-control: private');
 			header('Content-Type: application/octet-stream'); 
 			header('Content-Length: '.filesize($filePath)); 
-			header('Content-Disposition: filename='.$this->fileData["orign_name"]); 
+			$encoded_fname = rawurlencode($this->fileData["orign_name"]);
+			header('Content-Disposition: attachment;filename="'.$encoded_fname.'";filename*=utf-8'."''".$encoded_fname); 
 			ob_flush();
 			flush();
 		}else{
@@ -971,7 +990,15 @@ class FileManage extends Model{
 	}
 
 	static function getMimetype($path){
-		$finfoObj    = finfo_open(FILEINFO_MIME);
+		//FILEINFO_MIME will output something like "image/jpeg; charset=binary"
+		$finfoObj	= finfo_open(FILEINFO_MIME);
+		$mimetype = finfo_file($finfoObj, $path);
+		finfo_close($finfoObj);
+		return $mimetype;
+	}
+	static function getMimetypeOnly($path){
+		//FILEINFO_MIME_TYPE will output something like "image/jpeg"
+		$finfoObj	= finfo_open(FILEINFO_MIME_TYPE);
 		$mimetype = finfo_file($finfoObj, $path);
 		finfo_close($finfoObj);
 		return $mimetype;
