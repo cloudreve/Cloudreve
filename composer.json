@@ -32,8 +32,7 @@
 		"topthink/think-captcha":"1.*",
 		"aliyuncs/oss-sdk-php": "~2.0",
 		"sabre/dav":"~3.2.0",
-		"upyun/sdk": "^3.3",
-		"google/apiclient": "^2.2"
+		"upyun/sdk": "^3.3"
 	},
 	"autoload": {
 		"psr-0": {
