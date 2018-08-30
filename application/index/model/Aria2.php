@@ -138,7 +138,7 @@ class Aria2 extends Model{
 						break;
 				}
 				if(($respondData["result"]["files"][$downloadInfo["file_index"]]["completedLength"] == $respondData["result"]["files"][$downloadInfo["file_index"]]["length"] && ($respondData["result"]["files"][$downloadInfo["file_index"]]["length"] !=0 )) && $respondData["result"]["status"]=="active"){
-					$this->setComplete($respondData["result"],$downloadInfo);
+					$this->setComplete($respondData["result"],$downloadInfo,$downloadInfo["file_index"]);
 					Db::name("download")->where("id",$id)
 				    ->update([
 				    		"status" => "complete",
@@ -203,12 +203,14 @@ class Aria2 extends Model{
 		Db::name("download")->where("id",$sqlData["id"])->delete();
 	}
 
-	private function setComplete($quenInfo,$sqlData){
+	private function setComplete($quenInfo,$sqlData,$fileIndex=null){
 		if($this->policy["policy_type"] != "local"){
 			$this->setError($quenInfo,$sqlData,"您当前的上传策略无法使用离线下载");
 			return false;
 		}
-		$this->forceRemove($sqlData["pid"]);
+		if($fileIndex==null){
+			$this->forceRemove($sqlData["pid"]);
+		}
 		$suffixTmp = explode('.', $quenInfo["dir"]);
 		$fileSuffix = array_pop($suffixTmp);
 		$uploadHandller = new UploadHandler($this->policy["id"],$this->uid);
