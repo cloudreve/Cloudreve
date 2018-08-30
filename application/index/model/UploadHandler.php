@@ -107,7 +107,9 @@ class UploadHandler extends Model{
 				"objname" => $generatePath."/".$fileName,
 				"fsize" => $this->fileSizeTmp,
 			);
-			$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId);
+			@list($width, $height, $type, $attr) = getimagesize($savePath.DS.$fileName);
+			$picInfo = empty($width)?" ":$width.",".$height;
+			$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId,$picInfo);
 			if(!$addAction[0]){
 				$this->setError($addAction[1],true,$fileName,$savePath);
 			}
