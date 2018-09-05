@@ -8,6 +8,7 @@ use think\Db;
 use Qiniu\Auth;
 use \app\index\model\Option;
 use \app\index\model\FileManage;
+use \app\index\model\Task;
 
 class UploadHandler extends Model{
 
@@ -183,12 +184,36 @@ class UploadHandler extends Model{
 			);
 			@list($width, $height, $type, $attr) = getimagesize(rtrim($savePath, DS).DS.$Uploadinfo->getSaveName());
 			$picInfo = empty($width)?" ":$width.",".$height;
+
+			//处理Onedrive等非直传
+			if($this->policyContent['policy_type'] == "onedrive"){
+				$task = new Task();
+				$task->taskName = "Upload" .  $info["name"] . "to Onedrive";
+				$task->taskType = "uploadSingleToOnedrive";
+				$task->taskContent = json_encode([
+					"path" => $info["path"], 
+					"fname" => $info["name"],
+					"objname" => $generatePath."/".$Uploadinfo->getSaveName(),
+					"fsize" => $Uploadinfo->getSize(),
+					"picInfo" => $picInfo,
+					"policyId" => $this->policyContent['id']
+				]);
+
+				$task->saveTask();
+
+				echo json_encode(array("key" => $info["name"]));
+				return;
+			}
+
+			//向数据库中添加文件记录
 			$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId,$picInfo);
 			if(!$addAction[0]){
 				$tmpFileName = $Uploadinfo->getSaveName();
 				unset($Uploadinfo);
 				$this->setError($addAction[1],true,$tmpFileName,$savePath);
 			}
+
+			//扣除容量
 			FileManage::storageCheckOut($this->userId,$jsonData["fsize"],$Uploadinfo->getInfo('size'));
 			echo json_encode(array("key" => $info["name"]));
 		}else{
@@ -219,6 +244,9 @@ class UploadHandler extends Model{
 				return $this->getQiniuToken();
 				break;
 			case 'local':
+				return $this->getLocalToken();
+				break;
+			case 'onedrive':
 				return $this->getLocalToken();
 				break;
 			case 'oss':

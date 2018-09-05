@@ -323,6 +323,18 @@ ALTER TABLE `sd_download`
 --
 -- Indexes for dumped tables
 --
+--
+-- 表的结构 `sd_task`
+--
+
+CREATE TABLE `sd_task` (
+  `id` int(11) NOT NULL,
+  `task_name` text NOT NULL,
+  `attr` text NOT NULL,
+  `type` text NOT NULL,
+  `status` text NOT NULL,
+  `addtime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Indexes for table `sd_callback`
@@ -335,7 +347,8 @@ ALTER TABLE `sd_callback`
 --
 ALTER TABLE `sd_chunks`
   ADD PRIMARY KEY (`id`);
-
+ALTER TABLE `sd_task`
+  ADD PRIMARY KEY (`id`);
 --
 -- Indexes for table `sd_corn`
 --
@@ -419,6 +432,8 @@ ALTER TABLE `sd_files`
 --
 ALTER TABLE `sd_folders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+ALTER TABLE `sd_task`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 --
 -- 使用表AUTO_INCREMENT `sd_groups`
 --

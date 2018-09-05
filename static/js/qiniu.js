@@ -183,7 +183,7 @@ function QiniuJsSDK() {
 		   "https://up.qbox.me"
 	   ]
 	};
-}else if(uploadConfig.saveType == "local" || uploadConfig.saveType == "oss" ||uploadConfig.saveType == "upyun"||uploadConfig.saveType == "s3"|| uploadConfig.saveType == "remote"){
+}else if(uploadConfig.saveType == "local" || uploadConfig.saveType == "oss" ||uploadConfig.saveType == "upyun"||uploadConfig.saveType == "s3"|| uploadConfig.saveType == "remote"||uploadConfig.saveType == "onedrive"){
  qiniuUploadUrl = uploadConfig.upUrl;
  var qiniuUploadUrls = [uploadConfig.upUrl,];
  var qiniuUpHosts = {
@@ -994,7 +994,7 @@ function QiniuJsSDK() {
 							'token': that.token,
 							'x:path': file.path
 						}; 
-					}else if(uploadConfig.saveType == "local"){
+					}else if(uploadConfig.saveType == "local"||uploadConfig.saveType == "onedrive"){
 						multipart_params_obj = {
 						'path': file.path
 						}; 
@@ -1493,7 +1493,7 @@ function QiniuJsSDK() {
 						}
 					}
 					local_path = "";
-					if(uploadConfig.saveType == "local"){
+					if(uploadConfig.saveType == "local"||uploadConfig.saveType == "onedrive"){
 						pathTmp = file.path;
 						if(file.path == ""){
 							pathTmp = "ROOTDIR";
