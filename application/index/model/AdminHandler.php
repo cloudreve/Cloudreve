@@ -5,6 +5,7 @@ use think\Model;
 use think\Db;
 use \app\index\model\Mail;
 use \app\index\model\FileManage;
+use \Krizalys\Onedrive\Client;
 
 class AdminHandler extends Model{
 
@@ -709,6 +710,68 @@ class AdminHandler extends Model{
 		}
 		return ["error"=>0,"msg"=>"设置已保存"];
 	}
+	
+	public function updateOnedriveToken($policyId){
+		$policyData = Db::name("policy")->where("id",$policyId)->find();
+
+		if(empty($policyData)){
+			throw new \think\Exception("Policy not found");
+		}
+		$onedrive = new Client([
+			'client_id' => $policyData["bucketname"],
+		]);
+		$url = $onedrive->getLogInUrl([
+			'offline_access',
+			'files.readwrite.all',
+		], Option::getValue("siteURL")."Admin/oneDriveCalllback");
+		echo "<a href='$url'>继续绑定账号</a>";
+
+		Db::name("policy")->where("id",$policyId)->update([
+			"sk" => json_encode($onedrive->getState()),
+		]);
+		\think\Session::set('onedrive.pid',$policyId);
+		
+	}
+
+	public function oneDriveCalllback($code){
+		$policyId = \think\Session::get('onedrive.pid');
+		$policyData = Db::name("policy")->where("id",$policyId)->find();
+		$onedrive = new Client([
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+		
+		// Obtain the token using the code received by the OneDrive API.
+		$onedrive->obtainAccessToken($policyData["ak"], $_GET['code']);
+		
+		// Persist the OneDrive client' state for next API requests.
+		Db::name("policy")->where("id",$policyId)->update([
+			"sk" => json_encode($onedrive->getState()),
+		]);
+	}
+
+	public function oneDriveTest(){
+		$policyId = \think\Session::get('onedrive.pid');
+		$policyData = Db::name("policy")->where("id",$policyId)->find();
+
+		$onedrive = new Client([
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+		$onedrive->renewAccessToken($policyData["ak"]);
+		Db::name("policy")->where("id",$policyId)->update([
+			"sk" => json_encode($onedrive->getState()),
+		]);
+		$file = fopen("C:/Users/i/Downloads/Video/test.mp4","r");
+		$onedrive->createFile(urlencode("Git提交代码简教程.mp4"),"/me/drive/root:/sdfdsf",$file);
+	}
+	
 
 }
 ?>

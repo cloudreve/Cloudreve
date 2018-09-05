@@ -513,5 +513,20 @@ class Admin extends Controller{
 			return json(['error'=>1,'message'=>"取消失败"]);
 		}
 	}
+
+	public function UpdateOnedriveToken(){
+		$policyId = input("get.id");
+		$this->adminObj->updateOnedriveToken($policyId);
+
+	}
+
+	public function OneDriveCalllback(){
+		$code = input("get.code");
+		$this->adminObj->oneDriveCalllback($code);
+	}
+
+	public function uploadTest(){
+		$this->adminObj->oneDriveTest();
+	}
 	
 }
