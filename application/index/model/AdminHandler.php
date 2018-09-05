@@ -734,6 +734,9 @@ class AdminHandler extends Model{
 	}
 
 	public function oneDriveCalllback($code){
+		if(input("?get.error")){
+			throw new \think\Exception(input("get.error_description"));
+		}
 		$policyId = \think\Session::get('onedrive.pid');
 		$policyData = Db::name("policy")->where("id",$policyId)->find();
 		$onedrive = new Client([
@@ -758,6 +761,7 @@ class AdminHandler extends Model{
 		$policyData = Db::name("policy")->where("id",$policyId)->find();
 
 		$onedrive = new Client([
+			'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
 			'client_id' => $policyData["bucketname"],
 		
 			// Restore the previous state while instantiating this client to proceed in
@@ -769,7 +773,7 @@ class AdminHandler extends Model{
 			"sk" => json_encode($onedrive->getState()),
 		]);
 		$file = fopen("C:/Users/i/Downloads/Video/test.mp4","r");
-		$onedrive->createFile(urlencode("Git提交代码简教程.mp4"),"/me/drive/root:/sdfdsf",$file);
+		$onedrive->createFile(urlencode("Git提交代码简教程.txt"),"/me/drive/root:/sdfdsf",$file);
 	}
 	
 

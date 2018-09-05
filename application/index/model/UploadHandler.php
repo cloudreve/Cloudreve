@@ -193,15 +193,18 @@ class UploadHandler extends Model{
 				$task->taskContent = json_encode([
 					"path" => $info["path"], 
 					"fname" => $info["name"],
-					"objname" => $generatePath."/".$Uploadinfo->getSaveName(),
+					"objname" => $Uploadinfo->getSaveName(),
+					"savePath" =>  $generatePath,
 					"fsize" => $Uploadinfo->getSize(),
 					"picInfo" => $picInfo,
 					"policyId" => $this->policyContent['id']
 				]);
+				$task->userId = $this->userId;
 
 				$task->saveTask();
 
 				echo json_encode(array("key" => $info["name"]));
+				FileManage::storageCheckOut($this->userId,$jsonData["fsize"],$Uploadinfo->getInfo('size'));
 				return;
 			}
 
