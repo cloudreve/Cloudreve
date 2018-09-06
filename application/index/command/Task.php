@@ -42,6 +42,7 @@ class Task extends Command
             $task->Do();
             if($task->status=="error"){
                 $output->writeln("[Error] ".$task->errorMsg);
+                Db::name("task")->where("id",$newTaskInfo["id"])->update(["status"=>"error|".$task->errorMsg]);
             }
         }
     }

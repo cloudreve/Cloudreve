@@ -22,6 +22,15 @@ class FileManage extends Model{
 	public $policyData;
 	public $deleteStatus = true;
 
+	private $adapter;
+
+	/**
+	 * construct function
+	 *
+	 * @param string $path 文件路径/文件ID
+	 * @param int $uid 用户ID
+	 * @param boolean $byId 是否根据文件ID寻找文件
+	 */
 	public function __construct($path,$uid,$byId=false){
 		if($byId){
 			$fileRecord = Db::name('files')->where('id',$path)->find();
@@ -40,8 +49,22 @@ class FileManage extends Model{
 		$this->userID = $uid;
 		$this->userData = Db::name('users')->where('id',$uid)->find();
 		$this->policyData = Db::name('policy')->where('id',$this->fileData["policy_id"])->find();
+		switch ($this->policyData["policy_type"]) {
+			case 'local':
+				$this->adapter = new \app\index\model\LocalAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			
+			default:
+				# code...
+				break;
+		}
 	}
 
+	/**
+	 * 获取文件外链地址
+	 *
+	 * @return void
+	 */
 	public function Source(){
 		if(!$this->policyData["origin_link"]){
 			die('{"url":"此文件不支持获取源文件URL"}');
@@ -50,35 +73,41 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 获取可编辑文件内容
+	 *
+	 * @return void
+	 */
 	public function getContent(){
 		$sizeLimit=(int)Option::getValue("maxEditSize");
 		if($this->fileData["size"]>$sizeLimit){
 			die('{ "result": { "success": false, "error": "您当前用户组最大可编辑'.$sizeLimit.'字节的文件"} }');
 		}else{
-			switch ($this->policyData["policy_type"]) {
-				case 'local':
-					$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-					$fileContent = $this->getLocalFileContent($filePath);
-					break;
-				case 'qiniu':
-					$fileContent = $this->getQiniuFileContent();
-					break;
-				case 'oss':
-					$fileContent = $this->getOssFileContent();
-					break;
-				case 'upyun':
-					$fileContent = $this->getUpyunFileContent();
-					break;
-				case 's3':
-					$fileContent = $this->getS3FileContent();
-					break;
-				case 'remote':
-					$fileContent = $this->getRemoteFileContent();
-					break;
-				default:
-					# code...
-					break;
-			}
+			$fileContent = $this->adapter->getFileContent();
+			// switch ($this->policyData["policy_type"]) {
+			// 	case 'local':
+			// 		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+			// 		$fileContent = $this->getLocalFileContent($filePath);
+			// 		break;
+			// 	case 'qiniu':
+			// 		$fileContent = $this->getQiniuFileContent();
+			// 		break;
+			// 	case 'oss':
+			// 		$fileContent = $this->getOssFileContent();
+			// 		break;
+			// 	case 'upyun':
+			// 		$fileContent = $this->getUpyunFileContent();
+			// 		break;
+			// 	case 's3':
+			// 		$fileContent = $this->getS3FileContent();
+			// 		break;
+			// 	case 'remote':
+			// 		$fileContent = $this->getRemoteFileContent();
+			// 		break;
+			// 	default:
+			// 		# code...
+			// 		break;
+			// }
 			$result["result"] = $fileContent;
 			if(empty(json_encode($result))){
 				$result["result"] = iconv('gb2312','utf-8',$fileContent);
@@ -87,69 +116,102 @@ class FileManage extends Model{
 		}
 	}
 
-	public function getLocalFileContent($path){
-		$fileObj = fopen($path,"r");
-		$fileContent = fread($fileObj,filesize($path)+1);
-		return $fileContent;
-	}
 
+	/**
+	 * 获取七牛策略文本文件内容
+	 *
+	 * @return string 文件内容
+	 */
 	public function getQiniuFileContent(){
 		return file_get_contents($this->qiniuPreview()[1]);
 	}
 
+	/**
+	 * 获取OSS策略文本文件内容
+	 *
+	 * @return string 文件内容
+	 */
 	public function getOssFileContent(){
 		return file_get_contents($this->ossPreview()[1]);
 	}
 
+	/**
+	 * 获取又拍云策略文本文件内容
+	 *
+	 * @return string 文件内容
+	 */
 	public function getUpyunFileContent(){
 		return file_get_contents($this->upyunPreview()[1]);
 	}
 
+	/**
+	 * 获取S3策略文本文件内容
+	 *
+	 * @return string 文件内容
+	 */
 	public function getS3FileContent(){
 		return file_get_contents($this->s3Preview()[1]);
 	}
 
+	/**
+	 * 获取远程策略文本文件内容
+	 *
+	 * @return string 文件内容
+	 */
 	public function getRemoteFileContent(){
 		return file_get_contents($this->remotePreview()[1]);
 	}
 
+	/**
+	 * 保存可编辑文件
+	 *
+	 * @param string $content 要保存的文件内容
+	 * @return void
+	 */
 	public function saveContent($content){
 		$contentSize = strlen($content);
 		$originSize = $this->fileData["size"];
 		if(!FileManage::sotrageCheck($this->userID,$contentSize)){
 			die('{ "result": { "success": false, "error": "空间容量不足" } }');
 		}
-		switch ($this->policyData["policy_type"]) {
-			case 'local':
-				$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-				file_put_contents($filePath, "");
-				file_put_contents($filePath, $content);
-				break;
-			case 'qiniu':
-				$this->saveQiniuContent($content);
-				break;
-			case 'oss':
-				$this->saveOssContent($content);
-				break;
-			case 'upyun':
-				$this->saveUpyunContent($content);
-				break;
-			case 's3':
-				$this->saveS3Content($content);
-				break;
-			case 'remote':
-				$this->saveRemoteContent($content);
-				break;
-			default:
-				# code...
-				break;
-		}
+		$this->adapter->saveContent($content);
+		// switch ($this->policyData["policy_type"]) {
+		// 	case 'local':
+		// 		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
+		// 		file_put_contents($filePath, "");
+		// 		file_put_contents($filePath, $content);
+		// 		break;
+		// 	case 'qiniu':
+		// 		$this->saveQiniuContent($content);
+		// 		break;
+		// 	case 'oss':
+		// 		$this->saveOssContent($content);
+		// 		break;
+		// 	case 'upyun':
+		// 		$this->saveUpyunContent($content);
+		// 		break;
+		// 	case 's3':
+		// 		$this->saveS3Content($content);
+		// 		break;
+		// 	case 'remote':
+		// 		$this->saveRemoteContent($content);
+		// 		break;
+		// 	default:
+		// 		# code...
+		// 		break;
+		// }
 		FileManage::storageGiveBack($this->userID,$originSize);
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * 保存七牛文件内容
+	 *
+	 * @param string $content 文件内容
+	 * @return bool
+	 */
 	public function saveQiniuContent($content){
 		$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
 		$expires = 3600;
@@ -164,6 +226,12 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 保存OSS文件内容
+	 *
+	 * @param string $content 文件内容
+	 * @return void
+	 */
 	public function saveOssContent($content){
 		$accessKeyId = $this->policyData["ak"];
 		$accessKeySecret = $this->policyData["sk"];
@@ -180,6 +248,12 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 保存Upyun文件内容
+	 *
+	 * @param string $content 文件内容
+	 * @return void
+	 */
 	public function saveUpyunContent($content){
 		$bucketConfig = new Config($this->policyData["bucketname"], $this->policyData["op_name"], $this->policyData["op_pwd"]);
 		$client = new Upyun($bucketConfig);
@@ -189,17 +263,35 @@ class FileManage extends Model{
 		$res=$client->write($this->fileData["pre_name"],$content);
 	}
 
+	/**
+	 * 保存S3文件内容
+	 *
+	 * @param string $content 文件内容
+	 * @return void
+	 */
 	public function saveS3Content($content){
 		$s3 = new \S3\S3($this->policyData["ak"], $this->policyData["sk"],false,$this->policyData["op_pwd"]);
 		$s3->setSignatureVersion('v4');
 		$s3->putObjectString($content, $this->policyData["bucketname"], $this->fileData["pre_name"]);
 	}
 
+	/**
+	 * 保存远程文件内容
+	 *
+	 * @param string $content 文件内容
+	 * @return void
+	 */
 	public function saveRemoteContent($content){
 		$remote = new Remote($this->policyData);
 		$remote->updateContent($this->fileData["pre_name"],$content);
 	}
 
+	/**
+	 * 文件名合法性初步检查
+	 *
+	 * @param string $value 文件名
+	 * @return bool 检查结果
+	 */
 	static function fileNameValidate($value){
 		$validate = new Validate([
 			'val'  => 'require|max:250',
@@ -214,6 +306,15 @@ class FileManage extends Model{
 		return true;
 	}
 
+	/**
+	 * 处理重命名
+	 *
+	 * @param string $fname    原文件路径
+	 * @param string $new      新文件路径
+	 * @param int $uid         用户ID
+	 * @param boolean $notEcho 过程中是否不直接输出结果
+	 * @return mixed
+	 */
 	static function RenameHandler($fname,$new,$uid,$notEcho = false){
 		$folderTmp = $new;
 		$originFolder = $fname;
@@ -259,6 +360,15 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * 处理目录重命名
+	 *
+	 * @param string $fname    原文件路径
+	 * @param string $new      新文件路径
+	 * @param int $uid         用户ID
+	 * @param boolean $notEcho 过程中是否不直接输出结果
+	 * @return void
+	 */
 	static function folderRename($fname,$new,$uid,$notEcho = false){
 		$newTmp = $new;
 		$nerFolderTmp = explode("/",$new);
@@ -320,6 +430,12 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * 根据文件路径获取文件名和父目录路径
+	 *
+	 * @param string 文件路径
+	 * @return array 
+	 */
 	static function getFileName($path){
 		$pathSplit = explode("/",$path);
 		$fileName = end($pathSplit);
@@ -336,38 +452,50 @@ class FileManage extends Model{
 		return [$fileName,$path];
 	}
 
+	/**
+	 * 处理文件预览
+	 *
+	 * @param boolean $isAdmin 是否为管理员预览
+	 * @return array 重定向信息
+	 */
 	public function PreviewHandler($isAdmin=false){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				$Redirect = $this->qiniuPreview();
-				return $Redirect;
-				break;
-			case 'local':
-				$Redirect = $this->localPreview($isAdmin);
-				return $Redirect;
-				break;
-			case 'oss':
-				$Redirect = $this->ossPreview();
-				return $Redirect;
-				break;
-			case 'upyun':
-				$Redirect = $this->upyunPreview();
-				return $Redirect;
-				break;
-			case 's3':
-				$Redirect = $this->s3Preview();
-				return $Redirect;
-				break;
-			case 'remote':
-				$Redirect = $this->remotePreview();
-				return $Redirect;
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->Preview($isAdmin);
+		// switch ($this->policyData["policy_type"]) {
+		// 	case 'qiniu':
+		// 		$Redirect = $this->qiniuPreview();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'local':
+		// 		$Redirect = $this->localPreview($isAdmin);
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'oss':
+		// 		$Redirect = $this->ossPreview();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'upyun':
+		// 		$Redirect = $this->upyunPreview();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 's3':
+		// 		$Redirect = $this->s3Preview();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'remote':
+		// 		$Redirect = $this->remotePreview();
+		// 		return $Redirect;
+		// 		break;
+		// 	default:
+		// 		# code...
+		// 		break;
+		// }
 	}
 
+	/**
+	 * 获取图像缩略图
+	 *
+	 * @return array 重定向信息
+	 */
 	public function getThumb(){
 		switch ($this->policyData["policy_type"]) {
 			case 'qiniu':
@@ -395,6 +523,12 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 处理文件下载
+	 *
+	 * @param boolean $isAdmin 是否为管理员请求
+	 * @return array 文件下载URL
+	 */
 	public function Download($isAdmin=false){
 		switch ($this->policyData["policy_type"]) {
 			case 'qiniu':
@@ -421,6 +555,13 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 处理目录删除
+	 *
+	 * @param string $path 目录路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function DirDeleteHandler($path,$uid){
 		global $toBeDeleteDir;
 		global $toBeDeleteFile;
@@ -441,6 +582,13 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 列出待删除文件或目录
+	 *
+	 * @param string $path 对象路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function listToBeDelete($path,$uid){
 		global $toBeDeleteDir;
 		global $toBeDeleteFile;
@@ -461,6 +609,13 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 删除目录
+	 *
+	 * @param string $path 目录路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function deleteDir($path,$uid){
 		Db::name('folders')
 		->where("owner",$uid)
@@ -469,6 +624,13 @@ class FileManage extends Model{
 		])->delete();
 	}
 
+	/**
+	 * 处理删除请求
+	 *
+	 * @param string $path 路径
+	 * @param int $uid     用户ID
+	 * @return array
+	 */
 	static function DeleteHandler($path,$uid){
 		if(empty($path)){
 			return ["result"=>["success"=>true,"error"=>null]];
@@ -511,6 +673,15 @@ class FileManage extends Model{
 		return ["result"=>["success"=>true,"error"=>null]];
 	}
 
+	/**
+	 * 处理移动
+	 *
+	 * @param array $file 文件路径列表
+	 * @param array $dir  目录路径列表
+	 * @param string $new 新路径
+	 * @param int $uid    用户ID
+	 * @return void
+	 */
 	static function MoveHandler($file,$dir,$new,$uid){
 		if(in_array($new,$dir)){
 			die('{ "result": { "success": false, "error": "不能移动目录到自身" } }');
@@ -557,10 +728,24 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * ToDo 移动文件
+	 *
+	 * @param array $file
+	 * @param string $path
+	 * @return void
+	 */
 	static function moveFile($file,$path){
 
 	}
 
+	/**
+	 * 删除某一策略下的指定本地文件
+	 *
+	 * @param array $fileList   待删除文件的数据库记录
+	 * @param array $policyData 待删除文件的上传策略信息
+	 * @return void
+	 */
 	static function localDelete($fileList,$policyData){
 		$fileListTemp = array_column($fileList, 'pre_name'); 
 		foreach ($fileListTemp as $key => $value) {
@@ -572,6 +757,13 @@ class FileManage extends Model{
 		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
+	/**
+	 * 删除某一策略下的指定七牛文件
+	 *
+	 * @param array $fileList   待删除文件的数据库记录
+	 * @param array $policyData 待删除文件的上传策略信息
+	 * @return void
+	 */
 	static function qiniuDelete($fileList,$policyData){
 		$auth = new Auth($policyData["ak"], $policyData["sk"]);
 		$config = new \Qiniu\Config();
@@ -582,6 +774,13 @@ class FileManage extends Model{
 		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
+	/**
+	 * 删除某一策略下的指定OSS文件
+	 *
+	 * @param array $fileList   待删除文件的数据库记录
+	 * @param array $policyData 待删除文件的上传策略信息
+	 * @return void
+	 */
 	static function ossDelete($fileList,$policyData){
 		$accessKeyId = $policyData["ak"];
 		$accessKeySecret = $policyData["sk"];
@@ -599,6 +798,13 @@ class FileManage extends Model{
 		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
+	/**
+	 * 删除某一策略下的指定upyun文件
+	 *
+	 * @param array $fileList   待删除文件的数据库记录
+	 * @param array $policyData 待删除文件的上传策略信息
+	 * @return void
+	 */
 	static function upyunDelete($fileList,$policyData){
 		foreach (array_column($fileList, 'pre_name') as $key => $value) {
 			self::deleteUpyunFile($value,$policyData);
@@ -824,30 +1030,6 @@ class FileManage extends Model{
 		}
 	}
 
-	public function localPreview($isAdmin=false){
-		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
-		$rangeTransfer = $speedLimit["range_transfer"];
-		$speedLimit = $speedLimit["speed"];
-		$sendFileOptions = Option::getValues(["download"]);
-		if($sendFileOptions["sendfile"] == "1" && !empty($sendFileOptions)){
-			$this->sendFile($speedLimit,$rangeTransfer,false,$sendFileOptions["header"]);
-		}else{
-			if($isAdmin){
-				$speedLimit="";
-			}
-			if($speedLimit == "0"){
-				exit();
-			}else if(empty($speedLimit)){
-				header("Cache-Control: max-age=10800");
-				$this->outputWithoutLimit(false,$rangeTransfer);
-				exit();
-			}else if((int)$speedLimit > 0){
-				header("Cache-Control: max-age=10800");
-				$this->outputWithLimit($speedLimit);
-			}
-		}
-	}
-
 	public function localDownload($isAdmin=false){
 		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
 		$rangeTransfer = $speedLimit["range_transfer"];
@@ -869,160 +1051,6 @@ class FileManage extends Model{
 			}
 		}
 	}
-
-	private function sendFile($speed,$range,$download=false,$header="X-Sendfile"){
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		$realPath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		if($header == "X-Accel-Redirect"){
-			$filePath = '/public/uploads/' . $this->fileData["pre_name"];
-		}
-		if($download){
-			$filePath = str_replace("\\","/",$filePath);
-			if($header == "X-Accel-Redirect"){
-				ob_flush();
-				flush();
-				echo "s";
-			}
-			//保证如下顺序，否则最终浏览器中得到的content-type为'text/html'
-			//1,写入 X-Sendfile 头信息
-			$pathToFile = str_replace('%2F', '/', rawurlencode($filePath));
-			header($header.": ".$pathToFile);
-			//2,写入Content-Type头信息
-			$mime_type = self::getMimetypeOnly($realPath);
-			header('Content-Type: '.$mime_type);
-			//3,写入正确的附件文件名头信息
-			$orign_fname = $this->fileData["orign_name"];
-			$ua = $_SERVER["HTTP_USER_AGENT"]; // 处理不同浏览器的兼容性
-			if (preg_match("/Firefox/", $ua)) {
-				$encoded_filename = rawurlencode($orign_fname);
-				header("Content-Disposition: attachment; filename*=\"utf8''" . $encoded_filename . '"');
-			} else if (preg_match("/MSIE/", $ua) || preg_match("/Edge/", $ua) || preg_match("/rv:/", $ua)) {
-				$encoded_filename = rawurlencode($orign_fname);
-				header('Content-Disposition: attachment; filename="' . $encoded_filename . '"');
-			} else {
-				// for Chrome,Safari etc.
-				header('Content-Disposition: attachment;filename="'. $orign_fname .'";filename*=utf-8'."''". $orign_fname);
-			}
-			exit;
-		}else{
-			$filePath = str_replace("\\","/",$filePath);
-			header('Content-Type: '.self::getMimetype($realPath)); 
-			if($header == "X-Accel-Redirect"){
-				ob_flush();
-				flush();
-				echo "s";
-			}
-			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
-			ob_flush();
-			flush();
-		}
-	}
-
-	public function outputWithoutLimit($download = false,$reload = false){
-		ignore_user_abort(false);
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		set_time_limit(0);
-		session_write_close();
-		$file_size = filesize($filePath);  
-		$ranges = $this->getRange($file_size);  
-		if($reload == 1 && $ranges!=null){
-			header('HTTP/1.1 206 Partial Content');  
-			header('Accept-Ranges:bytes');  
-			header(sprintf('content-length:%u',$ranges['end']-$ranges['start']));  
-			header(sprintf('content-range:bytes %s-%s/%s', $ranges['start'], $ranges['end']-1, $file_size));  
-		} 
-		if($download){
-			header('Cache-control: private');
-			header('Content-Type: application/octet-stream'); 
-			header('Content-Length: '.filesize($filePath)); 
-			$encoded_fname = rawurlencode($this->fileData["orign_name"]);
-			header('Content-Disposition: attachment;filename="'.$encoded_fname.'";filename*=utf-8'."''".$encoded_fname); 
-			ob_flush();
-			flush();
-		}
-		if(file_exists($filePath)){
-			if(!$download){
-				header('Content-Type: '.self::getMimetype($filePath)); 
-				ob_flush();
-				flush();
-			}
-			$fileObj = fopen($filePath,"rb");
-			if($reload == 1){
-				fseek($fileObj, sprintf('%u', $ranges['start']));
-			}
-			while(!feof($fileObj)){
-				echo fread($fileObj,10240);
-				ob_flush();
-				flush();
-			} 
-			fclose($fileObj);
-		}
-	}
-
-	public function outputWithLimit($speed,$download = false){
-		ignore_user_abort(false);
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		set_time_limit(0);
-		session_write_close();
-		if($download){
-			header('Cache-control: private');
-			header('Content-Type: application/octet-stream'); 
-			header('Content-Length: '.filesize($filePath)); 
-			$encoded_fname = rawurlencode($this->fileData["orign_name"]);
-			header('Content-Disposition: attachment;filename="'.$encoded_fname.'";filename*=utf-8'."''".$encoded_fname); 
-			ob_flush();
-			flush();
-		}else{
-			header('Content-Type: '.self::getMimetype($filePath)); 
-			ob_flush();
-			flush();
-		}
-		if(file_exists($filePath)){
-			$fileObj = fopen($filePath,"r");
-			while (!feof($fileObj)){ 
-				echo fread($fileObj,round($speed*1024));
-				ob_flush();
-				flush();
-				sleep(1);
-			} 
-			fclose($fileObj);
-		}
-	}
-
-	static function getMimetype($path){
-		//FILEINFO_MIME will output something like "image/jpeg; charset=binary"
-		$finfoObj	= finfo_open(FILEINFO_MIME);
-		$mimetype = finfo_file($finfoObj, $path);
-		finfo_close($finfoObj);
-		return $mimetype;
-	}
-	static function getMimetypeOnly($path){
-		//FILEINFO_MIME_TYPE will output something like "image/jpeg"
-		$finfoObj	= finfo_open(FILEINFO_MIME_TYPE);
-		$mimetype = finfo_file($finfoObj, $path);
-		finfo_close($finfoObj);
-		return $mimetype;
-	}
-
-	private function getRange($file_size){  
-		if(isset($_SERVER['HTTP_RANGE']) && !empty($_SERVER['HTTP_RANGE'])){  
-			$range = $_SERVER['HTTP_RANGE'];  
-			$range = preg_replace('/[\s|,].*/', '', $range);  
-			$range = explode('-', substr($range, 6));  
-			if(count($range)<2){  
-				$range[1] = $file_size;  
-			}  
-			$range = array_combine(array('start','end'), $range);  
-			if(empty($range['start'])){  
-				$range['start'] = 0;  
-			}  
-			if(empty($range['end'])){  
-				$range['end'] = $file_size;  
-			}  
-			return $range;  
-		}  
-		return null;  
-	}  
 
 	/**
 	 * [List description]
