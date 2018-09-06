@@ -497,30 +497,31 @@ class FileManage extends Model{
 	 * @return array 重定向信息
 	 */
 	public function getThumb(){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				$Redirect = $this->getQiniuThumb();
-				return $Redirect;
-			case 'local':
-				$Redirect = $this->getLocalThumb();
-				return $Redirect;
-				break;
-			case 'oss':
-				$Redirect = $this->getOssThumb();
-				return $Redirect;
-				break;
-			case 'upyun':
-				$Redirect = $this->getUpyunThumb();
-				return $Redirect;
-				break;
-			case 'remote':
-				$remote = new Remote($this->policyData);
-				return [1,$remote->thumb($this->fileData["pre_name"],explode(",",$this->fileData["pic_info"]))];
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->getThumb();
+		// switch ($this->policyData["policy_type"]) {
+		// 	case 'qiniu':
+		// 		$Redirect = $this->getQiniuThumb();
+		// 		return $Redirect;
+		// 	case 'local':
+		// 		$Redirect = $this->getLocalThumb();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'oss':
+		// 		$Redirect = $this->getOssThumb();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'upyun':
+		// 		$Redirect = $this->getUpyunThumb();
+		// 		return $Redirect;
+		// 		break;
+		// 	case 'remote':
+		// 		$remote = new Remote($this->policyData);
+		// 		return [1,$remote->thumb($this->fileData["pre_name"],explode(",",$this->fileData["pic_info"]))];
+		// 		break;
+		// 	default:
+		// 		# code...
+		// 		break;
+		// }
 	}
 
 	/**
@@ -530,29 +531,30 @@ class FileManage extends Model{
 	 * @return array 文件下载URL
 	 */
 	public function Download($isAdmin=false){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				return $DownloadHandler = $this->qiniuDownload();
-				break;
-			case 'local':
-				return $DownloadHandler = $this->localDownload($isAdmin);
-				break;
-			case 'oss':
-				return $DownloadHandler = $this->ossDownload();
-				break;
-			case 'upyun':
-				return $DownloadHandler = $this->upyunDownload();
-				break;
-			case 's3':
-				return $DownloadHandler = $this->s3Download();
-				break;
-			case 'remote':
-				return $DownloadHandler = $this->remoteDownload();
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->Download($isAdmin);
+		// switch ($this->policyData["policy_type"]) {
+		// 	case 'qiniu':
+		// 		return $DownloadHandler = $this->qiniuDownload();
+		// 		break;
+		// 	case 'local':
+		// 		return $DownloadHandler = $this->localDownload($isAdmin);
+		// 		break;
+		// 	case 'oss':
+		// 		return $DownloadHandler = $this->ossDownload();
+		// 		break;
+		// 	case 'upyun':
+		// 		return $DownloadHandler = $this->upyunDownload();
+		// 		break;
+		// 	case 's3':
+		// 		return $DownloadHandler = $this->s3Download();
+		// 		break;
+		// 	case 'remote':
+		// 		return $DownloadHandler = $this->remoteDownload();
+		// 		break;
+		// 	default:
+		// 		# code...
+		// 		break;
+		// }
 	}
 
 	/**
@@ -659,7 +661,8 @@ class FileManage extends Model{
 			if(in_array($key,$uniquePolicy["qiniuList"])){
 				self::qiniuDelete($value,$uniquePolicy["qiniuPolicyData"][$key][0]);
 			}else if(in_array($key,$uniquePolicy["localList"])){
-				self::localDelete($value,$uniquePolicy["localPolicyData"][$key][0]);
+				LocalAdapter::DeleteFile($value,$uniquePolicy["localPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["ossList"])){
 				self::ossDelete($value,$uniquePolicy["ossPolicyData"][$key][0]);
 			}else if(in_array($key,$uniquePolicy["upyunList"])){
@@ -737,24 +740,6 @@ class FileManage extends Model{
 	 */
 	static function moveFile($file,$path){
 
-	}
-
-	/**
-	 * 删除某一策略下的指定本地文件
-	 *
-	 * @param array $fileList   待删除文件的数据库记录
-	 * @param array $policyData 待删除文件的上传策略信息
-	 * @return void
-	 */
-	static function localDelete($fileList,$policyData){
-		$fileListTemp = array_column($fileList, 'pre_name'); 
-		foreach ($fileListTemp as $key => $value) {
-			@unlink(ROOT_PATH . 'public/uploads/'.$value);
-			if(file_exists(ROOT_PATH . 'public/thumb/'.$value."_thumb")){
-				@unlink(ROOT_PATH . 'public/thumb/'.$value."_thumb");
-			}
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
 	/**
@@ -837,46 +822,6 @@ class FileManage extends Model{
 		Db::name('users')->where([
 		'id' => $uid,
 		])->setDec('used_storage', $size);
-	}
-
-	static function getThumbSize($width,$height){
-		$rate = $width/$height;
-		$maxWidth = 90;
-		$maxHeight = 39;
-		$changeWidth = 39*$rate;
-		$changeHeight = 90/$rate;
-		if($changeWidth>=$maxWidth){
-			return [(int)$changeHeight,90];
-		}
-		return [39,(int)$changeWidth];
-	}
-
-	static function outputThumb($path){
-		ob_end_clean();
-		if(!input("get.cache")=="no"){
-			header("Cache-Control: max-age=10800");
-		}
-		header('Content-Type: '.self::getMimetype($path)); 
-		$fileObj = fopen($path,"r");
-		echo fread($fileObj,filesize($path)); 
-		fclose($file); 
-	}
-
-	public function getLocalThumb(){
-		$picInfo = explode(",",$this->fileData["pic_info"]);
-		$picInfo = self::getThumbSize($picInfo[0],$picInfo[1]);
-		if(file_exists(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb")){
-			self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-			return [0,0];
-		}
-		$thumbImg = new Thumb(ROOT_PATH . "public/uploads/".$this->fileData["pre_name"]);
-		$thumbImg->thumb($picInfo[1], $picInfo[0]);
-		if(!is_dir(dirname(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]))){
-			mkdir(dirname(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]),0777,true);
-		}
-		$thumbImg->out(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-		self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-		return [0,0];
 	}
 
 	public function getOssThumb(){
@@ -1027,28 +972,6 @@ class FileManage extends Model{
 				return [false,0];
 			}
 			return[true,$signedUrl];
-		}
-	}
-
-	public function localDownload($isAdmin=false){
-		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
-		$rangeTransfer = $speedLimit["range_transfer"];
-		$speedLimit = $speedLimit["speed"];
-		$sendFileOptions = Option::getValues(["download"]);
-		if($sendFileOptions["sendfile"] == "1"){
-			$this->sendFile($speedLimit,$rangeTransfer,true,$sendFileOptions["header"]);
-		}else{
-			if($isAdmin){
-				$speedLimit = "";
-			}
-			if($speedLimit == "0"){
-				exit();
-			}else if(empty($speedLimit)){
-				$this->outputWithoutLimit(true,$rangeTransfer);
-				exit();
-			}else if((int)$speedLimit > 0){
-				$this->outputWithLimit($speedLimit,true);
-			}
 		}
 	}
 
@@ -1363,33 +1286,34 @@ class FileManage extends Model{
 	}
 
 	public function signTmpUrl(){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				return $this->qiniuPreview()[1];
-				break;
-			case 'oss':
-				return $this->ossPreview()[1];
-				break;
-			case 'upyun':
-				return $this->upyunPreview()[1];
-				break;
-			case 's3':
-				return $this->s3Preview()[1];
-				break;
-			case 'local':
-				$options = Option::getValues(["oss","basic"]);
-				$timeOut = $options["timeout"];
-				$delayTime = time()+$timeOut;
-				$key=$this->fileData["id"].":".$delayTime.":".md5($this->userData["user_pass"].$this->fileData["id"].$delayTime.config("salt"));
-				return $options['siteURL']."Callback/TmpPreview/key/".$key;
-				break;
-			case 'remote':
-				return $this->remotePreview()[1];
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->signTmpUrl()[1];
+		// switch ($this->policyData["policy_type"]) {
+		// 	case 'qiniu':
+		// 		return $this->qiniuPreview()[1];
+		// 		break;
+		// 	case 'oss':
+		// 		return $this->ossPreview()[1];
+		// 		break;
+		// 	case 'upyun':
+		// 		return $this->upyunPreview()[1];
+		// 		break;
+		// 	case 's3':
+		// 		return $this->s3Preview()[1];
+		// 		break;
+		// 	case 'local':
+		// 		$options = Option::getValues(["oss","basic"]);
+		// 		$timeOut = $options["timeout"];
+		// 		$delayTime = time()+$timeOut;
+		// 		$key=$this->fileData["id"].":".$delayTime.":".md5($this->userData["user_pass"].$this->fileData["id"].$delayTime.config("salt"));
+		// 		return $options['siteURL']."Callback/TmpPreview/key/".$key;
+		// 		break;
+		// 	case 'remote':
+		// 		return $this->remotePreview()[1];
+		// 		break;
+		// 	default:
+		// 		# code...
+		// 		break;
+		// }
 	}
 
 }

@@ -2,9 +2,13 @@
 namespace app\index\model;
 
 use think\Model;
+use think\Db;
 
 use \app\index\model\Option;
 
+/**
+ * 本地策略文件管理适配器
+ */
 class LocalAdapter extends Model{
 
     private $fileModel;
@@ -265,7 +269,118 @@ class LocalAdapter extends Model{
 			return $range;  
 		}  
 		return null;  
-	}  
+    }
+
+    /**
+     * 生成/返回 文件缩略图
+     *
+     * @return array 重定向信息
+     */
+    public function getThumb(){
+		$picInfo = explode(",",$this->fileModel["pic_info"]);
+		$picInfo = self::getThumbSize($picInfo[0],$picInfo[1]);
+		if(file_exists(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]."_thumb")){
+			self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]."_thumb");
+			return [0,0];
+		}
+		$thumbImg = new Thumb(ROOT_PATH . "public/uploads/".$this->fileModel["pre_name"]);
+		$thumbImg->thumb($picInfo[1], $picInfo[0]);
+		if(!is_dir(dirname(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]))){
+			mkdir(dirname(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]),0777,true);
+		}
+		$thumbImg->out(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]."_thumb");
+		self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileModel["pre_name"]."_thumb");
+		return [0,0];
+    }
+    
+    /**
+     * 计算缩略图大小
+     *
+     * @param int $width  原始宽
+     * @param int $height 原始高
+     * @return array
+     */
+    static function getThumbSize($width,$height){
+		$rate = $width/$height;
+		$maxWidth = 90;
+		$maxHeight = 39;
+		$changeWidth = 39*$rate;
+		$changeHeight = 90/$rate;
+		if($changeWidth>=$maxWidth){
+			return [(int)$changeHeight,90];
+		}
+		return [39,(int)$changeWidth];
+    }
+    
+    /**
+     * 输出缩略图
+     *
+     * @param string $path 缩略图文件路径
+     * @return void
+     */
+    static function outputThumb($path){
+		ob_end_clean();
+		if(!input("get.cache")=="no"){
+			header("Cache-Control: max-age=10800");
+		}
+		header('Content-Type: '.self::getMimetype($path)); 
+		$fileObj = fopen($path,"r");
+		echo fread($fileObj,filesize($path)); 
+		fclose($file); 
+    }
+    
+    /**
+     * 处理下载请求
+     *
+     * @param boolean $isAdmin 是否为管理员请求
+     * @return void
+     */
+    public function Download($isAdmin=false){
+		$speedLimit = Db::name('groups')->where('id',$this->userModel["user_group"])->find();
+		$rangeTransfer = $speedLimit["range_transfer"];
+		$speedLimit = $speedLimit["speed"];
+		$sendFileOptions = Option::getValues(["download"]);
+		if($sendFileOptions["sendfile"] == "1"){
+			$this->sendFile($speedLimit,$rangeTransfer,true,$sendFileOptions["header"]);
+		}else{
+			if($isAdmin){
+				$speedLimit = "";
+			}
+			if($speedLimit == "0"){
+				exit();
+			}else if(empty($speedLimit)){
+				$this->outputWithoutLimit(true,$rangeTransfer);
+				exit();
+			}else if((int)$speedLimit > 0){
+				$this->outputWithLimit($speedLimit,true);
+			}
+		}
+    }
+    
+    /**
+	 * 删除指定本地文件
+	 *
+	 * @param array $fileList   待删除文件的数据库记录
+	 * @param array $policyData 待删除文件的上传策略信息
+	 * @return void
+	 */
+	static function DeleteFile($fileList,$policyData){
+		$fileListTemp = array_column($fileList, 'pre_name'); 
+		foreach ($fileListTemp as $key => $value) {
+			@unlink(ROOT_PATH . 'public/uploads/'.$value);
+			if(file_exists(ROOT_PATH . 'public/thumb/'.$value."_thumb")){
+				@unlink(ROOT_PATH . 'public/thumb/'.$value."_thumb");
+			}
+		}
+    }
+    
+    public function signTmpUrl(){
+        $options = Option::getValues(["oss","basic"]);
+		$timeOut = $options["timeout"];
+		$delayTime = time()+$timeOut;
+		$key=$this->fileModel["id"].":".$delayTime.":".md5($this->userModel["user_pass"].$this->fileModel["id"].$delayTime.config("salt"));
+		return [1,$options['siteURL']."Callback/TmpPreview/key/".$key];
+    }
 
 }
 
