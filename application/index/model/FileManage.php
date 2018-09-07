@@ -5,8 +5,6 @@ use think\Model;
 use think\Db;
 use think\Validate;
 use \app\index\model\Option;
-use OSS\OssClient;
-use OSS\Core\OssException;
 use Upyun\Upyun;
 use Upyun\Config;
 
@@ -51,7 +49,10 @@ class FileManage extends Model{
 				$this->adapter = new \app\index\model\LocalAdapter($this->fileData,$this->policyData,$this->userData);
 				break;
 			case 'qiniu':
-			$this->adapter = new \app\index\model\QiniuAdapter($this->fileData,$this->policyData,$this->userData);
+				$this->adapter = new \app\index\model\QiniuAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'oss':
+				$this->adapter = new \app\index\model\OssAdapter($this->fileData,$this->policyData,$this->userData);
 				break;
 			default:
 				# code...
@@ -113,15 +114,6 @@ class FileManage extends Model{
 			}
 			echo json_encode($result);
 		}
-	}
-
-	/**
-	 * 获取OSS策略文本文件内容
-	 *
-	 * @return string 文件内容
-	 */
-	public function getOssFileContent(){
-		return file_get_contents($this->ossPreview()[1]);
 	}
 
 	/**
@@ -193,28 +185,6 @@ class FileManage extends Model{
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
-	}
-
-	/**
-	 * 保存OSS文件内容
-	 *
-	 * @param string $content 文件内容
-	 * @return void
-	 */
-	public function saveOssContent($content){
-		$accessKeyId = $this->policyData["ak"];
-		$accessKeySecret = $this->policyData["sk"];
-		$endpoint = "http".ltrim(ltrim($this->policyData["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			die('{ "result": { "success": false, "error": "鉴权失败" } }');
-		}
-		try{
-			$ossClient->putObject($this->policyData["bucketname"], $this->fileData["pre_name"], $content);
-		} catch(OssException $e) {
-			die('{ "result": { "success": false, "error": "编辑失败" } }');
-		}
 	}
 
 	/**
@@ -634,7 +604,8 @@ class FileManage extends Model{
 				LocalAdapter::DeleteFile($value,$uniquePolicy["localPolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["ossList"])){
-				self::ossDelete($value,$uniquePolicy["ossPolicyData"][$key][0]);
+				LocalAdapter::DeleteFile($value,$uniquePolicy["ossPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["upyunList"])){
 				self::upyunDelete($value,$uniquePolicy["upyunPolicyData"][$key][0]);
 			}else if(in_array($key,$uniquePolicy["s3List"])){
@@ -713,30 +684,6 @@ class FileManage extends Model{
 	}
 
 	/**
-	 * 删除某一策略下的指定OSS文件
-	 *
-	 * @param array $fileList   待删除文件的数据库记录
-	 * @param array $policyData 待删除文件的上传策略信息
-	 * @return void
-	 */
-	static function ossDelete($fileList,$policyData){
-		$accessKeyId = $policyData["ak"];
-		$accessKeySecret = $policyData["sk"];
-		$endpoint = "http".ltrim(ltrim($policyData["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			return false;
-		}
-		try{
-			$ossClient->deleteObjects($policyData["bucketname"], array_column($fileList, 'pre_name'));
-		} catch(OssException $e) {
-			return false;
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	/**
 	 * 删除某一策略下的指定upyun文件
 	 *
 	 * @param array $fileList   待删除文件的数据库记录
@@ -775,29 +722,6 @@ class FileManage extends Model{
 		Db::name('users')->where([
 		'id' => $uid,
 		])->setDec('used_storage', $size);
-	}
-
-	public function getOssThumb(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?x-oss-process=image/resize,m_lfit,h_39,w_90";
-			return[true,$fileUrl];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"),'GET', array("x-oss-process" => 'image/resize,m_lfit,h_39,w_90'));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
 	}
 
 	private function getUpyunThumb(){
@@ -841,29 +765,6 @@ class FileManage extends Model{
 		}
 	}
 
-	public function ossPreview(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			return[true,$fileUrl];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
-	}
-
 	public function qiniuDownload(){
 		if(!$this->policyData['bucket_private']){
 			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?attname=".urlencode($this->fileData["orign_name"]);
@@ -888,28 +789,6 @@ class FileManage extends Model{
 	private function remoteDownload(){
 		$remote = new Remote($this->policyData);
 		return [1,$remote->download($this->fileData["pre_name"],$this->fileData["orign_name"])];
-	}
-
-	public function ossDownload(){
-		if(!$this->policyData['bucket_private']){
-			return[true,"/File/OssDownload?url=".urlencode($this->policyData["url"].$this->fileData["pre_name"])."&name=".urlencode($this->fileData["orign_name"])];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"),'GET', array("response-content-disposition" => 'attachment; filename='.$this->fileData["orign_name"]));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
 	}
 
 	/**
@@ -1082,7 +961,7 @@ class FileManage extends Model{
 				return QiniuAdapter::deleteSingle($fname,$policy);
 				break;
 			case 'oss':
-				return self::deleteOssFile($fname,$policy);
+				return OssAdapter::deleteOssFile($fname,$policy);
 				break;
 			case 'upyun':
 				return self::deleteUpyunFile($fname,$policy);
@@ -1094,23 +973,6 @@ class FileManage extends Model{
 				# code...
 				break;
 		}
-	}
-
-	static function deleteOssFile($fname,$policy){
-		$accessKeyId = $policy["ak"];
-		$accessKeySecret = $policy["sk"];
-		$endpoint = "http".ltrim(ltrim($policy["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			return false;
-		}
-		try{
-			$ossClient->deleteObject($policy["bucketname"], $fname);
-		} catch(OssException $e) {
-			return false;
-		}
-		return true;
 	}
 
 	static function deleteUpyunFile($fname,$policy){

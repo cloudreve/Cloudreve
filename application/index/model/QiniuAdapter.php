@@ -40,6 +40,9 @@ class QiniuAdapter extends Model{
 	 * @return void
 	 */
 	public function Preview($thumb=null){
+		if($thumb===true){
+			$thumb =null;
+		}
 		if(!$this->policyModel['bucket_private']){
 			$fileUrl = $this->policyModel["url"].$this->fileModel["pre_name"].$thumb;
 			return[true,$fileUrl];
@@ -130,6 +133,15 @@ class QiniuAdapter extends Model{
 		}else{
 			return true;
 		}
+	}
+
+	/**
+	 * 签名临时URL用于Office预览
+	 *
+	 * @return array
+	 */
+	public function signTmpUrl(){
+		return $this->Preview();
 	}
 
 }
