@@ -765,18 +765,6 @@ class FileManage extends Model{
 		}
 	}
 
-	public function qiniuDownload(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?attname=".urlencode($this->fileData["orign_name"]);
-			return[true,$fileUrl];
-		}else{
-			$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"]."?attname=".urlencode($this->fileData["orign_name"]);
-			$signedUrl = $auth->privateDownloadUrl($baseUrl);
-			return[true,$signedUrl];
-		}
-	}
-
 	public function upyunDownload(){
 		return [true,$this->upyunPreview()[1]."&_upd=".urlencode($this->fileData["orign_name"])];
 	}

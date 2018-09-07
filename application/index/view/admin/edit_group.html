@@ -174,7 +174,7 @@
 <script src="/static/js/admin/add_group.js"></script>
 <script type="text/javascript">
 $("option[value='{$group.policy_name}']").attr("selected",true);
-$("option[value='{$group.max_storage}']").attr("selected",true);
+$("option[value='{:countSize($group.max_storage,true)[1]}']").attr("selected",true);
 $("input[name='range_transfer'][value='{$group.range_transfer}']").attr("checked",true);
 $("input[name='allow_share'][value='{$group.allow_share}']").attr("checked",true);
 $("input[name='color'][value='{$group.color}']").attr("checked",true);
