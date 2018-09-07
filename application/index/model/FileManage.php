@@ -1,12 +1,9 @@
 <?php
 namespace app\index\model;
 
-require_once   'extend/Qiniu/functions.php';
-
 use think\Model;
 use think\Db;
 use think\Validate;
-use Qiniu\Auth;
 use \app\index\model\Option;
 use OSS\OssClient;
 use OSS\Core\OssException;
@@ -53,7 +50,9 @@ class FileManage extends Model{
 			case 'local':
 				$this->adapter = new \app\index\model\LocalAdapter($this->fileData,$this->policyData,$this->userData);
 				break;
-			
+			case 'qiniu':
+			$this->adapter = new \app\index\model\QiniuAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
 			default:
 				# code...
 				break;
@@ -114,16 +113,6 @@ class FileManage extends Model{
 			}
 			echo json_encode($result);
 		}
-	}
-
-
-	/**
-	 * 获取七牛策略文本文件内容
-	 *
-	 * @return string 文件内容
-	 */
-	public function getQiniuFileContent(){
-		return file_get_contents($this->qiniuPreview()[1]);
 	}
 
 	/**
@@ -204,26 +193,6 @@ class FileManage extends Model{
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
-	}
-
-	/**
-	 * 保存七牛文件内容
-	 *
-	 * @param string $content 文件内容
-	 * @return bool
-	 */
-	public function saveQiniuContent($content){
-		$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-		$expires = 3600;
-		$keyToOverwrite = $this->fileData["pre_name"];
-		$upToken = $auth->uploadToken($this->policyData["bucketname"], $keyToOverwrite, $expires, null, true);
-		$uploadMgr = new \Qiniu\Storage\UploadManager();
-		list($ret, $err) = $uploadMgr->put($upToken, $keyToOverwrite, $content);
-		if ($err !== null) {
-			die('{ "result": { "success": false, "error": "编辑失败" } }');
-		} else {
-			return true;
-		}
 	}
 
 	/**
@@ -659,7 +628,8 @@ class FileManage extends Model{
 		}
 		foreach ($fileListTemp as $key => $value) {
 			if(in_array($key,$uniquePolicy["qiniuList"])){
-				self::qiniuDelete($value,$uniquePolicy["qiniuPolicyData"][$key][0]);
+				QiniuAdapter::DeleteFile($value,$uniquePolicy["qiniuPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["localList"])){
 				LocalAdapter::DeleteFile($value,$uniquePolicy["localPolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
@@ -740,23 +710,6 @@ class FileManage extends Model{
 	 */
 	static function moveFile($file,$path){
 
-	}
-
-	/**
-	 * 删除某一策略下的指定七牛文件
-	 *
-	 * @param array $fileList   待删除文件的数据库记录
-	 * @param array $policyData 待删除文件的上传策略信息
-	 * @return void
-	 */
-	static function qiniuDelete($fileList,$policyData){
-		$auth = new Auth($policyData["ak"], $policyData["sk"]);
-		$config = new \Qiniu\Config();
-		$bucketManager = new \Qiniu\Storage\BucketManager($auth);
-		$fileListTemp = array_column($fileList, 'pre_name'); 
-		$ops = $bucketManager->buildBatchDelete($policyData["bucketname"], $fileListTemp);
-		list($ret, $err) = $bucketManager->batch($ops);
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
 	/**
@@ -847,10 +800,6 @@ class FileManage extends Model{
 		}
 	}
 
-	public function getQiniuThumb(){
-		return $this->qiniuPreview("?imageView2/2/w/90/h/39");
-	}
-
 	private function getUpyunThumb(){
 		$picInfo = explode(",",$this->fileData["pic_info"]);
 		$thumbSize = self::getThumbSize($picInfo[0],$picInfo[1]);
@@ -888,18 +837,6 @@ class FileManage extends Model{
 			}
 			$sign = substr(md5($key.'&'.$etime.'&'.$path), 12, 8).$etime;
 			$signedUrl = $baseUrl."?_upt=".$sign;
-			return[true,$signedUrl];
-		}
-	}
-
-	public function qiniuPreview($thumb=null){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"].$thumb;
-			return[true,$fileUrl];
-		}else{
-			$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"].$thumb;
-			$signedUrl = $auth->privateDownloadUrl($baseUrl);
 			return[true,$signedUrl];
 		}
 	}
@@ -1142,7 +1079,7 @@ class FileManage extends Model{
 	static function deleteFile($fname,$policy){
 		switch ($policy['policy_type']) {
 			case 'qiniu':
-				return self::deleteQiniuFile($fname,$policy);
+				return QiniuAdapter::deleteSingle($fname,$policy);
 				break;
 			case 'oss':
 				return self::deleteOssFile($fname,$policy);
@@ -1156,18 +1093,6 @@ class FileManage extends Model{
 			default:
 				# code...
 				break;
-		}
-	}
-
-	static function deleteQiniuFile($fname,$policy){
-		$auth = new Auth($policy["ak"], $policy["sk"]);
-		$config = new \Qiniu\Config();
-		$bucketManager = new \Qiniu\Storage\BucketManager($auth);
-		$err = $bucketManager->delete($policy["bucketname"], $fname);
-		if ($err) {
-			return false;
-		}else{
-			return true;
 		}
 	}
 

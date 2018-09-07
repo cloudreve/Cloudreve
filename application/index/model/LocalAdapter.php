@@ -374,6 +374,11 @@ class LocalAdapter extends Model{
 		}
     }
     
+    /**
+     * 签名临时直链，用于Office365预览
+     *
+     * @return array
+     */
     public function signTmpUrl(){
         $options = Option::getValues(["oss","basic"]);
 		$timeOut = $options["timeout"];
