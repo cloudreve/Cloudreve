@@ -127,10 +127,12 @@ function(e, r) {
                 },
                 e.openImagePreview = function() {
                     var r = e.singleSelection();
+                    if(r.model.pic==""){
+                    }else{
                         t =e.apiMiddleware.listPic(r);
                        loadPreview(t);
 
-           
+                    }
   
       
 
@@ -566,6 +568,7 @@ function(e) {
                     perms: new n(r && r.rights),
                     content: r && r.content || "",
                     fileId: r && r.id || '',
+                    pic: r && r.pic || '',
                     recursive: !1,
                     fullPath: function() {
                         var e = this.path.filter(Boolean);

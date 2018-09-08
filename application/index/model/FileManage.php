@@ -61,6 +61,9 @@ class FileManage extends Model{
 			case 'remote':
 				$this->adapter = new \app\index\model\RemoteAdapter($this->fileData,$this->policyData,$this->userData);
 				break;
+			case 'onedrive':
+				$this->adapter = new \app\index\model\OnedriveAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
 			default:
 				# code...
 				break;
@@ -90,6 +93,11 @@ class FileManage extends Model{
 		if($this->fileData["size"]>$sizeLimit){
 			die('{ "result": { "success": false, "error": "您当前用户组最大可编辑'.$sizeLimit.'字节的文件"} }');
 		}else{
+			try{
+				$fileContent = $this->adapter->getFileContent();
+			}catch(\Exception $e){
+				die('{ "result": { "success": false, "error": "'.$e->getMessage().'"} }');
+			}
 			$fileContent = $this->adapter->getFileContent();
 			$result["result"] = $fileContent;
 			if(empty(json_encode($result))){
@@ -432,6 +440,9 @@ class FileManage extends Model{
 			}else if(in_array($key,$uniquePolicy["remoteList"])){
 				RemoteAdapter::DeleteFile($value,$uniquePolicy["remotePolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
+			}else if(in_array($key,$uniquePolicy["onedriveList"])){
+				OnedriveAdapter::DeleteFile($value,$uniquePolicy["onedrivePolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}
 		}
 		return ["result"=>["success"=>true,"error"=>null]];
@@ -715,6 +726,8 @@ class FileManage extends Model{
 		$s3PolicyData = [];
 		$remoteList = [];
 		$remotePolicyData = [];
+		$onedriveList = [];
+		$onedrivePolicyData = [];
 		foreach ($data as $key => $value) {
 			if(!in_array($value['policy_id'],$tempList)){
 				array_push($tempList,$value['policy_id']);
@@ -762,6 +775,13 @@ class FileManage extends Model{
 						}
 						array_push($remotePolicyData[$value['policy_id']],$policyTempData);
 						break;
+					case 'onedrive':
+						array_push($onedriveList,$value['policy_id']);
+						if(empty($onedrivePolicyData[$value['policy_id']])){
+							$onedrivePolicyData[$value['policy_id']] = [];
+						}
+						array_push($onedrivePolicyData[$value['policy_id']],$policyTempData);
+						break;
 					default:
 						# code...
 						break;
@@ -782,6 +802,8 @@ class FileManage extends Model{
 			's3PolicyData' => $s3PolicyData,
 			'remoteList' => $remoteList,
 			'remotePolicyData' => $remotePolicyData,
+			'onedriveList' => $onedriveList,
+			'onedrivePolicyData' => $onedrivePolicyData,
 		);
 		return $returenValue;
 	}

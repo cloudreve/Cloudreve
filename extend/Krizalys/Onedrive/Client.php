@@ -515,12 +515,10 @@ class Client
     {
         $url =
             self::API_URL
-                . $path
-                . '?access_token=' . urlencode(
-                    $this->_state->token->data->access_token
-                );
-
+                . $path;
         $curl = self::_createCurl($path, $options);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, [ 'Authorization: Bearer '
+        . $this->_state->token->data->access_token,]);
         curl_setopt($curl, CURLOPT_URL, $url);
         return $this->_processResult($curl);
     }
@@ -538,7 +536,6 @@ class Client
         $url  = self::API_URL . $path;
         $data = (object) $data;
         $curl = self::_createCurl($path);
-
         curl_setopt_array($curl, [
             CURLOPT_URL        => $url,
             CURLOPT_POST       => true,

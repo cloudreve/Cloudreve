@@ -113,7 +113,7 @@ class UploadHandler extends Model{
 				$path = "";
 			}
 			$task = new Task();
-			$task->taskName = "Upload Big File " .  $fname . "to Onedrive";
+			$task->taskName = "Upload Big File " .  $fname . " to Onedrive";
 			$task->taskType = "uploadChunksToOnedrive";
 			$task->taskContent = json_encode([
 				"path" => $path, 
@@ -243,7 +243,7 @@ class UploadHandler extends Model{
 			//处理Onedrive等非直传
 			if($this->policyContent['policy_type'] == "onedrive"){
 				$task = new Task();
-				$task->taskName = "Upload" .  $info["name"] . "to Onedrive";
+				$task->taskName = "Upload" .  $info["name"] . " to Onedrive";
 				$task->taskType = "uploadSingleToOnedrive";
 				$task->taskContent = json_encode([
 					"path" => $info["path"], 
