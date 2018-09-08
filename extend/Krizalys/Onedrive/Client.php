@@ -1,7 +1,5 @@
 <?php
-
 namespace Krizalys\Onedrive;
-
 /**
  * @class Client
  *

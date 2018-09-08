@@ -58,6 +58,9 @@ class FileManage extends Model{
 			case 's3':
 				$this->adapter = new \app\index\model\S3Adapter($this->fileData,$this->policyData,$this->userData);
 				break;
+			case 'remote':
+				$this->adapter = new \app\index\model\RemoteAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
 			default:
 				# code...
 				break;
@@ -88,45 +91,12 @@ class FileManage extends Model{
 			die('{ "result": { "success": false, "error": "您当前用户组最大可编辑'.$sizeLimit.'字节的文件"} }');
 		}else{
 			$fileContent = $this->adapter->getFileContent();
-			// switch ($this->policyData["policy_type"]) {
-			// 	case 'local':
-			// 		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-			// 		$fileContent = $this->getLocalFileContent($filePath);
-			// 		break;
-			// 	case 'qiniu':
-			// 		$fileContent = $this->getQiniuFileContent();
-			// 		break;
-			// 	case 'oss':
-			// 		$fileContent = $this->getOssFileContent();
-			// 		break;
-			// 	case 'upyun':
-			// 		$fileContent = $this->getUpyunFileContent();
-			// 		break;
-			// 	case 's3':
-			// 		$fileContent = $this->getS3FileContent();
-			// 		break;
-			// 	case 'remote':
-			// 		$fileContent = $this->getRemoteFileContent();
-			// 		break;
-			// 	default:
-			// 		# code...
-			// 		break;
-			// }
 			$result["result"] = $fileContent;
 			if(empty(json_encode($result))){
 				$result["result"] = iconv('gb2312','utf-8',$fileContent);
 			}
 			echo json_encode($result);
 		}
-	}
-
-	/**
-	 * 获取远程策略文本文件内容
-	 *
-	 * @return string 文件内容
-	 */
-	public function getRemoteFileContent(){
-		return file_get_contents($this->remotePreview()[1]);
 	}
 
 	/**
@@ -142,46 +112,10 @@ class FileManage extends Model{
 			die('{ "result": { "success": false, "error": "空间容量不足" } }');
 		}
 		$this->adapter->saveContent($content);
-		// switch ($this->policyData["policy_type"]) {
-		// 	case 'local':
-		// 		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		// 		file_put_contents($filePath, "");
-		// 		file_put_contents($filePath, $content);
-		// 		break;
-		// 	case 'qiniu':
-		// 		$this->saveQiniuContent($content);
-		// 		break;
-		// 	case 'oss':
-		// 		$this->saveOssContent($content);
-		// 		break;
-		// 	case 'upyun':
-		// 		$this->saveUpyunContent($content);
-		// 		break;
-		// 	case 's3':
-		// 		$this->saveS3Content($content);
-		// 		break;
-		// 	case 'remote':
-		// 		$this->saveRemoteContent($content);
-		// 		break;
-		// 	default:
-		// 		# code...
-		// 		break;
-		// }
 		FileManage::storageGiveBack($this->userID,$originSize);
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
-	}
-
-	/**
-	 * 保存远程文件内容
-	 *
-	 * @param string $content 文件内容
-	 * @return void
-	 */
-	public function saveRemoteContent($content){
-		$remote = new Remote($this->policyData);
-		$remote->updateContent($this->fileData["pre_name"],$content);
 	}
 
 	/**
@@ -358,35 +292,6 @@ class FileManage extends Model{
 	 */
 	public function PreviewHandler($isAdmin=false){
 		return $this->adapter->Preview($isAdmin);
-		// switch ($this->policyData["policy_type"]) {
-		// 	case 'qiniu':
-		// 		$Redirect = $this->qiniuPreview();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'local':
-		// 		$Redirect = $this->localPreview($isAdmin);
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'oss':
-		// 		$Redirect = $this->ossPreview();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'upyun':
-		// 		$Redirect = $this->upyunPreview();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 's3':
-		// 		$Redirect = $this->s3Preview();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'remote':
-		// 		$Redirect = $this->remotePreview();
-		// 		return $Redirect;
-		// 		break;
-		// 	default:
-		// 		# code...
-		// 		break;
-		// }
 	}
 
 	/**
@@ -396,30 +301,6 @@ class FileManage extends Model{
 	 */
 	public function getThumb(){
 		return $this->adapter->getThumb();
-		// switch ($this->policyData["policy_type"]) {
-		// 	case 'qiniu':
-		// 		$Redirect = $this->getQiniuThumb();
-		// 		return $Redirect;
-		// 	case 'local':
-		// 		$Redirect = $this->getLocalThumb();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'oss':
-		// 		$Redirect = $this->getOssThumb();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'upyun':
-		// 		$Redirect = $this->getUpyunThumb();
-		// 		return $Redirect;
-		// 		break;
-		// 	case 'remote':
-		// 		$remote = new Remote($this->policyData);
-		// 		return [1,$remote->thumb($this->fileData["pre_name"],explode(",",$this->fileData["pic_info"]))];
-		// 		break;
-		// 	default:
-		// 		# code...
-		// 		break;
-		// }
 	}
 
 	/**
@@ -430,29 +311,6 @@ class FileManage extends Model{
 	 */
 	public function Download($isAdmin=false){
 		return $this->adapter->Download($isAdmin);
-		// switch ($this->policyData["policy_type"]) {
-		// 	case 'qiniu':
-		// 		return $DownloadHandler = $this->qiniuDownload();
-		// 		break;
-		// 	case 'local':
-		// 		return $DownloadHandler = $this->localDownload($isAdmin);
-		// 		break;
-		// 	case 'oss':
-		// 		return $DownloadHandler = $this->ossDownload();
-		// 		break;
-		// 	case 'upyun':
-		// 		return $DownloadHandler = $this->upyunDownload();
-		// 		break;
-		// 	case 's3':
-		// 		return $DownloadHandler = $this->s3Download();
-		// 		break;
-		// 	case 'remote':
-		// 		return $DownloadHandler = $this->remoteDownload();
-		// 		break;
-		// 	default:
-		// 		# code...
-		// 		break;
-		// }
 	}
 
 	/**
@@ -572,7 +430,8 @@ class FileManage extends Model{
 				S3Adapter::DeleteFile($value,$uniquePolicy["s3PolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["remoteList"])){
-				self::remoteDelete($value,$uniquePolicy["remotePolicyData"][$key][0]);
+				RemoteAdapter::DeleteFile($value,$uniquePolicy["remotePolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}
 		}
 		return ["result"=>["success"=>true,"error"=>null]];
@@ -644,12 +503,6 @@ class FileManage extends Model{
 
 	}
 
-	static function remoteDelete($fileList,$policyData){
-		$remoteObj = new Remote($policyData);
-		$remoteObj->remove(array_column($fileList, 'pre_name'));
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
 	static function deleteFileRecord($id,$size,$uid){
 		Db::name('files')->where([
 		'id' => ["in",$id],
@@ -662,16 +515,6 @@ class FileManage extends Model{
 		Db::name('users')->where([
 		'id' => $uid,
 		])->setDec('used_storage', $size);
-	}
-
-	public function remotePreview(){
-		$remote = new Remote($this->policyData);
-		return [1,$remote->preview($this->fileData["pre_name"])];
-	}
-
-	private function remoteDownload(){
-		$remote = new Remote($this->policyData);
-		return [1,$remote->download($this->fileData["pre_name"],$this->fileData["orign_name"])];
 	}
 
 	/**
@@ -945,33 +788,6 @@ class FileManage extends Model{
 
 	public function signTmpUrl(){
 		return $this->adapter->signTmpUrl()[1];
-		// switch ($this->policyData["policy_type"]) {
-		// 	case 'qiniu':
-		// 		return $this->qiniuPreview()[1];
-		// 		break;
-		// 	case 'oss':
-		// 		return $this->ossPreview()[1];
-		// 		break;
-		// 	case 'upyun':
-		// 		return $this->upyunPreview()[1];
-		// 		break;
-		// 	case 's3':
-		// 		return $this->s3Preview()[1];
-		// 		break;
-		// 	case 'local':
-		// 		$options = Option::getValues(["oss","basic"]);
-		// 		$timeOut = $options["timeout"];
-		// 		$delayTime = time()+$timeOut;
-		// 		$key=$this->fileData["id"].":".$delayTime.":".md5($this->userData["user_pass"].$this->fileData["id"].$delayTime.config("salt"));
-		// 		return $options['siteURL']."Callback/TmpPreview/key/".$key;
-		// 		break;
-		// 	case 'remote':
-		// 		return $this->remotePreview()[1];
-		// 		break;
-		// 	default:
-		// 		# code...
-		// 		break;
-		// }
 	}
 
 }
