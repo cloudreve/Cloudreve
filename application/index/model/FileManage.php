@@ -5,8 +5,6 @@ use think\Model;
 use think\Db;
 use think\Validate;
 use \app\index\model\Option;
-use Upyun\Upyun;
-use Upyun\Config;
 
 class FileManage extends Model{
 
@@ -53,6 +51,12 @@ class FileManage extends Model{
 				break;
 			case 'oss':
 				$this->adapter = new \app\index\model\OssAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'upyun':
+				$this->adapter = new \app\index\model\UpyunAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 's3':
+				$this->adapter = new \app\index\model\S3Adapter($this->fileData,$this->policyData,$this->userData);
 				break;
 			default:
 				# code...
@@ -117,24 +121,6 @@ class FileManage extends Model{
 	}
 
 	/**
-	 * 获取又拍云策略文本文件内容
-	 *
-	 * @return string 文件内容
-	 */
-	public function getUpyunFileContent(){
-		return file_get_contents($this->upyunPreview()[1]);
-	}
-
-	/**
-	 * 获取S3策略文本文件内容
-	 *
-	 * @return string 文件内容
-	 */
-	public function getS3FileContent(){
-		return file_get_contents($this->s3Preview()[1]);
-	}
-
-	/**
 	 * 获取远程策略文本文件内容
 	 *
 	 * @return string 文件内容
@@ -185,33 +171,6 @@ class FileManage extends Model{
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
-	}
-
-	/**
-	 * 保存Upyun文件内容
-	 *
-	 * @param string $content 文件内容
-	 * @return void
-	 */
-	public function saveUpyunContent($content){
-		$bucketConfig = new Config($this->policyData["bucketname"], $this->policyData["op_name"], $this->policyData["op_pwd"]);
-		$client = new Upyun($bucketConfig);
-		if(empty($content)){
-			$content = " ";
-		}
-		$res=$client->write($this->fileData["pre_name"],$content);
-	}
-
-	/**
-	 * 保存S3文件内容
-	 *
-	 * @param string $content 文件内容
-	 * @return void
-	 */
-	public function saveS3Content($content){
-		$s3 = new \S3\S3($this->policyData["ak"], $this->policyData["sk"],false,$this->policyData["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		$s3->putObjectString($content, $this->policyData["bucketname"], $this->fileData["pre_name"]);
 	}
 
 	/**
@@ -604,12 +563,14 @@ class FileManage extends Model{
 				LocalAdapter::DeleteFile($value,$uniquePolicy["localPolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["ossList"])){
-				LocalAdapter::DeleteFile($value,$uniquePolicy["ossPolicyData"][$key][0]);
+				OssAdapter::DeleteFile($value,$uniquePolicy["ossPolicyData"][$key][0]);
 				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["upyunList"])){
-				self::upyunDelete($value,$uniquePolicy["upyunPolicyData"][$key][0]);
+				UpyunAdapter::DeleteFile($value,$uniquePolicy["upyunPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["s3List"])){
-				self::s3Delete($value,$uniquePolicy["s3PolicyData"][$key][0]);
+				S3Adapter::DeleteFile($value,$uniquePolicy["s3PolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["remoteList"])){
 				self::remoteDelete($value,$uniquePolicy["remotePolicyData"][$key][0]);
 			}
@@ -683,27 +644,6 @@ class FileManage extends Model{
 
 	}
 
-	/**
-	 * 删除某一策略下的指定upyun文件
-	 *
-	 * @param array $fileList   待删除文件的数据库记录
-	 * @param array $policyData 待删除文件的上传策略信息
-	 * @return void
-	 */
-	static function upyunDelete($fileList,$policyData){
-		foreach (array_column($fileList, 'pre_name') as $key => $value) {
-			self::deleteUpyunFile($value,$policyData);
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function s3Delete($fileList,$policyData){
-		foreach (array_column($fileList, 'pre_name') as $key => $value) {
-			self::deleteS3File($value,$policyData);
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
 	static function remoteDelete($fileList,$policyData){
 		$remoteObj = new Remote($policyData);
 		$remoteObj->remove(array_column($fileList, 'pre_name'));
@@ -724,54 +664,9 @@ class FileManage extends Model{
 		])->setDec('used_storage', $size);
 	}
 
-	private function getUpyunThumb(){
-		$picInfo = explode(",",$this->fileData["pic_info"]);
-		$thumbSize = self::getThumbSize($picInfo[0],$picInfo[1]);
-		$baseUrl =$this->policyData["url"].$this->fileData["pre_name"]."!/fwfh/90x39";
-		return [1,$this->upyunPreview($baseUrl,$this->fileData["pre_name"]."!/fwfh/90x39")[1]];
-	}
-
-	public function s3Preview(){
-		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"])];
-	}
-
 	public function remotePreview(){
 		$remote = new Remote($this->policyData);
 		return [1,$remote->preview($this->fileData["pre_name"])];
-	}
-
-	public function upyunPreview($base=null,$name=null){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?auth=0";
-			if(!empty($base)){
-				$fileUrl = $base;
-			}
-			return[true,$fileUrl];
-		}else{
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			if(!empty($base)){
-				$baseUrl = $base;
-			}
-			$etime = time() + Option::getValue("timeout");
-			$key = $this->policyData["sk"];
-			$path = "/".$this->fileData["pre_name"];
-			if(!empty($name)){
-				$path = "/".$name;
-			}
-			$sign = substr(md5($key.'&'.$etime.'&'.$path), 12, 8).$etime;
-			$signedUrl = $baseUrl."?_upt=".$sign;
-			return[true,$signedUrl];
-		}
-	}
-
-	public function upyunDownload(){
-		return [true,$this->upyunPreview()[1]."&_upd=".urlencode($this->fileData["orign_name"])];
-	}
-
-	public function s3Download(){
-		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"],array(),false)];
 	}
 
 	private function remoteDownload(){
@@ -952,27 +847,15 @@ class FileManage extends Model{
 				return OssAdapter::deleteOssFile($fname,$policy);
 				break;
 			case 'upyun':
-				return self::deleteUpyunFile($fname,$policy);
+				return UpyunAdapter::deleteUpyunFile($fname,$policy);
 				break;
 			case 's3':
-				return self::deleteS3File($fname,$policy);
+				return S3Adapter::deleteS3File($fname,$policy);
 				break;
 			default:
 				# code...
 				break;
 		}
-	}
-
-	static function deleteUpyunFile($fname,$policy){
-		$bucketConfig = new Config($policy["bucketname"], $policy["op_name"], $policy["op_pwd"]);
-		$client = new Upyun($bucketConfig);
-		$res=$client->delete($fname,true);
-	}
-
-	static function deleteS3File($fname,$policy){
-		$s3 = new \S3\S3($policy["ak"], $policy["sk"],false,$policy["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		return $s3->deleteObject($policy["bucketname"],$fname);
 	}
 
 	static function uniqueArray($data = array()){

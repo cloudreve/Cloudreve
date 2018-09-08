@@ -117,7 +117,7 @@ class OssAdapter extends Model{
 	 * @param array $policyData 待删除文件的上传策略信息
 	 * @return void
 	 */
-	static function ossDelete($fileList,$policyData){
+	static function DeleteFile($fileList,$policyData){
 		$accessKeyId = $policyData["ak"];
 		$accessKeySecret = $policyData["sk"];
 		$endpoint = "http".ltrim(ltrim($policyData["server"],"https"),"http");
@@ -131,7 +131,6 @@ class OssAdapter extends Model{
 		} catch(OssException $e) {
 			return false;
 		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
 	/**

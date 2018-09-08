@@ -40,7 +40,7 @@ class QiniuAdapter extends Model{
 	 * @return void
 	 */
 	public function Preview($thumb=null){
-		if($thumb===true){
+		if($thumb===true || $thumb===false){
 			$thumb =null;
 		}
 		if(!$this->policyModel['bucket_private']){
