@@ -56,6 +56,24 @@ $("#localPolicy").submit(function() {
 	});
 	return false;
 })
+$("#onedrivePolicy").submit(function() {
+	$("#savePolicy").attr("disabled", "true");
+	$.post("/Admin/SavePolicy", 
+		$("#onedrivePolicy").serialize()
+	, function(data) {
+		if (data.error == "1") {
+			toastr["warning"](data.msg);
+			$("#savePolicy").removeAttr("disabled");
+		} else if (data.error == "200") {
+			toastr["success"]("上传策略已添加");
+			location.href = "/Admin/UpdateOnedriveToken?id="+data.id;
+		}else{
+			toastr["warning"]("未知错误");
+			$("#savePolicy").removeAttr("disabled");
+		}
+	});
+	return false;
+})
 $("#qiniuPolicy").submit(function() {
 	$("#saveQiniu").attr("disabled", "true");
 	$.post("/Admin/SavePolicy", 

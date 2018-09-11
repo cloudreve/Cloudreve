@@ -147,7 +147,7 @@ class AdminHandler extends Model{
 		} catch (Exception $e) {
 			return ["error"=>1,"msg"=>$e->getMessage()];
 		}
-		return ["error"=>200,"msg"=>"设置已保存"];
+		return ["error"=>200,"msg"=>"设置已保存","id"=>Db::name('policy')->getLastInsID()];
 	}
 
 	public function editPolicy($options){
@@ -724,7 +724,7 @@ class AdminHandler extends Model{
 			'offline_access',
 			'files.readwrite.all',
 		], Option::getValue("siteURL")."Admin/oneDriveCalllback");
-		echo "<a href='$url'>继续绑定账号</a>";
+		echo "<script>location.href='".$url."'</script>正在跳转至Onedrive账号授权页面，如果没有跳转，请<a href='$url'>点击这里</a>。";
 
 		Db::name("policy")->where("id",$policyId)->update([
 			"sk" => json_encode($onedrive->getState()),
@@ -754,6 +754,7 @@ class AdminHandler extends Model{
 		Db::name("policy")->where("id",$policyId)->update([
 			"sk" => json_encode($onedrive->getState()),
 		]);
+		echo "<script>location.href='/Admin/PolicyList?page=1'</script>";
 	}
 
 }

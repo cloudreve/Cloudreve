@@ -451,6 +451,12 @@ class Admin extends Controller{
 		]);
 	}
 
+	public function PolicyAddOnedrive(){
+		return view('add_policy_onedrive', [
+			'options' => $this->siteOptions,
+		]);
+	}
+
 	public function About(){
 		$verison = json_decode(file_get_contents(ROOT_PATH . "application/version.json"),true);
 		return view('about', [
@@ -523,10 +529,6 @@ class Admin extends Controller{
 	public function OneDriveCalllback(){
 		$code = input("get.code");
 		$this->adminObj->oneDriveCalllback($code);
-	}
-
-	public function uploadTest(){
-		$this->adminObj->oneDriveTest();
 	}
 	
 }
