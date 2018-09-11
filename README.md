@@ -14,7 +14,7 @@ Cloudreve - Make the cloud easy for everyone
 
 目前已经实现的特性：
 
-* 快速对接多家云存储，支持七牛、又拍云、阿里云OSS、AWS S3、自建远程服务器，当然，还有本地存储
+* 快速对接多家云存储，支持七牛、又拍云、阿里云OSS、AWS S3、Onedrive、自建远程服务器，当然，还有本地存储
 * 可限制单文件最大大小、MIMEType、文件后缀、用户可用容量
 * 基于Aria2的离线下载
 * 图片、音频、视频、文本、Markdown、Ofiice文档 在线预览
@@ -30,12 +30,11 @@ Cloudreve - Make the cloud easy for everyone
 
 To-do:
 
-* - [ ] 重写目录分享和单文件分享页面样式
-* - [ ] 增加保存其他用户的分享到自己账户（限Pro版）
-* - [ ] 推出辅助程序GoDriver,用于驱动php或客户端实现不了的功能，并借此实现:
+* - [x] 重写目录分享和单文件分享页面样式
+* - [x] 增加保存其他用户的分享到自己账户（限Pro版）
+* - [x] 推出辅助程序，并借此实现:
    * - [ ] 压缩包解压缩、文件压缩
-   * - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后由GoDriver中转
-* - [ ] 用Golang重写的远程服务端
+   * - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后中转
 
 安装需求
 ------------
