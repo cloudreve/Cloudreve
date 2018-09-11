@@ -592,6 +592,30 @@ class Client
 
     public function sendFileChunk($url,$headers,$stream){
         $curl  = self::_createCurl("");
+        if(!is_resource($stream)){
+            $options=[];
+            $options = array_merge([
+                'stream_back_end' => $this->_streamBackEnd,
+            ], $options);
+            $content = $stream;
+            $stream = $this
+                ->_streamOpener
+                ->open($options['stream_back_end']);
+
+            if (false === $stream) {
+                throw new \Exception('fopen() failed');
+            }
+
+            if (false === fwrite($stream, $content)) {
+                fclose($stream);
+                throw new \Exception('fwrite() failed');
+            }
+
+            if (!rewind($stream)) {
+                fclose($stream);
+                throw new \Exception('rewind() failed');
+            }
+        }
         $stats = fstat($stream);
 
         $options = [
@@ -603,7 +627,12 @@ class Client
         ];
 
         curl_setopt_array($curl, $options);
-        return $this->_processResult($curl);
+        
+        $data = $this->_processResult($curl);
+        if (!is_resource($content)) {
+            fclose($stream);
+        }
+        return $data;
     }
 
     /**

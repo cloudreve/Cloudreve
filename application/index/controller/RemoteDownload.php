@@ -47,7 +47,7 @@ class RemoteDownload extends Controller{
 
 	public function addUrl(){
 		$policyData = Db::name("policy")->where("id",$this->userObj->groupData["policy_name"])->find();
-		if(!$this->checkPerimission(0) || $policyData["policy_type"] != "local"){
+		if(!$this->checkPerimission(0) || ($policyData["policy_type"] != "local" && $policyData["policy_type"] != "onedrive")){
 			return json(["result"=>['success'=>false,'error'=>"您当前的无用户无法执行此操作"]]);
 		}
 		$aria2Options = Option::getValues(["aria2"]);

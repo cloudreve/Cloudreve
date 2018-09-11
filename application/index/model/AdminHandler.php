@@ -756,35 +756,5 @@ class AdminHandler extends Model{
 		]);
 	}
 
-	public function oneDriveTest(){
-		$policyId =1;
-		$policyData = Db::name("policy")->where("id",$policyId)->find();
-
-		$onedrive = new Client([
-			'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
-			'client_id' => $policyData["bucketname"],
-		
-			// Restore the previous state while instantiating this client to proceed in
-			// obtaining an access token.
-			'state' => json_decode($policyData["sk"]),
-		]);
-		$onedrive->renewAccessToken($policyData["ak"]);
-		Db::name("policy")->where("id",$policyId)->update([
-			"sk" => json_encode($onedrive->getState()),
-		]);
-		// $file = fopen("C:/Users/i/Downloads/Video/test.mp4","r");
-		// $onedrive->createFile(urlencode("Git提交代码简教程.txt"),"/me/drive/root:/sdfdsf",$file);
-		//$uploadUrl = $onedrive->apiPost("/me/drive/root:/test.m4a:/createUploadSession",[])->uploadUrl;
-		//echo $uploadUrl;
-		// $file = fopen("F:/qampp/htdocs/public/uploads/chunks/oDAjV3vT.chunk","r");
-		// $chunksize = filesize("F:/qampp/htdocs/public/uploads/chunks/oDAjV3vT.chunk");
-		// $headers[] = "Content-Length: ".$chunksize;
-		// $headers[] = "Content-Range: bytes 8388608-".(8388608+$chunksize-1)."/11628372";
-		// var_dump($headers);
-		// var_dump($onedrive->sendFileChunk("https://cquedu-my.sharepoint.com/personal/abslant_cquedu_onmicrosoft_com/_api/v2.0/drive/items/013RFVFIF6Y2GOVW7725BZO354PWSELRRZ/uploadSession?guid='0fa969a7-72d6-411f-9538-fc456913ff34'&path='~tmp41_test.m4a'&overwrite=True&rename=False&dc=0&tempauth=eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJhdWQiOiIwMDAwMDAwMy0wMDAwLTBmZjEtY2UwMC0wMDAwMDAwMDAwMDAvY3F1ZWR1LW15LnNoYXJlcG9pbnQuY29tQGQwZDgxY2Q1LTgwNjUtNDYwNS1hODg2LTFjODllN2UwNzc4ZSIsImlzcyI6IjAwMDAwMDAzLTAwMDAtMGZmMS1jZTAwLTAwMDAwMDAwMDAwMCIsIm5iZiI6IjE1MzYyMjM4NDYiLCJleHAiOiIxNTM2MzEwMjQ2IiwiZW5kcG9pbnR1cmwiOiJ6Q1psKy9nVTJwdVErbFd3Q29hM0dlOEMxMzgxNjJFcVJ5ZVdkNzFKUE40PSIsImVuZHBvaW50dXJsTGVuZ3RoIjoiMjQzIiwiaXNsb29wYmFjayI6IlRydWUiLCJjaWQiOiJOalppWlRVeE9UQXRNVGM1T1MwME0yVmtMV0U0T1RJdFpqZzFZbUpoT0RSbU9HRmwiLCJ2ZXIiOiJoYXNoZWRwcm9vZnRva2VuIiwic2l0ZWlkIjoiWXpVNE1UTTNOekF0WlRZNE1pMDBNVE14TFdFME5UVXRaVE5rWldVM1ptWmxPR1JrIiwiYXBwX2Rpc3BsYXluYW1lIjoiQ2xvdWRyZXZlRGV2IiwiYXBwaWQiOiJjNWM0Zjk3ZC1mOWIwLTQzNjAtOWEzZS0xM2JiM2MyNzZkYWEiLCJ0aWQiOiJkMGQ4MWNkNS04MDY1LTQ2MDUtYTg4Ni0xYzg5ZTdlMDc3OGUiLCJ1cG4iOiJhYnNsYW50QGNxdWVkdS5vbm1pY3Jvc29mdC5jb20iLCJwdWlkIjoiMTAwMzdGRkVBRDdGRjJDMyIsInNjcCI6ImFsbGZpbGVzLndyaXRlIiwidHQiOiIyIiwidXNlUGVyc2lzdGVudENvb2tpZSI6bnVsbH0.aWh2N2szZE4rRDhXdUp3Vm9GWnlUcHczMzhaWXJrY1diVklyRWtzTlhTOD0",$headers,$file));
-		// fclose($file);
-	}
-	
-
 }
 ?>

@@ -58,17 +58,114 @@ class Task extends Model{
 			case "uploadSingleToOnedrive":
 				$this->uploadSingleToOnedrive();
 				break;
+			case "UploadRegularRemoteDownloadFileToOnedrive":
+				$this->uploadSingleToOnedrive();
+				break;
 			case "uploadChunksToOnedrive":
 				$this->uploadChunksToOnedrive();
 				break;
+			case "UploadLargeRemoteDownloadFileToOnedrive":
+				$this->uploadUnchunkedFile();
+				break;
 			default:
-				$this->output->writeln("Unknown task type");
+				$this->output->writeln("Unknown task type (".$this->taskModel["type"].")");
 				break;
 		}
 	}
 
 	/**
-	 * 上传  分片的大文件至Onedrive
+	 * 上传未分片的大文件至Onedrive
+	 *
+	 * @return void
+	 */
+	private function uploadUnchunkedFile(){
+		$this->taskContent = json_decode($this->taskModel["attr"],true);
+		$policyData = Db::name("policy")->where("id",$this->taskContent["policyId"])->find();
+		$this->policyModel = $policyData;
+		$onedrive = new Client([
+			'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+
+		//创建分片上传Session,获取上传URL
+		try{
+			$uploadUrl = $onedrive->apiPost("/me/drive/root:/".rawurlencode($this->taskContent["savePath"] . "/" . $this->taskContent["objname"]).":/createUploadSession",[])->uploadUrl;
+		}catch(\Exception $e){
+			$this->status="error";
+			$this->errorMsg = $e->getMessage();
+			$this->cleanTmpChunk();
+			return;
+		}
+		//创建分片上传Session,获取上传URL
+		try{
+			$uploadUrl = $onedrive->apiPost("/me/drive/root:/".rawurlencode($this->taskContent["savePath"] . "/" . $this->taskContent["objname"]).":/createUploadSession",[])->uploadUrl;
+		}catch(\Exception $e){
+			$this->status="error";
+			$this->errorMsg = $e->getMessage();
+			$this->cleanTmpChunk();
+			return;
+		}
+
+		//每次4MB上传文件
+		
+		if(!$file = @fopen($this->taskContent["originPath"],"r")){
+			$this->status="error";
+			$this->errorMsg = "File not exist.";
+			$this->cleanTmpChunk();
+			return;
+		}
+		$offset = 0;
+		$totalSize = filesize($this->taskContent["originPath"]);
+		while (1) {
+			//移动文件指针
+			fseek($file, $offset);
+
+			$chunksize = (($offset+4*1024*1024)>$totalSize)?($totalSize-$offset):1024*4*1024;
+			$headers = [];
+			$headers[] = "Content-Length: ".$chunksize;
+			$headers[] = "Content-Range: bytes ".$offset."-".($offset+$chunksize-1)."/".$this->taskContent["fsize"];
+
+			//发送单个分片数据
+			try{
+				$onedrive->sendFileChunk($uploadUrl,$headers,fread($file,$chunksize));
+			}catch(\Exception $e){
+				$this->status="error";
+				$this->errorMsg = $e->getMessage();
+				$this->cleanTmpChunk();
+				return;
+			}
+			$this->output->writeln("[Info] Chunk Uploaded. Offset:".$offset);
+			$offset+=$chunksize;
+			if($offset+1 >=$totalSize){
+				break;
+			}
+			
+		}
+		fclose($file);
+		$jsonData = array(
+			"path" => $this->taskContent["path"], 
+			"fname" => $this->taskContent["fname"],
+			"objname" => $this->taskContent["savePath"]."/".$this->taskContent["objname"],
+			"fsize" => $this->taskContent["fsize"],
+		);
+
+		$addAction = FileManage::addFile($jsonData,$policyData,$this->taskModel["uid"],$this->taskContent["picInfo"]);
+		if(!$addAction[0]){
+			$this->setError($addAction[1],true,"/me/drive/root:/".rawurlencode($this->taskContent["savePath"] . "/" . $this->taskContent["objname"]),$onedrive);
+			$this->cleanTmpChunk();
+			return;
+		}
+
+		$this->cleanTmpChunk();
+		
+	}
+
+	/**
+	 * 上传已分片的大文件至Onedrive
 	 *
 	 * @return void
 	 */
@@ -162,7 +259,7 @@ class Task extends Model{
 			'state' => json_decode($policyData["sk"]),
 		]);
 		
-		$filePath = ROOT_PATH . 'public/uploads/'.$this->taskContent["savePath"] . "/" . $this->taskContent["objname"];
+		$filePath = $this->taskModel["type"] == "UploadRegularRemoteDownloadFileToOnedrive"?$this->taskContent["originPath"]:ROOT_PATH . 'public/uploads/'.$this->taskContent["savePath"] . "/" . $this->taskContent["objname"];
 		if($file = @fopen($filePath,"r")){
 			try{
 				$onedrive->createFile(rawurlencode($this->taskContent["objname"]),"/me/drive/root:/".$this->taskContent["savePath"],$file);
@@ -202,7 +299,12 @@ class Task extends Model{
 	 * @return bool 是否成功
 	 */
 	private function cleanTmpFile(){
-		return @unlink(ROOT_PATH . 'public/uploads/'.$this->taskContent["savePath"] . "/" . $this->taskContent["objname"]);
+		if($this->taskModel["type"] == "UploadRegularRemoteDownloadFileToOnedrive"){
+			return @unlink($this->taskContent["originPath"]);
+		}else{
+			return @unlink(ROOT_PATH . 'public/uploads/'.$this->taskContent["savePath"] . "/" . $this->taskContent["objname"]);
+		}
+		
 	}
 
 	/**
@@ -211,8 +313,12 @@ class Task extends Model{
 	 * @return void
 	 */
 	private function cleanTmpChunk(){
-		foreach ($this->taskContent["chunks"] as $key => $value) {
-			@unlink( ROOT_PATH . 'public/uploads/chunks/'.$value["obj_name"].".chunk");
+		if($this->taskModel["type"] == "UploadLargeRemoteDownloadFileToOnedrive"){
+			@unlink($this->taskContent["originPath"]);
+		}else{
+			foreach ($this->taskContent["chunks"] as $key => $value) {
+				@unlink( ROOT_PATH . 'public/uploads/chunks/'.$value["obj_name"].".chunk");
+			}
 		}
 	}
 

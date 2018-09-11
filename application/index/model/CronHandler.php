@@ -46,6 +46,11 @@ class CronHandler extends Model{
 						$this->flushAria2($value["interval_s"]);
 					}
 					break;
+				case 'flush_onedrive_token':
+					if($this->checkInterval($value["interval_s"],$value["last_excute"])){
+						$this->flushOnedriveToken($value["interval_s"]);
+					}
+					break;
 				default:
 					# code...
 					break;
@@ -89,6 +94,27 @@ class CronHandler extends Model{
 		}
 		echo("Complete<br>");
 		$this->setComplete("flush_aria2");
+	}
+
+	public function flushOnedriveToken($interval){
+		echo("flushOnedriveToken...");
+		$toBeFlushedPolicy = Db::name("policy")->where("policy_type","onedrive")->select();
+		foreach ($toBeFlushedPolicy as $key => $value) {
+			$onedrive = new \Krizalys\Onedrive\Client([
+				'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
+				'client_id' => $value["bucketname"],
+			
+				// Restore the previous state while instantiating this client to proceed in
+				// obtaining an access token.
+				'state' => json_decode($value["sk"]),
+			]);
+			$onedrive->renewAccessToken($value["ak"]);
+			Db::name("policy")->where("id",$value["id"])->update([
+				"sk" => json_encode($onedrive->getState()),
+			]);
+		}
+		echo("Complete<br>");
+		$this->setComplete("flush_onedrive_token");
 	}
 
 }

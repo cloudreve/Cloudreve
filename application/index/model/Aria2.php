@@ -24,6 +24,12 @@ class Aria2 extends Model{
 		$this->savePath = rtrim(rtrim($options["aria2_tmppath"],"/"),"\\").DS;
 	}
 
+	/**
+	 * 新建普通URL下载任务
+	 *
+	 * @param string $url
+	 * @return void
+	 */
 	public function addUrl($url){
 		$this->pathId = uniqid();
 		$reqFileds = [
@@ -46,6 +52,12 @@ class Aria2 extends Model{
 		}
 	}
 
+	/**
+	 * 新建种子下载任务
+	 *
+	 * @param string $torrentUrl 种子URL
+	 * @return void
+	 */
 	public function addTorrent($torrentUrl){
 		$this->pathId = uniqid();
 		$reqFileds = [
@@ -68,6 +80,14 @@ class Aria2 extends Model{
 		}
 	}
 
+	/**
+	 * 刷新下载状态
+	 *
+	 * @param int $id       任务ID
+	 * @param int $uid      用户ID
+	 * @param array $policy 上传策略
+	 * @return void
+	 */
 	public function flushStatus($id,$uid,$policy){
 		$this->uid = $uid;
 		if(empty($policy)){
@@ -159,6 +179,13 @@ class Aria2 extends Model{
 		return true;
 	}
 
+	/**
+	 * 取消任务
+	 *
+	 * @param array $quenInfo 任务信息（aria2）
+	 * @param array $sqlData  任务信息（数据库）
+	 * @return void
+	 */
 	private function setCanceled($quenInfo,$sqlData){
 		@self::remove_directory($this->savePath.$sqlData["path_id"]);
 		if(!is_dir($this->savePath.$sqlData["path_id"])){
@@ -168,6 +195,12 @@ class Aria2 extends Model{
 		}
 	}
 
+	/**
+	 * 移除整个目录
+	 *
+	 * @param string $dir
+	 * @return void
+	 */
 	static function remove_directory($dir){
 		if($handle=opendir("$dir")){
 			while(false!==($item=readdir($handle))){
@@ -184,6 +217,13 @@ class Aria2 extends Model{
 		}
 	}
 
+	/**
+	 * 将单文件任务升级至多文件任务
+	 *
+	 * @param array $quenInfo
+	 * @param array $sqlData
+	 * @return void
+	 */
 	private function updateToMuiltpe($quenInfo,$sqlData){
 		foreach ($quenInfo["files"] as $key => $value) {
 			Db::name("download")->insert([
@@ -203,8 +243,16 @@ class Aria2 extends Model{
 		Db::name("download")->where("id",$sqlData["id"])->delete();
 	}
 
+	/**
+	 * 下载完成后续处理
+	 *
+	 * @param array $quenInfo
+	 * @param array $sqlData
+	 * @param int $fileIndex
+	 * @return void
+	 */
 	private function setComplete($quenInfo,$sqlData,$fileIndex=null){
-		if($this->policy["policy_type"] != "local"){
+		if($this->policy["policy_type"] != "local" && $this->policy["policy_type"] != "onedrive"){
 			$this->setError($quenInfo,$sqlData,"您当前的上传策略无法使用离线下载");
 			return false;
 		}
@@ -230,27 +278,64 @@ class Aria2 extends Model{
 			$fileName = basename($quenInfo["files"][$sqlData["file_index"]]["path"]);
 		}
 		$generatePath = $uploadHandller->getDirName($this->policy['dirrule']);
-		$savePath = ROOT_PATH . 'public/uploads/'.$generatePath.DS.$fileName;
-		is_dir(dirname($savePath))? :mkdir(dirname($savePath),0777,true);
-		rename($quenInfo["files"][$sqlData["file_index"]]["path"],$savePath);
-		@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
-		$jsonData = array(
-			"path" => ltrim(str_replace("/", ",", $sqlData["save_dir"]),","),
-			"fname" => basename($quenInfo["files"][$sqlData["file_index"]]["path"]),
-			"objname" => $generatePath.DS.$fileName,
-			"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
-		);
-		@list($width, $height, $type, $attr) = getimagesize($savePath);
-		$picInfo = empty($width)?" ":$width.",".$height;
-		$addAction = FileManage::addFile($jsonData,$this->policy,$this->uid,$picInfo);
-		if(!$addAction[0]){
-			//取消任务
-			$this->setError($quenInfo,$sqlData,$addAction[1]);
-			return false;
+
+		if($this->policy["policy_type"] == "onedrive"){
+
+			$savePath = ROOT_PATH . 'public/uploads/'.$generatePath.DS.$fileName;
+			$task = new Task();
+			$task->taskName = "Upload RemoteDownload File " .  $quenInfo["files"][$sqlData["file_index"]]["path"] . " to Onedrive";
+			$task->taskType = $quenInfo["files"][$sqlData["file_index"]]["length"]<=4*1024*1024 ? "UploadRegularRemoteDownloadFileToOnedrive" :"UploadLargeRemoteDownloadFileToOnedrive";
+			@list($width, $height, $type, $attr) = getimagesize($quenInfo["files"][$sqlData["file_index"]]["path"]);
+			$picInfo = empty($width)?"":$width.",".$height;
+			$task->taskContent = json_encode([
+				"path" => ltrim(str_replace("/", ",", $sqlData["save_dir"]),","),
+				"fname" => basename($quenInfo["files"][$sqlData["file_index"]]["path"]),
+				"originPath" => $quenInfo["files"][$sqlData["file_index"]]["path"],
+				"objname" => $fileName,
+				"savePath" => $generatePath,
+				"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
+				"picInfo" => $picInfo,
+				"policyId" => $this->policy["id"],
+			]);
+			$task->userId = $this->uid;
+			$task->saveTask();
+
+		}else{
+			
+			$savePath = ROOT_PATH . 'public/uploads/'.$generatePath.DS.$fileName;
+			is_dir(dirname($savePath))? :mkdir(dirname($savePath),0777,true);
+			rename($quenInfo["files"][$sqlData["file_index"]]["path"],$savePath);
+			@unlink(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
+			$jsonData = array(
+				"path" => ltrim(str_replace("/", ",", $sqlData["save_dir"]),","),
+				"fname" => basename($quenInfo["files"][$sqlData["file_index"]]["path"]),
+				"objname" => $generatePath.DS.$fileName,
+				"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
+			);
+			@list($width, $height, $type, $attr) = getimagesize($savePath);
+			$picInfo = empty($width)?" ":$width.",".$height;
+			$addAction = FileManage::addFile($jsonData,$this->policy,$this->uid,$picInfo);
+			if(!$addAction[0]){
+				//取消任务
+				$this->setError($quenInfo,$sqlData,$addAction[1]);
+				return false;
+			}
+
 		}
+		
 		FileManage::storageCheckOut($this->uid,$quenInfo["files"][$sqlData["file_index"]]["length"]);
 	}
 
+	/**
+	 * 设置任务为失败状态
+	 *
+	 * @param array $quenInfo
+	 * @param array $sqlData
+	 * @param string $msg     失败消息
+	 * @param string $status  状态
+	 * @param boolean $delete 是否删除下载文件
+	 * @return void
+	 */
 	private function setError($quenInfo,$sqlData,$msg,$status="error",$delete=true){
 		$this->Remove($sqlData["pid"],$sqlData);
 		$this->removeDownloadResult($sqlData["pid"],$sqlData);
@@ -266,6 +351,13 @@ class Aria2 extends Model{
 			]);
 	}
 
+	/**
+	 * 移除任务
+	 *
+	 * @param int $gid
+	 * @param array $sqlData
+	 * @return void
+	 */
 	public function Remove($gid,$sqlData){
 		$reqFileds = [
 				"params" => ["token:".$this->authToken,$gid],
@@ -281,6 +373,13 @@ class Aria2 extends Model{
 		return false;
 	}
 
+	/**
+	 * 删除下载结果
+	 *
+	 * @param int $gid
+	 * @param array $sqlData
+	 * @return void
+	 */
 	public function removeDownloadResult($gid,$sqlData){
 		$reqFileds = [
 				"params" => ["token:".$this->authToken,$gid],
@@ -296,6 +395,12 @@ class Aria2 extends Model{
 		return false;
 	}
 
+	/**
+	 * 强制移除任务
+	 *
+	 * @param int $gid
+	 * @return void
+	 */
 	public function forceRemove($gid){
 		$reqFileds = [
 				"params" => ["token:".$this->authToken,$gid],
@@ -311,6 +416,13 @@ class Aria2 extends Model{
 		return false;
 	}
 
+	/**
+	 * 检查容量
+	 *
+	 * @param array $quenInfo
+	 * @param array $sqlData
+	 * @return void
+	 */
 	private function storageCheck($quenInfo,$sqlData){
 		if(!FileManage::sotrageCheck($this->uid,$quenInfo["totalLength"])){
 			return false;
@@ -321,6 +433,12 @@ class Aria2 extends Model{
 		return true;
 	}
 
+	/**
+	 * 发送请求
+	 *
+	 * @param string $data
+	 * @return array
+	 */
 	private function sendReq($data){
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, $this->apiUrl."jsonrpc");
