@@ -592,7 +592,9 @@ class Client
 
     public function sendFileChunk($url,$headers,$stream){
         $curl  = self::_createCurl("");
+        $close = 0;
         if(!is_resource($stream)){
+            $close = 1;
             $options=[];
             $options = array_merge([
                 'stream_back_end' => $this->_streamBackEnd,
@@ -629,7 +631,7 @@ class Client
         curl_setopt_array($curl, $options);
         
         $data = $this->_processResult($curl);
-        if (!is_resource($content)) {
+        if (is_resource($close)) {
             fclose($stream);
         }
         return $data;
