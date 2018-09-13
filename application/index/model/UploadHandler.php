@@ -305,7 +305,7 @@ class UploadHandler extends Model{
 				return $this->getLocalToken();
 				break;
 			case 'onedrive':
-				return $this->getLocalToken();
+				return 'nazGTT91tboaLWBC549$:tHSsNyTBxoV4HDfELJeKH1EUmEY=:eyJjYWxsYmFja0JvZHkiOiJ7XCJwYXRoXCI6XCJcIn0iLCJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb25cL2pzb24iLCJzY29wZSI6ImMxNjMyMTc3LTQ4NGEtNGU1OS1hZDBhLWUwNDc4ZjZhY2NjZSIsImRlYWRsaW5lIjoxNTM2ODMxOTEwfQ==';
 				break;
 			case 'oss':
 				return $this->getOssToken();
