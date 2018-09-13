@@ -8,6 +8,7 @@ use \app\index\model\FileManage;
 use \app\index\model\Option;
 use \app\index\model\Mail;
 use \app\index\model\Aria2;
+use think\Exception;
 
 class CronHandler extends Model{
 
@@ -108,7 +109,11 @@ class CronHandler extends Model{
 				// obtaining an access token.
 				'state' => json_decode($value["sk"]),
 			]);
-			$onedrive->renewAccessToken($value["ak"]);
+			try{
+				$onedrive->renewAccessToken($value["ak"]);
+			}catch(\Exception $e){
+
+			}
 			Db::name("policy")->where("id",$value["id"])->update([
 				"sk" => json_encode($onedrive->getState()),
 			]);
