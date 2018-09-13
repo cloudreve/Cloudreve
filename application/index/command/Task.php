@@ -39,7 +39,7 @@ class Task extends Command
             $task->taskModel = $newTaskInfo;
             $task->input = $input;
             $task->output = $output;
-            $task->Do();
+            $task->Doit();
             if($task->status=="error"){
                 $output->writeln("[Error] ".$task->errorMsg);
                 Db::name("task")->where("id",$newTaskInfo["id"])->update(["status"=>"error|".$task->errorMsg]);

@@ -53,7 +53,7 @@ class Task extends Model{
 	 *
 	 * @return void
 	 */
-	public function Do(){
+	public function Doit(){
 		switch ($this->taskModel["type"]){
 			case "uploadSingleToOnedrive":
 				$this->uploadSingleToOnedrive();
