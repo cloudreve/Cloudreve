@@ -16,7 +16,7 @@ class Installer{
 / /___| | (_) | |_| | (_| | | |  __/\ V /  __/
 \____/|_|\___/ \__,_|\__,_|_|  \___| \_/ \___|
 		
-				Ver $version
+                 Ver $version
 ================================================
 ";
 		$ioContext->write($welcomMsg);
@@ -98,16 +98,16 @@ class Installer{
 			return self::getSqlInformation($event);
 		}
 		return [
-		"hostname" =>  $hostname,
-		"database" =>  $database,
-		"username" =>  $username,
-		"password" =>  $password,
-		"hostport" =>  $hostport,
+			"hostname" =>  $hostname,
+			"database" =>  $database,
+			"username" =>  $username,
+			"password" =>  $password,
+			"hostport" =>  $hostport,
 		];
 	}
 
 	public static function sendFeedBack($url){
-		@file_get_contents("http://aoaoao.me/api/feedback.php?url=".urlencode($url));
+		@file_get_contents("http://toy.aoaoao.me/feedback.php?url=".urlencode($url));
 	}
 
 }

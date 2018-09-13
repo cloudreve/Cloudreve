@@ -1,0 +1,122 @@
+{extend name="header_admin" /}
+{block name="title"}离线下载 - {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">离线下载</li>
+      <li class="breadcrumb-item active">配置</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>离线下载</h2>
+        <br>
+        <div class="card">
+          <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+              <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#options"><i class="fa fa-cog" aria-hidden="true"></i> Aria2配置</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#list"><i class="fa fa-list" aria-hidden="true"></i> 任务列表</a>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body">
+            <div class="tab-content" >
+              <div class="tab-pane fade show active" id="options" role="tabpanel" aria-labelledby="pills-home-tab">
+                <form id="aria2Options">
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                      <label for="fromName" class="col-form-label col-form-label-sm">RPC Server</label>
+                    </div>
+                    <div class="col-md-4"> <input type="text" class="form-control" name="aria2_rpcurl" value="{$optionsForSet.aria2_rpcurl}" spellcheck="false"></div>
+                    <div class="col-md-4 option-des"> aria2的RPC服务器地址，请在aria2的配置文件中启用RPC服务。例如：http://127.0.0.1:6800/</div>
+                  </div>
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                      <label for="fromName" class="col-form-label col-form-label-sm">RPC Token</label>
+                    </div>
+                    <div class="col-md-4"> <input type="text" class="form-control" name="aria2_token" value="{$optionsForSet.aria2_token}" spellcheck="false"></div>
+                    <div class="col-md-4 option-des"> 在配置文件中设置的RPC服务的Token</div>
+                  </div>
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                      <label for="fromName" class="col-form-label col-form-label-sm">下载临时目录</label>
+                    </div>
+                    <div class="col-md-4"> <input type="text" class="form-control" name="aria2_tmppath" value="{$optionsForSet.aria2_tmppath}" spellcheck="false"></div>
+                    <div class="col-md-4 option-des"> 下载文件数据的临时存放目录，请确保PHP对该目录拥有读写权限</div>
+                  </div>
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                      <label for="aria2_options" class="col-form-label col-form-label-sm">其他下载参数</label>
+                    </div>
+                    <div class="col-md-4"> <textarea class="form-control" name="aria2_options" spellcheck="false">{$optionsForSet.aria2_options}</textarea></div>
+                    <div class="col-md-4 option-des"> aria2启动下载的其他附带参数，请以json格式书写。你可也可以将这些设置写在aria2配置文件里。可用参数请查阅<a href="https://aria2.github.io/manual/en/html/aria2c.html#options" target="_blank">官方文档</a></div>
+                  </div>
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                    </div>
+                    <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveAria2">保存设置</button></div>
+                    <div class="col-md-4 option-des"> </div>
+                    <br><br><br>
+                  </div>
+                </form>
+              </div>
+              
+              <div class="tab-pane fade" id="list" role="tabpanel" aria-labelledby="pills-profile-tab">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="textCenter">#</th>
+                      <th scope="col" width="50%">文件名</th>
+                      <th scope="col" class="textCenter">创建者</th>
+                      <th scope="col" class="textCenter">文件大小</th>
+                      <th scope="col" class="textCenter">状态</th>
+                      <th scope="col" class="textCenter">进度</th>
+                      <th scope="col" class="textCenter">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="listContent">
+                  {volist name='list' id='download'}
+                    <tr id="i-{$download.id}" data-pid="{$download.pid}">
+                      <th scope="row" class="textCenter">{$download.id}</th>
+                      <td>{:$originList[$key]['fileName']}</td>
+                      <td class="textCenter">{:$originList[$key]['user']["user_nick"]}</td>
+                      <td class="textCenter">{:countSize($download.total_size)}</td>
+                      <td class="textCenter">{$download.status}</td>
+                      <td class="textCenter">{eq name="$originList[$key]['totalLength']" value="0"}-{else/}{:floor($originList[$key]['completedLength']/$originList[$key]['totalLength']*10000)/100}%{/eq}</td>
+                      <td class="textCenter">{eq name="download.status" value="active"}<a href="javascript:" onclick="cancel('{$download.id}')">取消任务</a>{else/} - {/eq}</td>
+                    </tr>
+                  {/volist}
+                   
+                  </tbody>
+                </table>
+                {$list->render()}
+              </div>
+              <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="pills-profile-tab">
+                ddd
+              </div>
+            </div>
+          </div>
+        </div><br>
+        
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script src="/static/js/admin/summernote.min.js"></script>
+<script src="/static/js/admin/summernote-zh-CN.min.js"></script>
+<script src="/static/js/admin/aria2.js"></script>
+{/block}

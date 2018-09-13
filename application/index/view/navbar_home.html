@@ -2,7 +2,7 @@
 	<div class="container-fluid">
 		<!-- Brand and toggle get grouped for better mobile display -->
 		<div class="navbar-header">
-			<a class="navbar-brand" href="/">
+			<a class="navbar-brand waves-light" href="/">
 				
 			</a>
 			
@@ -19,7 +19,7 @@
 			<ul class="nav navbar-nav navbar-right">
 				
 				<li class="dropdown">
-					<a href="#" class="dropdown-toggle avatar-a" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><img src="/Member/Avatar/{$userInfo.uid}/s" class="img-circle avatar-s"> {$userInfo.userNick} <span class="caret"></span></a>
+					<a href="#" class="dropdown-toggle avatar-a waves-light" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><img src="/Member/Avatar/{$userInfo.uid}/s" class="img-circle avatar-s"> {$userInfo.userNick} <span class="caret"></span></a>
 					<ul class="dropdown-menu">
 						<li><a href="/Profile/{$userInfo.uid}">个人主页</a></li>
 						<li><a href="/Member/Setting">设置</a></li>
@@ -63,7 +63,7 @@
                         
                         <div id="container">
 
-                            <button class="btn btn-raised btn-info btn-lg upload_button" id="pickfiles"  >
+                            <button class="btn btn-raised btn-info btn-lg upload_button waves-light" id="pickfiles"  >
                                 <i class="glyphicon glyphicon-plus"></i>
                                 <span id="up_text"></span>
                             </button>
@@ -129,6 +129,11 @@
           <a href="/Home/Album" class="list-group-item">
            <i class="fa fa-picture-o" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 图片集
           </a>
+          {eq name=':(explode(",",$groupData.aria2)[0] OR explode(",",$groupData.aria2)[1])' value="1"}
+            <a href="/Home/Download" class="list-group-item">
+           <i class="fa fa-cloud-download" aria-hidden="true"></i>&nbsp;&nbsp;&nbsp; 离线下载
+          </a>
+            {/eq}
         </div>
         <div  clss="usage" style="  visibility: visible;
           position: absolute;

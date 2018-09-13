@@ -4,7 +4,7 @@ namespace app\index\model;
 use think\Model;
 use think\Db;
 use \app\index\model\Option;
-use \app\index\model\FileManage;
+use \app\index\model\LocalAdapter;
 
 class Avatar extends Model{
 
@@ -90,7 +90,7 @@ class Avatar extends Model{
 		$filePath = ROOT_PATH . 'public/avatars/' . $this->fileName.$siezSuffix;
 		if(file_exists($filePath)){
 			ob_end_clean();
-			header('Content-Type: '.FileManage::getMimetype($filePath)); 
+			header('Content-Type: '.LocalAdapter::getMimetype($filePath)); 
 			$fileObj = fopen($filePath,"r");
 			while(!feof($fileObj)){
 				echo fread($fileObj,2097152);
@@ -131,7 +131,7 @@ class Avatar extends Model{
 		}
 		ob_end_clean();
 		$filePath = ROOT_PATH . 'static/img/default.png' .$siezSuffix;
-		header('Content-Type: '.FileManage::getMimetype($filePath)); 
+		header('Content-Type: '.LocalAdapter::getMimetype($filePath)); 
 			$fileObj = fopen($filePath,"r");
 			while(!feof($fileObj)){
 				echo fread($fileObj,2097152);

@@ -132,6 +132,21 @@ class Share extends Controller{
 		return $shareObj->listPic($shareId,$filePath);
 	}
 
+	public function Thumb(){
+		$shareId = input('get.shareKey');
+		$filePath = input('get.path');
+		if(input("get.isImg") != "true"){
+			return "";
+		}
+		$shareObj = new ShareHandler($shareId,false);
+		$Redirect = $shareObj->getThumb($this->userObj,$filePath);
+		if($Redirect[0]){
+			$this->redirect($Redirect[1],302);
+		}else{
+			$this->error($Redirect[1],403,$this->siteOptions);
+		}
+	}
+
 	public function Delete(){
 		$shareId = input('post.id');
 		$shareObj = new ShareHandler($shareId,false);
@@ -163,7 +178,7 @@ class Share extends Controller{
 		}
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
-		$list = Db::name('shares')->where('owner',$this->userObj->uid)->paginate(10);
+		$list = Db::name('shares')->where('owner',$this->userObj->uid)->order('share_time DESC')->paginate(30);
 		$listData = $list->all();
 		foreach ($listData as $key => $value) {
 			if($value["source_type"]=="file"){

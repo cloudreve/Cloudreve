@@ -116,6 +116,18 @@
 
           <div class="row form-setting">
             <div class="col-md-1 form-label ">
+              <label for="colFormLabelSm" class="col-form-label col-form-label-sm">离线下载</label>
+            </div>
+            <div class="col-md-4"> <input class="" type="radio" name="aria2"  value="1" id="webdav1" >
+                  <label class="" for="webdav1" >允许</label>
+                  &nbsp;&nbsp;&nbsp;
+                  <input class="" type="radio" name="aria2" id="webdav0" value="0">
+                  <label class="" for="webdav0">禁止</label></div>
+            <div class="col-md-4 option-des"> 是否允许用户使用离线下载。此功能仅支持本地存储策略，开启前需要到离线下载管理页面设置Aria2接口</div>
+          </div>
+
+          <div class="row form-setting">
+            <div class="col-md-1 form-label ">
               <label for="colFormLabelSm" class="col-form-label col-form-label-sm">用户组标志色</label>
             </div>
             <div class="col-md-4"> 
@@ -162,10 +174,15 @@
 <script src="/static/js/admin/add_group.js"></script>
 <script type="text/javascript">
 $("option[value='{$group.policy_name}']").attr("selected",true);
-$("option[value='{$group.max_storage}']").attr("selected",true);
+$("option[value='{:countSize($group.max_storage,true)[1]}']").attr("selected",true);
 $("input[name='range_transfer'][value='{$group.range_transfer}']").attr("checked",true);
 $("input[name='allow_share'][value='{$group.allow_share}']").attr("checked",true);
 $("input[name='color'][value='{$group.color}']").attr("checked",true);
 $("input[name='webdav'][value='{$group.webdav}']").attr("checked",true);
+if('{$group.aria2}'=="1,1,1"){
+  $("input[name='aria2'][value='1']").attr("checked",true);
+}else{
+  $("input[name='aria2'][value='0']").attr("checked",true);
+}
 </script>
 {/block}

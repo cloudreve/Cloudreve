@@ -248,6 +248,10 @@ class Admin extends Controller{
 		return $this->adminObj->saveMailSetting(input('post.'));
 	}
 
+	public function SaveAria2Setting(){
+		return $this->adminObj->saveAria2Setting(input('post.'));
+	}
+
 	public function SendTestMail(){
 		return $this->adminObj->sendTestMail(input('post.'));
 	}
@@ -447,6 +451,12 @@ class Admin extends Controller{
 		]);
 	}
 
+	public function PolicyAddOnedrive(){
+		return view('add_policy_onedrive', [
+			'options' => $this->siteOptions,
+		]);
+	}
+
 	public function About(){
 		$verison = json_decode(file_get_contents(ROOT_PATH . "application/version.json"),true);
 		return view('about', [
@@ -481,6 +491,44 @@ class Admin extends Controller{
 			'options' => $this->siteOptions,
 			'policy' => $this->adminObj->getAvaliablePolicy(),
 		]);
+	}
+
+	public function RemoteDownload(){
+		$this->adminObj->listDownloads();
+		return view('download', [
+			'options'  => $this->siteOptions,
+			'optionsForSet'  =>  Option::getValues(["aria2"]),
+			'list' => $this->adminObj->pageData,
+			'originList' => $this->adminObj->listData,
+			'pageNow' => $this->adminObj->pageNow,
+			'pageTotal' => $this->adminObj->pageTotal,
+			'dataTotal' => $this->adminObj->dataTotal,
+		]);
+	}
+
+	public function CancelDownload(){
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new \app\index\model\Aria2($aria2Options);
+		$downloadItem =  Db::name("download")->where("id",input("post.id"))->find();
+		if(empty($downloadItem)){
+			return json(['error'=>1,'message'=>"未找到下载记录"]);
+		}
+		if($aria2->Remove($downloadItem["pid"],"")){
+			return json(['error'=>0,'message'=>"下载已取消"]);
+		}else{
+			return json(['error'=>1,'message'=>"取消失败"]);
+		}
+	}
+
+	public function UpdateOnedriveToken(){
+		$policyId = input("get.id");
+		$this->adminObj->updateOnedriveToken($policyId);
+
+	}
+
+	public function OneDriveCalllback(){
+		$code = input("get.code");
+		$this->adminObj->oneDriveCalllback($code);
 	}
 	
 }

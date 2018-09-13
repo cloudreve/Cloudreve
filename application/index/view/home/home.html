@@ -28,6 +28,8 @@
 			allowSource : "{$policyData.origin_link}",
 			upUrl : "{$policyData.server}",
 			allowShare:"{$groupData.allow_share}",
+            allowRemoteDownload:"{:explode(",",$groupData.aria2)[0]}",
+            allowTorrentDownload:"{:explode(",",$groupData.aria2)[1]}",
 		};
 		</script>
 		<script src="/static/js/home.js"></script>

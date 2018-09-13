@@ -5,7 +5,7 @@
                 config.set({
                     appName: 'angular-filemanager',
                     defaultLang: 'zh_cn',
-                    sidebar: false,
+                    sidebar: true,
                     pickCallback: function(item) {
                         var msg = 'Picked %s "%s" for external use'
                             .replace('%s', item.type)
@@ -17,6 +17,7 @@
                         pickFolders: false,
                         changePermissions: false,
                         upload: false,
+                        shareFile: false,
                         shareFile: false,
                     }),
                 });

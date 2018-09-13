@@ -8,6 +8,7 @@ use think\Db;
 use Qiniu\Auth;
 use \app\index\model\Option;
 use \app\index\model\FileManage;
+use \app\index\model\Task;
 
 class UploadHandler extends Model{
 
@@ -75,13 +76,25 @@ class UploadHandler extends Model{
 		return 0;
 	}
 
+	/**
+	 * 组合分片并生成最终文件
+	 *
+	 * @param array $ctx    文件片校验码
+	 * @param string $fname 最终文件名
+	 * @param string $path  储存目录
+	 * @return void
+	 */
 	public function generateFile($ctx,$fname,$path){
 		$ctxTmp = explode(",",$ctx);
 		$chunks = Db::name('chunks')->where([
 		'ctx' => ["in",$ctxTmp],
 		])->order('id asc')->select();
-		$file = $this->combineChunks($chunks);
-		$this->filterCheck($file,$fname);
+		$file = null;
+		if($this->policyContent["policy_type"] != "onedrive"){
+			$file = $this->combineChunks($chunks);
+		}
+		
+		$this->filterCheck($file,$fname,$chunks);
 		$suffixTmp = explode('.', $fname);
 		$fileSuffix = array_pop($suffixTmp);
 		if($this->policyContent['autoname']){
@@ -95,28 +108,67 @@ class UploadHandler extends Model{
 		if(file_exists($savePath.DS.$fileName)){
 			$this->setError("文件重名",true,$file,ROOT_PATH . 'public/uploads/chunks/');
 		}
-		if(!@rename(ROOT_PATH . 'public/uploads/chunks/'.$file,$savePath.DS.$fileName)){
-			$this->setError("文件创建失败",true,$file,ROOT_PATH . 'public/uploads/chunks/');
-		}else{
+		if($this->policyContent["policy_type"] == "onedrive"){
 			if($path == "ROOTDIR"){
 				$path = "";
 			}
-			$jsonData = array(
+			$task = new Task();
+			$task->taskName = "Upload Big File " .  $fname . " to Onedrive";
+			$task->taskType = "uploadChunksToOnedrive";
+			$task->taskContent = json_encode([
 				"path" => $path, 
 				"fname" => $fname,
-				"objname" => $generatePath."/".$fileName,
+				"objname" => $fileName,
+				"savePath" =>  $generatePath,
 				"fsize" => $this->fileSizeTmp,
-			);
-			$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId);
+				"picInfo" => "",
+				"chunks" => $chunks,
+				"policyId" => $this->policyContent['id']
+			]);
+			$task->userId = $this->userId;
+			$task->saveTask();
+			echo json_encode(array("key" => $fname));
+		}else{
+			if(!@rename(ROOT_PATH . 'public/uploads/chunks/'.$file,$savePath.DS.$fileName)){
+				$this->setError("文件创建失败",true,$file,ROOT_PATH . 'public/uploads/chunks/');
+			}else{
+				if($path == "ROOTDIR"){
+					$path = "";
+				}
+				$jsonData = array(
+					"path" => $path, 
+					"fname" => $fname,
+					"objname" => $generatePath."/".$fileName,
+					"fsize" => $this->fileSizeTmp,
+				);
+				@list($width, $height, $type, $attr) = getimagesize($savePath.DS.$fileName);
+				$picInfo = empty($width)?" ":$width.",".$height;
+				$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId,$picInfo);
 			if(!$addAction[0]){
 				$this->setError($addAction[1],true,$fileName,$savePath);
 			}
-			echo json_encode(array("key" => $fname));
+				echo json_encode(array("key" => $fname));
+			}
 		}
+		
 	}
 
-	public function filterCheck($file,$fname){
-		$fileSize = filesize(ROOT_PATH . 'public/uploads/chunks/'.$file);
+	protected function countTotalChunkSize($chunks){
+		$size = 0;
+		foreach ($chunks as $key => $value) {
+			$size += @filesize(ROOT_PATH . 'public/uploads/chunks/'.$value["obj_name"].".chunk");
+		}
+
+		return $size;
+	}
+
+	public function filterCheck($file,$fname,$chunks){
+		if($file !=null){
+			$fileSize = filesize(ROOT_PATH . 'public/uploads/chunks/'.$file);
+		}else{
+			$fileSize = $this->countTotalChunkSize($chunks);
+		}
+		
 		$suffixTmp = explode('.', $fname);
 		$fileSuffix = array_pop($suffixTmp);
 		$allowedSuffix = explode(',', self::getAllowedExt(json_decode($this->policyContent["filetype"],true)));
@@ -131,6 +183,12 @@ class UploadHandler extends Model{
 		$this->fileSizeTmp = $fileSize;
 	}
 
+	/**
+	 * 组合文件分片
+	 *
+	 * @param array $fname 文件分片数据库记录
+	 * @return void
+	 */
 	public function combineChunks($fname){
 		$fileName = "file_".self::getRandomKey(8);
 		$fileObj=fopen (ROOT_PATH . 'public/uploads/chunks/'.$fileName,"a+");
@@ -181,12 +239,39 @@ class UploadHandler extends Model{
 			);
 			@list($width, $height, $type, $attr) = getimagesize(rtrim($savePath, DS).DS.$Uploadinfo->getSaveName());
 			$picInfo = empty($width)?" ":$width.",".$height;
+
+			//处理Onedrive等非直传
+			if($this->policyContent['policy_type'] == "onedrive"){
+				$task = new Task();
+				$task->taskName = "Upload" .  $info["name"] . " to Onedrive";
+				$task->taskType = "uploadSingleToOnedrive";
+				$task->taskContent = json_encode([
+					"path" => $info["path"], 
+					"fname" => $info["name"],
+					"objname" => $Uploadinfo->getSaveName(),
+					"savePath" =>  $generatePath,
+					"fsize" => $Uploadinfo->getSize(),
+					"picInfo" => $picInfo,
+					"policyId" => $this->policyContent['id']
+				]);
+				$task->userId = $this->userId;
+
+				$task->saveTask();
+
+				echo json_encode(array("key" => $info["name"]));
+				FileManage::storageCheckOut($this->userId,$jsonData["fsize"],$Uploadinfo->getInfo('size'));
+				return;
+			}
+
+			//向数据库中添加文件记录
 			$addAction = FileManage::addFile($jsonData,$this->policyContent,$this->userId,$picInfo);
 			if(!$addAction[0]){
 				$tmpFileName = $Uploadinfo->getSaveName();
 				unset($Uploadinfo);
 				$this->setError($addAction[1],true,$tmpFileName,$savePath);
 			}
+
+			//扣除容量
 			FileManage::storageCheckOut($this->userId,$jsonData["fsize"],$Uploadinfo->getInfo('size'));
 			echo json_encode(array("key" => $info["name"]));
 		}else{
@@ -218,6 +303,9 @@ class UploadHandler extends Model{
 				break;
 			case 'local':
 				return $this->getLocalToken();
+				break;
+			case 'onedrive':
+				return 'nazGTT91tboaLWBC549$:tHSsNyTBxoV4HDfELJeKH1EUmEY=:eyJjYWxsYmFja0JvZHkiOiJ7XCJwYXRoXCI6XCJcIn0iLCJjYWxsYmFja0JvZHlUeXBlIjoiYXBwbGljYXRpb25cL2pzb24iLCJzY29wZSI6ImMxNjMyMTc3LTQ4NGEtNGU1OS1hZDBhLWUwNDc4ZjZhY2NjZSIsImRlYWRsaW5lIjoxNTM2ODMxOTEwfQ==';
 				break;
 			case 'oss':
 				return $this->getOssToken();

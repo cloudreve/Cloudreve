@@ -28,7 +28,7 @@ class WebDav extends Controller{
 		$publicDir = new Directory($this->uid."/");
 		
 		$server = new DAV\Server($publicDir);
-		$server->setBaseUri('/WebDav/Api/uid/'.$this->uid);
+		$server->setBaseUri('/WebDav/Api/uid/'.$this->uid."/");
 		$lockBackend = new DAV\Locks\Backend\File(ROOT_PATH.'public/locks');
 		$lockPlugin = new DAV\Locks\Plugin($lockBackend);
 		$server->addPlugin($lockPlugin);

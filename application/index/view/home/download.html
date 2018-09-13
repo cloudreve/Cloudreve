@@ -1,0 +1,81 @@
+{extend name="header_home" /}
+{block name="title"}离线下载管理- {$options.siteName}{/block}
+{block name="content"}
+<script src="/static/js/remoteDownload.js"></script>
+<style type="text/css">
+.col-md-3{
+padding-right: 15px;
+padding-left: 15px;
+}
+</style>
+</head>
+<body >
+<div id="container">
+  {include file="navbar_home" /}
+  
+  <div class="col-md-10 quota_content">
+    <h1>离线下载管理</h1>
+    <br>
+    <div class="fix_side">
+      
+      <div class="fix">
+        <div class="col-md-12">
+          <div class="panel panel-primary">
+            <div class="panel-heading">正在进行中 <i class="fa fa-refresh" aria-hidden="true" title="刷新数据" onclick="refresh()"></i></div>
+            <div class="panel-body centerTable" id="loadStatus">
+              更新状态数据中...
+            </div>
+            <div class="table-responsive" style="display: none">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th width="5%" class="centerTable">#</th>
+                    <th width="50%" >文件名</th>
+                    <th class="centerTable">大小</th>
+                    <th class="centerTable">储存位置</th>
+                    <th class="centerTable">下载速度</th>
+                    <th class="centerTable">进度</th>
+                    <th class="centerTable">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="itemContent">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <div class="panel panel-info">
+            <div class="panel-heading">已完成 </i></div>
+            <div class="table-responsive" >
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th width="5%" class="centerTable">#</th>
+                    <th width="50%" >文件名</th>
+                    <th class="centerTable">大小</th>
+                    <th class="centerTable">储存位置</th>
+                    <th class="centerTable">状态</th>
+                  </tr>
+                </thead>
+                <tbody id="completeItemContent">
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-body centerTable" id="loadButton">
+              <button class="btn btn-primary" id="loadFinished">点击加载已完成列表</button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      <br>
+    </div>
+  </body>
+  <script src="/static/js/material.js"></script>
+  <script type="text/javascript">
+  upload_load=0;
+  </script>
+  {$options.js_code}
+</html>
+{/block}

@@ -7,6 +7,8 @@ use \think\Session;
 use \app\index\model\FileManage;
 use \app\index\model\Option;
 use \app\index\model\Mail;
+use \app\index\model\Aria2;
+use think\Exception;
 
 class CronHandler extends Model{
 
@@ -40,6 +42,16 @@ class CronHandler extends Model{
 						$this->deleteCallbackData($value["interval_s"]);
 					}
 					break;
+				case 'flush_aria2':
+					if($this->checkInterval($value["interval_s"],$value["last_excute"])){
+						$this->flushAria2($value["interval_s"]);
+					}
+					break;
+				case 'flush_onedrive_token':
+					if($this->checkInterval($value["interval_s"],$value["last_excute"])){
+						$this->flushOnedriveToken($value["interval_s"]);
+					}
+					break;
 				default:
 					# code...
 					break;
@@ -67,6 +79,47 @@ class CronHandler extends Model{
 		Db::name("callback")->delete(true);
 		echo("Complete<br>");
 		$this->setComplete("delete_callback_data");
+	}
+
+	public function flushAria2($interval){
+		echo("flushingAria2Status...");
+		$aria2Options = Option::getValues(["aria2"]);
+		$aria2 = new Aria2($aria2Options);
+		$toBeFlushed = Db::name("download")
+		->where("status","<>","complete")
+		->where("status","<>","error")
+		->where("status","<>","canceled")
+		->select();
+		foreach ($toBeFlushed as $key => $value) {
+			$aria2->flushStatus($value["id"],$value["owner"],null);
+		}
+		echo("Complete<br>");
+		$this->setComplete("flush_aria2");
+	}
+
+	public function flushOnedriveToken($interval){
+		echo("flushOnedriveToken...");
+		$toBeFlushedPolicy = Db::name("policy")->where("policy_type","onedrive")->select();
+		foreach ($toBeFlushedPolicy as $key => $value) {
+			$onedrive = new \Krizalys\Onedrive\Client([
+				'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
+				'client_id' => $value["bucketname"],
+			
+				// Restore the previous state while instantiating this client to proceed in
+				// obtaining an access token.
+				'state' => json_decode($value["sk"]),
+			]);
+			try{
+				$onedrive->renewAccessToken($value["ak"]);
+			}catch(\Exception $e){
+
+			}
+			Db::name("policy")->where("id",$value["id"])->update([
+				"sk" => json_encode($onedrive->getState()),
+			]);
+		}
+		echo("Complete<br>");
+		$this->setComplete("flush_onedrive_token");
 	}
 
 }

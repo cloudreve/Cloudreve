@@ -1,0 +1,155 @@
+{extend name="header_admin" /}
+{block name="title"}添加上传策略- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="/Admin/PolicyAdd">上传策略</a>
+      </li>
+      <li class="breadcrumb-item active">添加</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>添加上传策略</h2>
+        <br>
+
+        <div class="alert alert-warning" role="alert">
+          <strong>添加Onedrive上传策略前请确保阅读完下面内容！</strong>
+          <ul>
+          <li>Onedrive策略无法直传，上传文件时，Cloudreve会先将文件暂存在服务器，之后再由任务队列上传至Onedrive；</li>
+          <li>使用本策略前，请先配置并运行<a href="https://github.com/HFO4/Cloudreve/wiki/Onedrive%E5%AF%B9%E6%8E%A5%E8%AF%B4%E6%98%8E">Cloudreve任务队列</a>,否则正常无法使用;</li>
+          <li>用户上传文件后不能立马看到所上传的文件，需要等待任务队列处理完毕；</li>
+          <li>请确保已经正确配置好Cloudreve的Cron定时任务，以便用于刷新AccessToken信息。</li>
+          </ul>
+        </div>
+        <div class="card" id="s3" >
+          <div class="card-header">
+            添加Onedrive上传策略
+          </div>
+          <div class="card-body">
+            <form id="onedrivePolicy">
+              <input type="text" class="form-control" name="policy_type" value="onedrive" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="policy_name" class="col-form-label col-form-label-sm">上传策略名称</label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="policy_name" required></div>
+                <div class="col-md-4 option-des"> 上传策略的名称，用于区别不同策略</div>
+              </div>
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="bucketname" class="col-form-label col-form-label-sm">应用 ID（Client ID） </label>
+                </div>
+                <div class="col-md-4"> <input type="text" class="form-control" name="bucketname" required></div>
+                <div class="col-md-4 option-des"> 请<a href="https://apps.dev.microsoft.com/?referrer=https%3a%2f%2fdeveloper.microsoft.com%2fzh-CN%2fgraph%2fquick-start#/quickstart/graphIO?publicClientSupport=false&appName=Cloudreve&redirectUrl={:urlencode($options.siteURL)}Admin%2FoneDriveCalllback&allowImplicitFlow=false&ru=https:%2F%2Fdeveloper.microsoft.com%2Fzh-CN%2Fgraph%2Fquick-start%3FappID%3D_appId_%26appName%3D_appName_%26redirectUrl%3D{$options.siteURL}Admin/oneDriveCalllback%26platform%3Doption-php" target="_blank">点击这里</a>获取下一步要用到的应用机密和此处的应用ID</div>
+              </div>
+
+           <input type="text" class="form-control" name="sk" value="0" style="display: none" required>
+
+             <input type="text" name="bucket_private" value="1" style="display: none">
+             <input type="text" name="origin_link" value="0" style="display: none">
+             <input type="text" name="url" value="0" style="display: none">
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="url" class="col-form-label col-form-label-sm">应用机密(密码/公钥)</label>
+                </div>
+                <div class="col-md-4">
+                  <input type="text" class="form-control" name="ak" required>
+                </div>
+                <div class="col-md-4 option-des"> 同上一项一起获取</div>
+              </div>
+
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="filetype" class="col-form-label col-form-label-sm">单文件最大大小</label>
+                </div>
+                <div class="col-md-4 input-group mb-3">
+                  <input type="number" class="form-control" name="max_size"  spellcheck="false" min="0" value="10" required>
+                  <div class="input-group-append">
+                    <span class="input-group-text" id="basic-addon2">
+                      <select name="sizeTimes" class="selectIn">
+                        <option value="1">B</option>
+                        <option value="1024">KB</option>
+                        <option value="1048576" selected>MB</option>
+                        <option value="1073741824">GB</option>
+                      </select>
+                    </span>
+                  </div>
+                </div>
+                <div class="col-md-4 option-des"> 允许上传的单个文件的最大尺寸</div>
+              </div>
+
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">文件重命名</label>
+               </div>
+               <div class="col-md-4">
+                 <input class="" type="radio" name="autoname" id="autoname1" value="1" checked>
+                 <label class="" for="autoname1" >开启</label>
+                 &nbsp;&nbsp;&nbsp;
+                 <input class="" type="radio" name="autoname" id="autoname2" value="0" >
+                 <label class="" for="autoname2">关闭</label>
+               </div>
+               <div class="col-md-4 option-des"> 是否对存储的文件自动重命名。推荐开启，重命名不会影响用户端文件名展示，开启后可以避免文件重名</div>
+             </div>
+             <div class="row form-setting" id="autoname_form" >
+               <div class="col-md-1 form-label ">
+                 <label for="url" class="col-form-label col-form-label-sm">重命名规则</label>
+               </div>
+               <div class="col-md-4">
+                 <input type="text" class="form-control" name="namerule" value="{uid}_{randomkey8}_{originname}" spellcheck="false" required>
+               </div>
+               <div class="col-md-4 option-des"> 你可以使用变量对照表中的字段填写</div>
+             </div>
+             <div class="row form-setting">
+               <div class="col-md-1 form-label ">
+                 <label for="filetype" class="col-form-label col-form-label-sm">存储目录</label>
+               </div>
+               <div class="col-md-4 input-group mb-3">
+                 <div class="input-group-prepend">
+                   <span class="input-group-text" id="basic-addon2">
+                     Onedrive根目录
+                   </span>
+                 </div>
+                 <input type="text" class="form-control" name="dirrule"  spellcheck="false" value="{date}/{uid}" required>
+               </div>
+               <div class="col-md-4 option-des"> 文件存放的目录，你可以使用目录变量对照表中的字段填写</div>
+             </div>
+
+              
+              <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                </div>
+                <div class="col-md-4"> <button type="submit" class="btn btn-primary" id="saveQiniu">保存并继续</button></div>
+                <div class="col-md-4 option-des"> </div>
+                <br> <br>
+              </div>
+            </form>
+          </div>
+          <bn>
+        </div>
+
+
+
+
+        <br>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+
+{/block}
+{block name="js"}
+<script src="/static/js/admin/add_policy.js"></script>
+{/block}

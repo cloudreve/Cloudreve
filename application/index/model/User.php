@@ -308,8 +308,8 @@ class User extends Model{
 
 	public function getMemory($notEcho = false){
 		$usedMemory = $this->userSQLData["used_storage"];
-		$groupStorage = (int)$this->groupData["max_storage"];
-		$packetStorage = (int)Db::name('storage_pack')
+		$groupStorage = $this->groupData["max_storage"];
+		$packetStorage = Db::name('storage_pack')
 		->where('uid',$this->uid)
 		->where('dlay_time',">",time())
 		->sum('pack_size');

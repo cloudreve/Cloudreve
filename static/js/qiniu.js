@@ -183,7 +183,7 @@ function QiniuJsSDK() {
 		   "https://up.qbox.me"
 	   ]
 	};
-}else if(uploadConfig.saveType == "local" || uploadConfig.saveType == "oss" ||uploadConfig.saveType == "upyun"||uploadConfig.saveType == "s3"|| uploadConfig.saveType == "remote"){
+}else if(uploadConfig.saveType == "local" || uploadConfig.saveType == "oss" ||uploadConfig.saveType == "upyun"||uploadConfig.saveType == "s3"|| uploadConfig.saveType == "remote"||uploadConfig.saveType == "onedrive"){
  qiniuUploadUrl = uploadConfig.upUrl;
  var qiniuUploadUrls = [uploadConfig.upUrl,];
  var qiniuUpHosts = {
@@ -994,7 +994,7 @@ function QiniuJsSDK() {
 							'token': that.token,
 							'x:path': file.path
 						}; 
-					}else if(uploadConfig.saveType == "local"){
+					}else if(uploadConfig.saveType == "local"||uploadConfig.saveType == "onedrive"){
 						multipart_params_obj = {
 						'path': file.path
 						}; 
@@ -1493,7 +1493,7 @@ function QiniuJsSDK() {
 						}
 					}
 					local_path = "";
-					if(uploadConfig.saveType == "local"){
+					if(uploadConfig.saveType == "local"||uploadConfig.saveType == "onedrive"){
 						pathTmp = file.path;
 						if(file.path == ""){
 							pathTmp = "ROOTDIR";
@@ -1501,6 +1501,8 @@ function QiniuJsSDK() {
 						local_path = '/path/'+that.URLSafeBase64Encode(pathTmp);
 					}
 					if(uploadConfig.saveType == "remote"){
+						pathTmp = file.path;
+						local_path = that.URLSafeBase64Encode(pathTmp);
 						var url = qiniuUploadUrl + 'mkfile.php?size=' + file.size +"&key="+ key+"&fname="+ fname +"&path="+local_path;
 					}else{
 						var url = qiniuUploadUrl + '/mkfile/' + file.size + key + fname + x_vars_url+local_path;

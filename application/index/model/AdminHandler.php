@@ -5,6 +5,7 @@ use think\Model;
 use think\Db;
 use \app\index\model\Mail;
 use \app\index\model\FileManage;
+use \Krizalys\Onedrive\Client;
 
 class AdminHandler extends Model{
 
@@ -104,6 +105,10 @@ class AdminHandler extends Model{
 		return $this->saveOptions($options);
 	}
 
+	public function saveAria2Setting($options){
+		return $this->saveOptions($options);
+	}
+
 	public function saveMailTemplate($options){
 		return $this->saveOptions($options);
 	}
@@ -113,6 +118,7 @@ class AdminHandler extends Model{
 		unset($options["sizeTimes"]);
 		$options["grade_policy"] = 0;
 		$options["policy_list"] = $options["policy_name"];
+		$options["aria2"] = $options["aria2"] ? "1,1,1" : "0,0,0";
 		try {
 			Db::name("groups")->insert($options);
 		} catch (Exception $e) {
@@ -141,7 +147,7 @@ class AdminHandler extends Model{
 		} catch (Exception $e) {
 			return ["error"=>1,"msg"=>$e->getMessage()];
 		}
-		return ["error"=>200,"msg"=>"设置已保存"];
+		return ["error"=>200,"msg"=>"设置已保存","id"=>Db::name('policy')->getLastInsID()];
 	}
 
 	public function editPolicy($options){
@@ -167,6 +173,7 @@ class AdminHandler extends Model{
 		unset($options["id"]);
 		$options["max_storage"] = $options["max_storage"]*$options["sizeTimes"];
 		unset($options["sizeTimes"]);
+		$options["aria2"] = $options["aria2"] ? "1,1,1" : "0,0,0";
 		try {
 			Db::name("groups")->where("id",$groupId)->update($options);
 		} catch (Exception $e) {
@@ -347,6 +354,46 @@ class AdminHandler extends Model{
 		return $userData;
 	}
 
+	public function listDownloads(){
+		$pageSize = 10;
+		$this->pageData = Db::name("download")
+		->order("id desc")
+		->paginate($pageSize);
+		$this->dataTotal = Db::name("download")
+		->order("id desc")
+		->count();
+		$this->pageTotal = ceil($this->dataTotal/$pageSize);
+		$this->listData = $this->pageData->all();
+		$userCache=[];
+		$userCacheList=[];
+		foreach ($this->listData as $key => $value) {
+			if(in_array($value["owner"], $userCacheList)){
+				$this->listData[$key]["user"] = $userCache[$value["owner"]];
+			}else{
+				$this->listData[$key]["user"] = Db::name("users")->where("id",$value["owner"])->find();
+				array_push($userCacheList,$value["owner"]);
+				$userCache[$value["owner"]] = $this->listData[$key]["user"];
+			}
+			$connectInfo = json_decode($value["info"],true);
+			if(isset($connectInfo["dir"])){
+				$this->listData[$key]["fileName"] = basename($connectInfo["dir"]);
+				$this->listData[$key]["completedLength"] = $connectInfo["completedLength"];
+				$this->listData[$key]["totalLength"] = $connectInfo["totalLength"];
+				$this->listData[$key]["downloadSpeed"] = $connectInfo["downloadSpeed"];
+			}else{
+				if(floor($value["source"])==$value["source"]){
+					$this->listData[$key]["fileName"] = Db::name("files")->where("id",$value["source"])->column("orign_name");
+				}else{
+					$this->listData[$key]["fileName"] = $value["source"];
+				}
+				$this->listData[$key]["completedLength"] = 0;
+				$this->listData[$key]["totalLength"] = 0;
+				$this->listData[$key]["downloadSpeed"] = 0;
+			}
+		}
+		$this->pageNow = input("?get.page")?input("get.page"):1;
+	}
+
 	public function listFile(){
 		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
 		$orderType = empty(cookie('orderMethodFile')) ? "id DESC" : cookie('orderMethodFile');
@@ -473,7 +520,7 @@ class AdminHandler extends Model{
 
 	public function listShare(){
 		$pageSize = !cookie('?pageSize') ? 10 : cookie('pageSize');
-		$orderType = empty(cookie('orderMethodShare')) ? "id DESC" : cookie('orderMethodShare');
+		$orderType = empty(cookie('orderMethodShare')) ? "share_time DESC" : cookie('orderMethodShare');
 		$this->pageData = Db::name("shares")
 		->where(function ($query) {
 			if(!empty(cookie('shareSearch'))){
@@ -662,6 +709,52 @@ class AdminHandler extends Model{
 			]);
 		}
 		return ["error"=>0,"msg"=>"设置已保存"];
+	}
+	
+	public function updateOnedriveToken($policyId){
+		$policyData = Db::name("policy")->where("id",$policyId)->find();
+
+		if(empty($policyData)){
+			throw new \think\Exception("Policy not found");
+		}
+		$onedrive = new Client([
+			'client_id' => $policyData["bucketname"],
+		]);
+		$url = $onedrive->getLogInUrl([
+			'offline_access',
+			'files.readwrite.all',
+		], Option::getValue("siteURL")."Admin/oneDriveCalllback");
+		echo "<script>location.href='".$url."'</script>正在跳转至Onedrive账号授权页面，如果没有跳转，请<a href='$url'>点击这里</a>。";
+
+		Db::name("policy")->where("id",$policyId)->update([
+			"sk" => json_encode($onedrive->getState()),
+		]);
+		\think\Session::set('onedrive.pid',$policyId);
+		
+	}
+
+	public function oneDriveCalllback($code){
+		if(input("?get.error")){
+			throw new \think\Exception(input("get.error_description"));
+		}
+		$policyId = \think\Session::get('onedrive.pid');
+		$policyData = Db::name("policy")->where("id",$policyId)->find();
+		$onedrive = new Client([
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+		
+		// Obtain the token using the code received by the OneDrive API.
+		$onedrive->obtainAccessToken($policyData["ak"], $_GET['code']);
+		
+		// Persist the OneDrive client' state for next API requests.
+		Db::name("policy")->where("id",$policyId)->update([
+			"sk" => json_encode($onedrive->getState()),
+		]);
+		echo "<script>location.href='/Admin/PolicyList?page=1'</script>";
 	}
 
 }

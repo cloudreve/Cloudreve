@@ -30,6 +30,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function createFile($name, $data = NULL){
+		$name = str_replace(" ","",$name);
 		$userData = Db::name("users")->where("id",$this->uid)->find();
 		$groupData = Db::name("groups")->where("id",$userData["user_group"])->find();
 		$policyData = Db::name("policy")->where("id",$groupData["policy_name"])->find();
@@ -47,7 +48,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 		}
 		$fileSize = fstat($data)["size"];
 		if(empty($fileSize)){
-			$fileSize = 0;
+			$fileSize = -1;
 		}
 		if($fileSize>$policyData["max_size"]){
 			throw new DAV\Exception\InsufficientStorage('File is to large');
@@ -66,6 +67,9 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 			mkdir($savePath,0777,true);
 		}
 		file_put_contents($savePath."/".$fileName, $data);
+		if($fileSize<=0){
+			$fileSize = filesize($savePath."/".$fileName);
+		}
 		$jsonData = array(
 			"path" => str_replace("/",",",ltrim($this->myPath,"/")), 
 			"fname" => $name,
@@ -134,6 +138,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function getChild($name) {
+		$name = str_replace(" ","",$name);
 		if(!$this->childExists($name)){
 			throw new DAV\Exception\NotFound('File with name ' . $name . ' could not be located');
 		}
@@ -147,6 +152,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 	}
 
 	function childExists($name) {
+		$name = str_replace(" ","",$name);
 		$fileObj = new Objects($this->uid.rtrim($this->myPath,"/") . '/' . $name);
 		if($this->findDir(rtrim($this->myPath,"/") . '/' . $name) || $fileObj->isExist){
 			return true;

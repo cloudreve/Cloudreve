@@ -6,7 +6,7 @@ Cloudreve - Make the cloud easy for everyone
 [![Latest Unstable Version](https://poser.pugx.org/hfo4/cloudreve/v/unstable)](https://packagist.org/packages/hfo4/cloudreve)
 [![License](https://poser.pugx.org/hfo4/cloudreve/license)](https://packagist.org/packages/hfo4/cloudreve)
 
-[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | |[Telegram群组](https://github.com/HFO4/Cloudreve)
+[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | [QQ群](https://jq.qq.com/?_wv=1027&k=5TX6sJY) |[Telegram群组](https://t.me/cloudreve)
 
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
@@ -14,8 +14,9 @@ Cloudreve - Make the cloud easy for everyone
 
 目前已经实现的特性：
 
-* 快速对接多家云存储，支持七牛、又拍云、阿里云OSS、AWS S3、自建远程服务器，当然，还有本地存储
+* 快速对接多家云存储，支持七牛、又拍云、阿里云OSS、AWS S3、Onedrive、自建远程服务器，当然，还有本地存储
 * 可限制单文件最大大小、MIMEType、文件后缀、用户可用容量
+* 基于Aria2的离线下载
 * 图片、音频、视频、文本、Markdown、Ofiice文档 在线预览
 * 移动端全站响应式布局
 * 文件、目录分享系统，可创建私有分享或公开分享链接
@@ -26,6 +27,14 @@ Cloudreve - Make the cloud easy for everyone
 * 多上传策略，可为不同用户组分配不同策略
 * 用户组基础权限设置、二步验证
 * WebDAV协议支持
+
+To-do:
+
+* - [x] 重写目录分享和单文件分享页面样式
+* - [x] 增加保存其他用户的分享到自己账户（限Pro版）
+* - [x] 推出辅助程序，并借此实现:
+   * - [ ] 压缩包解压缩、文件压缩
+   * - [ ] 对接Ondrive、Google Drive,上传模式为先上到自己服务器，然后中转
 
 安装需求
 ------------
@@ -48,7 +57,7 @@ $ composer create-project hfo4/cloudreve:dev-master
   / __\ | ___  _   _  __| |_ __ _____   _____ 
  / /  | |/ _ \| | | |/ _` | '__/ _ \ \ / / _ \
 / /___| | (_) | |_| | (_| | | |  __/\ V /  __/
-\____/|_|\___/ \__,_|\__,_|_|  \___| \_/ \___|
+\____/|_|\___/ \__,_|\__,_|_|  \___| \_/ \___| 
         
                 Ver XX
 ================================================

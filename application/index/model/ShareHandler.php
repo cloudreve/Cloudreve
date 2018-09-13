@@ -81,6 +81,20 @@ class ShareHandler extends Model{
 		}
 	}
 
+	public function getThumb($user,$path,$folder=false){
+		$checkStatus = $this->checkSession($user);
+		if(!$checkStatus[0]){
+			return [$checkStatus[0],$checkStatus[1]];
+		}
+		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+		if($folder){
+			$fileObj = new FileManage($path,$this->shareData["owner"]);
+		}else{
+			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		}
+		return $fileObj->getThumb();
+	}
+
 	public function checkSession($user){
 		if($this->lockStatus){
 			return [false,"会话过期，请刷新页面"];

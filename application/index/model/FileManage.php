@@ -1,17 +1,10 @@
 <?php
 namespace app\index\model;
 
-require_once   'extend/Qiniu/functions.php';
-
 use think\Model;
 use think\Db;
 use think\Validate;
-use Qiniu\Auth;
 use \app\index\model\Option;
-use OSS\OssClient;
-use OSS\Core\OssException;
-use Upyun\Upyun;
-use Upyun\Config;
 
 class FileManage extends Model{
 
@@ -22,12 +15,26 @@ class FileManage extends Model{
 	public $policyData;
 	public $deleteStatus = true;
 
-	public function __construct($path,$uid){
-		$this->filePath = $path;
-		$fileInfo = $this->getFileName($path);
-		$fileName = $fileInfo[0];
-		$path = $fileInfo[1];
-		$fileRecord = Db::name('files')->where('upload_user',$uid)->where('orign_name',$fileName)->where('dir',$path)->find();
+	private $adapter;
+
+	/**
+	 * construct function
+	 *
+	 * @param string $path 文件路径/文件ID
+	 * @param int $uid 用户ID
+	 * @param boolean $byId 是否根据文件ID寻找文件
+	 */
+	public function __construct($path,$uid,$byId=false){
+		if($byId){
+			$fileRecord = Db::name('files')->where('id',$path)->find();
+			$this->filePath = rtrim($fileRecord["dir"],"/")."/".$fileRecord["orign_name"];
+		}else{
+			$this->filePath = $path;
+			$fileInfo = $this->getFileName($path);
+			$fileName = $fileInfo[0];
+			$path = $fileInfo[1];
+			$fileRecord = Db::name('files')->where('upload_user',$uid)->where('orign_name',$fileName)->where('dir',$path)->find();
+		}
 		if (empty($fileRecord)){
 			die('{ "result": { "success": false, "error": "文件不存在" } }');
 		}
@@ -35,8 +42,39 @@ class FileManage extends Model{
 		$this->userID = $uid;
 		$this->userData = Db::name('users')->where('id',$uid)->find();
 		$this->policyData = Db::name('policy')->where('id',$this->fileData["policy_id"])->find();
+		switch ($this->policyData["policy_type"]) {
+			case 'local':
+				$this->adapter = new \app\index\model\LocalAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'qiniu':
+				$this->adapter = new \app\index\model\QiniuAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'oss':
+				$this->adapter = new \app\index\model\OssAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'upyun':
+				$this->adapter = new \app\index\model\UpyunAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 's3':
+				$this->adapter = new \app\index\model\S3Adapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'remote':
+				$this->adapter = new \app\index\model\RemoteAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			case 'onedrive':
+				$this->adapter = new \app\index\model\OnedriveAdapter($this->fileData,$this->policyData,$this->userData);
+				break;
+			default:
+				# code...
+				break;
+		}
 	}
 
+	/**
+	 * 获取文件外链地址
+	 *
+	 * @return void
+	 */
 	public function Source(){
 		if(!$this->policyData["origin_link"]){
 			die('{"url":"此文件不支持获取源文件URL"}');
@@ -45,35 +83,22 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 获取可编辑文件内容
+	 *
+	 * @return void
+	 */
 	public function getContent(){
 		$sizeLimit=(int)Option::getValue("maxEditSize");
 		if($this->fileData["size"]>$sizeLimit){
 			die('{ "result": { "success": false, "error": "您当前用户组最大可编辑'.$sizeLimit.'字节的文件"} }');
 		}else{
-			switch ($this->policyData["policy_type"]) {
-				case 'local':
-					$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-					$fileContent = $this->getLocalFileContent($filePath);
-					break;
-				case 'qiniu':
-					$fileContent = $this->getQiniuFileContent();
-					break;
-				case 'oss':
-					$fileContent = $this->getOssFileContent();
-					break;
-				case 'upyun':
-					$fileContent = $this->getUpyunFileContent();
-					break;
-				case 's3':
-					$fileContent = $this->getS3FileContent();
-					break;
-				case 'remote':
-					$fileContent = $this->getRemoteFileContent();
-					break;
-				default:
-					# code...
-					break;
+			try{
+				$fileContent = $this->adapter->getFileContent();
+			}catch(\Exception $e){
+				die('{ "result": { "success": false, "error": "'.$e->getMessage().'"} }');
 			}
+			$fileContent = $this->adapter->getFileContent();
 			$result["result"] = $fileContent;
 			if(empty(json_encode($result))){
 				$result["result"] = iconv('gb2312','utf-8',$fileContent);
@@ -82,119 +107,31 @@ class FileManage extends Model{
 		}
 	}
 
-	public function getLocalFileContent($path){
-		$fileObj = fopen($path,"r");
-		$fileContent = fread($fileObj,filesize($path)+1);
-		return $fileContent;
-	}
-
-	public function getQiniuFileContent(){
-		return file_get_contents($this->qiniuPreview()[1]);
-	}
-
-	public function getOssFileContent(){
-		return file_get_contents($this->ossPreview()[1]);
-	}
-
-	public function getUpyunFileContent(){
-		return file_get_contents($this->upyunPreview()[1]);
-	}
-
-	public function getS3FileContent(){
-		return file_get_contents($this->s3Preview()[1]);
-	}
-
-	public function getRemoteFileContent(){
-		return file_get_contents($this->remotePreview()[1]);
-	}
-
+	/**
+	 * 保存可编辑文件
+	 *
+	 * @param string $content 要保存的文件内容
+	 * @return void
+	 */
 	public function saveContent($content){
 		$contentSize = strlen($content);
 		$originSize = $this->fileData["size"];
 		if(!FileManage::sotrageCheck($this->userID,$contentSize)){
 			die('{ "result": { "success": false, "error": "空间容量不足" } }');
 		}
-		switch ($this->policyData["policy_type"]) {
-			case 'local':
-				$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-				file_put_contents($filePath, "");
-				file_put_contents($filePath, $content);
-				break;
-			case 'qiniu':
-				$this->saveQiniuContent($content);
-				break;
-			case 'oss':
-				$this->saveOssContent($content);
-				break;
-			case 'upyun':
-				$this->saveUpyunContent($content);
-				break;
-			case 's3':
-				$this->saveS3Content($content);
-				break;
-			case 'remote':
-				$this->saveRemoteContent($content);
-				break;
-			default:
-				# code...
-				break;
-		}
+		$this->adapter->saveContent($content);
 		FileManage::storageGiveBack($this->userID,$originSize);
 		FileManage::storageCheckOut($this->userID,$contentSize);
 		Db::name('files')->where('id', $this->fileData["id"])->update(['size' => $contentSize]);
 		echo ('{ "result": { "success": true} }');
 	}
 
-	public function saveQiniuContent($content){
-		$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-		$expires = 3600;
-		$keyToOverwrite = $this->fileData["pre_name"];
-		$upToken = $auth->uploadToken($this->policyData["bucketname"], $keyToOverwrite, $expires, null, true);
-		$uploadMgr = new \Qiniu\Storage\UploadManager();
-		list($ret, $err) = $uploadMgr->put($upToken, $keyToOverwrite, $content);
-		if ($err !== null) {
-			die('{ "result": { "success": false, "error": "编辑失败" } }');
-		} else {
-			return true;
-		}
-	}
-
-	public function saveOssContent($content){
-		$accessKeyId = $this->policyData["ak"];
-		$accessKeySecret = $this->policyData["sk"];
-		$endpoint = "http".ltrim(ltrim($this->policyData["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			die('{ "result": { "success": false, "error": "鉴权失败" } }');
-		}
-		try{
-			$ossClient->putObject($this->policyData["bucketname"], $this->fileData["pre_name"], $content);
-		} catch(OssException $e) {
-			die('{ "result": { "success": false, "error": "编辑失败" } }');
-		}
-	}
-
-	public function saveUpyunContent($content){
-		$bucketConfig = new Config($this->policyData["bucketname"], $this->policyData["op_name"], $this->policyData["op_pwd"]);
-		$client = new Upyun($bucketConfig);
-		if(empty($content)){
-			$content = " ";
-		}
-		$res=$client->write($this->fileData["pre_name"],$content);
-	}
-
-	public function saveS3Content($content){
-		$s3 = new \S3\S3($this->policyData["ak"], $this->policyData["sk"],false,$this->policyData["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		$s3->putObjectString($content, $this->policyData["bucketname"], $this->fileData["pre_name"]);
-	}
-
-	public function saveRemoteContent($content){
-		$remote = new Remote($this->policyData);
-		$remote->updateContent($this->fileData["pre_name"],$content);
-	}
-
+	/**
+	 * 文件名合法性初步检查
+	 *
+	 * @param string $value 文件名
+	 * @return bool 检查结果
+	 */
 	static function fileNameValidate($value){
 		$validate = new Validate([
 			'val'  => 'require|max:250',
@@ -209,6 +146,15 @@ class FileManage extends Model{
 		return true;
 	}
 
+	/**
+	 * 处理重命名
+	 *
+	 * @param string $fname    原文件路径
+	 * @param string $new      新文件路径
+	 * @param int $uid         用户ID
+	 * @param boolean $notEcho 过程中是否不直接输出结果
+	 * @return mixed
+	 */
 	static function RenameHandler($fname,$new,$uid,$notEcho = false){
 		$folderTmp = $new;
 		$originFolder = $fname;
@@ -254,6 +200,15 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * 处理目录重命名
+	 *
+	 * @param string $fname    原文件路径
+	 * @param string $new      新文件路径
+	 * @param int $uid         用户ID
+	 * @param boolean $notEcho 过程中是否不直接输出结果
+	 * @return void
+	 */
 	static function folderRename($fname,$new,$uid,$notEcho = false){
 		$newTmp = $new;
 		$nerFolderTmp = explode("/",$new);
@@ -315,6 +270,12 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * 根据文件路径获取文件名和父目录路径
+	 *
+	 * @param string 文件路径
+	 * @return array 
+	 */
 	static function getFileName($path){
 		$pathSplit = explode("/",$path);
 		$fileName = end($pathSplit);
@@ -331,91 +292,42 @@ class FileManage extends Model{
 		return [$fileName,$path];
 	}
 
+	/**
+	 * 处理文件预览
+	 *
+	 * @param boolean $isAdmin 是否为管理员预览
+	 * @return array 重定向信息
+	 */
 	public function PreviewHandler($isAdmin=false){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				$Redirect = $this->qiniuPreview();
-				return $Redirect;
-				break;
-			case 'local':
-				$Redirect = $this->localPreview($isAdmin);
-				return $Redirect;
-				break;
-			case 'oss':
-				$Redirect = $this->ossPreview();
-				return $Redirect;
-				break;
-			case 'upyun':
-				$Redirect = $this->upyunPreview();
-				return $Redirect;
-				break;
-			case 's3':
-				$Redirect = $this->s3Preview();
-				return $Redirect;
-				break;
-			case 'remote':
-				$Redirect = $this->remotePreview();
-				return $Redirect;
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->Preview($isAdmin);
 	}
 
+	/**
+	 * 获取图像缩略图
+	 *
+	 * @return array 重定向信息
+	 */
 	public function getThumb(){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				$Redirect = $this->getQiniuThumb();
-				return $Redirect;
-			case 'local':
-				$Redirect = $this->getLocalThumb();
-				return $Redirect;
-				break;
-			case 'oss':
-				$Redirect = $this->getOssThumb();
-				return $Redirect;
-				break;
-			case 'upyun':
-				$Redirect = $this->getUpyunThumb();
-				return $Redirect;
-				break;
-			case 'remote':
-				$remote = new Remote($this->policyData);
-				return [1,$remote->thumb($this->fileData["pre_name"],explode(",",$this->fileData["pic_info"]))];
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->getThumb();
 	}
 
+	/**
+	 * 处理文件下载
+	 *
+	 * @param boolean $isAdmin 是否为管理员请求
+	 * @return array 文件下载URL
+	 */
 	public function Download($isAdmin=false){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				return $DownloadHandler = $this->qiniuDownload();
-				break;
-			case 'local':
-				return $DownloadHandler = $this->localDownload($isAdmin);
-				break;
-			case 'oss':
-				return $DownloadHandler = $this->ossDownload();
-				break;
-			case 'upyun':
-				return $DownloadHandler = $this->upyunDownload();
-				break;
-			case 's3':
-				return $DownloadHandler = $this->s3Download();
-				break;
-			case 'remote':
-				return $DownloadHandler = $this->remoteDownload();
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->Download($isAdmin);
 	}
 
+	/**
+	 * 处理目录删除
+	 *
+	 * @param string $path 目录路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function DirDeleteHandler($path,$uid){
 		global $toBeDeleteDir;
 		global $toBeDeleteFile;
@@ -436,6 +348,13 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 列出待删除文件或目录
+	 *
+	 * @param string $path 对象路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function listToBeDelete($path,$uid){
 		global $toBeDeleteDir;
 		global $toBeDeleteFile;
@@ -456,6 +375,13 @@ class FileManage extends Model{
 		}
 	}
 
+	/**
+	 * 删除目录
+	 *
+	 * @param string $path 目录路径
+	 * @param int $uid     用户ID
+	 * @return void
+	 */
 	static function deleteDir($path,$uid){
 		Db::name('folders')
 		->where("owner",$uid)
@@ -464,6 +390,13 @@ class FileManage extends Model{
 		])->delete();
 	}
 
+	/**
+	 * 处理删除请求
+	 *
+	 * @param string $path 路径
+	 * @param int $uid     用户ID
+	 * @return array
+	 */
 	static function DeleteHandler($path,$uid){
 		if(empty($path)){
 			return ["result"=>["success"=>true,"error"=>null]];
@@ -490,22 +423,40 @@ class FileManage extends Model{
 		}
 		foreach ($fileListTemp as $key => $value) {
 			if(in_array($key,$uniquePolicy["qiniuList"])){
-				self::qiniuDelete($value,$uniquePolicy["qiniuPolicyData"][$key][0]);
+				QiniuAdapter::DeleteFile($value,$uniquePolicy["qiniuPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["localList"])){
-				self::localDelete($value,$uniquePolicy["localPolicyData"][$key][0]);
+				LocalAdapter::DeleteFile($value,$uniquePolicy["localPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["ossList"])){
-				self::ossDelete($value,$uniquePolicy["ossPolicyData"][$key][0]);
+				OssAdapter::DeleteFile($value,$uniquePolicy["ossPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["upyunList"])){
-				self::upyunDelete($value,$uniquePolicy["upyunPolicyData"][$key][0]);
+				UpyunAdapter::DeleteFile($value,$uniquePolicy["upyunPolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["s3List"])){
-				self::s3Delete($value,$uniquePolicy["s3PolicyData"][$key][0]);
+				S3Adapter::DeleteFile($value,$uniquePolicy["s3PolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}else if(in_array($key,$uniquePolicy["remoteList"])){
-				self::remoteDelete($value,$uniquePolicy["remotePolicyData"][$key][0]);
+				RemoteAdapter::DeleteFile($value,$uniquePolicy["remotePolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
+			}else if(in_array($key,$uniquePolicy["onedriveList"])){
+				OnedriveAdapter::DeleteFile($value,$uniquePolicy["onedrivePolicyData"][$key][0]);
+				self::deleteFileRecord(array_column($value, 'id'),array_sum(array_column($value, 'size')),$value[0]["upload_user"]);
 			}
 		}
 		return ["result"=>["success"=>true,"error"=>null]];
 	}
 
+	/**
+	 * 处理移动
+	 *
+	 * @param array $file 文件路径列表
+	 * @param array $dir  目录路径列表
+	 * @param string $new 新路径
+	 * @param int $uid    用户ID
+	 * @return void
+	 */
 	static function MoveHandler($file,$dir,$new,$uid){
 		if(in_array($new,$dir)){
 			die('{ "result": { "success": false, "error": "不能移动目录到自身" } }');
@@ -552,66 +503,15 @@ class FileManage extends Model{
 		echo ('{ "result": { "success": true} }');
 	}
 
+	/**
+	 * ToDo 移动文件
+	 *
+	 * @param array $file
+	 * @param string $path
+	 * @return void
+	 */
 	static function moveFile($file,$path){
 
-	}
-
-	static function localDelete($fileList,$policyData){
-		$fileListTemp = array_column($fileList, 'pre_name'); 
-		foreach ($fileListTemp as $key => $value) {
-			@unlink(ROOT_PATH . 'public/uploads/'.$value);
-			if(file_exists(ROOT_PATH . 'public/thumb/'.$value."_thumb")){
-				@unlink(ROOT_PATH . 'public/thumb/'.$value."_thumb");
-			}
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function qiniuDelete($fileList,$policyData){
-		$auth = new Auth($policyData["ak"], $policyData["sk"]);
-		$config = new \Qiniu\Config();
-		$bucketManager = new \Qiniu\Storage\BucketManager($auth);
-		$fileListTemp = array_column($fileList, 'pre_name'); 
-		$ops = $bucketManager->buildBatchDelete($policyData["bucketname"], $fileListTemp);
-		list($ret, $err) = $bucketManager->batch($ops);
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function ossDelete($fileList,$policyData){
-		$accessKeyId = $policyData["ak"];
-		$accessKeySecret = $policyData["sk"];
-		$endpoint = "http".ltrim(ltrim($policyData["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			return false;
-		}
-		try{
-			$ossClient->deleteObjects($policyData["bucketname"], array_column($fileList, 'pre_name'));
-		} catch(OssException $e) {
-			return false;
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function upyunDelete($fileList,$policyData){
-		foreach (array_column($fileList, 'pre_name') as $key => $value) {
-			self::deleteUpyunFile($value,$policyData);
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function s3Delete($fileList,$policyData){
-		foreach (array_column($fileList, 'pre_name') as $key => $value) {
-			self::deleteS3File($value,$policyData);
-		}
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
-	}
-
-	static function remoteDelete($fileList,$policyData){
-		$remoteObj = new Remote($policyData);
-		$remoteObj->remove(array_column($fileList, 'pre_name'));
-		self::deleteFileRecord(array_column($fileList, 'id'),array_sum(array_column($fileList, 'size')),$fileList[0]["upload_user"]);
 	}
 
 	static function deleteFileRecord($id,$size,$uid){
@@ -627,371 +527,6 @@ class FileManage extends Model{
 		'id' => $uid,
 		])->setDec('used_storage', $size);
 	}
-
-	static function getThumbSize($width,$height){
-		$rate = $width/$height;
-		$maxWidth = 90;
-		$maxHeight = 39;
-		$changeWidth = 39*$rate;
-		$changeHeight = 90/$rate;
-		if($changeWidth>=$maxWidth){
-			return [(int)$changeHeight,90];
-		}
-		return [39,(int)$changeWidth];
-	}
-
-	static function outputThumb($path){
-		ob_end_clean();
-		if(!input("get.cache")=="no"){
-			header("Cache-Control: max-age=10800");
-		}
-		header('Content-Type: '.self::getMimetype($path)); 
-		$fileObj = fopen($path,"r");
-		echo fread($fileObj,filesize($path)); 
-		fclose($file); 
-	}
-
-	public function getLocalThumb(){
-		$picInfo = explode(",",$this->fileData["pic_info"]);
-		$picInfo = self::getThumbSize($picInfo[0],$picInfo[1]);
-		if(file_exists(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb")){
-			self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-			return [0,0];
-		}
-		$thumbImg = new Thumb(ROOT_PATH . "public/uploads/".$this->fileData["pre_name"]);
-		$thumbImg->thumb($picInfo[1], $picInfo[0]);
-		if(!is_dir(dirname(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]))){
-			mkdir(dirname(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]),0777,true);
-		}
-		$thumbImg->out(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-		self::outputThumb(ROOT_PATH . "public/thumb/".$this->fileData["pre_name"]."_thumb");
-		return [0,0];
-	}
-
-	public function getOssThumb(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?x-oss-process=image/resize,m_lfit,h_39,w_90";
-			return[true,$fileUrl];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"),'GET', array("x-oss-process" => 'image/resize,m_lfit,h_39,w_90'));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
-	}
-
-	public function getQiniuThumb(){
-		return $this->qiniuPreview("?imageView2/2/w/90/h/39");
-	}
-
-	private function getUpyunThumb(){
-		$picInfo = explode(",",$this->fileData["pic_info"]);
-		$thumbSize = self::getThumbSize($picInfo[0],$picInfo[1]);
-		$baseUrl =$this->policyData["url"].$this->fileData["pre_name"]."!/fwfh/90x39";
-		return [1,$this->upyunPreview($baseUrl,$this->fileData["pre_name"]."!/fwfh/90x39")[1]];
-	}
-
-	public function s3Preview(){
-		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"])];
-	}
-
-	public function remotePreview(){
-		$remote = new Remote($this->policyData);
-		return [1,$remote->preview($this->fileData["pre_name"])];
-	}
-
-	public function upyunPreview($base=null,$name=null){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?auth=0";
-			if(!empty($base)){
-				$fileUrl = $base;
-			}
-			return[true,$fileUrl];
-		}else{
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			if(!empty($base)){
-				$baseUrl = $base;
-			}
-			$etime = time() + Option::getValue("timeout");
-			$key = $this->policyData["sk"];
-			$path = "/".$this->fileData["pre_name"];
-			if(!empty($name)){
-				$path = "/".$name;
-			}
-			$sign = substr(md5($key.'&'.$etime.'&'.$path), 12, 8).$etime;
-			$signedUrl = $baseUrl."?_upt=".$sign;
-			return[true,$signedUrl];
-		}
-	}
-
-	public function qiniuPreview($thumb=null){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"].$thumb;
-			return[true,$fileUrl];
-		}else{
-			$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"].$thumb;
-			$signedUrl = $auth->privateDownloadUrl($baseUrl);
-			return[true,$signedUrl];
-		}
-	}
-
-	public function ossPreview(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			return[true,$fileUrl];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
-	}
-
-	public function qiniuDownload(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?attname=".urlencode($this->fileData["orign_name"]);
-			return[true,$fileUrl];
-		}else{
-			$auth = new Auth($this->policyData["ak"], $this->policyData["sk"]);
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"]."?attname=".urlencode($this->fileData["orign_name"]);
-			$signedUrl = $auth->privateDownloadUrl($baseUrl);
-			return[true,$signedUrl];
-		}
-	}
-
-	public function upyunDownload(){
-		return [true,$this->upyunPreview()[1]."&_upd=".urlencode($this->fileData["orign_name"])];
-	}
-
-	public function s3Download(){
-		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyData["ak"], $this->policyData["sk"],$this->policyData["bucketname"],"/".$this->fileData["pre_name"],3600,$this->policyData["op_name"],array(),false)];
-	}
-
-	private function remoteDownload(){
-		$remote = new Remote($this->policyData);
-		return [1,$remote->download($this->fileData["pre_name"],$this->fileData["orign_name"])];
-	}
-
-	public function ossDownload(){
-		if(!$this->policyData['bucket_private']){
-			$fileUrl = $this->policyData["url"].$this->fileData["pre_name"]."?response-content-disposition=".urlencode('attachment; filename='.$this->fileData["orign_name"]);
-			return[true,$fileUrl];
-		}else{
-			$accessKeyId = $this->policyData["ak"];
-			$accessKeySecret = $this->policyData["sk"];
-			$endpoint = $this->policyData["url"];
-			try {
-				$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-			} catch (OssException $e) {
-				return [false,0];
-			}
-			$baseUrl = $this->policyData["url"].$this->fileData["pre_name"];
-			try{
-				$signedUrl = $ossClient->signUrl($this->policyData["bucketname"], $this->fileData["pre_name"], Option::getValue("timeout"),'GET', array("response-content-disposition" => 'attachment; filename='.$this->fileData["orign_name"]));
-			} catch(OssException $e) {
-				return [false,0];
-			}
-			return[true,$signedUrl];
-		}
-	}
-
-	public function localPreview($isAdmin=false){
-		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
-		$rangeTransfer = $speedLimit["range_transfer"];
-		$speedLimit = $speedLimit["speed"];
-		$sendFileOptions = Option::getValues(["download"]);
-		if($sendFileOptions["sendfile"] == "1" && !empty($sendFileOptions)){
-			$this->sendFile($speedLimit,$rangeTransfer,false,$sendFileOptions["header"]);
-		}else{
-			if($isAdmin){
-				$speedLimit="";
-			}
-			if($speedLimit == "0"){
-				exit();
-			}else if(empty($speedLimit)){
-				header("Cache-Control: max-age=10800");
-				$this->outputWithoutLimit(false,$rangeTransfer);
-				exit();
-			}else if((int)$speedLimit > 0){
-				header("Cache-Control: max-age=10800");
-				$this->outputWithLimit($speedLimit);
-			}
-		}
-	}
-
-	public function localDownload($isAdmin=false){
-		$speedLimit = Db::name('groups')->where('id',$this->userData["user_group"])->find();
-		$rangeTransfer = $speedLimit["range_transfer"];
-		$speedLimit = $speedLimit["speed"];
-		$sendFileOptions = Option::getValues(["download"]);
-		if($sendFileOptions["sendfile"] == "1"){
-			$this->sendFile($speedLimit,$rangeTransfer,true,$sendFileOptions["header"]);
-		}else{
-			if($isAdmin){
-				$speedLimit = "";
-			}
-			if($speedLimit == "0"){
-				exit();
-			}else if(empty($speedLimit)){
-				$this->outputWithoutLimit(true,$rangeTransfer);
-				exit();
-			}else if((int)$speedLimit > 0){
-				$this->outputWithLimit($speedLimit,true);
-			}
-		}
-	}
-
-	private function sendFile($speed,$range,$download=false,$header="X-Sendfile"){
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		$realPath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		if($header == "X-Accel-Redirect"){
-			$filePath = '/public/uploads/' . $this->fileData["pre_name"];
-		}
-		if($download){
-			header('Content-Disposition: attachment; filename="' . str_replace(",","",$this->fileData["orign_name"]) . '"');
-			header("Content-type: application/octet-stream");
-			header('Content-Length: ' .(string)(filesize($realPath)) );
-			$filePath = str_replace("\\","/",$filePath);
-			if($header == "X-Accel-Redirect"){
-				ob_flush();
-				flush();
-				echo "s";
-			}
-			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
-		}else{
-			$filePath = str_replace("\\","/",$filePath);
-			header('Content-Type: '.self::getMimetype($realPath)); 
-			if($header == "X-Accel-Redirect"){
-				ob_flush();
-				flush();
-				echo "s";
-			}
-			header($header.": ".str_replace('%2F', '/', rawurlencode($filePath)));
-			ob_flush();
-			flush();
-		}
-	}
-
-	public function outputWithoutLimit($download = false,$reload = false){
-		ignore_user_abort(false);
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		set_time_limit(0);
-		session_write_close();
-		$file_size = filesize($filePath);  
-		$ranges = $this->getRange($file_size);  
-		if($reload == 1 && $ranges!=null){
-			header('HTTP/1.1 206 Partial Content');  
-			header('Accept-Ranges:bytes');  
-			header(sprintf('content-length:%u',$ranges['end']-$ranges['start']));  
-			header(sprintf('content-range:bytes %s-%s/%s', $ranges['start'], $ranges['end']-1, $file_size));  
-		} 
-		if($download){
-			header('Cache-control: private');
-			header('Content-Type: application/octet-stream'); 
-			header('Content-Length: '.filesize($filePath)); 
-			header('Content-Disposition: filename='.str_replace(",","",$this->fileData["orign_name"])); 
-			ob_flush();
-			flush();
-		}
-		if(file_exists($filePath)){
-			if(!$download){
-				header('Content-Type: '.self::getMimetype($filePath)); 
-				ob_flush();
-				flush();
-			}
-			$fileObj = fopen($filePath,"rb");
-			if($reload == 1){
-				fseek($fileObj, sprintf('%u', $ranges['start']));
-			}
-			while(!feof($fileObj)){
-				echo fread($fileObj,10240);
-				ob_flush();
-				flush();
-			} 
-			fclose($fileObj);
-		}
-	}
-
-	public function outputWithLimit($speed,$download = false){
-		ignore_user_abort(false);
-		$filePath = ROOT_PATH . 'public/uploads/' . $this->fileData["pre_name"];
-		set_time_limit(0);
-		session_write_close();
-		if($download){
-			header('Cache-control: private');
-			header('Content-Type: application/octet-stream'); 
-			header('Content-Length: '.filesize($filePath)); 
-			header('Content-Disposition: filename='.$this->fileData["orign_name"]); 
-			ob_flush();
-			flush();
-		}else{
-			header('Content-Type: '.self::getMimetype($filePath)); 
-			ob_flush();
-			flush();
-		}
-		if(file_exists($filePath)){
-			$fileObj = fopen($filePath,"r");
-			while (!feof($fileObj)){ 
-				echo fread($fileObj,round($speed*1024));
-				ob_flush();
-				flush();
-				sleep(1);
-			} 
-			fclose($fileObj);
-		}
-	}
-
-	static function getMimetype($path){
-		$finfoObj    = finfo_open(FILEINFO_MIME);
-		$mimetype = finfo_file($finfoObj, $path);
-		finfo_close($finfoObj);
-		return $mimetype;
-	}
-
-	private function getRange($file_size){  
-		if(isset($_SERVER['HTTP_RANGE']) && !empty($_SERVER['HTTP_RANGE'])){  
-			$range = $_SERVER['HTTP_RANGE'];  
-			$range = preg_replace('/[\s|,].*/', '', $range);  
-			$range = explode('-', substr($range, 6));  
-			if(count($range)<2){  
-				$range[1] = $file_size;  
-			}  
-			$range = array_combine(array('start','end'), $range);  
-			if(empty($range['start'])){  
-				$range['start'] = 0;  
-			}  
-			if(empty($range['end'])){  
-				$range['end'] = $file_size;  
-			}  
-			return $range;  
-		}  
-		return null;  
-	}  
 
 	/**
 	 * [List description]
@@ -1100,7 +635,7 @@ class FileManage extends Model{
 		->where('uid',$uid)
 		->where('dlay_time',">",time())
 		->sum('pack_size');
-		return (int)$addOnStorage+(int)$basicStronge["max_storage"];
+		return $addOnStorage+$basicStronge["max_storage"];
 	}
 
 	static function getUsedStorage($uid){
@@ -1160,62 +695,21 @@ class FileManage extends Model{
 	static function deleteFile($fname,$policy){
 		switch ($policy['policy_type']) {
 			case 'qiniu':
-				return self::deleteQiniuFile($fname,$policy);
+				return QiniuAdapter::deleteSingle($fname,$policy);
 				break;
 			case 'oss':
-				return self::deleteOssFile($fname,$policy);
+				return OssAdapter::deleteOssFile($fname,$policy);
 				break;
 			case 'upyun':
-				return self::deleteUpyunFile($fname,$policy);
+				return UpyunAdapter::deleteUpyunFile($fname,$policy);
 				break;
 			case 's3':
-				return self::deleteS3File($fname,$policy);
+				return S3Adapter::deleteS3File($fname,$policy);
 				break;
 			default:
 				# code...
 				break;
 		}
-	}
-
-	static function deleteQiniuFile($fname,$policy){
-		$auth = new Auth($policy["ak"], $policy["sk"]);
-		$config = new \Qiniu\Config();
-		$bucketManager = new \Qiniu\Storage\BucketManager($auth);
-		$err = $bucketManager->delete($policy["bucketname"], $fname);
-		if ($err) {
-			return false;
-		}else{
-			return true;
-		}
-	}
-
-	static function deleteOssFile($fname,$policy){
-		$accessKeyId = $policy["ak"];
-		$accessKeySecret = $policy["sk"];
-		$endpoint = "http".ltrim(ltrim($policy["server"],"https"),"http");
-		try {
-			$ossClient = new OssClient($accessKeyId, $accessKeySecret, $endpoint, true);
-		} catch (OssException $e) {
-			return false;
-		}
-		try{
-			$ossClient->deleteObject($policy["bucketname"], $fname);
-		} catch(OssException $e) {
-			return false;
-		}
-		return true;
-	}
-
-	static function deleteUpyunFile($fname,$policy){
-		$bucketConfig = new Config($policy["bucketname"], $policy["op_name"], $policy["op_pwd"]);
-		$client = new Upyun($bucketConfig);
-		$res=$client->delete($fname,true);
-	}
-
-	static function deleteS3File($fname,$policy){
-		$s3 = new \S3\S3($policy["ak"], $policy["sk"],false,$policy["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		return $s3->deleteObject($policy["bucketname"],$fname);
 	}
 
 	static function uniqueArray($data = array()){
@@ -1232,6 +726,8 @@ class FileManage extends Model{
 		$s3PolicyData = [];
 		$remoteList = [];
 		$remotePolicyData = [];
+		$onedriveList = [];
+		$onedrivePolicyData = [];
 		foreach ($data as $key => $value) {
 			if(!in_array($value['policy_id'],$tempList)){
 				array_push($tempList,$value['policy_id']);
@@ -1279,6 +775,13 @@ class FileManage extends Model{
 						}
 						array_push($remotePolicyData[$value['policy_id']],$policyTempData);
 						break;
+					case 'onedrive':
+						array_push($onedriveList,$value['policy_id']);
+						if(empty($onedrivePolicyData[$value['policy_id']])){
+							$onedrivePolicyData[$value['policy_id']] = [];
+						}
+						array_push($onedrivePolicyData[$value['policy_id']],$policyTempData);
+						break;
 					default:
 						# code...
 						break;
@@ -1299,38 +802,14 @@ class FileManage extends Model{
 			's3PolicyData' => $s3PolicyData,
 			'remoteList' => $remoteList,
 			'remotePolicyData' => $remotePolicyData,
+			'onedriveList' => $onedriveList,
+			'onedrivePolicyData' => $onedrivePolicyData,
 		);
 		return $returenValue;
 	}
 
 	public function signTmpUrl(){
-		switch ($this->policyData["policy_type"]) {
-			case 'qiniu':
-				return $this->qiniuPreview()[1];
-				break;
-			case 'oss':
-				return $this->ossPreview()[1];
-				break;
-			case 'upyun':
-				return $this->upyunPreview()[1];
-				break;
-			case 's3':
-				return $this->s3Preview()[1];
-				break;
-			case 'local':
-				$options = Option::getValues(["oss","basic"]);
-				$timeOut = $options["timeout"];
-				$delayTime = time()+$timeOut;
-				$key=$this->fileData["id"].":".$delayTime.":".md5($this->userData["user_pass"].$this->fileData["id"].$delayTime.config("salt"));
-				return $options['siteURL']."Callback/TmpPreview/key/".$key;
-				break;
-			case 'remote':
-				return $this->remotePreview()[1];
-				break;
-			default:
-				# code...
-				break;
-		}
+		return $this->adapter->signTmpUrl()[1];
 	}
 
 }

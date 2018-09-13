@@ -19,7 +19,7 @@ class Member extends Controller{
 	 * @return [type] [description]
 	 */
 	public function index(){
-		echo "hello";
+		echo "Pong";
 	}
 
 	/**

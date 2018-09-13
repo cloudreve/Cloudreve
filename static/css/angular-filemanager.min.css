@@ -337,7 +337,7 @@ textarea.code {
 	padding: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
-	border-right: 1px solid #eee
+	border-right: 1px solid #eee;
 }
 
 .btn-go-back {
