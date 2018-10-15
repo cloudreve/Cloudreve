@@ -1,4 +1,5 @@
 ![logo_white.png](https://raw.githubusercontent.com/HFO4/Cloudreve/master/static/img/logo_white.png)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FHFO4%2FCloudreve.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FHFO4%2FCloudreve?ref=badge_shield)
 
 Cloudreve - Make the cloud easy for everyone
 =========================
@@ -110,3 +111,7 @@ location / {
 许可证
 ------------
 GPLV3
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FHFO4%2FCloudreve.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FHFO4%2FCloudreve?ref=badge_large)
