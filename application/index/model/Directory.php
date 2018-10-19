@@ -168,7 +168,7 @@ class Directory extends DAV\Node implements DAV\ICollection, DAV\IQuota{
 		$dirName = end($explode);
 		$rootPath  = rtrim($path,"/".$dirName);
 		$rootPath = empty($rootPath) ? "/" : $rootPath;
-		$dirData = Db::name('folders')->where('owner',$this->uid)->where('position',dirname($path) == "\\" ?"/":dirname($path))->where("folder_name",basename($path))->find();
+		$dirData = Db::name('folders')->where('owner',$this->uid)->where('position',dirname($path) == "\\" ?"/":dirname($path))->where("folder_name",getDirName($path))->find();
 		if(empty($dirData)){
 			return false;
 		}

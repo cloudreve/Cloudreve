@@ -4,7 +4,7 @@
 	"keywords": ["php", "cloud", "ThinkPHP", "file-sharing"],
 	"homepage": "https://cloudreve.org",
 	"type": "project",
-	"license": "GPL-3.0-only",	
+	"license": "GPL-3.0-only",
 	"authors": [
 			{
 				"name": "Aaron",
@@ -35,8 +35,8 @@
 		"upyun/sdk": "^3.3"
 	},
 	"autoload": {
-		"psr-0": {
-			"CloudreveInstaller\\Installer" : ""
+		"psr-4": {
+			"CloudreveInstaller\\Installer\\" : ""
 		}
 	},
 	"scripts": {
