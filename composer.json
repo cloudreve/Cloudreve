@@ -35,8 +35,8 @@
 		"upyun/sdk": "^3.3"
 	},
 	"autoload": {
-		"psr-4": {
-			"CloudreveInstaller\\Installer\\" : ""
+		"psr-0": {
+			"CloudreveInstaller\\Installer" : ""
 		}
 	},
 	"scripts": {
