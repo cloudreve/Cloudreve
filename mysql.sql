@@ -201,7 +201,7 @@ INSERT INTO `sd_options` (`id`, `option_name`, `option_value`, `option_type`) VA
 (53, 'aria2_token', 'your token', 'aria2'),
 (54, 'aria2_rpcurl', 'http://127.0.0.1:6800/', 'aria2'),
 (55, 'aria2_options', '{\"max-tries\":5}', 'aria2'),
-(NULL, 'task_queue_token', '', 'task');
+(56, 'task_queue_token', '', 'task');
 -- --------------------------------------------------------
 
 --

@@ -293,7 +293,7 @@ class Aria2 extends Model{
 				"originPath" => $quenInfo["files"][$sqlData["file_index"]]["path"],
 				"objname" => $fileName,
 				"savePath" => $generatePath,
-				"fsize" => $quenInfo["files"][$sqlData["file_index"]]["length"],
+				"fsize" => (int)$quenInfo["files"][$sqlData["file_index"]]["length"],
 				"picInfo" => $picInfo,
 				"policyId" => $this->policy["id"],
 			]);

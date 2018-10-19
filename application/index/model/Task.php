@@ -350,6 +350,63 @@ class Task extends Model{
 		FileManage::storageGiveBack($this->taskModel["uid"],$this->taskContent["fsize"]);
 	}
 
+	public function setSuccess(){
+		$this->taskContent = json_decode($this->taskModel["attr"],true);
+		$policyData = Db::name("policy")->where("id",$this->taskContent["policyId"])->find();
+		$this->policyModel = $policyData;
+		$onedrive = new Client([
+			'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+
+		$jsonData = array(
+			"path" => $this->taskContent["path"], 
+			"fname" => $this->taskContent["fname"],
+			"objname" => $this->taskContent["savePath"]."/".$this->taskContent["objname"],
+			"fsize" => $this->taskContent["fsize"],
+		);
+
+		$addAction = FileManage::addFile($jsonData,$policyData,$this->taskModel["uid"],$this->taskContent["picInfo"]);
+		if(!$addAction[0]){
+			$this->setError($addAction[1],true,"/me/drive/root:/".$this->taskContent["savePath"]."/".rawurlencode($this->taskContent["objname"]),$onedrive);
+			$this->cleanTmpFile();
+
+			Db::name("task")->where("id",$this->taskModel["id"])->update(["status"=>"error|".$this->errorMsg]);
+
+			return ["error"=>true,"msg"=>$this->errorMsg];
+		}
+		$this->cleanTmpFile();
+		if($this->taskModel["type"] == "UploadLargeRemoteDownloadFileToOnedrive" || $this->taskModel["type"] == "uploadChunksToOnedrive"){
+			$this->cleanTmpChunk();
+		}
+		Db::name("task")->where("id",$this->taskModel["id"])->update(["status"=>"complete"]);
+		return ["error"=>false,"msg"=>null];
+	}
+
+	public function Error(){
+		$this->taskContent = json_decode($this->taskModel["attr"],true);
+		$policyData = Db::name("policy")->where("id",$this->taskContent["policyId"])->find();
+		$this->policyModel = $policyData;
+		$onedrive = new Client([
+			'stream_back_end' => \Krizalys\Onedrive\StreamBackEnd::TEMP,
+			'client_id' => $policyData["bucketname"],
+		
+			// Restore the previous state while instantiating this client to proceed in
+			// obtaining an access token.
+			'state' => json_decode($policyData["sk"]),
+		]);
+		$this->setError("",false,"/me/drive/root:/".$this->taskContent["savePath"]."/".rawurlencode($this->taskContent["objname"]),$onedrive);
+		$this->cleanTmpFile();
+		if($this->taskModel["type"] == "UploadLargeRemoteDownloadFileToOnedrive" || $this->taskModel["type"] == "uploadChunksToOnedrive"){
+			$this->cleanTmpChunk();
+		}
+		Db::name("task")->where("id",$this->taskModel["id"])->update(["status"=>"error"]);
+	}
+
 }
 
 ?>
