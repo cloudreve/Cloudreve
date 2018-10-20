@@ -31,6 +31,14 @@ class AdminHandler extends Model{
 		return false;
 	}
 
+	public function checkCron(){
+		$cronRecord = Db::name("corn")->where("name","delete_unseful_chunks")->find();
+		if($cronRecord["last_excute"]+$cronRecord["interval_s"]+"1800"<time()){
+			return false;
+		}
+		return true;
+	}
+
 	public function getStatics(){
 		$statics["fileNum"] = Db::name('files')->count();
 		$statics["privateShareNum"] = Db::name('shares')->where("type","private")->count();

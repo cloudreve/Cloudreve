@@ -33,9 +33,15 @@ class Admin extends Controller{
 			$this->redirect(url('/Admin/UpdateDb','',''));
 			exit();
 		}
+		if($this->adminObj->checkCron()){
+			$isCronOk = true;
+		}else{
+			$isCronOk = false;
+		}
 		return view('admin_index', [
 			'options'  => $this->siteOptions,
 			'statics' => $this->adminObj->getStatics(),
+			'isCronOk' => $isCronOk,
 		]);
 	}
 

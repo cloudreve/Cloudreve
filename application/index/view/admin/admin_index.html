@@ -11,7 +11,14 @@
         <li class="breadcrumb-item active">数据概况</li>
       </ol>
       <!-- Icon Cards-->
+      {eq name="isCronOk" value="true"}
+        {else/}
+        <div class="alert alert-danger" role="alert">
+            <strong>警告！Cron定时任务疑似未执行</strong><p>检测到<a href="/Admin/Cron">定时任务</a>未正常执行，请检查您的定时任务配置。您可以通过Crontab或者其他网站监控服务，让 “您的域名/Cron” 此地址每隔一段时间被访问一次。</p>
+          </div>
+        {/eq}
       <div class="row">
+        
         <div class="col-xl-3 col-sm-6 mb-3">
           <div class="card text-white bg-primary o-hidden h-100">
             <div class="card-body">
