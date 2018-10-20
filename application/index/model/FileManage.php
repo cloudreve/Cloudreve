@@ -461,7 +461,8 @@ class FileManage extends Model{
 		if(in_array($new,$dir)){
 			die('{ "result": { "success": false, "error": "不能移动目录到自身" } }');
 		}
-		if(Db::name('folders')->where('owner',$uid)->where('position_absolute',$new)->find() == null){
+		$newFolder=Db::name('folders')->where('owner',$uid)->where('position_absolute',$new)->find();
+		if($newFolder== null){
 			die('{ "result": { "success": false, "error": "目录不存在" } }');
 		}
 		$moveName=[];
@@ -499,7 +500,10 @@ class FileManage extends Model{
 			'upload_user' => $uid,
 			'dir' => ["in",$movePath],
 			'orign_name' =>["in",$moveName],
-		])->setField('dir', $new);
+		])->update([
+			'dir'=> $new,
+			"parent_folder" => $newFolder["id"]
+		]);
 		echo ('{ "result": { "success": true} }');
 	}
 
