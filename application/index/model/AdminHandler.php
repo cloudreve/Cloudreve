@@ -109,6 +109,10 @@ class AdminHandler extends Model{
 		return $this->saveOptions($options);
 	}
 
+	public function saveTaskOption($options){
+		return $this->saveOptions($options);
+	}
+
 	public function saveMailTemplate($options){
 		return $this->saveOptions($options);
 	}
@@ -392,6 +396,13 @@ class AdminHandler extends Model{
 			}
 		}
 		$this->pageNow = input("?get.page")?input("get.page"):1;
+	}
+
+	public function getTasks(){
+		$taskData = Db::name("task")
+		->order("id DESC")
+		->paginate(10);
+		return $taskData;
 	}
 
 	public function listFile(){

@@ -1,0 +1,99 @@
+{extend name="header_admin" /}
+{block name="title"}任务队列 - {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">任务队列</li>
+      <li class="breadcrumb-item active">配置</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>任务队列</h2>
+        <br>
+        <div class="card">
+          <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+              <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#options"><i class="fa fa-cog" aria-hidden="true"></i> 配置</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#list"><i class="fa fa-list" aria-hidden="true"></i> 任务列表</a>
+              </li>
+            </ul>
+          </div>
+          <div class="card-body">
+            <div class="tab-content" >
+              <div class="tab-pane fade show active" id="options" role="tabpanel" aria-labelledby="pills-home-tab">
+                <form id="taskOptions">
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                      <label for="fromName" class="col-form-label col-form-label-sm">Token</label>
+                    </div>
+                    <div class="col-md-4">
+                       <input type="text" class="form-control" name="task_queue_token" id="task_queue_token" value="{$taskOption}" spellcheck="false">
+           
+                    </div>
+                    <div class="col-md-4 option-des"> 任务队列鉴权Token，应该与任务队列配置文件conf.yaml中的token保持一致，留空表示禁止任务队列请求</div>
+                  </div>
+                  <div class="row form-setting">
+                    <div class="col-md-1 form-label ">
+                    </div>
+                    <div class="col-md-4"> <button type="button" class="btn btn-outline-secondary" id="generateToken">随机生成Token</button> <button type="button" class="btn btn-primary" id="saveTask">保存设置</button></div>
+                    <div class="col-md-4 option-des"> </div>
+                    <br><br><br>
+                  </div>
+                </form>
+              </div>
+              
+              <div class="tab-pane fade" id="list" role="tabpanel" aria-labelledby="pills-profile-tab">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="textCenter">#</th>
+                      <th scope="col" width="50%">任务名</th>
+                      <th scope="col" class="textCenter">状态</th>
+                      <th scope="col" class="textCenter">创建日期</th>
+                      <th scope="col" class="textCenter">创建者UID</th>
+                    </tr>
+                  </thead>
+                  <tbody id="listContent">
+                      {volist name='task' id='t'}
+                      <tr id="i-{$t.id}" >
+                        <th scope="row" class="textCenter">{$t.id}</th>
+                        <td>{$t.task_name}</td>
+                        <td class="textCenter">{$t.status}</td>
+                        <td class="textCenter">{$t.addtime}</td>
+                        <td class="textCenter">{$t.uid}</td>
+                      </tr>
+                    {/volist}
+                  </tbody>
+                </table>
+                {$task->render()}
+              </div>
+              <div class="tab-pane fade" id="tools" role="tabpanel" aria-labelledby="pills-profile-tab">
+                ddd
+              </div>
+            </div>
+          </div>
+        </div><br>
+        
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script src="/static/js/admin/summernote.min.js"></script>
+<script src="/static/js/admin/summernote-zh-CN.min.js"></script>
+<script src="/static/js/admin/task.js"></script>
+{/block}

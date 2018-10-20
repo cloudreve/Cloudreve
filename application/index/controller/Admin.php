@@ -252,6 +252,10 @@ class Admin extends Controller{
 		return $this->adminObj->saveAria2Setting(input('post.'));
 	}
 
+	public function SaveTaskOption(){
+		return $this->adminObj->saveTaskOption(input('post.'));
+	}
+
 	public function SendTestMail(){
 		return $this->adminObj->sendTestMail(input('post.'));
 	}
@@ -471,6 +475,15 @@ class Admin extends Controller{
 		return view('purchase', [
 			'options' => $this->siteOptions,
 			'pack' => $packData,
+		]);
+	}
+
+	public function Queue(){
+		$taskOption = Option::getValue("task_queue_token");
+		return view('task', [
+			'options' => $this->siteOptions,
+			'taskOption' => $taskOption,
+			'task' => $this->adminObj->getTasks(),
 		]);
 	}
 

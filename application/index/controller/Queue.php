@@ -12,6 +12,9 @@ class Queue extends Controller{
 
 	public function __construct(\think\Request $request = null){
 		$token = Option::getValue("task_queue_token");
+		if($token==""){
+			abort(403);
+		}
 		if(Request::instance()->header("Authorization") !="Bearer ".$token){
 			abort(403);
 		}
