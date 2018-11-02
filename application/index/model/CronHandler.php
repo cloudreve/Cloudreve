@@ -17,7 +17,7 @@ class CronHandler extends Model{
 	public $notifiedUid = [];
 
 	public function __construct(){
-		$this->cornTasks = Db::name('corn')->where('enable',1)->order('rank desc')->select();
+		$this->cornTasks = Db::name('corn')->where('enable',1)->order('`rank` desc')->select();
 		$this->timeNow = time();
 	}
 
