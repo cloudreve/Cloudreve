@@ -372,7 +372,11 @@ class App
         // 获取控制器名
         $controller = strip_tags($result[1] ?: $config['default_controller']);
         $controller = $convert ? strtolower($controller) : $controller;
-
+        
+        if (!preg_match('/^[A-Za-z](\w|\.)*$/', $controller)) {
+            throw new HttpException(404, 'controller not exists:' . $controller);
+        }
+        
         // 获取操作名
         $actionName = strip_tags($result[2] ?: $config['default_action']);
         $actionName = $convert ? strtolower($actionName) : $actionName;
@@ -551,9 +555,6 @@ class App
                     if (is_file(CONF_PATH . $file . CONF_EXT)) {
                         // 导入路由配置
                         $rules = include CONF_PATH . $file . CONF_EXT;
-                        if (!preg_match('/^[A-Za-z](\w|\.)*$/', $controller)) {
-                           throw new HttpException(404, 'controller not exists:' . $controller);
-                        }
                         if (is_array($rules)) {
                             Route::import($rules);
                         }
