@@ -551,6 +551,9 @@ class App
                     if (is_file(CONF_PATH . $file . CONF_EXT)) {
                         // 导入路由配置
                         $rules = include CONF_PATH . $file . CONF_EXT;
+                        if (!preg_match('/^[A-Za-z](\w|\.)*$/', $controller)) {
+                           throw new HttpException(404, 'controller not exists:' . $controller);
+                        }
                         if (is_array($rules)) {
                             Route::import($rules);
                         }
