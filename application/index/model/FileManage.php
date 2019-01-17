@@ -162,11 +162,14 @@ class FileManage extends Model{
 		if(!$notEcho){
 			$new = str_replace(" ", "", $new);
 		}
-		if(!self::fileNameValidate($new)){
+		$newSuffix = explode(".",$new);
+                // 文件名带有‘.’会导致验证失败
+		$newPrefix = str_replace($newSuffix, "", $new);
+		if(!self::fileNameValidate($newPrefix)){
 			if($notEcho){
-				return '{ "result": { "success": false, "error": "文件名只支持数字、字母、下划线" } }';
+				return '{ "result": { "success": false, "error": "文件名只支持汉字、字母、数字和下划线_及破折号-" } }';
 			}
-			die('{ "result": { "success": false, "error": "文件名只支持数字、字母、下划线" } }');
+			die('{ "result": { "success": false, "error": "文件名只支持汉字、字母、数字和下划线_及破折号-" } }');
 		}
 		$path = self::getFileName($fname)[1];
 		$fname = self::getFileName($fname)[0];
@@ -182,7 +185,6 @@ class FileManage extends Model{
 			die();
 		}
 		$originSuffix = explode(".",$fileRecord["orign_name"]);
-		$newSuffix = explode(".",$new);
 		if(end($originSuffix) != end($newSuffix)){
 			if($notEcho){
 					return '{ "result": { "success": false, "error": "请不要更改文件扩展名" } }';
