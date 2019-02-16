@@ -6,7 +6,7 @@ Cloudreve - Make the cloud easy for everyone
 [![Latest Unstable Version](https://poser.pugx.org/hfo4/cloudreve/v/unstable)](https://packagist.org/packages/hfo4/cloudreve)
 [![License](https://poser.pugx.org/hfo4/cloudreve/license)](https://packagist.org/packages/hfo4/cloudreve)
 
-[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://pan.aoaoao.me) | [QQ群](https://jq.qq.com/?_wv=1027&k=5TX6sJY)
+[主页](https://cloudreve.org) | [论坛](https://forum.cloudreve.org) | [演示站](https://drive.aoaoao.me) | [QQ群](https://jq.qq.com/?_wv=1027&k=5TX6sJY)
 
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
