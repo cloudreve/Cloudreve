@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -29,7 +29,11 @@ class Php
         'view_suffix' => 'php',
         // 模板文件名分隔符
         'view_depr'   => DS,
+        // 默认模板渲染规则 1 解析为小写+下划线 2 全部转换小写
+        'auto_rule'   => 1,
     ];
+    protected $template;
+    protected $content;
 
     public function __construct($config = [])
     {
@@ -68,16 +72,12 @@ class Php
         if (!is_file($template)) {
             throw new TemplateNotFoundException('template not exists:' . $template, $template);
         }
+        $this->template = $template;
         // 记录视图信息
         App::$debug && Log::record('[ VIEW ] ' . $template . ' [ ' . var_export(array_keys($data), true) . ' ]', 'info');
-        if (isset($data['template'])) {
-            $__template__ = $template;
-            extract($data, EXTR_OVERWRITE);
-            include $__template__;
-        } else {
-            extract($data, EXTR_OVERWRITE);
-            include $template;
-        }
+
+        extract($data, EXTR_OVERWRITE);
+        include $this->template;
     }
 
     /**
@@ -89,14 +89,10 @@ class Php
      */
     public function display($content, $data = [])
     {
-        if (isset($data['content'])) {
-            $__content__ = $content;
-            extract($data, EXTR_OVERWRITE);
-            eval('?>' . $__content__);
-        } else {
-            extract($data, EXTR_OVERWRITE);
-            eval('?>' . $content);
-        }
+        $this->content = $content;
+
+        extract($data, EXTR_OVERWRITE);
+        eval('?>' . $this->content);
     }
 
     /**
@@ -132,7 +128,7 @@ class Php
             if ($controller) {
                 if ('' == $template) {
                     // 如果模板文件名为空 按照默认规则定位
-                    $template = str_replace('.', DS, $controller) . $depr . $request->action();
+                    $template = str_replace('.', DS, $controller) . $depr . (1 == $this->config['auto_rule'] ? Loader::parseName($request->action(true)) : $request->action());
                 } elseif (false === strpos($template, $depr)) {
                     $template = str_replace('.', DS, $controller) . $depr . $template;
                 }

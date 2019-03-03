@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -43,7 +43,7 @@ abstract class Rest
         if ('' == $ext) {
             // 自动检测资源类型
             $this->type = $request->type();
-        } elseif (!preg_match('/\(' . $this->restTypeList . '\)$/i', $ext)) {
+        } elseif (!preg_match('/(' . $this->restTypeList . ')$/i', $ext)) {
             // 资源类型非法 则用默认资源类型访问
             $this->type = $this->restDefaultType;
         } else {
@@ -51,7 +51,7 @@ abstract class Rest
         }
         // 请求方式检测
         $method = strtolower($request->method());
-        if (false === stripos($this->restMethodList, $method)) {
+        if (!preg_match('/(' . $this->restMethodList . ')$/i', $method)) {
             // 请求方式非法 则用默认请求方法
             $method = $this->restDefaultMethod;
         }

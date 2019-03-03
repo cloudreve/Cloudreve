@@ -137,7 +137,7 @@ JS;
                     }
                     break;
                 case '错误':
-                    $msg    = str_replace("\n", '\n', $m);
+                    $msg    = str_replace("\n", '\n', json_encode($m));
                     $style  = 'color:#F4006B;font-size:14px;';
                     $line[] = "console.error(\"%c{$msg}\", \"{$style}\");";
                     break;

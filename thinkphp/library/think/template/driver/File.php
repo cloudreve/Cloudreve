@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -15,6 +15,8 @@ use think\Exception;
 
 class File
 {
+    protected $cacheFile;
+
     /**
      * 写入编译缓存
      * @param string $cacheFile 缓存的文件名
@@ -42,12 +44,13 @@ class File
      */
     public function read($cacheFile, $vars = [])
     {
+        $this->cacheFile = $cacheFile;
         if (!empty($vars) && is_array($vars)) {
             // 模板阵列变量分解成为独立变量
             extract($vars, EXTR_OVERWRITE);
         }
         //载入模版缓存文件
-        include $cacheFile;
+        include $this->cacheFile;
     }
 
     /**

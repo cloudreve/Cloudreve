@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -44,6 +44,18 @@ class MorphTo extends Relation
     }
 
     /**
+     * 获取当前的关联模型类的实例
+     * @access public
+     * @return Model
+     */
+    public function getModel()
+    {
+        $morphType = $this->morphType;
+        $model     = $this->parseModel($this->parent->$morphType);
+        return (new $model);
+    }
+
+    /**
      * 延迟获取关联数据
      * @param string   $subRelation 子关联名
      * @param \Closure $closure     闭包查询条件
@@ -82,17 +94,18 @@ class MorphTo extends Relation
     /**
      * 根据关联条件查询当前模型
      * @access public
-     * @param mixed $where 查询条件（数组或者闭包）
+     * @param  mixed  $where 查询条件（数组或者闭包）
+     * @param  mixed  $fields   字段
      * @return Query
      */
-    public function hasWhere($where = [])
+    public function hasWhere($where = [], $fields = null)
     {
         throw new Exception('relation not support: hasWhere');
     }
 
     /**
      * 解析模型的完整命名空间
-     * @access public
+     * @access protected
      * @param string $model 模型名（或者完整类名）
      * @return string
      */
@@ -238,17 +251,18 @@ class MorphTo extends Relation
     /**
      * 添加关联数据
      * @access public
-     * @param Model $model       关联模型对象
+     * @param Model     $model  关联模型对象
+     * @param string    $type   多态类型
      * @return Model
      */
-    public function associate($model)
+    public function associate($model, $type = '')
     {
         $morphKey  = $this->morphKey;
         $morphType = $this->morphType;
         $pk        = $model->getPk();
 
         $this->parent->setAttr($morphKey, $model->$pk);
-        $this->parent->setAttr($morphType, get_class($model));
+        $this->parent->setAttr($morphType, $type ?: get_class($model));
         $this->parent->save();
 
         return $this->parent->setRelation($this->relation, $model);
@@ -272,10 +286,14 @@ class MorphTo extends Relation
     }
 
     /**
-     * 执行基础查询（进执行一次）
-     * @access protected
-     * @return void
+     * 创建关联统计子查询
+     * @access public
+     * @param \Closure $closure 闭包
+     * @param string   $name    统计数据别名
+     * @return string
      */
-    protected function baseQuery()
-    {}
+    public function getRelationCountQuery($closure, &$name = null)
+    {
+        throw new Exception('relation not support: withCount');
+    }
 }

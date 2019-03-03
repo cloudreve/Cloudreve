@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -16,20 +16,6 @@ use think\Model;
 
 class Collection extends BaseCollection
 {
-    /**
-     * 返回数组中指定的一列
-     * @param string        $column_key
-     * @param string|null   $index_key
-     * @return array
-     */
-    public function column($column_key, $index_key = null)
-    {
-        if (function_exists('array_column')) {
-            return array_column($this->toArray(), $column_key, $index_key);
-        }
-        return parent::column($column_key, $index_key);
-    }
-
     /**
      * 延迟预载入关联查询
      * @access public
@@ -85,7 +71,7 @@ class Collection extends BaseCollection
     {
         $this->each(function ($model) use ($append, $override) {
             /** @var Model $model */
-            $model->append($append, $override);
+            $model && $model->append($append, $override);
         });
         return $this;
     }

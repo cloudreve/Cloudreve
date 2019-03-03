@@ -44,7 +44,7 @@ class File extends Controller{
 	 */
 	public function ListFile(){
 		$reqPath = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
-		return FileManage::ListFile($reqPath,$this->userObj->uid);
+		return json(FileManage::ListFile($reqPath,$this->userObj->uid));
 	}
 
 	public function Delete(){

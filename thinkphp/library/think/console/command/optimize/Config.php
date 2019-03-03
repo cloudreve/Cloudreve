@@ -30,7 +30,7 @@ class Config extends Command
 
     protected function execute(Input $input, Output $output)
     {
-        if ($input->hasArgument('module')) {
+        if ($input->getArgument('module')) {
             $module = $input->getArgument('module') . DS;
         } else {
             $module = '';

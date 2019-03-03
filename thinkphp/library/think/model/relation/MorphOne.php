@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -81,10 +81,11 @@ class MorphOne extends Relation
     /**
      * 根据关联条件查询当前模型
      * @access public
-     * @param mixed $where 查询条件（数组或者闭包）
+     * @param  mixed $where  查询条件（数组或者闭包）
+     * @param  mixed $fields 字段
      * @return Query
      */
-    public function hasWhere($where = [])
+    public function hasWhere($where = [], $fields = null)
     {
         throw new Exception('relation not support: hasWhere');
     }
@@ -201,13 +202,35 @@ class MorphOne extends Relation
         if ($data instanceof Model) {
             $data = $data->getData();
         }
+
         // 保存关联表数据
         $pk = $this->parent->getPk();
 
-        $model                  = new $this->model;
         $data[$this->morphKey]  = $this->parent->$pk;
         $data[$this->morphType] = $this->type;
-        return $model->save($data) ? $model : false;
+
+        $model = new $this->model();
+
+        return $model->save() ? $model : false;
+    }
+
+    /**
+     * 创建关联对象实例
+     * @param array $data
+     * @return Model
+     */
+    public function make($data = [])
+    {
+        if ($data instanceof Model) {
+            $data = $data->getData();
+        }
+        // 保存关联表数据
+        $pk = $this->parent->getPk();
+
+        $data[$this->morphKey]  = $this->parent->$pk;
+        $data[$this->morphType] = $this->type;
+
+        return new $this->model($data);
     }
 
     /**
@@ -226,4 +249,15 @@ class MorphOne extends Relation
         }
     }
 
+    /**
+     * 创建关联统计子查询
+     * @access public
+     * @param \Closure $closure 闭包
+     * @param string   $name    统计数据别名
+     * @return string
+     */
+    public function getRelationCountQuery($closure, &$name = null)
+    {
+        throw new Exception('relation not support: withCount');
+    }
 }

@@ -60,7 +60,7 @@ class Socket
      * @param array     $log 日志信息
      * @return bool
      */
-    public function save(array $log = [])
+    public function save(array $log = [], $append = false)
     {
         if (!$this->check()) {
             return false;
