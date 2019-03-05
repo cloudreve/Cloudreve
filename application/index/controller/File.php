@@ -170,6 +170,6 @@ class File extends Controller{
 			}
 
 		}
-		return FileManage::createFolder($dirName,$dirPosition,$this->userObj->uid);
+		return json(FileManage::createFolder($dirName,$dirPosition,$this->userObj->uid));
 	} 
 }

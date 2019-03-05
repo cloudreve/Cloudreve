@@ -543,7 +543,9 @@ class FileManage extends Model{
 		$fileList = Db::name('files')->where('upload_user',$uid)->where('dir',$path)->select();
 		$dirList = Db::name('folders')->where('owner',$uid)->where('position',$path)->select();
 		$count= 0;
-		$fileListData=[];
+		$fileListData=[
+			"result"=>[],
+		];
 		foreach ($dirList as $key => $value) {
 			$fileListData['result'][$count]['name'] = $value['folder_name'];
 			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";

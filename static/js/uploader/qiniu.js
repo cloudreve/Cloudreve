@@ -714,7 +714,7 @@ function QiniuJsSDK() {
 				logger.debug("get uptoken from: ", that.uptoken_url);
 				// TODO: use mOxie
 				var ajax = that.createAjax();
-				ajax.open('GET', that.uptoken_url, false);
+				ajax.open('GET', that.uptoken_url, true);
 				ajax.setRequestHeader("If-Modified-Since", "0");
 				// ajax.onreadystatechange = function() {
 				//     if (ajax.readyState === 4 && ajax.status === 200) {
@@ -723,58 +723,64 @@ function QiniuJsSDK() {
 				//     }
 				// };
 				ajax.send();
-				if (ajax.status === 200) {
-					var res = that.parseJSON(ajax.responseText);
-					that.token = res.uptoken;
-					if (uploadConfig.saveType == "oss"){
-						var putPolicy = that.token;
-						that.sign = res.sign;
-						that.access = res.id;
-						that.file_name = res.key;
-						that.callback = res.callback;
-					}else if(uploadConfig.saveType == "s3"){
-						var putPolicy = that.token;
-						that.sign = res.sign;
-						that.policy = res.policy;
-						that.file_name = res.key;
-						that.credential = res.credential;
-						that.x_amz_date = res.x_amz_date;
-						that.surl = res.siteUrl;
-						that.callbackKey = res.callBackKey;
-					}else if(uploadConfig.saveType == "upyun"){
-						var putPolicy = that.token;
-						that.token = res.token;
-						that.policy = res.policy;
-					}else if(uploadConfig.saveType == "remote"){
-						var putPolicy = that.token;
-						that.policy = res.uptoken;
-					}else{
-						var segments = that.token.split(":");
-						var putPolicy = that.parseJSON(that.URLSafeBase64Decode(segments[2]));
-						if (!that.tokenMap) {
-							that.tokenMap = {};
-						}
-						var getTimestamp = function(time) {
-							return Math.ceil(time.getTime()/1000);
-						};
-						var serverTime = getTimestamp(new Date(ajax.getResponseHeader("date")));
-						var clientTime = getTimestamp(new Date());
-						that.tokenInfo = {
-							serverDelay: clientTime - serverTime,
-							deadline: putPolicy.deadline,
-							isExpired: function() {
-								var leftTime = this.deadline - getTimestamp(new Date()) + this.serverDelay;
-								return leftTime < 600;
+				ajax.onload = function (e){
+					if (ajax.status === 200) {
+						var res = that.parseJSON(ajax.responseText);
+						that.token = res.uptoken;
+						if (uploadConfig.saveType == "oss"){
+							var putPolicy = that.token;
+							that.sign = res.sign;
+							that.access = res.id;
+							that.file_name = res.key;
+							that.callback = res.callback;
+						}else if(uploadConfig.saveType == "s3"){
+							var putPolicy = that.token;
+							that.sign = res.sign;
+							that.policy = res.policy;
+							that.file_name = res.key;
+							that.credential = res.credential;
+							that.x_amz_date = res.x_amz_date;
+							that.surl = res.siteUrl;
+							that.callbackKey = res.callBackKey;
+						}else if(uploadConfig.saveType == "upyun"){
+							var putPolicy = that.token;
+							that.token = res.token;
+							that.policy = res.policy;
+						}else if(uploadConfig.saveType == "remote"){
+							var putPolicy = that.token;
+							that.policy = res.uptoken;
+						}else{
+							var segments = that.token.split(":");
+							var putPolicy = that.parseJSON(that.URLSafeBase64Decode(segments[2]));
+							if (!that.tokenMap) {
+								that.tokenMap = {};
 							}
-						}; 
-						logger.debug("get token info: ", that.tokenInfo);
+							var getTimestamp = function(time) {
+								return Math.ceil(time.getTime()/1000);
+							};
+							var serverTime = getTimestamp(new Date(ajax.getResponseHeader("date")));
+							var clientTime = getTimestamp(new Date());
+							that.tokenInfo = {
+								serverDelay: clientTime - serverTime,
+								deadline: putPolicy.deadline,
+								isExpired: function() {
+									var leftTime = this.deadline - getTimestamp(new Date()) + this.serverDelay;
+									return leftTime < 600;
+								}
+							}; 
+							logger.debug("get token info: ", that.tokenInfo);
+						}
+						
+						logger.debug("get new uptoken: ", that.token);
+					   
+					} else {
+						logger.error("get uptoken error: ", ajax.responseText);
 					}
-					
-					logger.debug("get new uptoken: ", that.token);
-				   
-				} else {
+				}
+				ajax.onerror = function (e){
 					logger.error("get uptoken error: ", ajax.responseText);
 				}
+
 			} else if (op.uptoken_func) {
 				logger.debug("get uptoken from uptoken_func");
 				that.token = op.uptoken_func(file);
