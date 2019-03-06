@@ -160,12 +160,19 @@ class FileManage extends Model{
 		$originFolder = $fname;
 		$new = str_replace("/", "", self::getFileName($new)[0]);
 		if(!$notEcho){
-			$new = str_replace(" ", "", $new);
+			$newToBeVerify = str_replace(" ", "", $new);
 		}
-		$newSuffix = explode(".",$new);
-                // 文件名带有‘.’会导致验证失败
-		$newPrefix = str_replace($newSuffix, "", $new);
-		if(!self::fileNameValidate($newPrefix)){
+		//检查是否全为空格
+		$varifyExplode = explode(".",$newToBeVerify);
+		$isFullBlackspace = false;
+		foreach ($varifyExplode as $key => $value) {
+			if($value == ""){
+				$isFullBlackspace = true;
+				break;
+			}
+		}
+		$toBeValidated = str_replace(".","",$newToBeVerify);
+		if(!self::fileNameValidate($toBeValidated) || $isFullBlackspace){
 			if($notEcho){
 				return '{ "result": { "success": false, "error": "文件名只支持汉字、字母、数字和下划线_及破折号-" } }';
 			}
@@ -184,6 +191,7 @@ class FileManage extends Model{
 			self::folderRename($originFolder,$folderTmp,$uid,$notEcho);
 			die();
 		}
+		$newSuffix = explode(".",$new);
 		$originSuffix = explode(".",$fileRecord["orign_name"]);
 		if(end($originSuffix) != end($newSuffix)){
 			if($notEcho){
