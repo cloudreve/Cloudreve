@@ -713,19 +713,22 @@ function QiniuJsSDK() {
 			} else if (op.uptoken_url) {
 				logger.debug("get uptoken from: ", that.uptoken_url);
 				// TODO: use mOxie
-				var ajax = that.createAjax();
-				ajax.open('GET', that.uptoken_url, true);
-				ajax.setRequestHeader("If-Modified-Since", "0");
-				// ajax.onreadystatechange = function() {
-				//     if (ajax.readyState === 4 && ajax.status === 200) {
-				//         var res = that.parseJSON(ajax.responseText);
-				//         that.token = res.uptoken;
-				//     }
-				// };
-				ajax.send();
-				ajax.onload = function (e){
-					if (ajax.status === 200) {
-						var res = that.parseJSON(ajax.responseText);
+				// var ajax = that.createAjax();
+				// ajax.open('GET', that.uptoken_url, false);
+				// ajax.setRequestHeader("If-Modified-Since", "0");
+
+				// ajax.send();
+				var ajax = new Promise(function(resolve, reject) {
+					var xhr = new XMLHttpRequest();
+					xhr.onload = function() {
+						resolve(xhr);
+					};
+					xhr.onerror = reject;
+					xhr.open('GET', that.uptoken_url);
+					xhr.send();
+				});
+				ajax.then(function(result){
+					var res = that.parseJSON(result.responseText);
 						that.token = res.uptoken;
 						if (uploadConfig.saveType == "oss"){
 							var putPolicy = that.token;
@@ -758,7 +761,7 @@ function QiniuJsSDK() {
 							var getTimestamp = function(time) {
 								return Math.ceil(time.getTime()/1000);
 							};
-							var serverTime = getTimestamp(new Date(ajax.getResponseHeader("date")));
+							var serverTime = getTimestamp(new Date(result.getResponseHeader("date")));
 							var clientTime = getTimestamp(new Date());
 							that.tokenInfo = {
 								serverDelay: clientTime - serverTime,
@@ -770,16 +773,20 @@ function QiniuJsSDK() {
 							}; 
 							logger.debug("get token info: ", that.tokenInfo);
 						}
+				})
+				// ajax.onload = function (e){
+				// 	if (ajax.status === 200) {
 						
-						logger.debug("get new uptoken: ", that.token);
+						
+				// 		logger.debug("get new uptoken: ", that.token);
 					   
-					} else {
-						logger.error("get uptoken error: ", ajax.responseText);
-					}
-				}
-				ajax.onerror = function (e){
-					logger.error("get uptoken error: ", ajax.responseText);
-				}
+				// 	} else {
+				// 		logger.error("get uptoken error: ", ajax.responseText);
+				// 	}
+				// }
+				// ajax.onerror = function (e){
+				// 	logger.error("get uptoken error: ", ajax.responseText);
+				// }
 
 			} else if (op.uptoken_func) {
 				logger.debug("get uptoken from uptoken_func");

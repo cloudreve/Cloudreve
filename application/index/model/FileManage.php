@@ -542,6 +542,31 @@ class FileManage extends Model{
 		])->setDec('used_storage', $size);
 	}
 
+	static function searchFile($keyWords,$uid){
+		$fileList = Db::name('files')
+		->where('upload_user',$uid)
+		->where('orign_name',"like","%$keyWords%")
+		->select();
+		$count= 0;
+		$fileListData=[
+			"result"=>[],
+		];
+		foreach ($fileList as $key => $value) {
+			$fileListData['result'][$count]['name'] = $value['orign_name'];
+			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";
+			$fileListData['result'][$count]['size'] = $value['size'];
+			$fileListData['result'][$count]['date'] = $value['upload_date'];
+			$fileListData['result'][$count]['type'] = 'file';
+			$fileListData['result'][$count]['name2'] = $value["dir"];
+			$fileListData['result'][$count]['id'] = $value["id"];
+			$fileListData['result'][$count]['pic'] = $value["pic_info"];
+			$fileListData['result'][$count]['path'] = $value['dir'];
+			$count++;
+		}
+	
+		return $fileListData;
+	}
+
 	/**
 	 * [List description]
 	 * @param [type] $path [description]
@@ -563,6 +588,7 @@ class FileManage extends Model{
 			$fileListData['result'][$count]['name2'] = "";
 			$fileListData['result'][$count]['id'] = $value['id'];
 			$fileListData['result'][$count]['pic'] = "";
+			$fileListData['result'][$count]['path'] = $value['position'];
 			$count++;
 		}
 		foreach ($fileList as $key => $value) {
@@ -574,6 +600,7 @@ class FileManage extends Model{
 			$fileListData['result'][$count]['name2'] = $value["dir"];
 			$fileListData['result'][$count]['id'] = $value["id"];
 			$fileListData['result'][$count]['pic'] = $value["pic_info"];
+			$fileListData['result'][$count]['path'] = $value['dir'];
 			$count++;
 		}
 	

@@ -27,37 +27,33 @@ class File extends Controller{
 		}
 	}
 
-	/**
-	 * [index description]
-	 * @Author   Aaron
-	 * @DateTime 2017-07-03
-	 * @return   [type]     [description]
-	 */
 	public function index(){
 		return "";
 	}
 	 
-	/**
-	 * [List description]
-	 * @Author   Aaron
-	 * @DateTime 2017-07-03
-	 */
 	public function ListFile(){
 		$reqPath = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
 		return json(FileManage::ListFile($reqPath,$this->userObj->uid));
 	}
 
+	public function SearchFile(){
+		$keyWords = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
+		return json(FileManage::searchFile($keyWords,$this->userObj->uid));
+	}
+
 	public function Delete(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['items'];
-		$dirPath = json_decode(file_get_contents("php://input"),true)['dirs'];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = array_key_exists("dirs",$reqData)?$reqData["items"]:array();
+		$dirPath = array_key_exists("dirs",$reqData)?$reqData["dirs"]:array();
 		FileManage::DirDeleteHandler($dirPath,$this->userObj->uid);
-		return FileManage::DeleteHandler($reqPath,$this->userObj->uid);
+		return json(FileManage::DeleteHandler($reqPath,$this->userObj->uid));
 	}
 
 	public function Move(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['items'];
-		$dirPath = json_decode(file_get_contents("php://input"),true)['dirs'];
-		$newPath = json_decode(file_get_contents("php://input"),true)['newPath'];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = array_key_exists("dirs",$reqData)?$reqData["items"]:array();
+		$dirPath = array_key_exists("dirs",$reqData)?$reqData["dirs"]:array();
+		$newPath = $reqData['newPath'];
 		return FileManage::MoveHandler($reqPath,$dirPath,$newPath,$this->userObj->uid);
 	}
 
