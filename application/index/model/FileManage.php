@@ -622,20 +622,20 @@ class FileManage extends Model{
 		foreach ($fileList as $key => $value) {
 			if($value["orign_name"] == $firstPreview[0]){
 				$previewPicInfo = explode(",",$value["pic_info"]);
-				$previewSrc = $url."action=preview&path=".$path."/".$value["orign_name"];
+				$previewSrc = $url."action=preview&path=".urlencode($path."/".$value["orign_name"]);
 			}else{
 				$picInfo = explode(",",$value["pic_info"]);
 				$fileListData[$count]['src'] = $url."action=preview&path=".$path."/".$value["orign_name"];
-				$fileListData[$count]['w'] = $picInfo[0];
-				$fileListData[$count]['h'] = $picInfo[1];
+				$fileListData[$count]['w'] = 0;
+				$fileListData[$count]['h'] = 0;
 				$fileListData[$count]['title'] = $value["orign_name"];
 				$count++;
 			}
 		}
 		array_unshift($fileListData,array(
 			'src' => $previewSrc,
-			'w' => $previewPicInfo[0],
-			'h' => $previewPicInfo[1],
+			'w' => 0,
+			'h' => 0,
 			'title' => $firstPreview[0],
 			));
 		return $fileListData;

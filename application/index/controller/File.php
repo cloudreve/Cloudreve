@@ -64,7 +64,7 @@ class File extends Controller{
 	}
 
 	public function Preview(){
-		$reqPath = $_GET["path"];
+		$reqPath =$_GET["path"];
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$Redirect = $fileObj->PreviewHandler();
 		if($Redirect[0]){
@@ -74,7 +74,7 @@ class File extends Controller{
 	
 	public function ListPic(){
 		$reqPath = $_GET["path"];
-		return FileManage::listPic($reqPath,$this->userObj->uid);
+		return json(FileManage::listPic($reqPath,$this->userObj->uid));
 	}
 
 	public function Download(){
