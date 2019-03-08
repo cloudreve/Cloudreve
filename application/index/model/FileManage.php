@@ -542,11 +542,79 @@ class FileManage extends Model{
 		])->setDec('used_storage', $size);
 	}
 
+	static function filterFile($keyWords,$uid){
+		switch ($keyWords) {
+			case '{filterType:video}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.mp4")
+				->whereOr('orign_name',"like","%.flv")
+				->whereOr('orign_name',"like","%.avi")
+				->whereOr('orign_name',"like","%.wmv")
+				->whereOr('orign_name',"like","%.mkv")
+				->whereOr('orign_name',"like","%.rm")
+				->whereOr('orign_name',"like","%.rmvb")
+				->whereOr('orign_name',"like","%.mov")
+				->whereOr('orign_name',"like","%.ogv")
+				->select();
+				break;
+			case '{filterType:audio}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.mp3")
+				->whereOr('orign_name',"like","%.flac")
+				->whereOr('orign_name',"like","%.ape")
+				->whereOr('orign_name',"like","%.wav")
+				->whereOr('orign_name',"like","%.acc")
+				->whereOr('orign_name',"like","%.ogg")
+				->select();
+				break;
+			case '{filterType:image}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.bmp")
+				->whereOr('orign_name',"like","%.flac")
+				->whereOr('orign_name',"like","%.iff")
+				->whereOr('orign_name',"like","%.png")
+				->whereOr('orign_name',"like","%.gif")
+				->whereOr('orign_name',"like","%.jpg")
+				->whereOr('orign_name',"like","%.jpge")
+				->whereOr('orign_name',"like","%.psd")
+				->whereOr('orign_name',"like","%.svg")
+				->whereOr('orign_name',"like","%.webp")
+				->select();
+				break;
+			case '{filterType:doc}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.txt")
+				->whereOr('orign_name',"like","%.md")
+				->whereOr('orign_name',"like","%.pdf")
+				->whereOr('orign_name',"like","%.doc")
+				->whereOr('orign_name',"like","%.docx")
+				->whereOr('orign_name',"like","%.ppt")
+				->whereOr('orign_name',"like","%.pptx")
+				->whereOr('orign_name',"like","%.xls")
+				->whereOr('orign_name',"like","%.xlsx")
+				->select();
+				break;
+			default:
+				$fileList = [];
+				break;
+		}
+		return $fileList;
+	}
+
 	static function searchFile($keyWords,$uid){
-		$fileList = Db::name('files')
-		->where('upload_user',$uid)
-		->where('orign_name',"like","%$keyWords%")
-		->select();
+		if (0 === strpos($keyWords, '{filterType:')) {
+			$fileList = self::filterFile($keyWords,$uid);
+		}else{
+			$fileList = Db::name('files')
+			->where('upload_user',$uid)
+			->where('orign_name',"like","%$keyWords%")
+			->select();
+		}
+		
 		$count= 0;
 		$fileListData=[
 			"result"=>[],

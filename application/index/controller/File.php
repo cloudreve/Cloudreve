@@ -87,9 +87,11 @@ class File extends Controller{
 	}
 
 	public function Share(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['item'];
-		$shareType = json_decode(file_get_contents("php://input"),true)['shareType'];
-		ShareHandler::createShare($reqPath,$shareType,$this->userObj->getSQLData(),$this->userObj->getGroupData());
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = $reqData['item'];
+		$shareType = $reqData['shareType'];
+		$sharePwd = $reqData['pwd'];
+		ShareHandler::createShare($reqPath,$shareType,$sharePwd,$this->userObj->getSQLData(),$this->userObj->getGroupData());
 	}
 
 	public function gerSource(){

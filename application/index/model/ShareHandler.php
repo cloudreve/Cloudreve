@@ -235,7 +235,7 @@ class ShareHandler extends Model{
 		}
 	}
 
-	static function createShare($fname,$type,$user,$group){
+	static function createShare($fname,$type,$pwd,$user,$group){
 		if(!$group["allow_share"]){
 			self::setError("您当前的用户组无权分享文件");
 		}
@@ -243,9 +243,9 @@ class ShareHandler extends Model{
 		$fnameTmp = FileManage::getFileName($fname)[0];
 		$fileRecord = Db::name('files')->where('upload_user',$user["id"])->where('orign_name',$fnameTmp)->where('dir',$path)->find();
 		if(empty($fileRecord)){
-			self::createDirShare($fname,$type,$user,$group);
+			self::createDirShare($fname,$type,$pwd,$user,$group);
 		}else{
-			self::createFileShare($fileRecord,$type,$user,$group);
+			self::createFileShare($fileRecord,$type,$pwd,$user,$group);
 		}
 	}
 
@@ -257,13 +257,13 @@ class ShareHandler extends Model{
 		die('{ "result": "'.$text.'" }');
 	}
 
-	static function createDirShare($fname,$type,$user,$group){
+	static function createDirShare($fname,$type,$pwd,$user,$group){
 		$dirRecord = Db::name('folders')->where('owner',$user["id"])->where('position_absolute',$fname)->find();
 		if(empty($dirRecord)){
 			self::setError("目录不存在");
 		}
 		$shareKey = self::getRandomKey(8);
-		$sharePwd = $type=="public" ? "0" : self::getRandomKey(6);
+		$sharePwd = $type=="public" ? "0" : $pwd;
 		$SQLData = [
 			'type' => $type=="public" ? "public" : "private",
 			'share_time' => date("Y-m-d H:i:s"),
@@ -285,9 +285,9 @@ class ShareHandler extends Model{
 		}
 	}
 
-	static function createFileShare($file,$type,$user,$group){
+	static function createFileShare($file,$type,$pwd,$user,$group){
 		$shareKey = self::getRandomKey(8);
-		$sharePwd = $type=="public" ? "0" : self::getRandomKey(6);
+		$sharePwd = $type=="public" ? "0" : $pwd;
 		$SQLData = [
 			'type' => $type=="public" ? "public" : "private",
 			'share_time' => date("Y-m-d H:i:s"),
