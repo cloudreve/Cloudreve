@@ -35,6 +35,7 @@ class Home extends Controller{
 			'extLimit' => $extLimit,
 			'policyData' => $policyData,
 			'groupData' => $groupData,
+			'path' => input("?get.path")?input("get.path"):"",
 		]);
 	}
 

@@ -38,6 +38,15 @@
       download:"/File/Download",
       docPreiview:'/File/DocPreview',
     };
+    userInfo={
+      uid:{$userInfo.uid},
+      nick:"{$userInfo.userNick}",
+      email:"{$userInfo.userMail}",
+      group:"{$userInfo.groupData.group_name}",
+      groupId:{$userInfo.groupData.id},
+      groupColor:"{$userInfo.groupData.color}",
+    };
+    path = "{$path}";
     mediaType = {}
       </script>
   </head>
