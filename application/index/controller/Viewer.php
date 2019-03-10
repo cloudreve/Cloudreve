@@ -34,6 +34,21 @@ class Viewer extends Controller{
 			'fileName' => end($pathSplit),
 		]);
 	}
+
+	public function Markdown(){
+		$path = input("get.path");
+		$pathSplit = explode("/",urldecode($path));
+		$userInfo = $this->userObj->getInfo();
+		$groupData =  $this->userObj->getGroupData();
+		return view('markdown', [
+			'options'  => Option::getValues(['basic']),
+			'userInfo' => $userInfo,
+			'groupData' => $groupData,
+			'url' => "/File/Content?action=preview&path=".$path,
+			'fileName' => end($pathSplit),
+			'path' => urldecode($path),
+		]);
+	}
 		
 		
 }

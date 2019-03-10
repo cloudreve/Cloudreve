@@ -101,7 +101,7 @@ class File extends Controller{
 	}
 
 	public function Content(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['item'];
+		$reqPath = urldecode(input("get.path"));
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$FileHandler = $fileObj->getContent();
 	}
