@@ -35,9 +35,10 @@ class Share extends Controller{
 					'dirData' => $shareObj->dirData,
 					'shareData' => $shareObj->shareData,
 					'loginStatus' => $this->userObj->loginStatus,
-					'userData' => $this->userObj->userSQLData,
+					'userData' => $this->userObj->getInfo(),
 					'groupData' =>  $shareObj->shareOwner->groupData,
 					'allowPreview' => Option::getValue("allowdVisitorDownload"),
+					'path' => empty(input("get.path"))?"/":input("get.path"),
 				]);
 			}else{
 				return view('share_single', [
@@ -85,6 +86,20 @@ class Share extends Controller{
 		}
 	}
 
+	public function Content(){
+		$shareId = input('param.key');
+		$filePath = input('get.path');
+		$shareObj = new ShareHandler($shareId,false);
+		if(empty($filePath)){
+			//todo 单文件时
+		}else{
+			$contentHandller = $shareObj->getContent($this->userObj,$filePath);
+		}
+		if(!$contentHandller[0]){
+			return json(["result"=>["success"=>false,"error"=>$contentHandller[1]]]);
+		}
+	}
+
 	public function chekPwd(){
 		$shareId = input('key');
 		$inputPwd = input('password');
@@ -122,7 +137,7 @@ class Share extends Controller{
 		$shareId = input('param.key');
 		$reqPathTo = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
 		$shareObj = new ShareHandler($shareId,false);
-		return $shareObj->ListFile($reqPathTo);
+		return json($shareObj->ListFile($reqPathTo));
 	}
 
 	public function ListPic(){
@@ -133,13 +148,30 @@ class Share extends Controller{
 	}
 
 	public function Thumb(){
-		$shareId = input('get.shareKey');
-		$filePath = input('get.path');
+		$shareId = input('param.key');
+		$filePath = urldecode(input('get.path'));
 		if(input("get.isImg") != "true"){
 			return "";
 		}
 		$shareObj = new ShareHandler($shareId,false);
 		$Redirect = $shareObj->getThumb($this->userObj,$filePath);
+		if($Redirect[0]){
+			$this->redirect($Redirect[1],302);
+		}else{
+			$this->error($Redirect[1],403,$this->siteOptions);
+		}
+	}
+
+	public function DocPreview(){
+		$shareId = input('param.key');
+		$filePath = urldecode(input('get.path'));
+		$shareObj = new ShareHandler($shareId,false);
+		if(empty($filePath)){
+			//TODO 单文件时
+		}else{
+			$Redirect = $shareObj->getDocPreview($this->userObj,$filePath);
+		}
+		
 		if($Redirect[0]){
 			$this->redirect($Redirect[1],302);
 		}else{

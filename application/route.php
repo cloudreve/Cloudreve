@@ -24,4 +24,7 @@ Route::rule([
 	'Member/Avatar/:uid/:size' => ['Member/Avatar',[],['uid'=>'\d+']],
 	'Profile/:uid' => ['Profile/index',[],['uid'=>'\d+']],
 	'Callback/Payment/Jinshajiang' => 'index/Callback/Jinshajiang',
+	'Share/Thumb/:key' => 'index/Share/Thumb',
+	'Share/DocPreview/:key' => 'index/Share/DocPreview',
+	'Share/Content/:key' => 'index/Share/Content',
 ]);

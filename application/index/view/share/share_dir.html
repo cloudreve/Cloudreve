@@ -1,80 +1,95 @@
-{extend name="header_dir_share" /}
-{block name="title"}{$dirData.folder_name} - {$options.siteName}{/block}
-{block name="content"}
-<link rel="stylesheet" href="/static/css/share_dir.css" />
-<link rel="stylesheet" href="/static/css/photoswipe.css">
-<link rel="stylesheet" href="/static/css/default-skin/default-skin.css">
-</head>
-<body data-ma-header="teal">
-<div class="modal fade" id="previewModal" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" onclick="audioPause()" data-dismiss="modal">
-                <span aria-hidden="true">×</span>
-                <span class="sr-only ng-binding">关闭</span>
-                </button>
-                <h4 class="modal-title">视频预览</h4>
-            </div>
-            <div class="modal-body">
-                <div class="text-center previewContent">
-                    
-                    
-                </div>
-                
-            </div>
-        </div>
-    </div>
-</div>
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <!-- Background of PhotoSwipe.
-    It's a separate element, as animating opacity is faster than rgba(). -->
-    <div class="pswp__bg"></div>
-    <!-- Slides wrapper with overflow:hidden. -->
-    <div class="pswp__scroll-wrap">
-        <!-- Container that holds slides. PhotoSwipe keeps only 3 slides in DOM to save memory. -->
-        <div class="pswp__container">
-            <!-- don't modify these 3 pswp__item elements, data is added later on -->
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <!--  Controls are self-explanatory. Order can be changed. -->
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
-                <!-- element will get class pswp__preloader--active when preloader is running -->
-                <div class="pswp__preloader">
-                    <div class="pswp__preloader__icn">
-                        <div class="pswp__preloader__cut">
-                            <div class="pswp__preloader__donut"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-                <div class="pswp__share-tooltip"></div>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
-<angular-filemanager></angular-filemanager>
+<!DOCTYPE html>
+<html lang="zh-cn">
 
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!--
+      manifest.json provides metadata used when your web app is added to the
+      homescreen on Android. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
 
-        </body>
-        <script type="text/javascript">
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>{$dirData.folder_name} - {$options.siteName}</title>
+    <script type="text/javascript">
+        colorTheme = {
+            "palette": {
+                "common": {
+                    "black": "#000",
+                    "white": "#fff"
+                },
+                "background": {
+                    "paper": "#fff",
+                    "default": "#fafafa"
+                },
+                "primary": {
+                    "light": "#7986cb",
+                    "main": "#3f51b5",
+                    "dark": "#303f9f",
+                    "contrastText": "#fff"
+                },
+                "secondary": {
+                    "light": "#ff4081",
+                    "main": "#f50057",
+                    "dark": "#c51162",
+                    "contrastText": "#fff"
+                },
+                "error": {
+                    "light": "#e57373",
+                    "main": "#f44336",
+                    "dark": "#d32f2f",
+                    "contrastText": "#fff"
+                },
+                "text": {
+                    "primary": "rgba(0, 0, 0, 0.87)",
+                    "secondary": "rgba(0, 0, 0, 0.54)",
+                    "disabled": "rgba(0, 0, 0, 0.38)",
+                    "hint": "rgba(0, 0, 0, 0.38)"
+                },
+                "explorer": {
+                    "filename": "#474849",
+                    "icon": "#8f8f8f",
+                    "bgSelected": "#D5DAF0",
+                    "emptyIcon": "#e8e8e8",
+                }
+            }
+        };
+        isHomePage = false;
+        isSharePage = true;
+        apiURL = {
+            imgThumb: "/Share/Thumb/{$shareData.share_key}",
+            preview: "/Share/Preview/{$shareData.share_key}",
+            download: "/Share/Download/{$shareData.share_key}",
+            docPreiview: '/Share/DocPreview/{$shareData.share_key}',
+            listFile:'/Share/ListFile/{$shareData.share_key}'
+        };
+        userInfo = {
+            uid: {$userData.uid},
+            nick: "{$userData.userNick}",
+            email: "{$userData.userMail}",
+            group: "{$userData.groupData.group_name}",
+            groupId: {$userData.groupData.id},
+            groupColor: "{$userData.groupData.color}",
+        };
+        siteInfo = {
+            mainTitle: "{$dirData.folder_name}",
+        };
+        path = "{$path}";
+        uploadConfig = {
+            allowSource: false,
+            allowShare: false,
+            allowRemoteDownload: "0",
+            allowTorrentDownload: "0",
+        };
         shareInfo={
             shareDate : "{$shareData.share_time}",
             ownerUid:"{$userInfo.id}",
@@ -91,15 +106,36 @@
             allowPreview:{$allowPreview},
             {/eq}
         };
-        </script>
-        <script src="/static/js/angular.min.js"></script>
-        <script src="/static/js/angular-translate.min.js"></script>
-        <script src="/static/js/jquery.min.js"></script>
-        <script src="/static/js/jquery.min.js"></script>
-<script src="/static/js/material.js"></script>
-        <script src="/static/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="/static/js/toastr.min.js"></script>
-<script src="/static/js/filemanager_share.js"></script>
-        <script src="/static/js/share_dir.js"> </script>
-        {$options.js_code}
-{/block}
+        mediaType = {},
+        isMobile = window.innerWidth < 600;
+    </script>
+</head>
+
+<body>
+
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+</body>
+<script src="http://192.168.123.19:3000/static/js/runtime~folderShare.bundle.js"></script>
+<script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/3.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/1.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/4.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/6.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/2.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/8.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/folderShare.chunk.js"></script>
+
+</html>

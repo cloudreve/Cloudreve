@@ -7,6 +7,7 @@ use \app\index\model\Option;
 use \app\index\model\User;
 use think\Session;
 use \app\index\model\FileManage;
+use \app\index\model\ShareHandler;
 
 class Viewer extends Controller{
 
@@ -26,12 +27,17 @@ class Viewer extends Controller{
 		$pathSplit = explode("/",urldecode($path));
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
+		$url = "/File/Preview?action=preview&path=".$path;
+		if(input("get.share")==true){
+			$url = "/Share/Preview/".input("get.shareKey")."/?path=".$path;
+		}
 		return view('video', [
 			'options'  => Option::getValues(['basic']),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
-			'url' => "/File/Preview?action=preview&path=".$path,
+			'url' => $url,
 			'fileName' => end($pathSplit),
+			'isSharePage' => input("?get.share")?"true":"false",
 		]);
 	}
 
@@ -40,13 +46,18 @@ class Viewer extends Controller{
 		$pathSplit = explode("/",urldecode($path));
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
+		$url = "/File/Content?action=preview&path=".$path;
+		if(input("get.share")==true){
+			$url = "/Share/Content/".input("get.shareKey")."/?path=".$path;
+		}
 		return view('markdown', [
 			'options'  => Option::getValues(['basic']),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
-			'url' => "/File/Content?action=preview&path=".$path,
+			'url' => $url,
 			'fileName' => end($pathSplit),
 			'path' => urldecode($path),
+			'isSharePage' => input("?get.share")?"true":"false",
 		]);
 	}
 		

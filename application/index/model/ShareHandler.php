@@ -95,6 +95,28 @@ class ShareHandler extends Model{
 		return $fileObj->getThumb();
 	}
 
+	public function getDocPreview($user,$path){
+		$checkStatus = $this->checkSession($user);
+		if(!$checkStatus[0]){
+			return [$checkStatus[0],$checkStatus[1]];
+		}
+		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+		$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		$tmpUrl = $fileObj->signTmpUrl();
+		return[true,"http://view.officeapps.live.com/op/view.aspx?src=".urlencode($tmpUrl)];
+	}
+
+	public function getContent($user,$path=null){
+		$checkStatus = $this->checkSession($user);
+		if(!$checkStatus[0]){
+			return [$checkStatus[0],$checkStatus[1]];
+		}
+		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+		$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		$fileObj->getContent();
+		exit();
+	}
+
 	public function checkSession($user){
 		if($this->lockStatus){
 			return [false,"会话过期，请刷新页面"];
@@ -146,7 +168,7 @@ class ShareHandler extends Model{
 		}
 		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
 		$path = $path == "/"?"":$path;
-		return FileManage::ListFile($this->shareData["source_name"].$path,$this->shareData["owner"]);
+		return FileManage::ListFile($this->shareData["source_name"].$path,$this->shareData["owner"],true,$this->shareData["source_name"]);
 	}
 
 	public function Preview($user){

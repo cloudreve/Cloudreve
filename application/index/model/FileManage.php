@@ -636,11 +636,14 @@ class FileManage extends Model{
 	}
 
 	/**
-	 * [List description]
-	 * @param [type] $path [description]
-	 * @param [type] $uid  [description]
+	 * 列出文件
+	 *
+	 * @param 路径 $path
+	 * @param 用户UID $uid
+	 * @param boolean $isShare	是否为分享模式下列出文件
+	 * @return void
 	 */
-	static function ListFile($path,$uid){
+	static function ListFile($path,$uid,$isShare=false,$originPath=null){
 		$fileList = Db::name('files')->where('upload_user',$uid)->where('dir',$path)->select();
 		$dirList = Db::name('folders')->where('owner',$uid)->where('position',$path)->select();
 		$count= 0;
@@ -657,6 +660,12 @@ class FileManage extends Model{
 			$fileListData['result'][$count]['id'] = $value['id'];
 			$fileListData['result'][$count]['pic'] = "";
 			$fileListData['result'][$count]['path'] = $value['position'];
+			if($isShare){
+				if (substr($value['position'], 0, strlen($originPath)) == $originPath) {
+					$value['position'] = substr($value['position'], strlen($originPath));
+				}
+				$fileListData['result'][$count]['path'] = ($value['position']=="")?"/":$value['position'];
+			}
 			$count++;
 		}
 		foreach ($fileList as $key => $value) {
@@ -665,10 +674,15 @@ class FileManage extends Model{
 			$fileListData['result'][$count]['size'] = $value['size'];
 			$fileListData['result'][$count]['date'] = $value['upload_date'];
 			$fileListData['result'][$count]['type'] = 'file';
-			$fileListData['result'][$count]['name2'] = $value["dir"];
 			$fileListData['result'][$count]['id'] = $value["id"];
 			$fileListData['result'][$count]['pic'] = $value["pic_info"];
 			$fileListData['result'][$count]['path'] = $value['dir'];
+			if($isShare){
+				if (substr($value['dir'], 0, strlen($originPath)) == $originPath) {
+					$value['dir'] = substr($value['dir'], strlen($originPath));
+				}
+				$fileListData['result'][$count]['path'] = ($value['dir']=="")?"/":$value['dir'];
+			}
 			$count++;
 		}
 	

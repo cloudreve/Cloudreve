@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
-  <head>
+
+<head>
     <meta charset="utf-8">
     <link rel="shortcut icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -8,7 +9,7 @@
       manifest.json provides metadata used when your web app is added to the
       homescreen on Android. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
+    <link rel="manifest" href="/manifest.json">
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -20,43 +21,86 @@
     -->
     <title>我的文件 - {$options.siteName}</title>
     <script type="text/javascript">
-    isHomePage=true;
-      uploadConfig={
-			saveType : "{$policyData.policy_type}",
-			maxSize : "{$policyData.max_size}mb",
-			allowedType: [ 
-				{$extLimit}
-			],
-			allowSource : "{$policyData.origin_link}",
-			upUrl : "{$policyData.server}",
-			allowShare:"{$groupData.allow_share}",
-            allowRemoteDownload:"{:explode(",",$groupData.aria2)[0]}",
-            allowTorrentDownload:"{:explode(",",$groupData.aria2)[1]}",
-    };
-    apiURL={
-      imgThumb:"/File/Thumb",
-      preview:"/File/Preview",
-      download:"/File/Download",
-      docPreiview:'/File/DocPreview',
-    };
-    userInfo={
-      uid:{$userInfo.uid},
-      nick:"{$userInfo.userNick}",
-      email:"{$userInfo.userMail}",
-      group:"{$userInfo.groupData.group_name}",
-      groupId:{$userInfo.groupData.id},
-      groupColor:"{$userInfo.groupData.color}",
-    };
-    siteInfo = {
-      mainTitle:"{$options.siteName}",
-    };
-    path = "{$path}";
-    mediaType = {},
-    isMobile = window.innerWidth<600;
-      </script>
-  </head>
-  <body>
-    
+        colorTheme = {
+            "palette": {
+                "common": {
+                    "black": "#000",
+                    "white": "#fff"
+                },
+                "background": {
+                    "paper": "#fff",
+                    "default": "#fafafa"
+                },
+                "primary": {
+                    "light": "#7986cb",
+                    "main": "#3f51b5",
+                    "dark": "#303f9f",
+                    "contrastText": "#fff"
+                },
+                "secondary": {
+                    "light": "#ff4081",
+                    "main": "#f50057",
+                    "dark": "#c51162",
+                    "contrastText": "#fff"
+                },
+                "error": {
+                    "light": "#e57373",
+                    "main": "#f44336",
+                    "dark": "#d32f2f",
+                    "contrastText": "#fff"
+                },
+                "text": {
+                    "primary": "rgba(0, 0, 0, 0.87)",
+                    "secondary": "rgba(0, 0, 0, 0.54)",
+                    "disabled": "rgba(0, 0, 0, 0.38)",
+                    "hint": "rgba(0, 0, 0, 0.38)"
+                },
+                "explorer": {
+                    "filename": "#474849",
+                    "icon": "#8f8f8f",
+                    "bgSelected": "#D5DAF0",
+                    "emptyIcon": "#e8e8e8",
+                }
+            }
+        };
+        isHomePage = true;
+        isSharePage = false;
+        uploadConfig = {
+            saveType: "{$policyData.policy_type}",
+            maxSize: "{$policyData.max_size}mb",
+            allowedType: [{$extLimit}],
+            allowSource: "{$policyData.origin_link}",
+            upUrl: "{$policyData.server}",
+            allowShare: "{$groupData.allow_share}",
+            allowRemoteDownload: "{:explode(",",$groupData.aria2)[0]}",
+            allowTorrentDownload: "{:explode(",",$groupData.aria2)[1]}",
+        };
+        apiURL = {
+            imgThumb: "/File/Thumb",
+            preview: "/File/Preview",
+            download: "/File/Download",
+            docPreiview: '/File/DocPreview',
+            listFile:"/File/ListFile"
+        };
+        userInfo = {
+            uid: {$userInfo.uid},
+            nick: "{$userInfo.userNick}",
+            email: "{$userInfo.userMail}",
+            group: "{$userInfo.groupData.group_name}",
+            groupId: {$userInfo.groupData.id},
+            groupColor: "{$userInfo.groupData.color}",
+        };
+        siteInfo = {
+            mainTitle: "{$options.siteName}",
+        };
+        path = "{$path}";
+        mediaType = {},
+        isMobile = window.innerWidth < 600;
+    </script>
+</head>
+
+<body>
+
     <noscript>
       You need to enable JavaScript to run this app.
     </noscript>
@@ -71,10 +115,13 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  </body>
-  <script src="http://192.168.123.19:3000/static/js/runtime~index.bundle.js"></script><script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script><script src="http://192.168.123.19:3000/static/js/3.chunk.js"></script>
-  <script src="http://192.168.123.19:3000/static/js/7.chunk.js"></script>
-  <script src="http://192.168.123.19:3000/static/js/11.chunk.js"></script>
-  <script src="http://192.168.123.19:3000/static/js/8.chunk.js"></script>
-  <script src="http://192.168.123.19:3000/static/js/index.chunk.js"></script>
+</body>
+<script src="http://192.168.123.19:3000/static/js/runtime~index.bundle.js"></script>
+<script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/1.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/2.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/4.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/8.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/index.chunk.js"></script>
+
 </html>
