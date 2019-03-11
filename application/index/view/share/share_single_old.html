@@ -1,9 +1,10 @@
-{extend name="header_dir_share" /}
-{block name="title"}{$dirData.folder_name} - {$options.siteName}{/block}
+{extend name="header_public" /}
+{block name="title"}{$fileData.orign_name} - {$options.siteName}{/block}
 {block name="content"}
-<link rel="stylesheet" href="/static/css/share_dir.css" />
+<link rel="stylesheet" href="/static/css/share.css" />
 <link rel="stylesheet" href="/static/css/photoswipe.css">
 <link rel="stylesheet" href="/static/css/default-skin/default-skin.css">
+<script src="/static/js/jquery.color.js"></script>
 </head>
 <body data-ma-header="teal">
 <div class="modal fade" id="previewModal" role="dialog">
@@ -70,21 +71,71 @@
         </div>
     </div>
 </div>
-<angular-filemanager></angular-filemanager>
-
-
+<nav class="navbar navbar-inverse" >
+    <div class="container-fluid">
+        <div class="container" >
+            {include file="navbar_public" /}
+            <div class="header-panel shadow-z-2">
+                <div class="container-fluid">
+                    <div class="row">
+                        
+                    </div>
+                </div>
+            </div>
+            <div class="container main" >
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <div class="jumbotron" >
+                        <div class="card_top">
+                            <div class="row top-color">
+                                <div class="card-top-row">
+                                    <div class="file-sign col-xs-2">
+                                        <i class="fa fa-file-image-o" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="file_title col-xs-10">
+                                        <div class="file_title_inside str_wrap">
+                                            {$fileData.orign_name|htmlspecialchars=ENT_NOQUOTES}&nbsp;&nbsp;
+                                        </div>
+                                        <div class="file_info"><span id="size"></span>&nbsp;&nbsp;<span><i class="fa fa-cloud-download" aria-hidden="true"></i> <span id="down_num"></span></span>&nbsp;&nbsp;<span><i class="fa fa-eye" aria-hidden="true"></i> <span id="view_num"></span></span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-middle">
+                                <button  class="btn btn-info btn-fab" id="previewButton"><i class="material-icons fa fa-eye"></i><div class="ripple-container"></div></button>
+                                <button  class="btn btn-primary btn-fab" id="download"><i class="material-icons fa fa-download"></i><div class="ripple-container"></div></button>
+                            </div>
+                        </div>
+                        
+                        <div class="card_botom">
+                            <div class="row bottom-width">
+                                <div class="avatar ">
+                                    <img src="/Member/Avatar/{$userInfo.id}/s" class="img-circle animated rotateIn">
+                                    <div class="nick">
+                                        <span class="nickname"><a class="notWave" href="/Profile/{$userInfo.id}">{$userInfo.user_nick}</a></span>
+                                        <br>
+                                        <span class="share_time">分享于<span id="share_time"></span></span>
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div></div>
+                    <div class="col-md-3"></div>
+                </div>
+            </div>
         </body>
+        <script src="/static/js/jquery.liMarquee.js"></script>
         <script type="text/javascript">
         shareInfo={
+            fileSize : "{$fileData.size}",
             shareDate : "{$shareData.share_time}",
             ownerUid:"{$userInfo.id}",
             ownerNick:"{$userInfo.user_nick}",
             downloadNum:"{$shareData.download_num}",
             ViewNum:"{$shareData.view_num}",
             shareId:"{$shareData.share_key}",
-            dirName:"{$dirData.folder_name}",
-            groupName:"{$groupData.group_name}",
-            color:"{$groupData.color}",
+            fileName:"{$fileData.orign_name}",
+            picSize:"{$fileData.pic_info}",
             {eq name="$loginStatus" value="1"}
             allowPreview:true,
             {else/}
@@ -92,14 +143,6 @@
             {/eq}
         };
         </script>
-        <script src="/static/js/angular.min.js"></script>
-        <script src="/static/js/angular-translate.min.js"></script>
-        <script src="/static/js/jquery.min.js"></script>
-        <script src="/static/js/jquery.min.js"></script>
-<script src="/static/js/material.js"></script>
-        <script src="/static/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="/static/js/toastr.min.js"></script>
-<script src="/static/js/filemanager_share.js"></script>
-        <script src="/static/js/share_dir.js"> </script>
+        <script src="/static/js/share_single.js"> </script>
         {$options.js_code}
-{/block}
+        {/block}

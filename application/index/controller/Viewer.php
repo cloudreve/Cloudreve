@@ -30,6 +30,8 @@ class Viewer extends Controller{
 		$url = "/File/Preview?action=preview&path=".$path;
 		if(input("get.share")==true){
 			$url = "/Share/Preview/".input("get.shareKey")."/?path=".$path;
+		}else if(input("get.single")==true){
+			$url = "/Share/Preview/".input("get.shareKey");
 		}
 		return view('video', [
 			'options'  => Option::getValues(['basic']),
@@ -49,6 +51,8 @@ class Viewer extends Controller{
 		$url = "/File/Content?action=preview&path=".$path;
 		if(input("get.share")==true){
 			$url = "/Share/Content/".input("get.shareKey")."/?path=".$path;
+		}else if(input("get.single")==true){
+			$url = "/Share/Content/".input("get.shareKey");
 		}
 		return view('markdown', [
 			'options'  => Option::getValues(['basic']),

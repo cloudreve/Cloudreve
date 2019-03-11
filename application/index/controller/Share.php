@@ -47,8 +47,9 @@ class Share extends Controller{
 					'fileData' => $shareObj->fileData,
 					'shareData' => $shareObj->shareData,
 					'loginStatus' => $this->userObj->loginStatus,
-					'userData' => $this->userObj->userSQLData,
+					'userData' => $this->userObj->getInfo(),
 					'allowPreview' => Option::getValue("allowdVisitorDownload"),
+					'path' => empty(input("get.path"))?"/":input("get.path"),
 				]);
 			}
 		}else{
@@ -67,7 +68,7 @@ class Share extends Controller{
 	public function getDownloadUrl(){
 		$shareId = input('key');
 		$shareObj = new ShareHandler($shareId,false);
-		return $shareObj->getDownloadUrl($this->userObj);
+		return json($shareObj->getDownloadUrl($this->userObj));
 	}
 
 	public function Download(){
@@ -91,9 +92,9 @@ class Share extends Controller{
 		$filePath = input('get.path');
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
-			//todo 单文件时
+			$contentHandller = $shareObj->getContent($this->userObj,$filePath,false);
 		}else{
-			$contentHandller = $shareObj->getContent($this->userObj,$filePath);
+			$contentHandller = $shareObj->getContent($this->userObj,$filePath,true);
 		}
 		if(!$contentHandller[0]){
 			return json(["result"=>["success"=>false,"error"=>$contentHandller[1]]]);
@@ -167,9 +168,9 @@ class Share extends Controller{
 		$filePath = urldecode(input('get.path'));
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
-			//TODO 单文件时
+			$Redirect = $shareObj->getDocPreview($this->userObj,$filePath,false);
 		}else{
-			$Redirect = $shareObj->getDocPreview($this->userObj,$filePath);
+			$Redirect = $shareObj->getDocPreview($this->userObj,$filePath,true);
 		}
 		
 		if($Redirect[0]){

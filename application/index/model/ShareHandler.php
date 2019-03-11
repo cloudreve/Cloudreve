@@ -95,24 +95,44 @@ class ShareHandler extends Model{
 		return $fileObj->getThumb();
 	}
 
-	public function getDocPreview($user,$path){
+	public function getDocPreview($user,$path,$inFolder){
 		$checkStatus = $this->checkSession($user);
 		if(!$checkStatus[0]){
 			return [$checkStatus[0],$checkStatus[1]];
 		}
-		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
-		$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		if($inFolder){
+			$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		}else{
+			$reqPath = Db::name('files')->where('id',$this->shareData["source_name"])->find();
+			if($reqPath["dir"] == "/"){
+				$reqPath["dir"] = $reqPath["dir"].$reqPath["orign_name"];
+			}else{
+				$reqPath["dir"] = $reqPath["dir"]."/".$reqPath["orign_name"];
+			}
+			$fileObj = new FileManage($reqPath["dir"],$this->shareData["owner"]);
+		}
 		$tmpUrl = $fileObj->signTmpUrl();
 		return[true,"http://view.officeapps.live.com/op/view.aspx?src=".urlencode($tmpUrl)];
 	}
 
-	public function getContent($user,$path=null){
+	public function getContent($user,$path=null,$inFolder){
 		$checkStatus = $this->checkSession($user);
 		if(!$checkStatus[0]){
 			return [$checkStatus[0],$checkStatus[1]];
 		}
-		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
-		$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		if($inFolder){
+			$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		}else{
+			$reqPath = Db::name('files')->where('id',$this->shareData["source_name"])->find();
+			if($reqPath["dir"] == "/"){
+				$reqPath["dir"] = $reqPath["dir"].$reqPath["orign_name"];
+			}else{
+				$reqPath["dir"] = $reqPath["dir"]."/".$reqPath["orign_name"];
+			}
+			$fileObj = new FileManage($reqPath["dir"],$this->shareData["owner"]);
+		}
 		$fileObj->getContent();
 		exit();
 	}
