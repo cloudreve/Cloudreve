@@ -34,7 +34,7 @@ class Viewer extends Controller{
 			$url = "/Share/Preview/".input("get.shareKey");
 		}
 		return view('video', [
-			'options'  => Option::getValues(['basic']),
+			'options'  => Option::getValues(['basic'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
 			'url' => $url,
@@ -55,7 +55,7 @@ class Viewer extends Controller{
 			$url = "/Share/Content/".input("get.shareKey");
 		}
 		return view('markdown', [
-			'options'  => Option::getValues(['basic']),
+			'options'  => Option::getValues(['basic'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
 			'url' => $url,

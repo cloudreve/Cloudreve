@@ -30,7 +30,7 @@ class Home extends Controller{
 		}
 		$policyData["max_size"] = $policyData["max_size"]/(1024*1024);
 		return view('home', [
-			'options'  => Option::getValues(['basic','upload']),
+			'options'  => Option::getValues(['basic','upload'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'extLimit' => $extLimit,
 			'policyData' => $policyData,

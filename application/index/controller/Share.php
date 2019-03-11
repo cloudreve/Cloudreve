@@ -30,7 +30,7 @@ class Share extends Controller{
 			$shareObj->numIncrease("view_num");
 			if($shareObj->shareData["source_type"] == "dir"){
 				return view('share_dir', [
-					'options'  => Option::getValues(['basic','share']),
+					'options'  => Option::getValues(['basic','share'],$this->userObj->userSQLData),
 					'userInfo' => $shareObj->shareOwner->userSQLData,
 					'dirData' => $shareObj->dirData,
 					'shareData' => $shareObj->shareData,
@@ -42,7 +42,7 @@ class Share extends Controller{
 				]);
 			}else{
 				return view('share_single', [
-					'options'  => Option::getValues(['basic','share']),
+					'options'  => Option::getValues(['basic','share'],$this->userObj->userSQLData),
 					'userInfo' => $shareObj->shareOwner->userSQLData,
 					'fileData' => $shareObj->fileData,
 					'shareData' => $shareObj->shareData,
