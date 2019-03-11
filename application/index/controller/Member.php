@@ -185,7 +185,7 @@ class Member extends Controller{
 			$policyList[$key] = $value;
 		}
 		$avaliablePolicy = Db::name("policy")->where("id","in",$policyList)->select();
-		$basicOptions = Option::getValues(['basic']);
+		$basicOptions = Option::getValues(['basic'],$this->userObj->userSQLData);
 		return view('setting', [
 			'options'  => $basicOptions,
 			'userInfo' => $userInfo,

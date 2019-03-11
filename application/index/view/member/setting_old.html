@@ -1,0 +1,265 @@
+{extend name="header_home" /}
+{block name="title"}用户设置- {$options.siteName}{/block}
+{block name="content"}
+<link rel="stylesheet" href="/static/css/setting.css" />
+<style type="text/css">
+.col-md-3{
+padding-right: 15px;
+padding-left: 15px;
+}
+</style>
+</head>
+<body >
+<div id="container">
+  {include file="navbar_home" /}
+  
+  <div class="col-md-10 quota_content">
+    <h1>用户设置</h1>
+    <br>
+    <div class="fix_side">
+      <div class="fix">
+        <div class="col-md-9">
+          <ul class="nav nav-tabs" >
+            <li class="active"><a href="#home" data-toggle="tab" aria-expanded="true">基本信息<div class="ripple-container"></div></a></li>
+            <li class=""><a href="#security" data-toggle="tab" aria-expanded="false">安全隐私<div class="ripple-container"></div></a></li>
+            <li class=""><a href="#password" data-toggle="tab" aria-expanded="false">修改密码<div class="ripple-container"></div></a></li>
+            <li class=""><a href="#webdav" data-toggle="tab" aria-expanded="false">WebDAV<div class="ripple-container"></div></a></li>
+          </ul>
+          <div id="myTabContent" class="tab-content">
+            <div class="tab-pane fade active in" id="home">
+              <div class="panel panel-default">
+                <div class="panel-body" id="packs">
+                  <div class="col-md-8">
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="uid">UID：</label></div>
+                      <div class="col-md-9">
+                        <div class="non_input">{$userInfo.uid}</div>
+                      </div>
+                    </div>
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="nick">昵称：</label></div>
+                      <div class="col-md-6">
+                        <input type="text" class="form-control" id="nick" value="{$userInfo.userNick}" >
+                      </div>
+                    </div>
+                    
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="email">Email：</label></div>
+                      <div class="col-md-9">
+                        <input type="email" class="form-control" id="email" value="{$userInfo.userMail}" disabled>
+                      </div>
+                    </div>
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="inputEmail">用户组：</label></div>
+                      <div class="col-md-9">
+                        <div class="non_input group">{$groupData.group_name} </div>
+                      </div>
+                    </div>
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="inputEmail">注册日期：</label></div>
+                      <div class="col-md-9">
+                        <div class="non_input ">{$userInfo.regDate}</div>
+                      </div>
+                    </div>
+                    <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="inputEmail"></label></div>
+                      <div class="col-md-9">
+                        <div class="non_input "><button class="btn btn-raised btn-primary" id="saveNick">保存更改</button></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="avatar">
+                      <img src="/Member/Avatar/{$userInfo.uid}/l?cache=no" class="img-circle avatar-img"><br>
+                      <button class="btn btn-primary" data-toggle="modal" data-target="#avatar_modal"><i class="fa fa-pencil-square-o" aria-hidden="true"></i> 修改头像</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="security">
+              <div class="panel panel-default">
+                <div class="panel-body" >
+                  <div class="row fix">
+                    <div class="col-md-3 option_name"><label for="inputEmail">个人主页：</label></div>
+                    <div class="col-md-9">
+                      <div ><div class="togglebutton">
+                        <label>
+                          
+                          <input type="checkbox" id="homePage" {eq name="$userSQL.profile" value="1"}checked{else}{/eq}>
+                        </label>
+                      </div></div>
+                    </div>
+                  </div>
+                  <div class="row fix">
+                    <div class="col-md-3 option_name" style="margin-top: 10px;"><label for="inputEmail">二步验证：</label></div>
+                    <div class="col-md-9">
+                      {eq name="$userSQL.two_step" value="0"}
+                      <button class="btn btn-primary btn-raised" id="twoStep"><i class="fa fa-lock" aria-hidden="true"></i> 开启二步验证</button>
+                      {else}
+                      <button class="btn btn-primary btn-raised"><i class="fa fa-check" aria-hidden="true"></i> 已开启</button>
+                      {/eq}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="password">
+              <div class="panel panel-default">
+                <div class="panel-body" >
+                  <div class="row fix">
+                    <div class="col-md-3 option_name"><label for="inputEmail">原密码：</label></div>
+                    <div class="col-md-6">
+                      <input type="password" class="form-control" id="passOrigin"  >
+                    </div>
+                  </div>
+                  <div class="row fix">
+                    <div class="col-md-3 option_name"><label for="inputEmail">新密码：</label></div>
+                    <div class="col-md-6">
+                      <input type="password" class="form-control" id="passNew"  >
+                    </div>
+                  </div>
+                  <div class="row fix">
+                    <div class="col-md-3 option_name"><label for="inputEmail">确认新密码：</label></div>
+                    <div class="col-md-6">
+                      <input type="password" class="form-control" id="passNewRepet"  >
+                    </div>
+                  </div>
+                  <div class="row fix">
+                      <div class="col-md-3 option_name"><label for="inputEmail"></label></div>
+                      <div class="col-md-9">
+                        <div class="non_input "><button class="btn btn-raised btn-primary waves-effect" id="savePwd">保存更改</button></div>
+                      </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="webdav">
+              <div class="panel panel-default">
+                <div class="panel-body" >
+                {eq name="groupData.webdav" value="0"}
+                <div class="alert alert-warning" role="alert">
+                  您当前的用户组不支持WebDAV
+                </div>
+                {else/}
+                 <div class="row fix">
+                    <div class="col-md-3 option_name"><label for="inputEmail">连接地址:</label></div>
+                    <div class="col-md-6">
+                      <input type="text" class="form-control" id="webdavUrl"  value="{$options.siteURL}WebDav/Api/uid/{$userInfo.uid}" spellcheck="false" readonly>
+                    </div>
+                  </div>
+                  <div class="row fix">
+                     <div class="col-md-3 option_name"><label for="inputEmail">用户名:</label></div>
+                     <div class="col-md-6">
+                       <input type="text" class="form-control" id="webdavUsername"  value="{$userInfo.userMail}" spellcheck="false" readonly>
+                     </div>
+                   </div>
+                <div class="row fix">
+                  <div class="col-md-3 option_name" style="margin-top: 10px;"><label for="inputEmail">登录密码：</label></div>
+                  <div class="col-md-9">
+                    <button class="btn btn-primary btn-raised" id="setWebdavPwd"><i class="fa fa-lock" aria-hidden="true"></i> 设置/更改密码</button> 
+                  </div>
+                </div>
+                {/eq}<br>
+                <p>你可以使用任何支持WebDAV协议的文件管理工具或操作系统将网盘映射到本地，方便多端同步管理。初次使用请先设置WebDAV登录密码，此密码默认与登录密码不相同。</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="col-md-3"><div class="panel panel-default">
+          <div class="panel-heading">公告</div>
+          <div class="panel-body">
+            公告内容
+          </div>
+        </div></div>
+      </div>
+    </div>
+    <br>
+    <div class="fix_side">
+      <div class="fix">
+        
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" tabindex="-1" role="dialog" id="avatar_modal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">修改头像</h4>
+        </div>
+        <div class="modal-body">
+          <div class="row fix">
+            <div class="col-md-4"><div class="avatar"><img src="/Member/Avatar/{$userInfo.uid}/l?cache=no" class="img-circle avatar-img"><br></div></div>
+            <div class="col-md-8">
+              <span class="btn btn-raised btn-info fileinput-button" id="uploadAvatar">
+                <span id="upload-text">上传头像</span>
+                <input type="file" accept="image/*" id="avatar_file" name="avatar">
+              </span>
+              <br><button class="btn btn-raised btn-info" id="useGravatar">使用Gravatar头像</button>
+              <br>修改头像后请清理浏览器缓存
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary " data-dismiss="modal">取消</button>
+        </div>
+        </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+        <div class="modal fade" tabindex="-1" role="dialog" id="two_step_modal">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">开启二步验证</h4>
+              </div>
+              <div class="modal-body">
+                <div class="row fix">
+                  <div class="col-md-4"><img id="qrcode"></div>
+                  <div class="col-md-8">
+                    <div class="alert alert-success" role="alert">请使用任意二步验证APP或者支持二步验证的密码管理软件扫描左侧二维码添加本站。扫描完成后请填写二步验证APP给出的6位验证码以开启二步验证。</div>
+                    <input type="number" class="form-control" placeholder="请输入6位验证码" id="vCode">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-info " id="confirm">确认开启</button>
+                <button class="btn btn-primary " data-dismiss="modal">取消</button>
+              </div>
+              </div><!-- /.modal-content -->
+              </div><!-- /.modal-dialog -->
+              </div><!-- /.modal -->
+            <div class="modal fade" tabindex="-1" role="dialog" id="set_webdav_pwd">
+              <div class="modal-dialog modal-sm" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">设置WebDAV认证密码</h4>
+                  </div>
+                  <div class="modal-body">
+                    <div class="row fix">
+                      <label>请输入密码：</label>
+                      <input type="password" id="webdav_pwd" class="form-control" autocomplete="false">
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-info " id="confirmWebdav">保存</button>
+                    <button class="btn btn-primary " data-dismiss="modal">取消</button>
+                  </div>
+                  </div><!-- /.modal-content -->
+                  </div><!-- /.modal-dialog -->
+                  </div><!-- /.modal -->
+            </body>
+            <script src="/static/js/material.js"></script>
+            <script src="/static/js/uploader.min.js"></script>
+            <script type="text/javascript">
+            upload_load=0;
+            </script>
+            <script src="/static/js/setting.js"></script>
+            {$options.js_code}
+          </html>
+          {/block}
