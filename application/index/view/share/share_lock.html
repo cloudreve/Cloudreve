@@ -1,53 +1,80 @@
-{extend name="header_public" /}
-{block name="title"}私密分享 - {$options.siteName}{/block}
-{block name="content"}
-   <link rel="stylesheet" href="/static/css/share.css" />
-      <link rel="stylesheet" href="/static/css/lock.css" />
-        <script src="/static/js/jquery.color.js"></script>
-    </head>
-    <body data-ma-header="teal">
-        <nav class="navbar navbar-inverse" >
-            <div class="container-fluid">
-                <div class="container" >
-{include file="navbar_public" loginStatus=$loginStatus userData=$userData /}
-                <div class="header-panel shadow-z-2">
-                    <div class="container-fluid">
-                        <div class="row">
-                            
-                        </div>
-                    </div>
-                </div>
-                <div class="container main" >
-                    <div class="col-md-4"></div>
-                    <div class="col-md-4">
-                        <div class="jumbotron" >
-                            <div class="card_top">
-                                <div class="row top-color">
-                                    <div class="card-top-row">
-                                      加密分享
-                                    </div>
-                                </div>
-                            
-                            </div>
-                            
-                            <div class="card_botom">
-                                <div class="row bottom-width" align="right"> 
-                                 <input type="password" class="form-control" id="inputPassword" placeholder="请输入分享密码" value="{$pwd}">
-                                 <button href="javascript:void(0)" id="submit_pwd" class="btn btn-raised active"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4"></div>
-                    </div>
-                </div>
-            </body>
-            <script src="/static/js/jquery.liMarquee.js"></script>
-            <script type="text/javascript">
-            shareInfo={
-            	shareId : "{$shareData.share_key}",
-            };
+<!DOCTYPE html>
+<html lang="zh-cn">
 
-            </script>
-            <script src="/static/js/lock.js"> </script>
-            {$options.js_code}
-            {/block}
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="{$options.themeColor}" />
+    <!--
+      manifest.json provides metadata used when your web app is added to the
+      homescreen on Android. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="/manifest.json">
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>私密分享 - {$options.siteName}</title>
+    <script type="text/javascript">
+        colorTheme = {:json_encode($options["themeConfig"])};
+        isHomePage = false;
+        isSharePage = false;
+        pageId="shareLock";
+        userInfo = {
+            uid: {$userData.uid},
+            nick: "{$userData.userNick}",
+            email: "{$userData.userMail}",
+            group: "{$userData.groupData.group_name}",
+            groupId: {$userData.groupData.id},
+            groupColor: "{$userData.groupData.color}",
+        };
+        siteInfo = {
+            mainTitle: "{$options.siteName}",
+        };
+        uploadConfig = {
+            allowSource: false,
+            allowShare: false,
+            allowRemoteDownload: "0",
+            allowTorrentDownload: "0",
+        };
+        shareInfo={
+            shareDate : "{$shareData.share_time}",
+            shareId : "{$shareData.share_key}",
+            ownerUid:"{$userInfo.id}",
+            ownerNick:"{$userInfo.user_nick}",
+        };
+        isMobile = window.innerWidth < 600;
+    </script>
+</head>
+
+<body>
+
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+</body>
+<script src="http://192.168.123.19:3000/static/js/runtime~lock.bundle.js"></script>
+<script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/2.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/20.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/1.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/lock.chunk.js"></script>
+
+</html>

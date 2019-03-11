@@ -1,0 +1,53 @@
+{extend name="header_public" /}
+{block name="title"}私密分享 - {$options.siteName}{/block}
+{block name="content"}
+   <link rel="stylesheet" href="/static/css/share.css" />
+      <link rel="stylesheet" href="/static/css/lock.css" />
+        <script src="/static/js/jquery.color.js"></script>
+    </head>
+    <body data-ma-header="teal">
+        <nav class="navbar navbar-inverse" >
+            <div class="container-fluid">
+                <div class="container" >
+{include file="navbar_public" loginStatus=$loginStatus userData=$userData /}
+                <div class="header-panel shadow-z-2">
+                    <div class="container-fluid">
+                        <div class="row">
+                            
+                        </div>
+                    </div>
+                </div>
+                <div class="container main" >
+                    <div class="col-md-4"></div>
+                    <div class="col-md-4">
+                        <div class="jumbotron" >
+                            <div class="card_top">
+                                <div class="row top-color">
+                                    <div class="card-top-row">
+                                      加密分享
+                                    </div>
+                                </div>
+                            
+                            </div>
+                            
+                            <div class="card_botom">
+                                <div class="row bottom-width" align="right"> 
+                                 <input type="password" class="form-control" id="inputPassword" placeholder="请输入分享密码" value="{$pwd}">
+                                 <button href="javascript:void(0)" id="submit_pwd" class="btn btn-raised active"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4"></div>
+                    </div>
+                </div>
+            </body>
+            <script src="/static/js/jquery.liMarquee.js"></script>
+            <script type="text/javascript">
+            shareInfo={
+            	shareId : "{$shareData.share_key}",
+            };
+
+            </script>
+            <script src="/static/js/lock.js"> </script>
+            {$options.js_code}
+            {/block}

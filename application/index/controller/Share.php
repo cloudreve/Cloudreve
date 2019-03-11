@@ -16,7 +16,7 @@ class Share extends Controller{
 
 	public function _initialize(){
 		$this->userObj = new User(cookie('user_id'),cookie('login_key'));
-		$this->siteOptions = Option::getValues(["basic"]);
+		$this->siteOptions = Option::getValues(["basic","share"]);
 	}
 
 	public function index(){
@@ -54,12 +54,12 @@ class Share extends Controller{
 			}
 		}else{
 			return view('share_lock', [
-				'options'  => Option::getValues(['basic','share']),
+				'options'  => Option::getValues(['basic','share'],$this->userObj->userSQLData),
 				'userInfo' => $shareObj->shareOwner->userSQLData,
 				'fileData' => $shareObj->fileData,
 				'shareData' => $shareObj->shareData,
 				'loginStatus' => $this->userObj->loginStatus,
-				'userData' => $this->userObj->userSQLData,
+				'userData' => $this->userObj->getInfo(),
 				'pwd' => input("?get.pwd") ? input("get.pwd") : "",
 			]);
 		}
@@ -74,6 +74,12 @@ class Share extends Controller{
 	public function Download(){
 		$shareId = input('param.key');
 		$filePath = input('get.path');
+		if($this->siteOptions["refererCheck"]=="true"){
+			$check = $this->referCheck();
+			if(!$check){
+				$this->error("来源非法",403,$this->siteOptions);
+			}
+		}
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
 			$DownloadHandler = $shareObj->Download($this->userObj);
@@ -90,6 +96,12 @@ class Share extends Controller{
 	public function Content(){
 		$shareId = input('param.key');
 		$filePath = input('get.path');
+		if($this->siteOptions["refererCheck"]=="true"){
+			$check = $this->referCheck();
+			if(!$check){
+				$this->error("来源非法",403,$this->siteOptions);
+			}
+		}
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
 			$contentHandller = $shareObj->getContent($this->userObj,$filePath,false);
@@ -111,12 +123,26 @@ class Share extends Controller{
 				"msg" => "分享不存在"
 				);
 		}
-		return $shareObj->checkPwd($inputPwd);
+		return json($shareObj->checkPwd($inputPwd));
+	}
+
+	private function referCheck(){
+		$agent = Request::instance()->header('referer');
+		if(substr($agent, 0, strlen($this->siteOptions["siteURL"])) !== $this->siteOptions["siteURL"]){
+			return false;
+		}
+		return true;
 	}
 
 	public function Preview(){
 		$shareId = input('param.key');
 		$filePath = input('get.path');
+		if($this->siteOptions["refererCheck"]=="true"){
+			$check = $this->referCheck();
+			if(!$check){
+				$this->error("来源非法",403,$this->siteOptions);
+			}
+		}
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
 			$previewHandler = $shareObj->Preview($this->userObj);
@@ -154,6 +180,12 @@ class Share extends Controller{
 		if(input("get.isImg") != "true"){
 			return "";
 		}
+		if($this->siteOptions["refererCheck"]=="true"){
+			$check = $this->referCheck();
+			if(!$check){
+				$this->error("来源非法",403,$this->siteOptions);
+			}
+		}
 		$shareObj = new ShareHandler($shareId,false);
 		$Redirect = $shareObj->getThumb($this->userObj,$filePath);
 		if($Redirect[0]){
@@ -166,6 +198,12 @@ class Share extends Controller{
 	public function DocPreview(){
 		$shareId = input('param.key');
 		$filePath = urldecode(input('get.path'));
+		if($this->siteOptions["refererCheck"]=="true"){
+			$check = $this->referCheck();
+			if(!$check){
+				$this->error("来源非法",403,$this->siteOptions);
+			}
+		}
 		$shareObj = new ShareHandler($shareId,false);
 		if(empty($filePath)){
 			$Redirect = $shareObj->getDocPreview($this->userObj,$filePath,false);

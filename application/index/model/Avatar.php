@@ -20,7 +20,7 @@ class Avatar extends Model{
 		if(!$new){
 			$userData = Db::name("users")->where('id',$obj)->find();
 			$this->userData = $userData;
-			if($userData["avatar"] == "default"){
+			if(empty($userData)||$userData["avatar"] == "default"){
 				$this->avatarType = "default";
 			}else{
 				$avatarPrarm = explode(".",$userData["avatar"]);
