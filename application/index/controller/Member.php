@@ -236,6 +236,17 @@ class Member extends Controller{
 		}
 	}
 
+	public function ChangeThemeColor(){
+		$this->userObj = new User(cookie('user_id'),cookie('login_key'));
+		$this->loginStatusCheck();
+		$saveAction = $this->userObj->changeOption("preferTheme",input("post.theme"));
+		if($saveAction[0]){
+			return json(['error' => '200','msg' => '设置成功']);
+		}else{
+			return json(['error' => '1','msg' => $saveAction[1]]);
+		}
+	}
+
 	public function HomePage(){
 		$this->userObj = new User(cookie('user_id'),cookie('login_key'));
 		$userInfo = $this->userObj->getInfo();

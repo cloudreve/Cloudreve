@@ -23,9 +23,11 @@
     <title>用户设置- {$options.siteName}</title>
     <script type="text/javascript">
         colorTheme = {:json_encode($options["themeConfig"])};
+        colorThemeOptions = {$options["themes"]};
         isHomePage = false;
         isSharePage = false;
         pageId="userSetting";
+        siteUrl = "{$options.siteURL}";
         userInfo = {
             uid: {$userInfo.uid},
             nick: "{$userInfo.userNick}",
@@ -36,6 +38,7 @@
             regTime: "{$userSQL.user_date}",
             homePage: "{$userSQL.profile}",
             twoFactor: "{$userSQL.two_step}",
+            webdav:"{$userInfo.groupData.webdav}",
         };
         siteInfo = {
             mainTitle: "{$options.siteName}",

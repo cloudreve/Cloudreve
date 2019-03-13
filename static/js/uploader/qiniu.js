@@ -724,7 +724,7 @@ function QiniuJsSDK() {
 						resolve(xhr);
 					};
 					xhr.onerror = reject;
-					xhr.open('GET', that.uptoken_url);
+					xhr.open('GET', that.uptoken_url+"?path="+encodeURIComponent(window.pathCache[file.id]));
 					xhr.send();
 				});
 				ajax.then(function(result){
