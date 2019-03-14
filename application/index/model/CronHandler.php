@@ -52,6 +52,11 @@ class CronHandler extends Model{
 						$this->flushOnedriveToken($value["interval_s"]);
 					}
 					break;
+				case 'delete_remote_downloader_failed_folder':
+					if($this->checkInterval($value["interval_s"],$value["last_excute"])){
+						$this->deleteRemoteDownloaderFailedFolder($value["interval_s"]);
+					}
+					break;
 				default:
 					# code...
 					break;
@@ -95,6 +100,52 @@ class CronHandler extends Model{
 		}
 		echo("Complete<br>");
 		$this->setComplete("flush_aria2");
+	}
+
+	public function deleteRemoteDownloaderFailedFolder($interval){
+		echo("flushOnedriveToken...");
+		$toBeDeleted = Db::name("task")
+			->where("type","deleteFolder")
+			->where("status","todo")
+			->select();
+		$success=[];
+		$todo = [];
+		foreach ($toBeDeleted as $key => $value) {
+			$attr = json_decode($value["attr"],true);
+			if(file_exists($attr["folder"])){
+				self::remove_directory($attr["folder"]);
+			}
+			if(file_exists($attr["folder"])){
+				$todo[] = $value["id"];
+			}else{
+				$success[] = $value["id"];
+			}
+		}
+
+		Db::name("task")->where("id","in",$success)->update(["status"=>"success"]);
+
+	}
+
+	/**
+	 * 移除整个目录
+	 *
+	 * @param string $dir
+	 * @return void
+	 */
+	static function remove_directory($dir){
+		if($handle=opendir("$dir")){
+			while(false!==($item=readdir($handle))){
+				if($item!="."&&$item!=".."){
+					if(is_dir("$dir/$item")){
+						self::remove_directory("$dir/$item");
+					}else{
+						unlink("$dir/$item");
+					}
+				}
+			}
+			closedir($handle);
+			rmdir($dir);
+		}
 	}
 
 	public function flushOnedriveToken($interval){

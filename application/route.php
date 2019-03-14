@@ -20,7 +20,7 @@ Route::rule([
 	'Member/emailActivate/:key'=>'index/Member/emailActivate',
 	'Member/resetPwd/:key'=>'index/Member/resetPwd',
 	'Callback/Payment/Jinshajiang' => 'index/Callback/Jinshajiang',
-	'Explore/S/:key' => 'index/Explore/S',
+	'Explore/Search/:key' => 'index/Explore/Search',
 	'Member/Avatar/:uid/:size' => ['Member/Avatar',[],['uid'=>'\d+']],
 	'Profile/:uid' => ['Profile/index',[],['uid'=>'\d+']],
 	'Callback/Payment/Jinshajiang' => 'index/Callback/Jinshajiang',

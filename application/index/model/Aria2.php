@@ -341,8 +341,18 @@ class Aria2 extends Model{
 		$this->removeDownloadResult($sqlData["pid"],$sqlData);
 		if($delete){
 			if(isset($quenInfo["files"][$sqlData["file_index"]]["path"]) && file_exists($quenInfo["files"][$sqlData["file_index"]]["path"])){
-				@unlink($quenInfo["files"][$sqlData["file_index"]]["path"]);
+				$deleteAction = @unlink($quenInfo["files"][$sqlData["file_index"]]["path"]);
 				@self::remove_directory(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]));
+				if(file_exists(dirname($quenInfo["files"][$sqlData["file_index"]]["path"]))){
+					$task = new Task();
+					$task->taskName = "Delete remote download temp file";
+					$task->taskType = "deleteFolder";
+					$task->taskContent = json_encode([
+						"folder" => dirname($quenInfo["files"][$sqlData["file_index"]]["path"]),
+					]);
+					$task->userId = $this->uid;
+					$task->saveTask();
+				}
 			}
 		}
 		Db::name("download")->where("id",$sqlData["id"])->update([

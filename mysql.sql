@@ -73,7 +73,8 @@ INSERT INTO `sd_corn` (`id`, `rank`, `name`, `des`, `last_excute`, `interval_s`,
 (1, 2, 'delete_unseful_chunks', '删除分片上传产生的失效文件块', 0, 3600, 1),
 (2, 1, 'delete_callback_data', '删除callback记录', 0, 86400, 1),
 (3, 1, 'flush_aria2', '刷新离线下载状态', 0, 30, 1),
-(4, 3, 'flush_onedrive_token', '刷新Onedrive Token', 0, 3000, 1);
+(4, 3, 'flush_onedrive_token', '刷新Onedrive Token', 0, 3000, 1),
+(5, '2', 'delete_remote_downloader_failed_folder', '删除离线下载失败后残留的临时文件', 0, 1, 1800);
 -- --------------------------------------------------------
 
 --

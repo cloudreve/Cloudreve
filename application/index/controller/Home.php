@@ -43,7 +43,7 @@ class Home extends Controller{
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
 		return view('download', [
-			'options'  => Option::getValues(['basic','group_sell']),
+			'options'  => Option::getValues(['basic','group_sell'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
 		]);

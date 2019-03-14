@@ -1,76 +1,75 @@
-{extend name="header_public" /}
-{block name="title"}“{$keyWords}”搜索结果 - {$options.siteName}{/block}
-{block name="content"}
-<link rel="stylesheet" href="/static/css/search.css" />
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="{$options.themeColor}" />
+    <!--
+      manifest.json provides metadata used when your web app is added to the
+      homescreen on Android. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="/manifest.json">
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+    <title>“{$keyWords}”搜索结果 - {$options.siteName}</title>
+    <script type="text/javascript">
+        colorTheme = {:json_encode($options["themeConfig"])};
+        isHomePage = false;
+        isSharePage = false;
+        pageId="shareLock";
+        list = {$list};
+        userInfo = {
+            uid: {$userData.uid},
+            nick: "{$userData.userNick}",
+            email: "{$userData.userMail}",
+            group: "{$userData.groupData.group_name}",
+            groupId: {$userData.groupData.id},
+            groupColor: "{$userData.groupData.color}",
+        };
+        siteInfo = {
+            mainTitle: "{$options.siteName}",
+        };
+        uploadConfig = {
+            allowSource: false,
+            allowShare: false,
+            allowRemoteDownload: "0",
+            allowTorrentDownload: "0",
+        };
+        isMobile = window.innerWidth < 600;
+    </script>
 </head>
-<body data-ma-header="teal">
-<nav class="navbar navbar-inverse" >
-    <div class="container-fluid">
-        <div class="container" >
-            {include file="navbar_public"  /}
-            <div class="header-panel shadow-z-2">
-                <div class="container-fluid">
-                    <div class="row">
-                        
-                    </div>
-                </div>
-            </div>
-            <div class="container main-h">
-          
-                <div class="col-md-12">
-                <h1>搜索分享</h1>
-                    <input type="text" placeholder="请输入关键词，回车键发起搜索" value="{$keyWords}" autofocus="true"><br><br>
-                    <div class="table-responsive">
-                                                    <table class="table table-striped">
-                                                        <thead>
-                                                            <tr>
-                                                                <th width="50%">文件名 </th>
-                                                                <th class="cent">分享日期</th>
-                                                                <th class="cent">下载次数</th>
-                                                                <th class="cent">浏览次数</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>{volist name='list' id='shares'}
-                                                        <tr>
-                                                                <td >{switch $shares.source_type}
-                                                                {case file}<i class="fa fa-file" aria-hidden="true"></i> {/case}
-                                                                {case dir}<i class="fa fa-folder-open blue" aria-hidden="true"></i> {/case}
 
-                                                            {/switch} <a href="/s/{$shares.share_key}" class="notWave" target="_blank">{$shares.fileData|htmlspecialchars=ENT_NOQUOTES}</a></td>
-                                                             <td class="cent">{$shares.share_time}</td>
-                                                             <td align="center">{$shares.download_num}</td>
-                                                             <td align="center">{$shares.view_num}</td>
-                                                            </tr>
+<body>
 
-                                                            {/volist}
-                                                        </tbody>
-                                                    </table>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
 
-                                                </div>
-                                                {$listOrigin->render()}
-                                </div>
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
 
-                            </div>
-                        </div>
-                    </body>
-                    <script type="text/javascript">
-                    </script>
-                    <script src="/static/js/material.js"></script>
-                    <script > 
-                    $.material.init();
-                    document.onkeydown=function(){
-                             if (event.keyCode == 13){
-                                keyWords = $("input").val();
-                                if(keyWords ==""){
-                                    toastr["warning"]("关键字不能为空");
-                                }else{
-                                    window.location="/Explore/S/"+keyWords;
-                                }
-                             }
-                             else{
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+</body>
+<script src="http://192.168.123.19:3000/static/js/runtime~search.bundle.js"></script>
+<script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/2.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/5.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/1.chunk.js"></script>
+<script src="http://192.168.123.19:3000/static/js/search.chunk.js"></script>
 
-                             }
-                         }
-                    </script>
-                    {$options.js_code}
-                    {/block}
+</html>
