@@ -57,13 +57,15 @@ class ShareHandler extends Model{
                 "msg" => "无权操作"
                 );
 		}
+		$newPwd = self::getRandomKey(6);
 		Db::name('shares')->where('share_key',$this->shareData["share_key"])->update([
 				'type' => $this->shareData["type"] == "public"?"private":"public",
-				'share_pwd' => self::getRandomKey(6)
+				'share_pwd' => $newPwd
 			]);
 		return array(
 					"error" =>0,
-					"msg" => "更改成功"
+					"msg" => "更改成功",
+					"newPwd" => $newPwd,
 				);
 	}
 

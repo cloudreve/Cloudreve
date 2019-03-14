@@ -1,0 +1,98 @@
+{extend name="header_home" /}
+{block name="title"}我的分享- {$options.siteName}{/block}
+{block name="content"}
+		<script src="/static/js/share_home.js"></script>
+	</head>
+	<body >
+
+
+<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" id="deleteConfirm">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+     <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">确认</h4>
+      </div>
+      <div class="modal-body">
+        您确定要取消此分享吗？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn pro-btn" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary pro-btn" onclick="deleteConfirm();">确定</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="modal fade bs-example-modal-sm" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" id="changeConfirm">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+     <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">确认</h4>
+      </div>
+      <div class="modal-body">
+        您确定要将此分享改为<span id="shareType"></span>？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn pro-btn" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary pro-btn" onclick="changeConfirm();">确定</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+		<div id="container">
+			{include file="navbar_home" /}
+
+		
+			<div class="col-md-10 share-content">
+			<h1>我的分享</h1>
+			<br>
+			<div class="table-responsive">
+			<table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th width="50%">文件名</th>
+          <th class="table_center">分享日期</th>
+          <th class="table_center">分享类型</th>
+          <th class="table_center">下载次数</th>
+          <th class="table_center">浏览次数</th>
+          <th class="table_center">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+
+       {volist name='list' id='shares'}
+       <tr id="{$shares.share_key}">
+ 
+    <td >{switch $shares.source_type}
+    {case file}<i class="fa fa-file" aria-hidden="true"></i> {/case}
+    {case dir}<i class="fa fa-folder-open blue" aria-hidden="true"></i> {/case}
+{/switch} {$shares.fileData}</td>
+     <td align="center">{$shares.share_time}</td>
+     <td align="center">{switch $shares.type}
+    {case private}<button class="btn btn-default small-btn" data-toggle="tooltip" data-placement="top" title="密码：{$shares.share_pwd},点击变更公开类型" onclick="changeType('{$shares.share_key}','private')"><i class="fa fa-lock" aria-hidden="true"></i></button> {/case}
+    {case public}<button class="btn btn-default small-btn" data-toggle="tooltip" data-placement="top" title="变更公开类型"  onclick="changeType('{$shares.share_key}','public')"><i class="fa fa-eye" aria-hidden="true"></i></button> {/case}
+{/switch} </td>
+     <td align="center">{$shares.download_num}</td>
+     <td align="center">{$shares.view_num}</td>
+     <td align="center"><button class="btn btn-info small-btn-border" data-toggle="tooltip" data-placement="top" title="查看分享"  onclick="openShare('{$shares.share_key}')"><i class="fa fa-share-square" aria-hidden="true"></i></button>
+     <button class="btn btn-danger small-btn-border" data-toggle="tooltip" data-placement="top" title="删除分享"  onclick="deleteShare('{$shares.share_key}')"><i class="fa fa-times" aria-hidden="true"></i></button>
+	<button class="btn btn-success small-btn-border" data-toggle="tooltip" data-placement="top" title="变更公开类型"  onclick="changeType('{$shares.share_key}','{$shares.type}')"><i class="fa fa-unlock-alt" aria-hidden="true"></i></button>
+     </td>
+     </tr>
+{/volist}
+      </tbody>
+    </table>
+    </div>
+{$listOrigin->render()}
+</body>
+<script src="/static/js/material.js"></script>
+<script type="text/javascript">
+upload_load=0;
+
+</script>
+{$options.js_code}
+</html>
+{/block}

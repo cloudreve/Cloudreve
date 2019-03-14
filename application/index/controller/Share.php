@@ -222,24 +222,47 @@ class Share extends Controller{
 		$shareId = input('post.id');
 		$shareObj = new ShareHandler($shareId,false);
 		if(!$shareObj->querryStatus){
-			 return array(
+			 return json(array(
 				"error" => 1,
 				"msg" => "分享不存在"
-				);
+				));
 		}
-		return $shareObj->deleteShare($this->userObj->uid);
+		return json($shareObj->deleteShare($this->userObj->uid));
 	}
 
 	public function ChangePromission(){
 		$shareId = input('post.id');
 		$shareObj = new ShareHandler($shareId,false);
 		if(!$shareObj->querryStatus){
-			 return array(
+			 return json(array(
 				"error" => 1,
 				"msg" => "分享不存在"
-				);
+				));
 		}
-		return $shareObj->changePromission($this->userObj->uid);
+		return json($shareObj->changePromission($this->userObj->uid));
+	}
+
+	public function ListMyShare(){
+		if(!$this->userObj->loginStatus){
+			$this->redirect(url('/Login','',''));
+			exit();
+		}
+		$list = Db::name('shares')
+		->where('owner',$this->userObj->uid)
+		->order('share_time DESC')
+		->page(input("post.page").",18")
+		->select();
+		$listData = $list;
+		foreach ($listData as $key => $value) {
+			unset($listData[$key]["source_name"]);
+			if($value["source_type"]=="file"){
+				$listData[$key]["fileData"] = Db::name('files')->where('id',$value["source_name"])->find()["orign_name"];
+
+			}else{
+				$listData[$key]["fileData"] = $value["source_name"];
+			}
+		}
+		return json($listData);
 	}
 
 	public function My(){
@@ -249,22 +272,10 @@ class Share extends Controller{
 		}
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
-		$list = Db::name('shares')->where('owner',$this->userObj->uid)->order('share_time DESC')->paginate(30);
-		$listData = $list->all();
-		foreach ($listData as $key => $value) {
-			if($value["source_type"]=="file"){
-				$listData[$key]["fileData"] = Db::name('files')->where('id',$value["source_name"])->find()["orign_name"];
-
-			}else{
-				$listData[$key]["fileData"] = $value["source_name"];
-			}
-		}
 		return view('share_home', [
-			'options'  => Option::getValues(['basic','share']),
-			'userInfo' => $userInfo,
+			'options'  => Option::getValues(['basic','share'],$this->userObj->userSQLData),
+			'userData' => $userInfo,
 			'groupData' => $groupData,
-			'list' => $listData,
-			'listOrigin' => $list
 		]);
 	}
 
