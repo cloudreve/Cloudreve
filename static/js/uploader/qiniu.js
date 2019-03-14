@@ -595,9 +595,7 @@ function QiniuJsSDK() {
 				MAX_CHUNK_SIZE = 4 << BLOCK_BITS; //4M
 
 				chunk_size = plupload.parseSize(op.chunk_size);
-				if (chunk_size > MAX_CHUNK_SIZE) {
-					op.chunk_size = MAX_CHUNK_SIZE;
-				}
+				
 				// qiniu service  max_chunk_size is 4m
 				// reset chunk_size to max_chunk_size(4m) when chunk_size > 4m
 			}

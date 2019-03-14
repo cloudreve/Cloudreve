@@ -36,6 +36,13 @@
             allowRemoteDownload: "{:explode(",",$groupData.aria2)[0]}",
             allowTorrentDownload: "{:explode(",",$groupData.aria2)[1]}",
         };
+        if(uploadConfig.saveType == "oss" || uploadConfig.saveType == "upyun" || uploadConfig.saveType == "s3"){
+            ChunkSize = "0";
+        }else if(uploadConfig.saveType == "qiniu" ){
+            ChunkSize = 4*1024*1024;
+        }else{
+          ChunkSize = {$chunkSize};
+        }
         apiURL = {
             imgThumb: "/File/Thumb",
             preview: "/File/Preview",
@@ -78,17 +85,17 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
 </body>
-<script src="http://192.168.123.19:3000/static/js/runtime~index.bundle.js"></script>
-<script src="http://192.168.123.19:3000/static/js/0.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/2.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/3.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/4.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/6.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/7.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/9.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/1.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/8.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/12.chunk.js"></script>
-<script src="http://192.168.123.19:3000/static/js/index.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/runtime~index.bundle.js"></script>
+<script src="http://127.0.0.1:3000/static/js/0.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/2.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/3.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/4.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/6.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/7.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/9.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/1.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/8.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/12.chunk.js"></script>
+<script src="http://127.0.0.1:3000/static/js/index.chunk.js"></script>
 
 </html>

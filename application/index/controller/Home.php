@@ -35,6 +35,7 @@ class Home extends Controller{
 			'extLimit' => $extLimit,
 			'policyData' => $policyData,
 			'groupData' => $groupData,
+			'chunkSize' => config('upload.chunk_size'),
 			'path' => empty(input("get.path"))?"/":input("get.path"),
 		]);
 	}

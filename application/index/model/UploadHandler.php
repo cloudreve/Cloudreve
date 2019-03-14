@@ -58,7 +58,7 @@ class UploadHandler extends Model{
 			$this->setError("空间容量不足",false);
 		}
 		FileManage::storageCheckOut($this->userId,$chunkSize);
-		if($chunkSize >=4195304){
+		if($chunkSize >config('upload.chunk_size')){
 			$this->setError("分片错误",false);
 		}
 		$chunkObj=fopen (ROOT_PATH . 'public/uploads/chunks/'.$this->chunkData["obj_name"].".chunk","w+");
@@ -198,8 +198,8 @@ class UploadHandler extends Model{
 			if(!$fileObj || !$chunkObj){
 				$this->setError("文件创建失败",false);
 			}
-			$content = fread($chunkObj, 4195304);
-			fwrite($fileObj, $content, 4195304);
+			$content = fread($chunkObj, config('upload.chunk_size'));
+			fwrite($fileObj, $content, config('upload.chunk_size'));
 			unset($content);
 			fclose($chunkObj);
 			unlink(ROOT_PATH . 'public/uploads/chunks/'.$value["obj_name"].".chunk");
