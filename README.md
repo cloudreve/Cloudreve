@@ -10,7 +10,7 @@ Cloudreve - Make the cloud easy for everyone
 
 使用ThinkPHP + React + Redux + Material-UI构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
-![homePage.png](https://i.loli.net/2019/03/16/5c8cac3ca7f61.png)
+![HomePage](https://i.loli.net/2019/03/16/5c8caf825282a.jpg)
 
 目前已经实现的特性：
 
