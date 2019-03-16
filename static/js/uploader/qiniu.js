@@ -711,22 +711,21 @@ function QiniuJsSDK() {
 			} else if (op.uptoken_url) {
 				logger.debug("get uptoken from: ", that.uptoken_url);
 				// TODO: use mOxie
-				// var ajax = that.createAjax();
-				// ajax.open('GET', that.uptoken_url, false);
-				// ajax.setRequestHeader("If-Modified-Since", "0");
-
-				// ajax.send();
-				var ajax = new Promise(function(resolve, reject) {
-					var xhr = new XMLHttpRequest();
-					xhr.onload = function() {
-						resolve(xhr);
-					};
-					xhr.onerror = reject;
-					xhr.open('GET', that.uptoken_url+"?path="+encodeURIComponent(window.pathCache[file.id]));
-					xhr.send();
-				});
-				ajax.then(function(result){
-					var res = that.parseJSON(result.responseText);
+				var ajax = that.createAjax();
+				ajax.open('GET', that.uptoken_url+"?path="+encodeURIComponent(window.pathCache[file.id]),false);
+				ajax.setRequestHeader("If-Modified-Since", "0");
+				ajax.send();
+				// var ajax = new Promise(function(resolve, reject) {
+				// 	var xhr = new XMLHttpRequest();
+				// 	xhr.onload = function() {
+				// 		resolve(xhr);
+				// 	};
+				// 	xhr.onerror = reject;
+				// 	xhr.open('GET', that.uptoken_url+"?path="+encodeURIComponent(window.pathCache[file.id]));
+				// 	xhr.send();
+				// });
+				if (ajax.status === 200) {
+					var res = that.parseJSON(ajax.responseText);
 						that.token = res.uptoken;
 						if (uploadConfig.saveType == "oss"){
 							var putPolicy = that.token;
@@ -771,7 +770,7 @@ function QiniuJsSDK() {
 							}; 
 							logger.debug("get token info: ", that.tokenInfo);
 						}
-				})
+				}
 				// ajax.onload = function (e){
 				// 	if (ajax.status === 200) {
 						
@@ -1313,11 +1312,11 @@ function QiniuJsSDK() {
 								}
 							}else if(uploadConfig.saveType == "s3" && err.status!=401){
 								var str = err.response
-									  var a = $.parseXML(str);
-									   $(a).find('Error').each(function () {
-										  errTip = $(this).children('Message').text();
-										  var errorText = "Error";
-									  });
+								parser = new DOMParser();
+								xmlDoc = parser.parseFromString(str, "text/xml");
+								errTip = xmlDoc.getElementsByTagName("Message")[0].childNodes[0].nodeValue;
+								var errorText = "Error";
+			
 							}else{
 								var errorObj = that.parseJSON(err.response);
 								var errorText = errorObj.error;

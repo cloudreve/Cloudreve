@@ -4,9 +4,6 @@ namespace app\index\model;
 use think\Model;
 use think\Db;
 
-use Upyun\Upyun;
-use Upyun\Config;
-
 use \app\index\model\Option;
 
 /**
@@ -42,8 +39,25 @@ class S3Adapter extends Model{
 		if($base===true || $base ===false){
 			$base = null;
 		}
+		$s3 = new \Aws\S3\S3Client([
+			'version' => 'latest',
+			'region'  => $this->policyModel["op_name"],
+			'endpoint' => $this->policyModel["op_pwd"],
+			'use_path_style_endpoint' => true,
+			'credentials' => [
+					'key'    => $this->policyModel["ak"],
+					'secret' => $this->policyModel["sk"],
+			],
+		]);
+		$cmd = $s3->getCommand('GetObject', [
+			'Bucket' => $this->policyModel["bucketname"],
+			'Key' => $this->fileModel["pre_name"],
+		]);
 		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyModel["ak"], $this->policyModel["sk"],$this->policyModel["bucketname"],"/".$this->fileModel["pre_name"],3600,$this->policyModel["op_name"])];
+		$req = $s3->createPresignedRequest($cmd, '+'.($timeOut/60).' minutes');
+		$url = (string)$req->getUri();
+		
+		return [1,$url];
 	}
 
 	/**
@@ -53,9 +67,21 @@ class S3Adapter extends Model{
 	 * @return void
 	 */
 	public function saveContent($content){
-		$s3 = new \S3\S3($this->policyModel["ak"], $this->policyModel["sk"],false,$this->policyModel["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		$s3->putObjectString($content, $this->policyModel["bucketname"], $this->fileModel["pre_name"]);
+		$s3 = new \Aws\S3\S3Client([
+			'version' => 'latest',
+			'region'  => $this->policyModel["op_name"],
+			'endpoint' => $this->policyModel["op_pwd"],
+			'use_path_style_endpoint' => true,
+			'credentials' => [
+					'key'    => $this->policyModel["ak"],
+					'secret' => $this->policyModel["sk"],
+			],
+		]);
+		$s3->putObject([
+			'Bucket' => $this->policyModel["bucketname"],
+			'Key' => $this->fileModel["pre_name"],
+			'Body' => $content,
+		]);
 	}
 
 	/**
@@ -78,7 +104,26 @@ class S3Adapter extends Model{
 	 */
 	public function Download(){
 		$timeOut = Option::getValue("timeout");
-		return [1,\S3\S3::aws_s3_link($this->policyModel["ak"], $this->policyModel["sk"],$this->policyModel["bucketname"],"/".$this->fileModel["pre_name"],3600,$this->policyModel["op_name"],array(),false)];
+		$s3 = new \Aws\S3\S3Client([
+			'version' => 'latest',
+			'region'  => $this->policyModel["op_name"],
+			'endpoint' => $this->policyModel["op_pwd"],
+			'use_path_style_endpoint' => true,
+			'credentials' => [
+					'key'    => $this->policyModel["ak"],
+					'secret' => $this->policyModel["sk"],
+			],
+		]);
+		$cmd = $s3->getCommand('GetObject', [
+			'Bucket' => $this->policyModel["bucketname"],
+			'Key' => $this->fileModel["pre_name"],
+			'ResponseContentDisposition' => 'attachment; filename='.$this->fileModel["orign_name"],
+		]);
+		$timeOut = Option::getValue("timeout");
+		$req = $s3->createPresignedRequest($cmd, '+'.($timeOut/60).' minutes');
+		$url = (string)$req->getUri();
+		
+		return [1,$url];
 	}
 	
 	/**
@@ -89,9 +134,21 @@ class S3Adapter extends Model{
 	 * @return boolean
 	 */
 	static function deleteS3File($fname,$policy){
-		$s3 = new \S3\S3($policy["ak"], $policy["sk"],false,$policy["op_pwd"]);
-		$s3->setSignatureVersion('v4');
-		return $s3->deleteObject($policy["bucketname"],$fname);
+		$s3 = new \Aws\S3\S3Client([
+			'version' => 'latest',
+			'region'  => $policy["op_name"],
+			'endpoint' => $policy["op_pwd"],
+			'use_path_style_endpoint' => true,
+			'credentials' => [
+					'key'    =>  $policy["ak"],
+					'secret' => $policy["sk"],
+			],
+		]);
+		$result = $s3->deleteObject([
+			'Bucket' => $policy["bucketname"],
+			'Key' => $fname,
+		]);
+		return $result["DeleteMarker"];
 	}
 
 	/**

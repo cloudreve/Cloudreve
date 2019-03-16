@@ -95,7 +95,8 @@ class File extends Controller{
 	}
 
 	public function gerSource(){
-		$reqPath = $_POST["path"];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = $reqData['path'];
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$FileHandler = $fileObj->Source();
 	}

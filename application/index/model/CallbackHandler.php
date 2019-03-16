@@ -120,6 +120,7 @@ class CallbackHandler extends Model{
 		if(empty($CallbackSqlData)){
 			$this->setError("Undelegated Request",false,true);
 		}
+		Db::name('callback')->where('callback_key',$key)->delete();
 		$this->policyData = Db::name('policy')->where('id',$CallbackSqlData['pid'])->find();
 		$this->userData =  Db::name('users')->where('id',$CallbackSqlData['uid'])->find();
 		$paths = explode("/",$this->CallbackData["key"]);
@@ -135,7 +136,7 @@ class CallbackHandler extends Model{
 		if(!$jsonData["fsize"]){
 			$this->setError("File not exist",false,true);
 		}
-		$jsonData["fsize"] = $jsonData["fsize"]["size"];
+		$jsonData["fsize"] = $jsonData["fsize"];
 		$picInfo = "";
 		$addAction = FileManage::addFile($jsonData,$this->policyData,$this->userData["id"],"");
 		if(!$addAction[0]){
@@ -147,14 +148,25 @@ class CallbackHandler extends Model{
 	}
 
 	private function getS3FileInfo(){
-		$s3 = new \S3\S3($this->policyData["ak"], $this->policyData["sk"],false,$this->policyData["op_pwd"]);
-		$s3->setSignatureVersion('v4');
+		$s3 = new \Aws\S3\S3Client([
+			'version' => 'latest',
+			'region'  => $this->policyData["op_name"],
+			'endpoint' => $this->policyData["op_pwd"],
+			'use_path_style_endpoint' => true,
+			'credentials' => [
+					'key'    => $this->policyData["ak"],
+					'secret' => $this->policyData["sk"],
+			],
+		]);
 		try {
-			$returnVal = $s3->getObjectInfo($this->policyData["bucketname"],$this->CallbackData["key"]);
+			$returnVal = $s3->headObject([
+				'Bucket'=>$this->policyData["bucketname"],
+				'Key'=>$this->CallbackData["key"]
+			]);
 		} catch (Exception $e) {
 			return false;
 		}
-		return $returnVal;
+		return $returnVal["ContentLength"];
 	}
 
 	public function setSuccess($fname){
