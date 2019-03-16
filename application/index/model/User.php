@@ -97,7 +97,7 @@ class User extends Model{
 		}
 		$userName = str_replace(" ", "", $userEmail);
 		$passWord = $userPass;
-		if ( !filter_var($userName,FILTER_VALIDATE_EMAIL) || (mb_strlen($userName,'UTF8')>22) || (mb_strlen($userName,'UTF8')<4) || (mb_strlen($passWord,'UTF8')>64) || (mb_strlen($passWord,'UTF8')<4)){
+		if ( !filter_var($userName,FILTER_VALIDATE_EMAIL) || (mb_strlen($userName,'UTF8')>32) || (mb_strlen($userName,'UTF8')<4) || (mb_strlen($passWord,'UTF8')>64) || (mb_strlen($passWord,'UTF8')<4)){
 			return [false,"邮箱或密码不符合规范"];
 		}
 		if(Db::name('users')->where('user_email',$userName)->find() !=null){

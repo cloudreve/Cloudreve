@@ -80,7 +80,7 @@ class QiniuAdapter extends Model{
 	 * @return string 缩略图地址
 	 */
 	public function getThumb(){
-		return $this->Preview("?imageView2/2/w/90/h/39");
+		return $this->Preview("?imageView2/1/w/230/h/200");
 	}
 
 /**
