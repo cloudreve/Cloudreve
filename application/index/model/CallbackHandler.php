@@ -57,6 +57,7 @@ class CallbackHandler extends Model{
 			$this->setError("空间容量不足",true);
 		}
 		$picInfo = $jsonData["picinfo"];
+		$picInfo = $picInfo==="null,null"?"":$picInfo;
 		$addAction = FileManage::addFile($jsonData,$this->policyData,$CallbackSqlData["uid"],$picInfo);
 		if(!$addAction[0]){
 			$this->setError($addAction[1],true);
