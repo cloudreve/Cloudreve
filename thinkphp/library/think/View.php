@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -33,7 +33,7 @@ class View
     public function __construct($engine = [], $replace = [])
     {
         // 初始化模板引擎
-        $this->engine((array) $engine);
+        $this->engine($engine);
         // 基础替换字符串
         $request = Request::instance();
         $base    = $request->root();
@@ -127,7 +127,7 @@ class View
      * @access private
      * @param string|array  $name 参数名
      * @param mixed         $value 参数值
-     * @return void
+     * @return $this
      */
     public function config($name, $value = null)
     {
@@ -155,18 +155,21 @@ class View
         ob_implicit_flush(0);
 
         // 渲染输出
-        $method = $renderContent ? 'display' : 'fetch';
-        $this->engine->$method($template, $vars, $config);
+        try {
+            $method = $renderContent ? 'display' : 'fetch';
+            // 允许用户自定义模板的字符串替换
+            $replace = array_merge($this->replace, $replace, (array) $this->engine->config('tpl_replace_string'));
+            $this->engine->config('tpl_replace_string', $replace);
+            $this->engine->$method($template, $vars, $config);
+        } catch (\Exception $e) {
+            ob_end_clean();
+            throw $e;
+        }
 
         // 获取并清空缓存
         $content = ob_get_clean();
         // 内容过滤标签
         Hook::listen('view_filter', $content);
-        // 允许用户自定义模板的字符串替换
-        $replace = array_merge($this->replace, $replace);
-        if (!empty($replace)) {
-            $content = strtr($content, $replace);
-        }
         return $content;
     }
 

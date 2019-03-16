@@ -27,37 +27,33 @@ class File extends Controller{
 		}
 	}
 
-	/**
-	 * [index description]
-	 * @Author   Aaron
-	 * @DateTime 2017-07-03
-	 * @return   [type]     [description]
-	 */
 	public function index(){
 		return "";
 	}
 	 
-	/**
-	 * [List description]
-	 * @Author   Aaron
-	 * @DateTime 2017-07-03
-	 */
 	public function ListFile(){
 		$reqPath = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
-		return FileManage::ListFile($reqPath,$this->userObj->uid);
+		return json(FileManage::ListFile($reqPath,$this->userObj->uid));
+	}
+
+	public function SearchFile(){
+		$keyWords = stripslashes(json_decode(file_get_contents("php://input"),true)['path']);
+		return json(FileManage::searchFile($keyWords,$this->userObj->uid));
 	}
 
 	public function Delete(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['items'];
-		$dirPath = json_decode(file_get_contents("php://input"),true)['dirs'];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = array_key_exists("dirs",$reqData)?$reqData["items"]:array();
+		$dirPath = array_key_exists("dirs",$reqData)?$reqData["dirs"]:array();
 		FileManage::DirDeleteHandler($dirPath,$this->userObj->uid);
-		return FileManage::DeleteHandler($reqPath,$this->userObj->uid);
+		return json(FileManage::DeleteHandler($reqPath,$this->userObj->uid));
 	}
 
 	public function Move(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['items'];
-		$dirPath = json_decode(file_get_contents("php://input"),true)['dirs'];
-		$newPath = json_decode(file_get_contents("php://input"),true)['newPath'];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = array_key_exists("dirs",$reqData)?$reqData["items"]:array();
+		$dirPath = array_key_exists("dirs",$reqData)?$reqData["dirs"]:array();
+		$newPath = $reqData['newPath'];
 		return FileManage::MoveHandler($reqPath,$dirPath,$newPath,$this->userObj->uid);
 	}
 
@@ -68,7 +64,7 @@ class File extends Controller{
 	}
 
 	public function Preview(){
-		$reqPath = $_GET["path"];
+		$reqPath =$_GET["path"];
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$Redirect = $fileObj->PreviewHandler();
 		if($Redirect[0]){
@@ -78,7 +74,7 @@ class File extends Controller{
 	
 	public function ListPic(){
 		$reqPath = $_GET["path"];
-		return FileManage::listPic($reqPath,$this->userObj->uid);
+		return json(FileManage::listPic($reqPath,$this->userObj->uid));
 	}
 
 	public function Download(){
@@ -91,19 +87,22 @@ class File extends Controller{
 	}
 
 	public function Share(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['item'];
-		$shareType = json_decode(file_get_contents("php://input"),true)['shareType'];
-		ShareHandler::createShare($reqPath,$shareType,$this->userObj->getSQLData(),$this->userObj->getGroupData());
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = $reqData['item'];
+		$shareType = $reqData['shareType'];
+		$sharePwd = $reqData['pwd'];
+		ShareHandler::createShare($reqPath,$shareType,$sharePwd,$this->userObj->getSQLData(),$this->userObj->getGroupData());
 	}
 
 	public function gerSource(){
-		$reqPath = $_POST["path"];
+		$reqData = json_decode(file_get_contents("php://input"),true);
+		$reqPath = $reqData['path'];
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$FileHandler = $fileObj->Source();
 	}
 
 	public function Content(){
-		$reqPath = json_decode(file_get_contents("php://input"),true)['item'];
+		$reqPath = urldecode(input("get.path"));
 		$fileObj = new FileManage($reqPath,$this->userObj->uid);
 		$FileHandler = $fileObj->getContent();
 	}
@@ -170,6 +169,6 @@ class File extends Controller{
 			}
 
 		}
-		return FileManage::createFolder($dirName,$dirPosition,$this->userObj->uid);
+		return json(FileManage::createFolder($dirName,$dirPosition,$this->userObj->uid));
 	} 
 }

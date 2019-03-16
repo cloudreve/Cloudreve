@@ -278,7 +278,7 @@ class Cx extends Taglib
      */
     public function tagCase($tag, $content)
     {
-        $value = !empty($tag['expression']) ? $tag['expression'] : $tag['value'];
+        $value = isset($tag['expression']) ? $tag['expression'] : $tag['value'];
         $flag  = substr($value, 0, 1);
         if ('$' == $flag || ':' == $flag) {
             $value = $this->autoBuildVar($value);

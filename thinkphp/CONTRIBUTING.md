@@ -7,7 +7,7 @@
 
 ThinkPHP 目前使用 Git 来控制程序版本，如果你想为 ThinkPHP 贡献源代码，请先大致了解 Git 的使用方法。我们目前把项目托管在 GitHub 上，任何 GitHub 用户都可以向我们贡献代码。
 
-参与的方式很简单，`fork`一份 ThinkPHP 的代码到你的仓库中，修改后提交，并向我们发起`pull request`申请，我们会及时对代码进行审查并处理你的申请并。审查通过后，你的代码将被`merge`进我们的仓库中，这样你就会自动出现在贡献者名单里了，非常方便。
+参与的方式很简单，`fork`一份 ThinkPHP 的代码到你的仓库中，修改后提交，并向我们发起`pull request`申请，我们会及时对代码进行审查并处理你的申请。审查通过后，你的代码将被`merge`进我们的仓库中，这样你就会自动出现在贡献者名单里了，非常方便。
 
 我们希望你贡献的代码符合：
 
@@ -60,7 +60,7 @@ GitHub 提供了 Issue 功能，该功能可以用于：
 6. 变基（衍合 `rebase`）你的分支到上游 master 分支；
 7. `push` 你的本地仓库到 GitHub；
 8. 提交 `pull request`；
-9. 等待 CI 验证（若不通过则重复 5~7，GitHub 会自动更新你的 `pull request`）；
+9. 等待 CI 验证（若不通过则重复 5~7，不需要重新提交 `pull request`，GitHub 会自动更新你的 `pull request`）；
 10. 等待管理员处理，并及时 `rebase` 你的分支到上游 master 分支（若上游 master 分支有修改）。
 
 *若有必要，可以 `git push -f` 强行推送 rebase 后的分支到自己的 `fork`*

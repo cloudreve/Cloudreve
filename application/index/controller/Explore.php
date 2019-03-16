@@ -14,31 +14,24 @@ class Explore extends Controller{
 	public $siteOptions;
 
 	public function _initialize(){
-		$this->siteOptions = Option::getValues(["basic"]);
 	}
 
 	public function Search(){
 		$this->visitorObj = new User(cookie('user_id'),cookie('login_key'));
-		return view("search",[
-			"options" => $this->siteOptions,
-			'loginStatus' => $this->visitorObj->loginStatus,
-			'userData' => $this->visitorObj->userSQLData,
-		]);
-	}
-
-	public function S(){
-		$this->visitorObj = new User(cookie('user_id'),cookie('login_key'));
+		$this->siteOptions = Option::getValues(["basic"],$this->visitorObj->userSQLData);
 		$keyWords=input("param.key");
 		if(empty($keyWords)){
-			$this->redirect('/Explore/Search',302);
-		}
-		$list = Db::name('shares')
+			$this->error("搜索词不为空",200,$this->siteOptions);
+		}else{
+			$list = Db::name('shares')
 				->where('type',"public")
 				->where('origin_name',"like","%".$keyWords."%")
 				->order('share_time DESC')
-				->paginate(10);
-		$listData = $list->all();
+				->select();
+		}
+		$listData = $list;
 		foreach ($listData as $key => $value) {
+			unset($listData[$key]["source_name"]);
 			if($value["source_type"]=="file"){
 				$listData[$key]["fileData"] = $value["origin_name"];
 
@@ -50,9 +43,8 @@ class Explore extends Controller{
 		return view("result",[
 			"options" => $this->siteOptions,
 			'loginStatus' => $this->visitorObj->loginStatus,
-			'userData' => $this->visitorObj->userSQLData,
-			'list' => $listData,
-			'listOrigin' => $list,
+			'userData' => $this->visitorObj->getInfo(),
+			'list' => json_encode($listData),
 			'keyWords' => $keyWords,
 		]);
 	}

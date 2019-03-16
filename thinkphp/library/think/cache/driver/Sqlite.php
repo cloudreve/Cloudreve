@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -96,9 +96,9 @@ class Sqlite extends Driver
     /**
      * 写入缓存
      * @access public
-     * @param string    $name 缓存变量名
-     * @param mixed     $value  存储数据
-     * @param integer   $expire  有效时间（秒）
+     * @param string            $name 缓存变量名
+     * @param mixed             $value  存储数据
+     * @param integer|\DateTime $expire  有效时间（秒）
      * @return boolean
      */
     public function set($name, $value, $expire = null)
@@ -108,7 +108,11 @@ class Sqlite extends Driver
         if (is_null($expire)) {
             $expire = $this->options['expire'];
         }
-        $expire = (0 == $expire) ? 0 : ($_SERVER['REQUEST_TIME'] + $expire); //缓存有效期为0表示永久缓存
+        if ($expire instanceof \DateTime) {
+            $expire = $expire->getTimestamp();
+        } else {
+            $expire = (0 == $expire) ? 0 : (time() + $expire); //缓存有效期为0表示永久缓存
+        }
         if (function_exists('gzcompress')) {
             //数据压缩
             $value = gzcompress($value, 3);
@@ -155,7 +159,7 @@ class Sqlite extends Driver
         if ($this->has($name)) {
             $value = $this->get($name) - $step;
         } else {
-            $value = $step;
+            $value = -$step;
         }
         return $this->set($name, $value, 0) ? $value : false;
     }

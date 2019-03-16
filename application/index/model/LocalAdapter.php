@@ -301,15 +301,15 @@ class LocalAdapter extends Model{
      * @return array
      */
     static function getThumbSize($width,$height){
-		$rate = $width/$height;
-		$maxWidth = 90;
-		$maxHeight = 39;
-		$changeWidth = 39*$rate;
-		$changeHeight = 90/$rate;
-		if($changeWidth>=$maxWidth){
-			return [(int)$changeHeight,90];
-		}
-		return [39,(int)$changeWidth];
+		// $rate = $width/$height;
+		// $maxWidth = 280;
+		// $maxHeight = 150;
+		// $changeWidth = 150*$rate;
+		// $changeHeight = 280/$rate;
+		// if($changeWidth>=$maxWidth){
+		// 	return [(int)$changeHeight,280];
+		// }
+		return [230,200];
     }
     
     /**

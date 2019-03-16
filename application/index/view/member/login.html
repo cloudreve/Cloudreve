@@ -1,185 +1,23 @@
-{extend name="header_public" /}
-{block name="title"}登录- {$options.siteName}{/block}
-{block name="content"}
-   <link rel="stylesheet" href="/static/css/login.css" />
-   	<link rel="stylesheet" href="/static/css/photoswipe.css"> 
-	<link rel="stylesheet" href="/static/css/default-skin/default-skin.css"> 
-        <script src="/static/js/jquery.color.js"></script>
-    </head>
-    <body data-ma-header="teal">
-
-
-        <nav class="navbar navbar-inverse" >
-            <div class="container-fluid">
-                <div class="container" >
-{include file="navbar_public" loginStatus=$loginStatus userData=$userData /}
-                <div class="header-panel shadow-z-2">
-                    <div class="container-fluid">
-                        <div class="row">
-                            
-                        </div>
-                    </div>
-                </div>
-                <div class="container main" >
-                    <div class="col-md-4"></div>
-                    <div class="col-md-4">
-                        <div class="jumbotron" id="logForm">
-                            <div class="card_top">
-                                <div class="row top-color">
-                                    <div class="card-top-row">
-                                     <div class="login-icon"><i class="fa fa-user-circle-o" aria-hidden="true"></i></div>
-                                     <div class="login-text">登录后方可享用精彩内容</div>
-                                        </div>
-                                    </div>
-                                </div>
-                          
-                                <div class="card_botom">
-                                <div class="row bottom-width">
-                                <form id="loginForm">
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputEmail">Email 电子邮箱</label>
-                                    <input type="text" class="form-control" id="inputEmail" name="userMail">
-                                    </div>
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputPwd">密码</label>
-                                    <input type="password" class="form-control" id="inputPwd" name="userPass">
-                                    </div>
-                                    {eq name="$RegOptions.login_captcha" value="1"}
-
-                                    <div class="input-group form-group label-floating">
-                                    <label class="control-label" for="captcha">验证码</label>
-                                        <input type="text" id="captcha" class="form-control" name="captchaCode">
-                                                  <span class="input-group-btn">
-                                                      <div class="captcha_img">{:captcha_img()}</div>
-                                                  </span>
-                                   </div>
-                                    
-                                    {else/}
-                                    {/eq}
-
-                                </form> <button class="btn btn-raised btn-primary waves-light" id="loginButton">登录</button>
-                                 <div class="link-group">
-                                <a href="javascript:void" class="noWave" id="create" data-change="true">创建一个账户</a><br>
-                                <a href="javascript:void" class="noWave" id="forgetSwitch2" data-change="true">忘记密码？</a>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-                            
-                            
- <div class="jumbotron" id="regForm" style="display: none;">
-                            <div class="card_top">
-                                <div class="row top-color">
-                                    <div class="card-top-row">
-                                     <div class="login-icon"><i class="fa fa-sign-in" aria-hidden="true"></i></div>
-                                     <div class="login-text">注册账户</div>
-                                        </div>
-                                    </div>
-                                </div>
-                          
-                                <div class="card_botom">
-                                <div class="row bottom-width">
-                                <form id="registerForm">
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputEmail">Email 电子邮箱</label>
-                                    <input type="text" class="form-control" id="inputEmail" name="username-reg">
-                                    </div>
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputPwd">密码</label>
-                                    <input type="password" class="form-control" id="inputPwd" name="password-reg">
-                                    </div>
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputPwd">重复密码</label>
-                                    <input type="password" class="form-control" id="inputPwd" name="password-check">
-                                    </div>
-                                    {eq name="$RegOptions.reg_captcha" value="1"}
-
-                                    <div class="input-group form-group label-floating">
-                                    <label class="control-label" for="captcha">验证码</label>
-                                        <input type="text" id="captcha" class="form-control" name="captchaCode">
-                                                  <span class="input-group-btn">
-                                                      <div class="captcha_img">{:captcha_img()}</div>
-                                                  </span>
-                                   </div>
-                                    
-                                    {else/}
-                                    {/eq}
-
-                                </form> <button class="btn btn-raised btn-primary waves-light" id="regButton">注册</button> <div class="link-group">
-                                <a href="javascript:void" class="noWave" id="loginSwitch3" data-change="true">已有账号？立即登录</a><br>
-                                <a href="javascript:void" class="noWave" id="forgetSwitch" data-change="true">忘记密码？</a>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-
-
-                             <div class="jumbotron" id="emailCheck" style="display: none;">
-                            <div class="card_top">
-                                <div class="row top-color">
-                                    <div class="card-top-row">
-                                     <div class="login-icon"><i class="fa fa-envelope" aria-hidden="true"></i></div>
-                                     <div class="login-text">激活账户</div>
-                                        </div>
-                                    </div>
-                                </div>
-                          
-                                <div class="card_botom">
-                                <div class="row bottom-width"><br>
-                                我们已经向您的注册邮箱发送了一封确认邮件，请访问邮件中的激活链接以完成注册。如果未收到邮件，请检查您的垃圾邮件。<br><br>如果还仍无法接受邮件，请尝试更换注册邮箱或联系站点管理员。
-                                </div>
-                            </div>
-                            </div>
-
-
- <div class="jumbotron" id="forgetForm" style="display: none;">
-                            <div class="card_top">
-                                <div class="row top-color">
-                                    <div class="card-top-row">
-                                     <div class="login-icon"><i class="fa fa-question-circle-o" aria-hidden="true"></i></div>
-                                     <div class="login-text">找回密码</div>
-                                        </div>
-                                    </div>
-                                </div>
-                          
-                                <div class="card_botom">
-                                <div class="row bottom-width">
-                                <form id="forgetPwdForm">
-
-                                    <div class="form-group  label-floating">
-                                    <label class="control-label" for="inputEmail">请填写注册时绑定的邮箱</label>
-                                    <input type="text" class="form-control" id="regEmail" name="regEmail">
-                                    </div>
-                                    {eq name="$RegOptions.forget_captcha" value="1"}
-
-                                    <div class="input-group form-group label-floating">
-                                    <label class="control-label" for="captcha">验证码</label>
-                                        <input type="text" id="captcha" class="form-control" name="captchaCode">
-                                                  <span class="input-group-btn">
-                                                      <div class="captcha_img">{:captcha_img()}</div>
-                                                  </span>
-                                   </div>
-                                    
-                                    {else/}
-                                    {/eq}
-
-                                </form> <button class="btn btn-raised btn-primary waves-light" id="findMyFuckingPwd">找回密码</button> <div class="link-group">
-                                <a href="javascript:void" class="noWave" id="loginSwitch2" data-change="true">返回登录</a><br>
-                                </div>
-                                </div>
-                            </div>
-                            </div>
-
-                        </div></div>
-                        <div class="col-md-4"></div>
-                    </div>
-                </div>
-            </body>
-
-            <script type="text/javascript">
-        
-
-            </script>
-            <script src="/static/js/login.js"> </script>
-            {$options.js_code}
-            {/block}
+<!doctype html><html lang="zh-cn"><head><meta charset="utf-8"><link rel="shortcut icon" href="/favicon.ico"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name="theme-color" content="{$options.themeColor}"/><link rel="manifest" href="/manifest.json"><title>{eq name="pageId" value="resetPwdForm"}找回密码{/eq}{eq name="pageId" value="resetPwd"}找回密码{/eq}{eq name="pageId" value="emailActivate"}激活成功{/eq}{eq name="pageId" value="login"}登录{/eq}{eq name="pageId" value="register"}注册{/eq}{eq name="pageId" value="TwoStep"}二步验证{/eq} - {$options.siteName}</title><script type="text/javascript">colorTheme = {:json_encode($options["themeConfig"])};
+        isHomePage = false;
+        isSharePage = false;
+        captcha = "{$RegOptions.login_captcha}";
+        regCaptcha = "{$RegOptions.reg_captcha}";
+        findPwdCaptcha = "{$RegOptions.forget_captcha}";
+        {if isset($key)}
+          resetKey = '{$key}';
+        {/if}
+        pageId="{$pageId}";
+        userInfo = {
+            uid: -1,
+        };
+        siteInfo = {
+            mainTitle: "{$options.siteName}",
+        };
+        uploadConfig = {
+            allowSource: false,
+            allowShare: false,
+            allowRemoteDownload: "0",
+            allowTorrentDownload: "0",
+        };
+        isMobile = window.innerWidth < 600;</script></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div><script>!function(l){function e(e){for(var r,t,n=e[0],o=e[1],u=e[2],f=0,i=[];f<n.length;f++)t=n[f],p[t]&&i.push(p[t][0]),p[t]=0;for(r in o)Object.prototype.hasOwnProperty.call(o,r)&&(l[r]=o[r]);for(s&&s(e);i.length;)i.shift()();return c.push.apply(c,u||[]),a()}function a(){for(var e,r=0;r<c.length;r++){for(var t=c[r],n=!0,o=1;o<t.length;o++){var u=t[o];0!==p[u]&&(n=!1)}n&&(c.splice(r--,1),e=f(f.s=t[0]))}return e}var t={},p={22:0},c=[];function f(e){if(t[e])return t[e].exports;var r=t[e]={i:e,l:!1,exports:{}};return l[e].call(r.exports,r,r.exports,f),r.l=!0,r.exports}f.m=l,f.c=t,f.d=function(e,r,t){f.o(e,r)||Object.defineProperty(e,r,{enumerable:!0,get:t})},f.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},f.t=function(r,e){if(1&e&&(r=f(r)),8&e)return r;if(4&e&&"object"==typeof r&&r&&r.__esModule)return r;var t=Object.create(null);if(f.r(t),Object.defineProperty(t,"default",{enumerable:!0,value:r}),2&e&&"string"!=typeof r)for(var n in r)f.d(t,n,function(e){return r[e]}.bind(null,n));return t},f.n=function(e){var r=e&&e.__esModule?function(){return e.default}:function(){return e};return f.d(r,"a",r),r},f.o=function(e,r){return Object.prototype.hasOwnProperty.call(e,r)},f.p="/";var r=window.webpackJsonp=window.webpackJsonp||[],n=r.push.bind(r);r.push=e,r=r.slice();for(var o=0;o<r.length;o++)e(r[o]);var s=n;a()}([])</script><script src="/static/js/0.chunk.js"></script><script src="/static/js/1.chunk.js"></script><script src="/static/js/login.chunk.js"></script></body></html>

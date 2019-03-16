@@ -2,7 +2,7 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2017 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2018 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
@@ -31,12 +31,15 @@ class Mysql extends Connection
      */
     protected function parseDsn($config)
     {
-        $dsn = 'mysql:dbname=' . $config['database'] . ';host=' . $config['hostname'];
-        if (!empty($config['hostport'])) {
-            $dsn .= ';port=' . $config['hostport'];
-        } elseif (!empty($config['socket'])) {
-            $dsn .= ';unix_socket=' . $config['socket'];
+        if (!empty($config['socket'])) {
+            $dsn = 'mysql:unix_socket=' . $config['socket'];
+        } elseif (!empty($config['hostport'])) {
+            $dsn = 'mysql:host=' . $config['hostname'] . ';port=' . $config['hostport'];
+        } else {
+            $dsn = 'mysql:host=' . $config['hostname'];
         }
+        $dsn .= ';dbname=' . $config['database'];
+
         if (!empty($config['charset'])) {
             $dsn .= ';charset=' . $config['charset'];
         }

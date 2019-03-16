@@ -30,11 +30,13 @@ class Home extends Controller{
 		}
 		$policyData["max_size"] = $policyData["max_size"]/(1024*1024);
 		return view('home', [
-			'options'  => Option::getValues(['basic','upload']),
+			'options'  => Option::getValues(['basic','upload'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'extLimit' => $extLimit,
 			'policyData' => $policyData,
 			'groupData' => $groupData,
+			'chunkSize' => config('upload.chunk_size'),
+			'path' => empty(input("get.path"))?"/":input("get.path"),
 		]);
 	}
 
@@ -42,43 +44,9 @@ class Home extends Controller{
 		$userInfo = $this->userObj->getInfo();
 		$groupData =  $this->userObj->getGroupData();
 		return view('download', [
-			'options'  => Option::getValues(['basic','group_sell']),
+			'options'  => Option::getValues(['basic','group_sell'],$this->userObj->userSQLData),
 			'userInfo' => $userInfo,
 			'groupData' => $groupData,
-		]);
-	}
-
-	public function Album(){
-		$userInfo = $this->userObj->getInfo();
-		$list = Db::name("files")->where("upload_user",$this->userObj->uid)
-					->where(function ($query) {
-					    $query->where('orign_name', "like","%jpg")
-					    ->whereor('orign_name', "like","%png")
-					    ->whereor('orign_name', "like","%gif")
-					    ->whereor('orign_name', "like","%bmp");
-					})
-					->order('id DESC')
-					->paginate(9);
-		$pageCount = ceil(Db::name("files")->where("upload_user",$this->userObj->uid)
-					->where(function ($query) {
-					    $query->where('orign_name', "like","%jpg")
-					    ->whereor('orign_name', "like","%png")
-					    ->whereor('orign_name', "like","%gif")
-					    ->whereor('orign_name', "like","%bmp");
-					})
-					->order('id DESC')->count()/9);
-		$listData = $list->all();
-		$pageNow = input("?get.page")?input("get.page"):1;
-		if($pageNow>$pageCount){
-			$this->error('您当前没有上传任何图片',404,Option::getValues(['basic','group_sell']));
-		}
-		return view('album', [
-			'options'  => Option::getValues(['basic','group_sell']),
-			'userInfo' => $userInfo,
-			'list' => $listData,
-			'listOrigin' => $list,
-			'pageCount' => $pageCount,
-			'page' => $pageNow,
 		]);
 	}
 		

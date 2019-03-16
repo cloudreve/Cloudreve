@@ -1,131 +1,32 @@
-{extend name="header_public" /}
-{block name="title"}{$fileData.orign_name} - {$options.siteName}{/block}
-{block name="content"}
-<link rel="stylesheet" href="/static/css/share.css" />
-<link rel="stylesheet" href="/static/css/photoswipe.css">
-<link rel="stylesheet" href="/static/css/default-skin/default-skin.css">
-<script src="/static/js/jquery.color.js"></script>
-</head>
-<body data-ma-header="teal">
-<div class="modal fade" id="previewModal" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" onclick="audioPause()" data-dismiss="modal">
-                <span aria-hidden="true">×</span>
-                <span class="sr-only ng-binding">关闭</span>
-                </button>
-                <h4 class="modal-title">视频预览</h4>
-            </div>
-            <div class="modal-body">
-                <div class="text-center previewContent">
-                    
-                    
-                </div>
-                
-            </div>
-        </div>
-    </div>
-</div>
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-    <!-- Background of PhotoSwipe.
-    It's a separate element, as animating opacity is faster than rgba(). -->
-    <div class="pswp__bg"></div>
-    <!-- Slides wrapper with overflow:hidden. -->
-    <div class="pswp__scroll-wrap">
-        <!-- Container that holds slides. PhotoSwipe keeps only 3 slides in DOM to save memory. -->
-        <div class="pswp__container">
-            <!-- don't modify these 3 pswp__item elements, data is added later on -->
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-            <div class="pswp__item"></div>
-        </div>
-        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
-        <div class="pswp__ui pswp__ui--hidden">
-            <div class="pswp__top-bar">
-                <!--  Controls are self-explanatory. Order can be changed. -->
-                <div class="pswp__counter"></div>
-                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
-                <!-- element will get class pswp__preloader--active when preloader is running -->
-                <div class="pswp__preloader">
-                    <div class="pswp__preloader__icn">
-                        <div class="pswp__preloader__cut">
-                            <div class="pswp__preloader__donut"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-                <div class="pswp__share-tooltip"></div>
-            </div>
-            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
-            </button>
-            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
-            </button>
-            <div class="pswp__caption">
-                <div class="pswp__caption__center"></div>
-            </div>
-        </div>
-    </div>
-</div>
-<nav class="navbar navbar-inverse" >
-    <div class="container-fluid">
-        <div class="container" >
-            {include file="navbar_public" /}
-            <div class="header-panel shadow-z-2">
-                <div class="container-fluid">
-                    <div class="row">
-                        
-                    </div>
-                </div>
-            </div>
-            <div class="container main" >
-                <div class="col-md-3"></div>
-                <div class="col-md-6">
-                    <div class="jumbotron" >
-                        <div class="card_top">
-                            <div class="row top-color">
-                                <div class="card-top-row">
-                                    <div class="file-sign col-xs-2">
-                                        <i class="fa fa-file-image-o" aria-hidden="true"></i>
-                                    </div>
-                                    <div class="file_title col-xs-10">
-                                        <div class="file_title_inside str_wrap">
-                                            {$fileData.orign_name|htmlspecialchars=ENT_NOQUOTES}&nbsp;&nbsp;
-                                        </div>
-                                        <div class="file_info"><span id="size"></span>&nbsp;&nbsp;<span><i class="fa fa-cloud-download" aria-hidden="true"></i> <span id="down_num"></span></span>&nbsp;&nbsp;<span><i class="fa fa-eye" aria-hidden="true"></i> <span id="view_num"></span></span></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-middle">
-                                <button  class="btn btn-info btn-fab" id="previewButton"><i class="material-icons fa fa-eye"></i><div class="ripple-container"></div></button>
-                                <button  class="btn btn-primary btn-fab" id="download"><i class="material-icons fa fa-download"></i><div class="ripple-container"></div></button>
-                            </div>
-                        </div>
-                        
-                        <div class="card_botom">
-                            <div class="row bottom-width">
-                                <div class="avatar ">
-                                    <img src="/Member/Avatar/{$userInfo.id}/s" class="img-circle animated rotateIn">
-                                    <div class="nick">
-                                        <span class="nickname"><a class="notWave" href="/Profile/{$userInfo.id}">{$userInfo.user_nick}</a></span>
-                                        <br>
-                                        <span class="share_time">分享于<span id="share_time"></span></span>
-                                        
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div></div>
-                    <div class="col-md-3"></div>
-                </div>
-            </div>
-        </body>
-        <script src="/static/js/jquery.liMarquee.js"></script>
-        <script type="text/javascript">
+<!doctype html><html lang="zh-cn"><head><meta charset="utf-8"><link rel="shortcut icon" href="/favicon.ico"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name="theme-color" content="{$options.themeColor}"/><link rel="manifest" href="/manifest.json"><title>{$fileData.orign_name} - {$options.siteName}</title><script type="text/javascript">colorTheme = {:json_encode($options["themeConfig"])};
+        isHomePage = false;
+        isSharePage = true;
+        pageId="fileShare";
+        apiURL = {
+            imgThumb: "/Share/Thumb/{$shareData.share_key}",
+            preview: "/Share/Preview/{$shareData.share_key}",
+            download: "/Share/Download/{$shareData.share_key}",
+            docPreiview: '/Share/DocPreview/{$shareData.share_key}',
+            listFile:'/Share/ListFile/{$shareData.share_key}'
+        };
+        userInfo = {
+            uid: {$userData.uid},
+            nick: "{$userData.userNick}",
+            email: "{$userData.userMail}",
+            group: "{$userData.groupData.group_name}",
+            groupId: {$userData.groupData.id},
+            groupColor: "{$userData.groupData.color}",
+        };
+        siteInfo = {
+            mainTitle: "{$fileData.orign_name}",
+        };
+        path = "{$path}";
+        uploadConfig = {
+            allowSource: false,
+            allowShare: false,
+            allowRemoteDownload: "0",
+            allowTorrentDownload: "0",
+        };
         shareInfo={
             fileSize : "{$fileData.size}",
             shareDate : "{$shareData.share_time}",
@@ -142,7 +43,5 @@
             allowPreview:{$allowPreview},
             {/eq}
         };
-        </script>
-        <script src="/static/js/share_single.js"> </script>
-        {$options.js_code}
-        {/block}
+        mediaType = {},
+        isMobile = window.innerWidth < 600;</script></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div><script>!function(l){function e(e){for(var r,t,n=e[0],o=e[1],u=e[2],f=0,i=[];f<n.length;f++)t=n[f],p[t]&&i.push(p[t][0]),p[t]=0;for(r in o)Object.prototype.hasOwnProperty.call(o,r)&&(l[r]=o[r]);for(s&&s(e);i.length;)i.shift()();return c.push.apply(c,u||[]),a()}function a(){for(var e,r=0;r<c.length;r++){for(var t=c[r],n=!0,o=1;o<t.length;o++){var u=t[o];0!==p[u]&&(n=!1)}n&&(c.splice(r--,1),e=f(f.s=t[0]))}return e}var t={},p={29:0},c=[];function f(e){if(t[e])return t[e].exports;var r=t[e]={i:e,l:!1,exports:{}};return l[e].call(r.exports,r,r.exports,f),r.l=!0,r.exports}f.m=l,f.c=t,f.d=function(e,r,t){f.o(e,r)||Object.defineProperty(e,r,{enumerable:!0,get:t})},f.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},f.t=function(r,e){if(1&e&&(r=f(r)),8&e)return r;if(4&e&&"object"==typeof r&&r&&r.__esModule)return r;var t=Object.create(null);if(f.r(t),Object.defineProperty(t,"default",{enumerable:!0,value:r}),2&e&&"string"!=typeof r)for(var n in r)f.d(t,n,function(e){return r[e]}.bind(null,n));return t},f.n=function(e){var r=e&&e.__esModule?function(){return e.default}:function(){return e};return f.d(r,"a",r),r},f.o=function(e,r){return Object.prototype.hasOwnProperty.call(e,r)},f.p="/";var r=window.webpackJsonp=window.webpackJsonp||[],n=r.push.bind(r);r.push=e,r=r.slice();for(var o=0;o<r.length;o++)e(r[o]);var s=n;a()}([])</script><script src="/static/js/0.chunk.js"></script><script src="/static/js/18.chunk.js"></script><script src="/static/js/fileShare.chunk.js"></script></body></html>

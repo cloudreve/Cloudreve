@@ -127,6 +127,7 @@ class User extends Model{
 			'delay_time' =>0,
 			'avatar' => "default",
 			'profile' => true,
+			'options' => "{}",
 		];
 		if(Db::name('users')->insert($sqlData)){
 			$userId = Db::name('users')->getLastInsID();
@@ -353,6 +354,13 @@ class User extends Model{
 			Db::name("users")->where("id",$this->uid)->update(["user_nick" => $nick["nick"]]);
 			return [1,1];
 		}
+	}
+
+	public function changeOption($optionKey,$optionValue){
+		$options = json_decode($this->userSQLData["options"],true);
+		$options[$optionKey] = $optionValue;
+		Db::name("users")->where("id",$this->uid)->update(["options" => json_encode($options)]);
+		return [1,1];
 	}
 
 	public function changePwd($origin,$new){

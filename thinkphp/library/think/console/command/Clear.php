@@ -10,8 +10,10 @@
 // +----------------------------------------------------------------------
 namespace think\console\command;
 
+use think\Cache;
 use think\console\Command;
 use think\console\Input;
+use think\console\input\Argument;
 use think\console\input\Option;
 use think\console\Output;
 
@@ -22,6 +24,7 @@ class Clear extends Command
         // 指令配置
         $this
             ->setName('clear')
+            ->addArgument('type', Argument::OPTIONAL, 'type to clear', null)
             ->addOption('path', 'd', Option::VALUE_OPTIONAL, 'path to clear', null)
             ->setDescription('Clear runtime file');
     }
@@ -30,8 +33,14 @@ class Clear extends Command
     {
         $path = $input->getOption('path') ?: RUNTIME_PATH;
 
-        if (is_dir($path)) {
-            $this->clearPath($path);
+        $type = $input->getArgument('type');
+
+        if ($type == 'route') {
+            Cache::clear('route_check');
+        } else {
+            if (is_dir($path)) {
+                $this->clearPath($path);
+            }
         }
 
         $output->writeln("<info>Clear Successed</info>");

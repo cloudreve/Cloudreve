@@ -160,12 +160,19 @@ class FileManage extends Model{
 		$originFolder = $fname;
 		$new = str_replace("/", "", self::getFileName($new)[0]);
 		if(!$notEcho){
-			$new = str_replace(" ", "", $new);
+			$newToBeVerify = str_replace(" ", "", $new);
 		}
-		$newSuffix = explode(".",$new);
-                // 文件名带有‘.’会导致验证失败
-		$newPrefix = str_replace($newSuffix, "", $new);
-		if(!self::fileNameValidate($newPrefix)){
+		//检查是否全为空格
+		$varifyExplode = explode(".",$newToBeVerify);
+		$isFullBlackspace = false;
+		foreach ($varifyExplode as $key => $value) {
+			if($value == ""){
+				$isFullBlackspace = true;
+				break;
+			}
+		}
+		$toBeValidated = str_replace(".","",$newToBeVerify);
+		if(!self::fileNameValidate($toBeValidated) || $isFullBlackspace){
 			if($notEcho){
 				return '{ "result": { "success": false, "error": "文件名只支持汉字、字母、数字和下划线_及破折号-" } }';
 			}
@@ -184,6 +191,7 @@ class FileManage extends Model{
 			self::folderRename($originFolder,$folderTmp,$uid,$notEcho);
 			die();
 		}
+		$newSuffix = explode(".",$new);
 		$originSuffix = explode(".",$fileRecord["orign_name"]);
 		if(end($originSuffix) != end($newSuffix)){
 			if($notEcho){
@@ -534,27 +542,83 @@ class FileManage extends Model{
 		])->setDec('used_storage', $size);
 	}
 
-	/**
-	 * [List description]
-	 * @param [type] $path [description]
-	 * @param [type] $uid  [description]
-	 */
-	static function ListFile($path,$uid){
-		$fileList = Db::name('files')->where('upload_user',$uid)->where('dir',$path)->select();
-		$dirList = Db::name('folders')->where('owner',$uid)->where('position',$path)->select();
-		$count= 0;
-		$fileListData=[];
-		foreach ($dirList as $key => $value) {
-			$fileListData['result'][$count]['name'] = $value['folder_name'];
-			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";
-			$fileListData['result'][$count]['size'] = "0";
-			$fileListData['result'][$count]['date'] = $value['date'];
-			$fileListData['result'][$count]['type'] = 'dir';
-			$fileListData['result'][$count]['name2'] = "";
-			$fileListData['result'][$count]['id'] = $value['id'];
-			$fileListData['result'][$count]['pic'] = "";
-			$count++;
+	static function filterFile($keyWords,$uid){
+		switch ($keyWords) {
+			case '{filterType:video}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.mp4")
+				->whereOr('orign_name',"like","%.flv")
+				->whereOr('orign_name',"like","%.avi")
+				->whereOr('orign_name',"like","%.wmv")
+				->whereOr('orign_name',"like","%.mkv")
+				->whereOr('orign_name',"like","%.rm")
+				->whereOr('orign_name',"like","%.rmvb")
+				->whereOr('orign_name',"like","%.mov")
+				->whereOr('orign_name',"like","%.ogv")
+				->select();
+				break;
+			case '{filterType:audio}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.mp3")
+				->whereOr('orign_name',"like","%.flac")
+				->whereOr('orign_name',"like","%.ape")
+				->whereOr('orign_name',"like","%.wav")
+				->whereOr('orign_name',"like","%.acc")
+				->whereOr('orign_name',"like","%.ogg")
+				->select();
+				break;
+			case '{filterType:image}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.bmp")
+				->whereOr('orign_name',"like","%.flac")
+				->whereOr('orign_name',"like","%.iff")
+				->whereOr('orign_name',"like","%.png")
+				->whereOr('orign_name',"like","%.gif")
+				->whereOr('orign_name',"like","%.jpg")
+				->whereOr('orign_name',"like","%.jpge")
+				->whereOr('orign_name',"like","%.psd")
+				->whereOr('orign_name',"like","%.svg")
+				->whereOr('orign_name',"like","%.webp")
+				->select();
+				break;
+			case '{filterType:doc}':
+				$fileList = Db::name('files')
+				->where('upload_user',$uid)
+				->where('orign_name',"like","%.txt")
+				->whereOr('orign_name',"like","%.md")
+				->whereOr('orign_name',"like","%.pdf")
+				->whereOr('orign_name',"like","%.doc")
+				->whereOr('orign_name',"like","%.docx")
+				->whereOr('orign_name',"like","%.ppt")
+				->whereOr('orign_name',"like","%.pptx")
+				->whereOr('orign_name',"like","%.xls")
+				->whereOr('orign_name',"like","%.xlsx")
+				->select();
+				break;
+			default:
+				$fileList = [];
+				break;
 		}
+		return $fileList;
+	}
+
+	static function searchFile($keyWords,$uid){
+		if (0 === strpos($keyWords, '{filterType:')) {
+			$fileList = self::filterFile($keyWords,$uid);
+		}else{
+			$fileList = Db::name('files')
+			->where('upload_user',$uid)
+			->where('orign_name',"like","%$keyWords%")
+			->select();
+		}
+		
+		$count= 0;
+		$fileListData=[
+			"result"=>[],
+		];
 		foreach ($fileList as $key => $value) {
 			$fileListData['result'][$count]['name'] = $value['orign_name'];
 			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";
@@ -564,6 +628,61 @@ class FileManage extends Model{
 			$fileListData['result'][$count]['name2'] = $value["dir"];
 			$fileListData['result'][$count]['id'] = $value["id"];
 			$fileListData['result'][$count]['pic'] = $value["pic_info"];
+			$fileListData['result'][$count]['path'] = $value['dir'];
+			$count++;
+		}
+	
+		return $fileListData;
+	}
+
+	/**
+	 * 列出文件
+	 *
+	 * @param 路径 $path
+	 * @param 用户UID $uid
+	 * @param boolean $isShare	是否为分享模式下列出文件
+	 * @return void
+	 */
+	static function ListFile($path,$uid,$isShare=false,$originPath=null){
+		$fileList = Db::name('files')->where('upload_user',$uid)->where('dir',$path)->select();
+		$dirList = Db::name('folders')->where('owner',$uid)->where('position',$path)->select();
+		$count= 0;
+		$fileListData=[
+			"result"=>[],
+		];
+		foreach ($dirList as $key => $value) {
+			$fileListData['result'][$count]['name'] = $value['folder_name'];
+			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";
+			$fileListData['result'][$count]['size'] = "0";
+			$fileListData['result'][$count]['date'] = $value['date'];
+			$fileListData['result'][$count]['type'] = 'dir';
+			$fileListData['result'][$count]['name2'] = "";
+			$fileListData['result'][$count]['id'] = $value['id'];
+			$fileListData['result'][$count]['pic'] = "";
+			$fileListData['result'][$count]['path'] = $value['position'];
+			if($isShare){
+				if (substr($value['position'], 0, strlen($originPath)) == $originPath) {
+					$value['position'] = substr($value['position'], strlen($originPath));
+				}
+				$fileListData['result'][$count]['path'] = ($value['position']=="")?"/":$value['position'];
+			}
+			$count++;
+		}
+		foreach ($fileList as $key => $value) {
+			$fileListData['result'][$count]['name'] = $value['orign_name'];
+			$fileListData['result'][$count]['rights'] = "drwxr-xr-x";
+			$fileListData['result'][$count]['size'] = $value['size'];
+			$fileListData['result'][$count]['date'] = $value['upload_date'];
+			$fileListData['result'][$count]['type'] = 'file';
+			$fileListData['result'][$count]['id'] = $value["id"];
+			$fileListData['result'][$count]['pic'] = $value["pic_info"];
+			$fileListData['result'][$count]['path'] = $value['dir'];
+			if($isShare){
+				if (substr($value['dir'], 0, strlen($originPath)) == $originPath) {
+					$value['dir'] = substr($value['dir'], strlen($originPath));
+				}
+				$fileListData['result'][$count]['path'] = ($value['dir']=="")?"/":$value['dir'];
+			}
 			$count++;
 		}
 	
@@ -585,20 +704,20 @@ class FileManage extends Model{
 		foreach ($fileList as $key => $value) {
 			if($value["orign_name"] == $firstPreview[0]){
 				$previewPicInfo = explode(",",$value["pic_info"]);
-				$previewSrc = $url."action=preview&path=".$path."/".$value["orign_name"];
+				$previewSrc = $url."action=preview&path=".urlencode($path."/".$value["orign_name"]);
 			}else{
 				$picInfo = explode(",",$value["pic_info"]);
 				$fileListData[$count]['src'] = $url."action=preview&path=".$path."/".$value["orign_name"];
-				$fileListData[$count]['w'] = $picInfo[0];
-				$fileListData[$count]['h'] = $picInfo[1];
+				$fileListData[$count]['w'] = 0;
+				$fileListData[$count]['h'] = 0;
 				$fileListData[$count]['title'] = $value["orign_name"];
 				$count++;
 			}
 		}
 		array_unshift($fileListData,array(
 			'src' => $previewSrc,
-			'w' => $previewPicInfo[0],
-			'h' => $previewPicInfo[1],
+			'w' => 0,
+			'h' => 0,
 			'title' => $firstPreview[0],
 			));
 		return $fileListData;

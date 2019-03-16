@@ -57,13 +57,15 @@ class ShareHandler extends Model{
                 "msg" => "无权操作"
                 );
 		}
+		$newPwd = self::getRandomKey(6);
 		Db::name('shares')->where('share_key',$this->shareData["share_key"])->update([
 				'type' => $this->shareData["type"] == "public"?"private":"public",
-				'share_pwd' => self::getRandomKey(6)
+				'share_pwd' => $newPwd
 			]);
 		return array(
 					"error" =>0,
-					"msg" => "更改成功"
+					"msg" => "更改成功",
+					"newPwd" => $newPwd,
 				);
 	}
 
@@ -93,6 +95,48 @@ class ShareHandler extends Model{
 			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
 		}
 		return $fileObj->getThumb();
+	}
+
+	public function getDocPreview($user,$path,$inFolder){
+		$checkStatus = $this->checkSession($user);
+		if(!$checkStatus[0]){
+			return [$checkStatus[0],$checkStatus[1]];
+		}
+		if($inFolder){
+			$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		}else{
+			$reqPath = Db::name('files')->where('id',$this->shareData["source_name"])->find();
+			if($reqPath["dir"] == "/"){
+				$reqPath["dir"] = $reqPath["dir"].$reqPath["orign_name"];
+			}else{
+				$reqPath["dir"] = $reqPath["dir"]."/".$reqPath["orign_name"];
+			}
+			$fileObj = new FileManage($reqPath["dir"],$this->shareData["owner"]);
+		}
+		$tmpUrl = $fileObj->signTmpUrl();
+		return[true,"http://view.officeapps.live.com/op/view.aspx?src=".urlencode($tmpUrl)];
+	}
+
+	public function getContent($user,$path=null,$inFolder){
+		$checkStatus = $this->checkSession($user);
+		if(!$checkStatus[0]){
+			return [$checkStatus[0],$checkStatus[1]];
+		}
+		if($inFolder){
+			$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
+			$fileObj = new FileManage($reqPath["position_absolute"].$path,$this->shareData["owner"]);
+		}else{
+			$reqPath = Db::name('files')->where('id',$this->shareData["source_name"])->find();
+			if($reqPath["dir"] == "/"){
+				$reqPath["dir"] = $reqPath["dir"].$reqPath["orign_name"];
+			}else{
+				$reqPath["dir"] = $reqPath["dir"]."/".$reqPath["orign_name"];
+			}
+			$fileObj = new FileManage($reqPath["dir"],$this->shareData["owner"]);
+		}
+		$fileObj->getContent();
+		exit();
 	}
 
 	public function checkSession($user){
@@ -146,7 +190,7 @@ class ShareHandler extends Model{
 		}
 		$reqPath = Db::name('folders')->where('position_absolute',$this->shareData["source_name"])->find();
 		$path = $path == "/"?"":$path;
-		return FileManage::ListFile($this->shareData["source_name"].$path,$this->shareData["owner"]);
+		return FileManage::ListFile($this->shareData["source_name"].$path,$this->shareData["owner"],true,$this->shareData["source_name"]);
 	}
 
 	public function Preview($user){
@@ -235,7 +279,7 @@ class ShareHandler extends Model{
 		}
 	}
 
-	static function createShare($fname,$type,$user,$group){
+	static function createShare($fname,$type,$pwd,$user,$group){
 		if(!$group["allow_share"]){
 			self::setError("您当前的用户组无权分享文件");
 		}
@@ -243,9 +287,9 @@ class ShareHandler extends Model{
 		$fnameTmp = FileManage::getFileName($fname)[0];
 		$fileRecord = Db::name('files')->where('upload_user',$user["id"])->where('orign_name',$fnameTmp)->where('dir',$path)->find();
 		if(empty($fileRecord)){
-			self::createDirShare($fname,$type,$user,$group);
+			self::createDirShare($fname,$type,$pwd,$user,$group);
 		}else{
-			self::createFileShare($fileRecord,$type,$user,$group);
+			self::createFileShare($fileRecord,$type,$pwd,$user,$group);
 		}
 	}
 
@@ -257,13 +301,13 @@ class ShareHandler extends Model{
 		die('{ "result": "'.$text.'" }');
 	}
 
-	static function createDirShare($fname,$type,$user,$group){
+	static function createDirShare($fname,$type,$pwd,$user,$group){
 		$dirRecord = Db::name('folders')->where('owner',$user["id"])->where('position_absolute',$fname)->find();
 		if(empty($dirRecord)){
 			self::setError("目录不存在");
 		}
 		$shareKey = self::getRandomKey(8);
-		$sharePwd = $type=="public" ? "0" : self::getRandomKey(6);
+		$sharePwd = $type=="public" ? "0" : $pwd;
 		$SQLData = [
 			'type' => $type=="public" ? "public" : "private",
 			'share_time' => date("Y-m-d H:i:s"),
@@ -285,9 +329,9 @@ class ShareHandler extends Model{
 		}
 	}
 
-	static function createFileShare($file,$type,$user,$group){
+	static function createFileShare($file,$type,$pwd,$user,$group){
 		$shareKey = self::getRandomKey(8);
-		$sharePwd = $type=="public" ? "0" : self::getRandomKey(6);
+		$sharePwd = $type=="public" ? "0" : $pwd;
 		$SQLData = [
 			'type' => $type=="public" ? "public" : "private",
 			'share_time' => date("Y-m-d H:i:s"),

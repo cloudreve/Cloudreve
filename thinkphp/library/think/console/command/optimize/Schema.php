@@ -44,7 +44,8 @@ class Schema extends Command
         if ($input->hasOption('module')) {
             $module = $input->getOption('module');
             // 读取模型
-            $list = scandir(APP_PATH . $module . DS . 'model');
+            $path = APP_PATH . $module . DS . 'model';
+            $list = is_dir($path) ? scandir($path) : [];
             $app  = App::$namespace;
             foreach ($list as $file) {
                 if (0 === strpos($file, '.')) {
@@ -66,7 +67,8 @@ class Schema extends Command
             $tables = Db::connect($config)->getTables($dbName);
         } elseif (!\think\Config::get('app_multi_module')) {
             $app  = App::$namespace;
-            $list = scandir(APP_PATH . 'model');
+            $path = APP_PATH . 'model';
+            $list = is_dir($path) ? scandir($path) : [];
             foreach ($list as $file) {
                 if (0 === strpos($file, '.')) {
                     continue;
