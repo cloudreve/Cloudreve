@@ -10,7 +10,7 @@ Cloudreve - Make the cloud easy for everyone
 
 基于ThinkPHP构建的网盘系统，能够助您以较低成本快速搭建起公私兼备的网盘。
 
-![homepage.png](https://i.loli.net/2019/03/16/5c8cab6190a4c.png)
+![homePage.png](https://i.loli.net/2019/03/16/5c8cac3ca7f61.png)
 
 目前已经实现的特性：
 
