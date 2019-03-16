@@ -87,7 +87,7 @@
                   {volist name='list' id='download'}
                     <tr id="i-{$download.id}" data-pid="{$download.pid}">
                       <th scope="row" class="textCenter">{$download.id}</th>
-                      <td>{:$originList[$key]['fileName']}</td>
+                      <td>{:is_array($originList[$key]['fileName'])?"未知":$originList[$key]['fileName']}</td>
                       <td class="textCenter">{:$originList[$key]['user']["user_nick"]}</td>
                       <td class="textCenter">{:countSize($download.total_size)}</td>
                       <td class="textCenter">{$download.status}</td>
