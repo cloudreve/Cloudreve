@@ -17,6 +17,7 @@ Route::rule([
 	'Share/Preview/:key'=>'index/Share/Preview',
 	'Share/ListFile/:key'=>'index/Share/ListFile',
 	'Login'=>'index/Member/LoginForm',
+	'SignUp'=>'index/Member/SignUp',
 	'Member/emailActivate/:key'=>'index/Member/emailActivate',
 	'Member/resetPwd/:key'=>'index/Member/resetPwd',
 	'Callback/Payment/Jinshajiang' => 'index/Callback/Jinshajiang',
