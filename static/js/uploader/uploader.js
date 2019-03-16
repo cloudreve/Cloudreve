@@ -758,7 +758,7 @@ function QiniuJsSDK() {
 							var getTimestamp = function(time) {
 								return Math.ceil(time.getTime()/1000);
 							};
-							var serverTime = getTimestamp(new Date(result.getResponseHeader("date")));
+							var serverTime = getTimestamp(new Date(ajax.getResponseHeader("date")));
 							var clientTime = getTimestamp(new Date());
 							that.tokenInfo = {
 								serverDelay: clientTime - serverTime,
