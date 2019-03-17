@@ -19,9 +19,8 @@ class Installer{
                  Ver $version
 ================================================
 ";
-		$ioContext->writeError("[Error] 命令行安装暂时不可用");
-		exit();
 		$ioContext->write($welcomMsg);
+		self::prepareStatic($event);
 		$sqlInfo = self::getSqlInformation($event);
 		$ioContext->write("");
 		$siteUrl=$ioContext->ask("The full-url to access to your Cloudreve (e.g. https://pan.aoaoao.me/ , 'http' must be included in the front and '/' must be included at the end):");
@@ -65,8 +64,57 @@ class Installer{
 		self::sendFeedBack($siteUrl);
 	}
 
+	public static function prepareStatic(Event $event){
+		$ioContext = $event->getIO();
+		$ioContext->write("Fetching static files from cloudreve.org...");
+		if(!is_writable("runtime") || !is_writable("static")){
+			$ioContext->writeError("[Error] 'runtime' or 'static' directory is not writable. To retry, run 'composer install'");
+			exit();
+		}
+		if(file_exists("runtime/static.zip")){
+			$ioContext->writeError("[Error] 'runtime/static.zip' already exist. To retry, run 'composer install'");
+			exit();
+		}
+		if(file_exists("runtime/static")){
+			$ioContext->writeError("[Error] directory 'runtime/static' already exist. To retry, run 'composer install'");
+			exit();
+		}
+		try{
+			file_put_contents("runtime/static.zip",file_get_contents("https://cloudreve.org/download.php?newestStatic"));
+		}catch (Exception $e) {
+			$ioContext->writeError("[Error] Failed to download static file. To retry, run 'composer install'");
+			exit();
+		}
+		$ioContext->write("Unzip static files...");
+		$zip = new \ZipArchive;
+		$res = $zip->open('runtime/static.zip');
+		if ($res === TRUE) {
+		$zip->extractTo('runtime/static/');
+		$zip->close();
+		}else {
+			$ioContext->writeError("[Error] Failed to open runtime/static.zip. To retry, run 'composer install'");
+			exit();
+		}
+		self::recurse_copy("runtime/static/build/static", "static");
+	}
+
+	public static function recurse_copy($src,$dst) {
+		$dir = opendir($src);
+		@mkdir($dst);
+		while(false !== ( $file = readdir($dir)) ) {
+			if (( $file != '.' ) && ( $file != '..' )) {
+				if ( is_dir($src . '/' . $file) ) {
+					self::recurse_copy($src . '/' . $file,$dst . '/' . $file);
+				}else {
+					copy($src . '/' . $file,$dst . '/' . $file);
+				}
+			}
+		}
+		closedir($dir);
+	}
+
 	 public static function writrConfig(Event $event,$sqlInfo){
-		 $ioContext = $event->getIO();
+		$ioContext = $event->getIO();
 		 try {
 			 $fileContent = file_get_contents("CloudreveInstaller/database_sample.php");
 			 $replacement = array(
