@@ -14,17 +14,11 @@ class Member extends Controller{
 
 	public $userObj;
 
-	/**
-	 * [index description]
-	 * @return [type] [description]
-	 */
+
 	public function index(){
 		echo "Pong";
 	}
 
-	/**
-	 * [Register description]
-	 */
 	public function Register(){
 		if(input('?post.username-reg') && input('?post.password-reg')){
 			$regAction = User::register(input('post.username-reg'),input('post.password-reg'),input('post.captchaCode'));
@@ -51,9 +45,6 @@ class Member extends Controller{
 		}
 	}
 
-	/**
-	 * [Login description]
-	 */
 	public function Login(){
 		if(input('?post.userMail') && input('?post.userPass')){
 			$logAction = User::login(input('post.userMail'),input('post.userPass'),input('post.captchaCode'));
@@ -67,9 +58,6 @@ class Member extends Controller{
 		}
 	}
 
-	/**
-	 * [LogOut description]
-	 */
 	public function LogOut(){
 		$this->userObj = new User(cookie('user_id'),cookie('login_key'));
 		$this->userObj->clear();
