@@ -19,6 +19,8 @@ class Installer{
                  Ver $version
 ================================================
 ";
+		$ioContext->writeError("[Error] 命令行安装暂时不可用");
+		exit();
 		$ioContext->write($welcomMsg);
 		$sqlInfo = self::getSqlInformation($event);
 		$ioContext->write("");

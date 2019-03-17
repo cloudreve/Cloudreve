@@ -5,6 +5,7 @@ use think\Model;
 use think\Db;
 
 class Option extends Model{
+	
 	static function getValues($groups = ['basic'],$userInfo=null){
 		$t =  Db::name('options')->where('option_type','in',$groups)->column('option_value','option_name');
 		if(in_array("basic",$groups)){
