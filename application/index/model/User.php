@@ -3,8 +3,6 @@ namespace app\index\model;
 
 use think\Model;
 use think\Db;
-use \think\Session;
-use \think\Cookie;
 use \app\index\model\Option;
 use \app\index\model\Mail;
 use think\Validate;
