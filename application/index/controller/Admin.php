@@ -102,6 +102,15 @@ class Admin extends Controller{
 		]);
 	}
 
+	public function Color(){
+		$options = Option::getValues(["basic"]);
+		return view('color', [
+			'options'  => $this->siteOptions,
+			'optionsForSet'  =>  $options,
+			'colors'=> \json_decode($options["themes"],true)
+		]);
+	}
+
 	public function Theme(){
 		$fileName=input("?param.name") ? input("param.name") : "error";
 		$dir = ROOT_PATH."application/index/view/";
@@ -139,6 +148,10 @@ class Admin extends Controller{
 
 	public function SaveThemeFile(){
 		return $this->adminObj->saveThemeFile(input('post.'));
+	}
+
+	public function SaveColorSetting(){
+		return $this->adminObj->saveColorSetting(input('post.'));
 	}
 
 	public function SettingMail(){
@@ -344,7 +357,7 @@ class Admin extends Controller{
 	}
 
 	public function DeleteShareMultiple(){
-		return $this->adminObj->deleteShare(json_decode(input('post.id'),true));
+		return $this->adminObj->deleteShare(\json_decode(input('post.id'),true));
 	}
 
 	public function DeleteMultiple(){
@@ -380,7 +393,7 @@ class Admin extends Controller{
 	}
 
 	public function DeleteUsers(){
-		$uidGroup = json_decode(input('post.id'),true);
+		$uidGroup = \json_decode(input('post.id'),true);
 		foreach ($uidGroup as $key => $value) {
 			$this->adminObj->deleteUser($value,$this->userObj->uid);
 		}
@@ -468,7 +481,7 @@ class Admin extends Controller{
 	}
 
 	public function About(){
-		$verison = json_decode(file_get_contents(ROOT_PATH . "application/version.json"),true);
+		$verison = \json_decode(file_get_contents(ROOT_PATH . "application/version.json"),true);
 		return view('about', [
 			'options' => $this->siteOptions,
 			'programVersion' => $verison,
@@ -477,7 +490,7 @@ class Admin extends Controller{
 	}
 
 	public function Purchase(){
-		$packData = json_decode(Option::getValue("pack_data"),true);
+		$packData = \json_decode(Option::getValue("pack_data"),true);
 		return view('purchase', [
 			'options' => $this->siteOptions,
 			'pack' => $packData,
@@ -494,7 +507,7 @@ class Admin extends Controller{
 	}
 
 	public function PurchaseGroup(){
-		$groupData = json_decode(Option::getValue("group_sell_data"),true);
+		$groupData = \json_decode(Option::getValue("group_sell_data"),true);
 		foreach ($groupData as $key => $value) {
 			$groupData[$key]["group"] = Db::name("groups")->where("id",$value["goup_id"])->find();
 		}

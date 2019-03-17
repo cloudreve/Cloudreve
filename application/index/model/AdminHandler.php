@@ -102,6 +102,37 @@ class AdminHandler extends Model{
 		return $this->saveOptions($options);
 	}
 
+	public function saveColorSetting($options){
+		$colorOptions = [];
+		foreach ($options["color"] as $key => $value) {
+			$color = \json_decode($value,true);
+			$validate = ($color!==null)&&array_key_exists("palette",$color) &&
+						array_key_exists("common",$color["palette"]) &&
+						array_key_exists("black",$color["palette"]["common"]) &&
+						array_key_exists("white",$color["palette"]["common"]) &&
+						array_key_exists("background",$color["palette"]) &&
+						array_key_exists("primary",$color["palette"]) &&
+						array_key_exists("secondary",$color["palette"]) &&
+						array_key_exists("error",$color["palette"]) &&
+						array_key_exists("text",$color["palette"]) &&
+						array_key_exists("explorer",$color["palette"]) &&
+						array_key_exists("main",$color["palette"]["primary"]) &&
+						array_key_exists("main",$color["palette"]["secondary"]);
+			if(!$validate){
+				return ["error"=>1,"msg"=>"第 ".($key+1)." 行配色方案格式有误"];
+			}
+			$colorOptions[$color["palette"]["primary"]["main"]] = $color;
+		}
+		if(!array_key_exists($options["header"],$colorOptions)){
+			return ["error"=>1,"msg"=>"第 ".($key+1)." 默认配色不存在"];
+		}
+		$optionsForSet = [
+			"defaultTheme" => $options["header"],
+			"themes" => json_encode($colorOptions),
+		];
+		return $this->saveOptions($optionsForSet);
+	}
+
 	public function saveRegSetting($options){
 		foreach(["email_active","login_captcha","reg_captcha","forget_captcha"] as $key){
 			$options[$key] = array_key_exists($key,$options) ? $options[$key] : 0;

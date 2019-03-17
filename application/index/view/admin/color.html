@@ -1,0 +1,98 @@
+{extend name="header_admin" /}
+{block name="title"}基础设置- {$options.siteName}{/block}
+{block name="content"}
+<div class="content-wrapper">
+  <div class="container-fluid">
+    <!-- Breadcrumbs-->
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="/Admin">管理面板</a>
+      </li>
+      <li class="breadcrumb-item active">配色方案</li>
+    </ol>
+    
+    <!-- Area Chart Example-->
+    <div class="row">
+      <div class="col-12">
+        <h2>配色方案</h2>
+          <div class="alert alert-primary" role="alert">
+              <ul>
+              <li>你可以使用<a href="https://theme.cloudreve.org">Cloudreve配色工具</a>创建配色，并将生成的配置信息填写在下方；</li>
+              <li>主色调为不同配色的区分标识，请不要创建主色调相同的配色方案。</li>
+              </ul>
+            </div>
+        <div class="row">
+        <div class="col-md-9">
+          <form id="colorForm">
+            <div class="row form-setting">
+              <div class="col-md-1 form-label ">
+                <label for="colFormLabelSm" class="col-form-label col-form-label-sm">默认配色方案</label>
+              </div>
+              <div class="col-md-4"><select class="form-control" name="header">
+                  {volist name="colors" id="theme"}
+                  <option value="{$key}" {eq name="optionsForSet.defaultTheme" value="$key"}selected{/eq}>{$key}</option>
+                  {/volist}
+                 
+                </select></div>
+            </div>
+            <div class="row form-setting">
+                <div class="col-md-1 form-label ">
+                  <label for="colFormLabelSm" class="col-form-label col-form-label-sm">可选配色方案</label>
+                </div>
+                <div class="col-md-8">
+                    <table class="table" id="colorTable">
+                        <thead>
+                          <tr>
+                            <th scope="col">主色调</th>
+                            <th scope="col">颜色配置</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                            {volist name="colors" id="theme"}
+                            <tr>
+                                <th scope="row" style="color:{$key}">{$key}
+                                  <br><button id="removeRow" type="button" data-action="removeRow" class="btn btn-default">删除</button>
+                                </th>
+                                <td><textarea class="form-control" rows="4" name="color[]">{:json_encode($theme)}</textarea></td>
+                              </tr>
+                            {/volist}
+                          
+                        </tbody>
+                      </table>
+                      <div style="text-align:right;"><button id="addRow" type="button" class="btn btn-default">增加一行</button></div>
+                      
+                 </div>
+              </div>
+            <div class="row form-setting">
+              <div class="col-md-1 form-label ">
+              </div>
+              <div class="col-md-4"> <button type="button" class="btn btn-primary" id="saveColor">保存设置</button></div>
+              <div class="col-md-4 option-des"> </div>
+              <br> <br>
+            </div>
+            </form>
+           
+            
+            <br><br>
+          </div>
+          <div class="col-md-3">
+          <div class="file_side">
+            <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+            </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+    
+    <!-- Example DataTables Card-->
+  </div>
+  <!-- /.container-fluid-->
+</div>
+{/block}
+{block name="js"}
+<script src="/static/js/admin/color.js"></script>
+<script type="text/javascript">
+</script>
+{/block}
