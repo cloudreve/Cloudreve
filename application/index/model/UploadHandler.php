@@ -26,6 +26,8 @@ class UploadHandler extends Model{
 	public $upyunPolicy;
 	public $s3Policy;
 	public $s3Sign;
+	public $cosPolicy;
+	public $cosSign;
 	public $dirName;
 	public $s3Credential;
 	public $siteUrl;
@@ -319,6 +321,9 @@ class UploadHandler extends Model{
 			case 'remote':
 				return $this->getRemoteToken();
 				break;
+			case 'cos':
+				return $this->getCosToken();
+				break;
 			default:
 				# code...
 				break;
@@ -512,6 +517,27 @@ class UploadHandler extends Model{
 		$this->s3Credential = $credential;
 		$this->x_amz_date = $longDate;
 		$this->callBackKey = $callbackKey;
+	}
+
+	public function getCosToken(){
+		$callbackKey = $this->getRandomKey();
+		$sqlData = [
+			'callback_key' => $callbackKey,
+			'pid' => $this->policyId,
+			'uid' => $this->userId
+		];
+		Db::name('callback')->insert($sqlData);
+		$dirName = $this->getObjName($this->policyContent['dirrule']);
+		$returnValu["expiration"] = date("Y-m-d",time()+1800)."T".date("H:i:s",time()+1800).".000Z";
+		$returnValu["conditions"][0]["bucket"] = $this->policyContent['bucketname'];
+		$returnValu["conditions"][1][0]="starts-with";
+		$returnValu["conditions"][1][1]='$key';
+		if($this->policyContent["autoname"]){
+			$this->ossFileName = $dirName.(empty($dirName)?"":"/").$this->getObjName($this->policyContent['namerule'],"oss");;
+		}else{
+			$this->ossFileName = $dirName.(empty($dirName)?"":"/").'${filename}';
+		}
+		$returnValu["conditions"][2]=["content-length-range",1,(int)$this->policyContent['max_size']];
 	}
 
 	public function getOssToken(){
