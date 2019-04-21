@@ -64,8 +64,8 @@ $ composer create-project hfo4/cloudreve:dev-master
 Congratulations! Cloudreve has been installed successfully.
 
 Here's some informatioin about yor Cloudreve:
-Homepage: https://pan.aoaoao.me/
-Admin Panel: https://pan.aoaoao.me/Admin
+Homepage: https://pan.cloudreve.org/
+Admin Panel: https://pan.cloudreve.org/Admin
 Default username: admin@cloudreve.org
 Default password: admin
 ```
