@@ -752,7 +752,7 @@ class FileManage extends Model{
 		if(empty($dirName)){
 			return ["result"=>["success"=>false,"error"=>"目录名不能为空"]];
 		}
-		if(Db::name('folders')->where('position_absolute',$dirPosition)->where('owner',$uid)->find() ==null || Db::name('folders')->where('owner',$uid)->where('position',$dirPosition)->where('folder_name',$dirName)->find() !=null || Db::name('files')->where('upload_date',$uid)->where('dir',$dirPosition)->where('pre_name',$dirName)->find() !=null){
+		if(Db::name('folders')->where('position_absolute',$dirPosition)->where('owner',$uid)->find() ==null || Db::name('folders')->where('owner',$uid)->where('position',$dirPosition)->where('folder_name',$dirName)->find() !=null || Db::name('files')->where('upload_user',$uid)->where('dir',$dirPosition)->where('pre_name',$dirName)->find() !=null){
 			return ["result"=>["success"=>false,"error"=>"路径不存在或文件已存在"]];
 		}
 		$sqlData = [
