@@ -1,7 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"Cloudreve/routers"
+)
 
 func main() {
-	fmt.Println("test")
+
+	api := routers.InitRouter()
+
+	api.Run(":5000")
+
 }
