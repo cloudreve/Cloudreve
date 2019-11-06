@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"Cloudreve/serializer"
 	"Cloudreve/service/user"
 	"github.com/gin-gonic/gin"
 )
@@ -10,11 +9,8 @@ import (
 func UserLogin(c *gin.Context) {
 	var service service.UserLoginService
 	if err := c.ShouldBindJSON(&service); err == nil {
-		//res := service.Login(c)
-		c.JSON(200, serializer.Response{
-			Code: 0,
-			Msg:  "OK",
-		})
+		res := service.Login(c)
+		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
