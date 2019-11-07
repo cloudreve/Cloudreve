@@ -1,5 +1,0 @@
-{
-  "code": 40001,
-  "msg": "UserName required",
-  "error": "Key: 'UserLoginService.UserName' Error:Field validation for 'UserName' failed on the 'required' tag\nKey: 'UserLoginService.Password' Error:Field validation for 'Password' failed on the 'required' tag"
-}
