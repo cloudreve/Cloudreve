@@ -3,5 +3,6 @@ go:
   - 1.13.x
 git:
   depth: 1
-  script:
+script:
+  - go build main.go
   - go test -v ./...
