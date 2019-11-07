@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+// 测试 ErrorResponse
 func TestErrorResponse(t *testing.T) {
 	asserts := assert.New(t)
 

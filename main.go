@@ -1,8 +1,13 @@
 package main
 
 import (
+	"Cloudreve/models"
 	"Cloudreve/routers"
 )
+
+func init() {
+	model.Init()
+}
 
 func main() {
 

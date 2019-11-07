@@ -13,8 +13,10 @@ import (
 var DB *gorm.DB
 
 // Database 在中间件中初始化mysql链接
-func Database(connString string) {
-	db, err := gorm.Open("mysql", connString)
+func Init() {
+	//TODO 从配置文件中读取 包括DEBUG模式
+	util.Log().Info("初始化数据库连接\n")
+	db, err := gorm.Open("mysql", "root:root@(localhost)/v3?charset=utf8&parseTime=True&loc=Local")
 	db.LogMode(true)
 	// Error
 	if err != nil {
