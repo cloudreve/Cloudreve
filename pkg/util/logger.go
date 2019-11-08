@@ -44,7 +44,7 @@ func (ll *Logger) Error(format string, v ...interface{}) {
 	if LevelError > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[E] "+format, v...)
+	msg := fmt.Sprintf("[Error] "+format, v...)
 	ll.Println(msg)
 }
 
@@ -53,7 +53,7 @@ func (ll *Logger) Warning(format string, v ...interface{}) {
 	if LevelWarning > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[W] "+format, v...)
+	msg := fmt.Sprintf("[Warning] "+format, v...)
 	ll.Println(msg)
 }
 
@@ -62,7 +62,7 @@ func (ll *Logger) Info(format string, v ...interface{}) {
 	if LevelInformational > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[I] "+format, v...)
+	msg := fmt.Sprintf("[Info] "+format, v...)
 	ll.Println(msg)
 }
 
@@ -71,7 +71,16 @@ func (ll *Logger) Debug(format string, v ...interface{}) {
 	if LevelDebug > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[D] "+format, v...)
+	msg := fmt.Sprintf("[Debug] "+format, v...)
+	ll.Println(msg)
+}
+
+// GORM 的 Logger实现
+func (ll *Logger) Print(v ...interface{}) {
+	if LevelDebug > ll.level {
+		return
+	}
+	msg := fmt.Sprintf("[SQL] ", v...)
 	ll.Println(msg)
 }
 

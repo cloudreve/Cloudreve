@@ -5,7 +5,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"time"
 
-	//
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
@@ -18,6 +17,7 @@ func Init() {
 	util.Log().Info("初始化数据库连接\n")
 	db, err := gorm.Open("mysql", "root:root@(localhost)/v3?charset=utf8&parseTime=True&loc=Local")
 	db.LogMode(true)
+	//db.SetLogger(util.Log())
 	// Error
 	if err != nil {
 		util.Log().Panic("连接数据库不成功", err)

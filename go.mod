@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/gin-gonic/gin v1.4.0
+	github.com/go-ini/ini v1.50.0
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/jinzhu/gorm v1.9.11

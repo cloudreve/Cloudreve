@@ -2,10 +2,12 @@ package main
 
 import (
 	"Cloudreve/models"
+	"Cloudreve/pkg/conf"
 	"Cloudreve/routers"
 )
 
 func init() {
+	conf.Init()
 	model.Init()
 }
 
