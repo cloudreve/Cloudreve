@@ -12,7 +12,7 @@
 *.out
 
 # Development enviroment
-.idea/
+.idea/*
 
 # Version control
 version.lock

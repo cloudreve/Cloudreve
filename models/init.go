@@ -13,7 +13,7 @@ import (
 // DB 数据库链接单例
 var DB *gorm.DB
 
-// Database 在中间件中初始化mysql链接
+// Database 初始化 MySQL 链接
 func Init() {
 	util.Log().Info("初始化数据库连接\n")
 

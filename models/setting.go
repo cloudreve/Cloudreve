@@ -12,15 +12,24 @@ type Setting struct {
 	Value string `gorm:"size:‎65535"`
 }
 
+// settingCache 设置项缓存
+var settingCache = make(map[string]string)
+
 // GetSettingByName 用 Name 获取设置值
-func GetSettingByName(name string) (Setting, error) {
+func GetSettingByName(name string) (string, error) {
 	var setting Setting
 
-	// 优先尝试数据库中查找
-	result := DB.Where("name = ?", name).First(&setting)
-	if result.Error == nil {
-		return setting, nil
+	// 优先从缓存中查找
+	if optionValue, ok := settingCache[name]; ok {
+		return optionValue, nil
+	} else {
+		// 尝试数据库中查找
+		result := DB.Where("name = ?", name).First(&setting)
+		if result.Error == nil {
+			settingCache[setting.Name] = setting.Value
+			return setting.Value, nil
+		}
+		return "", result.Error
 	}
 
-	return setting, result.Error
 }

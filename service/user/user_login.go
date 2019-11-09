@@ -1,6 +1,7 @@
 package service
 
 import (
+	"cloudreve/models"
 	"cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
@@ -15,8 +16,14 @@ type UserLoginService struct {
 
 // Login 用户登录函数
 func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
-	return serializer.Response{
-		Code: 0,
-		Msg:  "OK",
+	siteName, err := model.GetSettingByName("siteName")
+	if err == nil {
+		return serializer.Response{
+			Code: 0,
+			Msg:  siteName,
+		}
+	} else {
+		return serializer.Err(5001, "无法获取参数值", err)
 	}
+
 }
