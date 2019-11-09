@@ -3,6 +3,7 @@ package conf
 import (
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -28,6 +29,7 @@ Host = 127.0.0.1:3306
 Name = v3
 TablePrefix = v3_`
 	err := ioutil.WriteFile("testConf.ini", []byte(testCase), 0644)
+	defer func() { err = os.Remove("testConf.ini") }()
 	if err != nil {
 		panic(err)
 	}
@@ -47,6 +49,7 @@ Host = 127.0.0.1:3306
 Name = v3
 TablePrefix = v3_`
 	err := ioutil.WriteFile("testConf.ini", []byte(testCase), 0644)
+	defer func() { err = os.Remove("testConf.ini") }()
 	if err != nil {
 		panic(err)
 	}
@@ -67,6 +70,7 @@ Host = 127.0.0.1:3306
 Name = v3
 TablePrefix = v3_`
 	err := ioutil.WriteFile("testConf.ini", []byte(testCase), 0644)
+	defer func() { err = os.Remove("testConf.ini") }()
 	if err != nil {
 		panic(err)
 	}
