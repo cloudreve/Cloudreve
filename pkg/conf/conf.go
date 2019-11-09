@@ -2,15 +2,11 @@ package conf
 
 import (
 	"Cloudreve/pkg/util"
-	"fmt"
 	"github.com/go-ini/ini"
 )
 
-type Conf struct {
-	Database Database
-}
-
-type Database struct {
+// Database 数据库
+type database struct {
 	Type        string
 	User        string
 	Password    string
@@ -19,27 +15,33 @@ type Database struct {
 	TablePrefix string
 }
 
-var database = &Database{
+var DatabaseConfig = &database{
 	Type: "UNSET",
 }
 
 var cfg *ini.File
 
-func Init() {
+// Init 初始化配置文件
+func Init(path string) {
 	var err error
 	//TODO 配置文件不存在时创建
-	cfg, err = ini.Load("conf/conf.ini")
+	//TODO 配置合法性验证
+	cfg, err = ini.Load(path)
 	if err != nil {
-		util.Log().Panic("无法解析配置文件 'conf/conf.ini': ", err)
+		util.Log().Panic("无法解析配置文件 '%s': ", path, err)
 	}
-	mapSection("Database", database)
-	fmt.Println(database)
+	err = mapSection("Database", DatabaseConfig)
+	if err != nil {
+		util.Log().Warning("配置文件 %s 分区解析失败: ", "Database", err)
+	}
 
 }
 
-func mapSection(section string, confStruct interface{}) {
-	err := cfg.Section("Database").MapTo(database)
+// mapSection 将配置文件的 Section 映射到结构体上
+func mapSection(section string, confStruct interface{}) error {
+	err := cfg.Section(section).MapTo(confStruct)
 	if err != nil {
-		util.Log().Warning("配置文件 Database 分区解析失败")
+		return err
 	}
+	return nil
 }

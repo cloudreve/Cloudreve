@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	conf.Init()
+	conf.Init("conf/conf.ini")
 	model.Init()
 }
 

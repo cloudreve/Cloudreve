@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"os"
 	"time"
 )
 
@@ -36,7 +35,7 @@ func (ll *Logger) Panic(format string, v ...interface{}) {
 	}
 	msg := fmt.Sprintf("[Panic] "+format, v...)
 	ll.Println(msg)
-	os.Exit(0)
+	panic(msg)
 }
 
 // Error 错误
@@ -80,7 +79,7 @@ func (ll *Logger) Print(v ...interface{}) {
 	if LevelDebug > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[SQL] ", v...)
+	msg := fmt.Sprintf("[SQL] %s", v...)
 	ll.Println(msg)
 }
 
