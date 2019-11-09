@@ -1,7 +1,7 @@
 package service
 
 import (
-	"Cloudreve/pkg/serializer"
+	"cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 

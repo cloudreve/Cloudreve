@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Cloudreve/pkg/serializer"
-	"Cloudreve/pkg/util"
+	"cloudreve/pkg/serializer"
+	"cloudreve/pkg/util"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"

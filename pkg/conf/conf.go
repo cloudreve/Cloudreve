@@ -1,11 +1,11 @@
 package conf
 
 import (
-	"Cloudreve/pkg/util"
+	"cloudreve/pkg/util"
 	"github.com/go-ini/ini"
 )
 
-// Database 数据库
+// database 数据库
 type database struct {
 	Type        string
 	User        string
@@ -19,6 +19,13 @@ var DatabaseConfig = &database{
 	Type: "UNSET",
 }
 
+// system 系统通用配置
+type system struct {
+	Debug bool
+}
+
+var SystemConfig = &system{}
+
 var cfg *ini.File
 
 // Init 初始化配置文件
@@ -30,9 +37,16 @@ func Init(path string) {
 	if err != nil {
 		util.Log().Panic("无法解析配置文件 '%s': ", path, err)
 	}
-	err = mapSection("Database", DatabaseConfig)
-	if err != nil {
-		util.Log().Warning("配置文件 %s 分区解析失败: ", "Database", err)
+
+	sections := map[string]interface{}{
+		"Database": DatabaseConfig,
+		"System":   SystemConfig,
+	}
+	for sectionName, sectionStruct := range sections {
+		err = mapSection(sectionName, sectionStruct)
+		if err != nil {
+			util.Log().Warning("配置文件 %s 分区解析失败: ", sectionName, err)
+		}
 	}
 
 }

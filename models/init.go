@@ -1,8 +1,8 @@
 package model
 
 import (
-	"Cloudreve/pkg/conf"
-	"Cloudreve/pkg/util"
+	"cloudreve/pkg/conf"
+	"cloudreve/pkg/util"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"time"
@@ -15,7 +15,6 @@ var DB *gorm.DB
 
 // Database 在中间件中初始化mysql链接
 func Init() {
-	//TODO 从配置文件中读取 包括DEBUG模式
 	util.Log().Info("初始化数据库连接\n")
 
 	var (
@@ -37,7 +36,11 @@ func Init() {
 		return conf.DatabaseConfig.TablePrefix + defaultTableName
 	}
 
-	db.LogMode(true)
+	// Debug 模式下，输出所有 SQL 日志
+	if conf.SystemConfig.Debug {
+		db.LogMode(true)
+	}
+
 	//db.SetLogger(util.Log())
 	if err != nil {
 		util.Log().Panic("连接数据库不成功", err)

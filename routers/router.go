@@ -1,7 +1,7 @@
 package routers
 
 import (
-	"Cloudreve/routers/controllers"
+	"cloudreve/routers/controllers"
 	"github.com/gin-gonic/gin"
 )
 

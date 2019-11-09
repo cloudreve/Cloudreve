@@ -13,3 +13,6 @@
 
 # Development enviroment
 .idea/
+
+# Version control
+version.lock

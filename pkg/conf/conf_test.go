@@ -78,5 +78,4 @@ TablePrefix = v3_`
 	err = mapSection("Database", DatabaseConfig)
 	asserts.NoError(err)
 
-	// TODO 类型不匹配测试
 }

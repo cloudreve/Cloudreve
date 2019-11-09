@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"Cloudreve/pkg/serializer"
+	"cloudreve/pkg/serializer"
 	"encoding/json"
 	"gopkg.in/go-playground/validator.v8"
 )

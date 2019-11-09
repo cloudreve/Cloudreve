@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"Cloudreve/service/user"
+	"cloudreve/service/user"
 	"github.com/gin-gonic/gin"
 )
 
