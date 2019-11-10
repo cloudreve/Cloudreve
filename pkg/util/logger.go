@@ -74,7 +74,7 @@ func (ll *Logger) Debug(format string, v ...interface{}) {
 	ll.Println(msg)
 }
 
-// GORM 的 Logger实现
+// Print GORM 的 Logger实现
 func (ll *Logger) Print(v ...interface{}) {
 	if LevelDebug > ll.level {
 		return

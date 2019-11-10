@@ -16,20 +16,44 @@ type Setting struct {
 var settingCache = make(map[string]string)
 
 // GetSettingByName 用 Name 获取设置值
-func GetSettingByName(name string) (string, error) {
+func GetSettingByName(name string) string {
 	var setting Setting
 
 	// 优先从缓存中查找
 	if optionValue, ok := settingCache[name]; ok {
-		return optionValue, nil
-	} else {
-		// 尝试数据库中查找
-		result := DB.Where("name = ?", name).First(&setting)
-		if result.Error == nil {
-			settingCache[setting.Name] = setting.Value
-			return setting.Value, nil
-		}
-		return "", result.Error
+		return optionValue
+	}
+	// 尝试数据库中查找
+	result := DB.Where("name = ?", name).First(&setting)
+	if result.Error == nil {
+		settingCache[setting.Name] = setting.Value
+		return setting.Value
+	}
+	return ""
+}
+
+// GetSettingByNames 用多个 Name 获取设置值
+func GetSettingByNames(names []string) map[string]string {
+	var queryRes []Setting
+	res := make(map[string]string)
+
+	DB.Where("name IN (?)", names).Find(&queryRes)
+	for _, setting := range queryRes {
+		res[setting.Name] = setting.Value
 	}
 
+	return res
+}
+
+// GetSettingByType 获取一个或多个分组的所有设置值
+func GetSettingByType(types []string) map[string]string {
+	var queryRes []Setting
+	res := make(map[string]string)
+
+	DB.Where("type IN (?)", types).Find(&queryRes)
+	for _, setting := range queryRes {
+		res[setting.Name] = setting.Value
+	}
+
+	return res
 }

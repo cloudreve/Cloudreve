@@ -11,14 +11,6 @@ import (
 func TestGetUser(t *testing.T) {
 	asserts := assert.New(t)
 
-	// 准备数据库 Mock
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Errorf("An error '%s' was not expected when opening a stub database connection", err)
-	}
-	DB, _ = gorm.Open("mysql", db)
-	defer db.Close()
-
 	//找到用户时
 	rows := sqlmock.NewRows([]string{"id", "deleted_at", "email"}).
 		AddRow(1, nil, "admin@cloudreve.org")
