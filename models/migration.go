@@ -122,7 +122,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 }
 
 func addDefaultUser() {
-	_, err := GetUser(1)
+	_, err := GetUserByID(1)
 
 	// 未找到初始用户时，则创建
 	if gorm.IsRecordNotFoundError(err) {

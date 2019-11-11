@@ -1,6 +1,8 @@
 package model
 
 import (
+	"cloudreve/pkg/serializer"
+	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -8,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestGetUser(t *testing.T) {
+func TestGetUserByID(t *testing.T) {
 	asserts := assert.New(t)
 
 	//找到用户时
@@ -17,7 +19,7 @@ func TestGetUser(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(rows)
 
-	user, err := GetUser(1)
+	user, err := GetUserByID(1)
 	asserts.NoError(err)
 	asserts.Equal(User{
 		Model: gorm.Model{
@@ -29,7 +31,7 @@ func TestGetUser(t *testing.T) {
 
 	//未找到用户时
 	mock.ExpectQuery("^SELECT (.+)").WillReturnError(errors.New("not found"))
-	user, err = GetUser(1)
+	user, err = GetUserByID(1)
 	asserts.Error(err)
 	asserts.Equal(User{}, user)
 }
@@ -72,4 +74,16 @@ func TestNewUser(t *testing.T) {
 	asserts.IsType(User{}, newUser)
 	asserts.NotEmpty(newUser.Avatar)
 	asserts.NotEmpty(newUser.Options)
+}
+
+func TestUser_AfterFind(t *testing.T) {
+	asserts := assert.New(t)
+
+	newUser := NewUser()
+	err := newUser.AfterFind()
+	expected := serializer.UserOption{}
+	err = json.Unmarshal([]byte(newUser.Options), &expected)
+
+	asserts.NoError(err)
+	asserts.Equal(expected, newUser.OptionsSerialized)
 }

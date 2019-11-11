@@ -10,7 +10,7 @@ import (
 func ParamErrorMsg(filed string, tag string) string {
 	// 未通过验证的表单域与中文对应
 	fieldMap := map[string]string{
-		"UserName": "用户名",
+		"UserName": "邮箱",
 		"Password": "密码",
 	}
 	// 未通过的规则与中文对应
@@ -18,6 +18,7 @@ func ParamErrorMsg(filed string, tag string) string {
 		"required": "不能为空",
 		"min":      "太短",
 		"max":      "太长",
+		"email":    "格式不正确",
 	}
 	fieldVal, findField := fieldMap[filed]
 	tagVal, findTag := tagMap[tag]

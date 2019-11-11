@@ -24,26 +24,34 @@ const (
 // User 用户模型
 type User struct {
 	gorm.Model
-	Email         string `gorm:"type:varchar(100);unique_index"`
-	Nick          string `gorm:"size:50"`
-	Password      string
-	Status        int
-	Group         int
-	PrimaryGroup  int
-	ActivationKey string
-	Storage       int64
-	LastNotify    *time.Time
-	OpenID        string
-	TwoFactor     string
-	Delay         int
-	Avatar        string
-	Options       string `gorm:"size:4096"`
+	Email             string `gorm:"type:varchar(100);unique_index"`
+	Nick              string `gorm:"size:50"`
+	Password          string
+	Status            int
+	Group             int
+	PrimaryGroup      int
+	ActivationKey     string
+	Storage           int64
+	LastNotify        *time.Time
+	OpenID            string
+	TwoFactor         string
+	Delay             int
+	Avatar            string
+	Options           string                `gorm:"size:4096"`
+	OptionsSerialized serializer.UserOption `gorm:"-"`
 }
 
-// GetUser 用ID获取用户
-func GetUser(ID interface{}) (User, error) {
+// GetUserByID 用ID获取用户
+func GetUserByID(ID interface{}) (User, error) {
 	var user User
 	result := DB.First(&user, ID)
+	return user, result.Error
+}
+
+// GetUserByEmail 用Email获取用户
+func GetUserByEmail(email string) (User, error) {
+	var user User
+	result := DB.Where("email = ?", email).First(&user)
 	return user, result.Error
 }
 
@@ -57,6 +65,13 @@ func NewUser() User {
 		Avatar:  "default",
 		Options: string(optionsValue),
 	}
+}
+
+// AfterFind 找到用户后的钩子
+func (user *User) AfterFind() (err error) {
+	// 解析用户设置到OptionsSerialized
+	err = json.Unmarshal([]byte(user.Options), &user.OptionsSerialized)
+	return err
 }
 
 // CheckPassword 根据明文校验密码

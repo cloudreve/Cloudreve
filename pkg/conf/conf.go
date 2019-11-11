@@ -21,7 +21,8 @@ var DatabaseConfig = &database{
 
 // system 系统通用配置
 type system struct {
-	Debug bool
+	Debug         bool
+	SessionSecret string
 }
 
 var SystemConfig = &system{}
