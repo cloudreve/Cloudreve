@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"cloudreve/pkg/serializer"
 	"cloudreve/service/user"
 	"github.com/gin-gonic/gin"
 )
@@ -14,5 +15,13 @@ func UserLogin(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
+
+}
+
+// UserMe 获取当前登录的用户
+func UserMe(c *gin.Context) {
+	user := CurrentUser(c)
+	res := serializer.BuildUserResponse(*user)
+	c.JSON(200, res)
 
 }

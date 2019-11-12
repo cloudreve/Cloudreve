@@ -1,7 +1,6 @@
 package model
 
 import (
-	"cloudreve/pkg/serializer"
 	"cloudreve/pkg/util"
 	"crypto/sha1"
 	"encoding/hex"
@@ -37,8 +36,14 @@ type User struct {
 	TwoFactor         string `json:"-"`
 	Delay             int
 	Avatar            string
-	Options           string                `json:"-",gorm:"size:4096"`
-	OptionsSerialized serializer.UserOption `gorm:"-"`
+	Options           string     `json:"-",gorm:"size:4096"`
+	OptionsSerialized UserOption `gorm:"-"`
+}
+
+// UserOption 用户个性化配置字段
+type UserOption struct {
+	ProfileOn int    `json:"profile_on"`
+	WebDAVKey string `json:"webdav_key"`
 }
 
 // GetUserByID 用ID获取用户
@@ -57,7 +62,7 @@ func GetUserByEmail(email string) (User, error) {
 
 // NewUser 返回一个新的空 User
 func NewUser() User {
-	options := serializer.UserOption{
+	options := UserOption{
 		ProfileOn: 1,
 	}
 	optionsValue, _ := json.Marshal(&options)

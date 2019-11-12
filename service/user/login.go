@@ -46,10 +46,6 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 		"user_id": expectedUser.ID,
 	})
 
-	return serializer.Response{
-		Code: 0,
-		Data: &expectedUser,
-		Msg:  "",
-	}
+	return serializer.BuildUserResponse(expectedUser)
 
 }
