@@ -42,13 +42,13 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	}
 
 	//登陆成功，清空并设置session
-	ClearSession(c)
 	SetSession(c, map[string]interface{}{
 		"user_id": expectedUser.ID,
 	})
 
 	return serializer.Response{
 		Code: 0,
+		Data: &expectedUser,
 		Msg:  "",
 	}
 

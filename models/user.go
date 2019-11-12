@@ -26,18 +26,18 @@ type User struct {
 	gorm.Model
 	Email             string `gorm:"type:varchar(100);unique_index"`
 	Nick              string `gorm:"size:50"`
-	Password          string
+	Password          string `json:"-"`
 	Status            int
 	Group             int
 	PrimaryGroup      int
-	ActivationKey     string
+	ActivationKey     string `json:"-"`
 	Storage           int64
 	LastNotify        *time.Time
-	OpenID            string
-	TwoFactor         string
+	OpenID            string `json:"-"`
+	TwoFactor         string `json:"-"`
 	Delay             int
 	Avatar            string
-	Options           string                `gorm:"size:4096"`
+	Options           string                `json:"-",gorm:"size:4096"`
 	OptionsSerialized serializer.UserOption `gorm:"-"`
 }
 
