@@ -55,7 +55,7 @@ func TestParamErrorMsg(t *testing.T) {
 		{
 			"UserName",
 			"required",
-			"用户名不能为空",
+			"邮箱不能为空",
 		},
 		{
 			"Password",

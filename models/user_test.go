@@ -25,7 +25,8 @@ func TestGetUserByID(t *testing.T) {
 			ID:        1,
 			DeletedAt: nil,
 		},
-		Email: "admin@cloudreve.org",
+		Email:   "admin@cloudreve.org",
+		Options: "{}",
 	}, user)
 
 	//未找到用户时
