@@ -15,6 +15,11 @@ type Setting struct {
 // settingCache 设置项缓存
 var settingCache = make(map[string]string)
 
+// ClearCache 清空设置缓存
+func ClearCache() {
+	settingCache = make(map[string]string)
+}
+
 // IsTrueVal 返回设置的值是否为真
 func IsTrueVal(val string) bool {
 	return val == "1" || val == "true"
