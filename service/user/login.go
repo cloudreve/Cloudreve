@@ -3,6 +3,7 @@ package user
 import (
 	"cloudreve/models"
 	"cloudreve/pkg/serializer"
+	"cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -42,7 +43,7 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	}
 
 	//登陆成功，清空并设置session
-	SetSession(c, map[string]interface{}{
+	util.SetSession(c, map[string]interface{}{
 		"user_id": expectedUser.ID,
 	})
 

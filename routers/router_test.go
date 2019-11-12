@@ -3,7 +3,10 @@ package routers
 import (
 	"bytes"
 	"cloudreve/models"
+	"cloudreve/pkg/serializer"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -48,7 +51,7 @@ func TestUserSession(t *testing.T) {
 		settingRows *sqlmock.Rows
 		userRows    *sqlmock.Rows
 		reqBody     string
-		expected    string
+		expected    interface{}
 	}{
 		// 登录信息正确，不需要验证码
 		{
@@ -56,8 +59,11 @@ func TestUserSession(t *testing.T) {
 				AddRow("login_captcha", "0", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
-			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
-			expected: `{"code":0,"data":{"ID":0,"CreatedAt":"0001-01-01T00:00:00Z","UpdatedAt":"0001-01-01T00:00:00Z","DeletedAt":null,"Email":"admin@cloudreve.org","Nick":"admin","Status":0,"Group":0,"PrimaryGroup":0,"Storage":0,"LastNotify":null,"Delay":0,"Avatar":"","OptionsSerialized":{"profile_on":0,"webdav_key":""}},"msg":""}`,
+			reqBody: `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
+			expected: serializer.BuildUserResponse(model.User{
+				Email: "admin@cloudreve.org",
+				Nick:  "admin",
+			}),
 		},
 		// 邮箱正确密码错误
 		{
@@ -66,12 +72,12 @@ func TestUserSession(t *testing.T) {
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin123"}`,
-			expected: `{"code":401, "msg":"用户邮箱或密码错误"}`,
+			expected: serializer.Err(401, "用户邮箱或密码错误", nil),
 		},
 		//邮箱格式不正确
 		{
 			reqBody:  `{"userName":"admin@cloudreve","captchaCode":"captchaCode","Password":"admin123"}`,
-			expected: `{"code":40001, "error":"Key: 'UserLoginService.UserName' Error:Field validation for 'UserName' failed on the 'email' tag", "msg":"邮箱格式不正确"}`,
+			expected: serializer.Err(40001, "邮箱格式不正确", errors.New("Key: 'UserLoginService.UserName' Error:Field validation for 'UserName' failed on the 'email' tag")),
 		},
 		// 用户被Ban
 		{
@@ -80,7 +86,7 @@ func TestUserSession(t *testing.T) {
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options", "status"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}", model.Baned),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
-			expected: `{"code":403, "msg":"该账号已被封禁"}`,
+			expected: serializer.Err(403, "该账号已被封禁", nil),
 		},
 		// 用户未激活
 		{
@@ -89,7 +95,7 @@ func TestUserSession(t *testing.T) {
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options", "status"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}", model.NotActivicated),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
-			expected: `{"code":403, "msg":"该账号未激活"}`,
+			expected: serializer.Err(403, "该账号未激活", nil),
 		},
 	}
 
@@ -108,7 +114,9 @@ func TestUserSession(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, 200, w.Code)
-		asserts.JSONEq(testCase.expected, w.Body.String())
+		expectedJson, _ := json.Marshal(testCase.expected)
+		asserts.JSONEq(string(expectedJson), w.Body.String())
+
 		w.Body.Reset()
 		asserts.NoError(mock.ExpectationsWereMet())
 		model.ClearCache()

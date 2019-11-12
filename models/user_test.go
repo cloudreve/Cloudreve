@@ -1,7 +1,6 @@
 package model
 
 import (
-	"cloudreve/pkg/serializer"
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
@@ -14,8 +13,8 @@ func TestGetUserByID(t *testing.T) {
 	asserts := assert.New(t)
 
 	//找到用户时
-	rows := sqlmock.NewRows([]string{"id", "deleted_at", "email"}).
-		AddRow(1, nil, "admin@cloudreve.org")
+	rows := sqlmock.NewRows([]string{"id", "deleted_at", "email", "options"}).
+		AddRow(1, nil, "admin@cloudreve.org", "{}")
 
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(rows)
 
@@ -81,7 +80,7 @@ func TestUser_AfterFind(t *testing.T) {
 
 	newUser := NewUser()
 	err := newUser.AfterFind()
-	expected := serializer.UserOption{}
+	expected := UserOption{}
 	err = json.Unmarshal([]byte(newUser.Options), &expected)
 
 	asserts.NoError(err)
