@@ -2,12 +2,14 @@ package routers
 
 import (
 	"bytes"
+	"cloudreve/middleware"
 	"cloudreve/models"
 	"cloudreve/pkg/serializer"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -27,6 +29,9 @@ func TestMain(m *testing.M) {
 	}
 	model.DB, _ = gorm.Open("mysql", db)
 	defer db.Close()
+
+	// 设置gin为测试模式
+	gin.SetMode(gin.TestMode)
 	m.Run()
 }
 
@@ -113,13 +118,70 @@ func TestUserSession(t *testing.T) {
 		)
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, 200, w.Code)
-		expectedJson, _ := json.Marshal(testCase.expected)
-		asserts.JSONEq(string(expectedJson), w.Body.String())
+		asserts.Equal(200, w.Code)
+		expectedJSON, _ := json.Marshal(testCase.expected)
+		asserts.JSONEq(string(expectedJSON), w.Body.String())
 
 		w.Body.Reset()
 		asserts.NoError(mock.ExpectationsWereMet())
 		model.ClearCache()
+	}
+
+}
+
+func TestSessionAuthCheck(t *testing.T) {
+	asserts := assert.New(t)
+	router := InitRouter()
+	w := httptest.NewRecorder()
+
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
+		AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"))
+	expectedUser, _ := model.GetUserByID(1)
+
+	testCases := []struct {
+		userRows    *sqlmock.Rows
+		sessionMock map[string]interface{}
+		contextMock map[string]interface{}
+		expected    interface{}
+	}{
+		// 未登录
+		{
+			expected: serializer.CheckLogin(),
+		},
+		// 登录正常
+		{
+			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
+				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
+			sessionMock: map[string]interface{}{"user_id": 1},
+			expected:    serializer.BuildUserResponse(expectedUser),
+		},
+		// UID不存在
+		{
+			userRows:    sqlmock.NewRows([]string{"email", "nick", "password", "options"}),
+			sessionMock: map[string]interface{}{"user_id": -1},
+			expected:    serializer.CheckLogin(),
+		},
+	}
+
+	for _, testCase := range testCases {
+		req, _ := http.NewRequest(
+			"GET",
+			"/Api/V3/User/Me",
+			nil,
+		)
+		if testCase.userRows != nil {
+			mock.ExpectQuery("^SELECT (.+)").WillReturnRows(testCase.userRows)
+		}
+		middleware.ContextMock = testCase.contextMock
+		middleware.SessionMock = testCase.sessionMock
+		router.ServeHTTP(w, req)
+		expectedJSON, _ := json.Marshal(testCase.expected)
+
+		asserts.Equal(200, w.Code)
+		asserts.JSONEq(string(expectedJSON), w.Body.String())
+		asserts.NoError(mock.ExpectationsWereMet())
+
+		w.Body.Reset()
 	}
 
 }

@@ -11,11 +11,21 @@ import (
 func InitRouter() *gin.Engine {
 	r := gin.Default()
 
-	// 中间件
+	/*
+		中间件
+	*/
 	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
+
+	// 测试模式加加入Mock助手中间件
+	if gin.Mode() == gin.TestMode {
+		r.Use(middleware.MockHelper())
+	}
+
 	r.Use(middleware.CurrentUser())
 
-	// 顶层路由分组
+	/*
+		路由
+	*/
 	v3 := r.Group("/Api/V3")
 	{
 		// 测试用路由
