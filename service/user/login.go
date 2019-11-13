@@ -4,6 +4,7 @@ import (
 	"cloudreve/models"
 	"cloudreve/pkg/serializer"
 	"cloudreve/pkg/util"
+	"fmt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +47,8 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	util.SetSession(c, map[string]interface{}{
 		"user_id": expectedUser.ID,
 	})
+
+	fmt.Println(expectedUser)
 
 	return serializer.BuildUserResponse(expectedUser)
 

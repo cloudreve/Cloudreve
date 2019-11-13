@@ -13,10 +13,13 @@ func TestGetUserByID(t *testing.T) {
 	asserts := assert.New(t)
 
 	//找到用户时
-	rows := sqlmock.NewRows([]string{"id", "deleted_at", "email", "options"}).
-		AddRow(1, nil, "admin@cloudreve.org", "{}")
+	userRows := sqlmock.NewRows([]string{"id", "deleted_at", "email", "options", "group_id"}).
+		AddRow(1, nil, "admin@cloudreve.org", "{}", 1)
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(userRows)
 
-	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(rows)
+	groupRows := sqlmock.NewRows([]string{"id", "name", "policies"}).
+		AddRow(1, "管理员", "[1]")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
 
 	user, err := GetUserByID(1)
 	asserts.NoError(err)
@@ -27,6 +30,15 @@ func TestGetUserByID(t *testing.T) {
 		},
 		Email:   "admin@cloudreve.org",
 		Options: "{}",
+		GroupID: 1,
+		Group: Group{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name:       "管理员",
+			Policies:   "[1]",
+			PolicyList: []int{1},
+		},
 	}, user)
 
 	//未找到用户时

@@ -25,7 +25,10 @@ func migration() {
 	util.Log().Info("开始进行数据库自动迁移...")
 
 	// 自动迁移模式
-	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{}, &Group{})
+
+	// 创建初始用户组
+	addDefaultGroups()
 
 	// 创建初始管理员账户
 	addDefaultUser()
@@ -121,6 +124,45 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	}
 }
 
+func addDefaultGroups() {
+	_, err := GetGroupByID(1)
+	// 未找到初始管理组时，则创建
+	if gorm.IsRecordNotFoundError(err) {
+		defaultAdminGroup := Group{
+			Name:                 "管理员",
+			Policies:             "[1]",
+			MaxStorage:           1 * 1024 * 1024 * 1024,
+			ShareEnabled:         true,
+			Color:                "danger",
+			RangeTransferEnabled: true,
+			WebDAVEnabled:        true,
+			Aria2Option:          "0,0,0",
+		}
+		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
+			util.Log().Panic("无法创建管理用户组, ", err)
+		}
+	}
+
+	err = nil
+	_, err = GetGroupByID(2)
+	// 未找到初始注册会员时，则创建
+	if gorm.IsRecordNotFoundError(err) {
+		defaultAdminGroup := Group{
+			Name:                 "注册会员",
+			Policies:             "[1]",
+			MaxStorage:           1 * 1024 * 1024 * 1024,
+			ShareEnabled:         true,
+			Color:                "danger",
+			RangeTransferEnabled: true,
+			WebDAVEnabled:        true,
+			Aria2Option:          "0,0,0",
+		}
+		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
+			util.Log().Panic("无法创建初始注册会员用户组, ", err)
+		}
+	}
+}
+
 func addDefaultUser() {
 	_, err := GetUserByID(1)
 
@@ -131,7 +173,7 @@ func addDefaultUser() {
 		defaultUser.Email = "admin@cloudreve.org"
 		defaultUser.Nick = "admin"
 		defaultUser.Status = Active
-		defaultUser.Group = 1
+		defaultUser.GroupID = 1
 		defaultUser.PrimaryGroup = 1
 		err := defaultUser.SetPassword("admin")
 		if err != nil {

@@ -22,21 +22,27 @@ const (
 
 // User 用户模型
 type User struct {
+	// 表字段
 	gorm.Model
-	Email             string `gorm:"type:varchar(100);unique_index"`
-	Nick              string `gorm:"size:50"`
-	Password          string `json:"-"`
-	Status            int
-	Group             int
-	PrimaryGroup      int
-	ActivationKey     string `json:"-"`
-	Storage           int64
-	LastNotify        *time.Time
-	OpenID            string `json:"-"`
-	TwoFactor         string `json:"-"`
-	Delay             int
-	Avatar            string
-	Options           string     `json:"-",gorm:"size:4096"`
+	Email         string `gorm:"type:varchar(100);unique_index"`
+	Nick          string `gorm:"size:50"`
+	Password      string `json:"-"`
+	Status        int
+	GroupID       uint
+	PrimaryGroup  int
+	ActivationKey string `json:"-"`
+	Storage       uint64
+	LastNotify    *time.Time
+	OpenID        string `json:"-"`
+	TwoFactor     string `json:"-"`
+	Delay         int
+	Avatar        string
+	Options       string `json:"-",gorm:"size:4096"`
+
+	// 关联模型
+	Group Group
+
+	// 数据库忽略字段
 	OptionsSerialized UserOption `gorm:"-"`
 }
 
@@ -49,14 +55,14 @@ type UserOption struct {
 // GetUserByID 用ID获取用户
 func GetUserByID(ID interface{}) (User, error) {
 	var user User
-	result := DB.First(&user, ID)
+	result := DB.Set("gorm:auto_preload", true).First(&user, ID)
 	return user, result.Error
 }
 
 // GetUserByEmail 用Email获取用户
 func GetUserByEmail(email string) (User, error) {
 	var user User
-	result := DB.Where("email = ?", email).First(&user)
+	result := DB.Set("gorm:auto_preload", true).Where("email = ?", email).First(&user)
 	return user, result.Error
 }
 
