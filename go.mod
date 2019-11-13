@@ -12,8 +12,8 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
+	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/pkg/errors v0.8.0
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
-	gopkg.in/go-playground/validator.v9 v9.30.0
 )
