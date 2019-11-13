@@ -15,7 +15,7 @@ var DB *gorm.DB
 
 // Database 初始化 MySQL 链接
 func Init() {
-	util.Log().Info("初始化数据库连接\n")
+	util.Log().Info("初始化数据库连接")
 
 	var (
 		db  *gorm.DB

@@ -25,7 +25,7 @@ type Logger struct {
 
 // Println 打印
 func (ll *Logger) Println(msg string) {
-	fmt.Printf("%s %s", time.Now().Format("2006-01-02 15:04:05 -0700"), msg)
+	fmt.Printf("%s %s\n", time.Now().Format("2006-01-02 15:04:05 -0700"), msg)
 }
 
 // Panic 极端错误
