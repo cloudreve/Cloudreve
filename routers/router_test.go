@@ -11,6 +11,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"github.com/mojocn/base64Captcha"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -47,10 +48,40 @@ func TestPing(t *testing.T) {
 	asserts.Contains(w.Body.String(), "Pong")
 }
 
+func TestCaptcha(t *testing.T) {
+	asserts := assert.New(t)
+	router := InitRouter()
+	w := httptest.NewRecorder()
+
+	req, _ := http.NewRequest(
+		"GET",
+		"/Api/V3/Captcha",
+		nil,
+	)
+
+	router.ServeHTTP(w, req)
+
+	asserts.Equal(200, w.Code)
+	asserts.Contains(w.Body.String(), "base64")
+}
+
 func TestUserSession(t *testing.T) {
 	asserts := assert.New(t)
 	router := InitRouter()
 	w := httptest.NewRecorder()
+
+	// 创建测试用验证码
+	var configD = base64Captcha.ConfigDigit{
+		Height:     80,
+		Width:      240,
+		MaxSkew:    0.7,
+		DotCount:   80,
+		CaptchaLen: 1,
+	}
+	idKeyD, _ := base64Captcha.GenerateCaptcha("", configD)
+	middleware.ContextMock = map[string]interface{}{
+		"captchaID": idKeyD,
+	}
 
 	testCases := []struct {
 		settingRows *sqlmock.Rows
@@ -69,6 +100,15 @@ func TestUserSession(t *testing.T) {
 				Email: "admin@cloudreve.org",
 				Nick:  "admin",
 			}),
+		},
+		// 登录信息正确，需要验证码,验证码错误
+		{
+			settingRows: sqlmock.NewRows([]string{"name", "value", "type"}).
+				AddRow("login_captcha", "1", "login"),
+			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
+				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
+			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
+			expected: serializer.ParamErr("验证码错误", nil),
 		},
 		// 邮箱正确密码错误
 		{
@@ -104,7 +144,7 @@ func TestUserSession(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for k, testCase := range testCases {
 		if testCase.settingRows != nil {
 			mock.ExpectQuery("^SELECT (.+)").WillReturnRows(testCase.settingRows)
 		}
@@ -120,7 +160,7 @@ func TestUserSession(t *testing.T) {
 
 		asserts.Equal(200, w.Code)
 		expectedJSON, _ := json.Marshal(testCase.expected)
-		asserts.JSONEq(string(expectedJSON), w.Body.String())
+		asserts.JSONEq(string(expectedJSON), w.Body.String(), "测试用例：%d", k)
 
 		w.Body.Reset()
 		asserts.NoError(mock.ExpectationsWereMet())

@@ -32,6 +32,7 @@ func Captcha(c *gin.Context) {
 	util.SetSession(c, map[string]interface{}{
 		"captchaID": idKeyD,
 	})
+
 	// 将验证码图像编码为Base64
 	base64stringD := base64Captcha.CaptchaWriteToBase64Encoding(capD)
 

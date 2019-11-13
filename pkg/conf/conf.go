@@ -35,7 +35,7 @@ type captcha struct {
 	IsShowNoiseText    bool
 	IsShowSlimeLine    bool
 	IsShowSineLine     bool
-	CaptchaLen         int `validate:"gte=0"`
+	CaptchaLen         int `validate:"gt=0"`
 }
 
 // DatabaseConfig 数据库配置
@@ -72,7 +72,7 @@ func Init(path string) {
 	//TODO 配置合法性验证
 	cfg, err = ini.Load(path)
 	if err != nil {
-		util.Log().Panic("无法解析配置文件 '%s': ", path, err)
+		util.Log().Panic("无法解析配置文件 '%s': %s", path, err)
 	}
 
 	sections := map[string]interface{}{
@@ -83,7 +83,7 @@ func Init(path string) {
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)
 		if err != nil {
-			util.Log().Warning("配置文件 %s 分区解析失败: ", sectionName, err)
+			util.Log().Warning("配置文件 %s 分区解析失败: %s", sectionName, err)
 		}
 	}
 
