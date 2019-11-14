@@ -162,7 +162,7 @@ func addDefaultGroups() {
 			Aria2Option:   "0,0,0",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建管理用户组, ", err)
+			util.Log().Panic("无法创建管理用户组, %s", err)
 		}
 	}
 
@@ -180,7 +180,7 @@ func addDefaultGroups() {
 			Aria2Option:   "0,0,0",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始注册会员用户组, ", err)
+			util.Log().Panic("无法创建初始注册会员用户组, %s", err)
 		}
 	}
 }
@@ -199,10 +199,10 @@ func addDefaultUser() {
 		defaultUser.PrimaryGroup = 1
 		err := defaultUser.SetPassword("admin")
 		if err != nil {
-			util.Log().Panic("无法创建密码, ", err)
+			util.Log().Panic("无法创建密码, %s", err)
 		}
 		if err := DB.Create(&defaultUser).Error; err != nil {
-			util.Log().Panic("无法创建初始用户, ", err)
+			util.Log().Panic("无法创建初始用户, %s", err)
 		}
 	}
 }

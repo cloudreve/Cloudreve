@@ -21,6 +21,10 @@ func TestGetUserByID(t *testing.T) {
 		AddRow(1, "管理员", "[1]")
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
 
+	policyRows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "默认上传策略")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
+
 	user, err := GetUserByID(1)
 	asserts.NoError(err)
 	asserts.Equal(User{

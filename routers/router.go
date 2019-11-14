@@ -16,7 +16,7 @@ func InitRouter() *gin.Engine {
 	*/
 	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
 
-	// 测试模式加加入Mock助手中间件
+	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {
 		r.Use(middleware.MockHelper())
 	}
