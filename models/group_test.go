@@ -24,7 +24,7 @@ func TestGetGroupByID(t *testing.T) {
 		},
 		Name:       "管理员",
 		Policies:   "[1]",
-		PolicyList: []int{1},
+		PolicyList: []uint{1},
 	}, group)
 
 	//未找到用户时

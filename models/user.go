@@ -40,7 +40,8 @@ type User struct {
 	Options       string `json:"-",gorm:"size:4096"`
 
 	// 关联模型
-	Group Group
+	Group  Group
+	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 
 	// 数据库忽略字段
 	OptionsSerialized UserOption `gorm:"-"`
@@ -48,8 +49,31 @@ type User struct {
 
 // UserOption 用户个性化配置字段
 type UserOption struct {
-	ProfileOn int    `json:"profile_on"`
-	WebDAVKey string `json:"webdav_key"`
+	ProfileOn       int    `json:"profile_on"`
+	PreferredPolicy uint   `json:"preferred_policy"`
+	WebDAVKey       string `json:"webdav_key"`
+}
+
+// GetPolicyID 获取用户当前的上传策略ID
+func (user *User) GetPolicyID() uint {
+	// 用户未指定时，返回可用的第一个
+	if user.OptionsSerialized.PreferredPolicy == 0 {
+		if len(user.Group.PolicyList) != 0 {
+			return user.Group.PolicyList[0]
+		}
+		return 1
+	} else {
+		// 用户指定时，先检查是否为可用策略列表中的值
+		if util.ContainsUint(user.Group.PolicyList, user.OptionsSerialized.PreferredPolicy) {
+			return user.OptionsSerialized.PreferredPolicy
+		}
+		// 不可用时，返回第一个
+		if len(user.Group.PolicyList) != 0 {
+			return user.Group.PolicyList[0]
+		}
+		return 1
+
+	}
 }
 
 // GetUserByID 用ID获取用户
@@ -71,17 +95,32 @@ func NewUser() User {
 	options := UserOption{
 		ProfileOn: 1,
 	}
-	optionsValue, _ := json.Marshal(&options)
 	return User{
-		Avatar:  "default",
-		Options: string(optionsValue),
+		Avatar:            "default",
+		OptionsSerialized: options,
 	}
+}
+
+// BeforeSave Save用户前的钩子
+func (user *User) BeforeSave() (err error) {
+	err = user.SerializeOptions()
+	return err
+}
+
+//SerializeOptions 将序列后的Option写入到数据库字段
+func (user *User) SerializeOptions() (err error) {
+	optionsValue, err := json.Marshal(&user.OptionsSerialized)
+	user.Options = string(optionsValue)
+	return err
 }
 
 // AfterFind 找到用户后的钩子
 func (user *User) AfterFind() (err error) {
 	// 解析用户设置到OptionsSerialized
 	err = json.Unmarshal([]byte(user.Options), &user.OptionsSerialized)
+
+	// 预加载存储策略
+	user.Policy, _ = GetPolicyByID(user.GetPolicyID())
 	return err
 }
 

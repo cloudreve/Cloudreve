@@ -25,7 +25,10 @@ func migration() {
 	util.Log().Info("开始进行数据库自动迁移...")
 
 	// 自动迁移模式
-	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{}, &Group{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{})
+
+	// 创建初始存储策略
+	addDefaultPolicy()
 
 	// 创建初始用户组
 	addDefaultGroups()
@@ -42,6 +45,27 @@ func migration() {
 		util.Log().Warning("无法写入版本控制锁 version.lock, ", err)
 	}
 
+}
+
+func addDefaultPolicy() {
+	_, err := GetPolicyByID(1)
+	// 未找到初始存储策略时，则创建
+	if gorm.IsRecordNotFoundError(err) {
+		defaultPolicy := Policy{
+			Name:               "默认上传策略",
+			Type:               "local",
+			Server:             "/Api/V3/File/Upload",
+			BaseURL:            "http://cloudreve.org/public/uploads/",
+			MaxSize:            10 * 1024 * 1024 * 1024,
+			AutoRename:         true,
+			DirNameRule:        "{date}/{uid}",
+			FileNameRule:       "{uid}_{randomkey8}_{originname}",
+			IsOriginLinkEnable: false,
+		}
+		if err := DB.Create(&defaultPolicy).Error; err != nil {
+			util.Log().Panic("无法创建初始存储策略, ", err)
+		}
+	}
 }
 
 func addDefaultSettings() {
@@ -129,14 +153,13 @@ func addDefaultGroups() {
 	// 未找到初始管理组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:                 "管理员",
-			Policies:             "[1]",
-			MaxStorage:           1 * 1024 * 1024 * 1024,
-			ShareEnabled:         true,
-			Color:                "danger",
-			RangeTransferEnabled: true,
-			WebDAVEnabled:        true,
-			Aria2Option:          "0,0,0",
+			Name:          "管理员",
+			PolicyList:    []uint{1},
+			MaxStorage:    1 * 1024 * 1024 * 1024,
+			ShareEnabled:  true,
+			Color:         "danger",
+			WebDAVEnabled: true,
+			Aria2Option:   "0,0,0",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建管理用户组, ", err)
@@ -148,14 +171,13 @@ func addDefaultGroups() {
 	// 未找到初始注册会员时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:                 "注册会员",
-			Policies:             "[1]",
-			MaxStorage:           1 * 1024 * 1024 * 1024,
-			ShareEnabled:         true,
-			Color:                "danger",
-			RangeTransferEnabled: true,
-			WebDAVEnabled:        true,
-			Aria2Option:          "0,0,0",
+			Name:          "注册会员",
+			PolicyList:    []uint{1},
+			MaxStorage:    1 * 1024 * 1024 * 1024,
+			ShareEnabled:  true,
+			Color:         "danger",
+			WebDAVEnabled: true,
+			Aria2Option:   "0,0,0",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建初始注册会员用户组, ", err)

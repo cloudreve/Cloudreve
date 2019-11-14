@@ -14,3 +14,13 @@ func RandStringRunes(n int) string {
 	}
 	return string(b)
 }
+
+// ContainsUint 返回list中是否包含
+func ContainsUint(s []uint, e uint) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

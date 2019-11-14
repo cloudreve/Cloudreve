@@ -37,7 +37,7 @@ func TestGetUserByID(t *testing.T) {
 			},
 			Name:       "管理员",
 			Policies:   "[1]",
-			PolicyList: []int{1},
+			PolicyList: []uint{1},
 		},
 	}, user)
 
@@ -85,17 +85,72 @@ func TestNewUser(t *testing.T) {
 	newUser := NewUser()
 	asserts.IsType(User{}, newUser)
 	asserts.NotEmpty(newUser.Avatar)
-	asserts.NotEmpty(newUser.Options)
+	asserts.NotEmpty(newUser.OptionsSerialized)
 }
 
 func TestUser_AfterFind(t *testing.T) {
 	asserts := assert.New(t)
 
+	policyRows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "默认上传策略")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
+
 	newUser := NewUser()
 	err := newUser.AfterFind()
+	err = newUser.BeforeSave()
 	expected := UserOption{}
 	err = json.Unmarshal([]byte(newUser.Options), &expected)
 
 	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Equal(expected, newUser.OptionsSerialized)
+	asserts.Equal("默认上传策略", newUser.Policy.Name)
+}
+
+func TestUser_BeforeSave(t *testing.T) {
+	asserts := assert.New(t)
+
+	newUser := NewUser()
+	err := newUser.BeforeSave()
+	expected, err := json.Marshal(newUser.OptionsSerialized)
+
+	asserts.NoError(err)
+	asserts.Equal(string(expected), newUser.Options)
+}
+
+func TestUser_GetPolicyID(t *testing.T) {
+	asserts := assert.New(t)
+
+	newUser := NewUser()
+
+	testCases := []struct {
+		preferred uint
+		available []uint
+		expected  uint
+	}{
+		{
+			available: []uint{1},
+			expected:  1,
+		},
+		{
+			available: []uint{5, 2, 3},
+			expected:  5,
+		},
+		{
+			preferred: 1,
+			available: []uint{5, 1, 3},
+			expected:  1,
+		},
+		{
+			preferred: 9,
+			available: []uint{5, 1, 3},
+			expected:  5,
+		},
+	}
+
+	for key, testCase := range testCases {
+		newUser.OptionsSerialized.PreferredPolicy = testCase.preferred
+		newUser.Group.PolicyList = testCase.available
+		asserts.Equal(testCase.expected, newUser.GetPolicyID(), "测试用例 #%d 未通过", key)
+	}
 }
