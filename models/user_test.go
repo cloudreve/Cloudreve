@@ -43,6 +43,12 @@ func TestGetUserByID(t *testing.T) {
 			Policies:   "[1]",
 			PolicyList: []uint{1},
 		},
+		Policy: Policy{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name: "默认上传策略",
+		},
 	}, user)
 
 	//未找到用户时

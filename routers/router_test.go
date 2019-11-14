@@ -86,6 +86,7 @@ func TestUserSession(t *testing.T) {
 	testCases := []struct {
 		settingRows *sqlmock.Rows
 		userRows    *sqlmock.Rows
+		policyRows  *sqlmock.Rows
 		reqBody     string
 		expected    interface{}
 	}{
@@ -94,7 +95,8 @@ func TestUserSession(t *testing.T) {
 			settingRows: sqlmock.NewRows([]string{"name", "value", "type"}).
 				AddRow("login_captcha", "0", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
-				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
+				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"), policyRows: sqlmock.NewRows([]string{"name", "type", "options"}).
+				AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}"),
 			reqBody: `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
 			expected: serializer.BuildUserResponse(model.User{
 				Email: "admin@cloudreve.org",
@@ -107,6 +109,8 @@ func TestUserSession(t *testing.T) {
 				AddRow("login_captcha", "1", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
+			policyRows: sqlmock.NewRows([]string{"name", "type", "options"}).
+				AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}"),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
 			expected: serializer.ParamErr("验证码错误", nil),
 		},
@@ -116,6 +120,8 @@ func TestUserSession(t *testing.T) {
 				AddRow("login_captcha", "0", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}"),
+			policyRows: sqlmock.NewRows([]string{"name", "type", "options"}).
+				AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}"),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin123"}`,
 			expected: serializer.Err(401, "用户邮箱或密码错误", nil),
 		},
@@ -130,6 +136,8 @@ func TestUserSession(t *testing.T) {
 				AddRow("login_captcha", "0", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options", "status"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}", model.Baned),
+			policyRows: sqlmock.NewRows([]string{"name", "type", "options"}).
+				AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}"),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
 			expected: serializer.Err(403, "该账号已被封禁", nil),
 		},
@@ -139,6 +147,8 @@ func TestUserSession(t *testing.T) {
 				AddRow("login_captcha", "0", "login"),
 			userRows: sqlmock.NewRows([]string{"email", "nick", "password", "options", "status"}).
 				AddRow("admin@cloudreve.org", "admin", "CKLmDKa1C9SD64vU:76adadd4fd4bad86959155f6f7bc8993c94e7adf", "{}", model.NotActivicated),
+			policyRows: sqlmock.NewRows([]string{"name", "type", "options"}).
+				AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}"),
 			reqBody:  `{"userName":"admin@cloudreve.org","captchaCode":"captchaCode","Password":"admin"}`,
 			expected: serializer.Err(403, "该账号未激活", nil),
 		},
@@ -150,6 +160,9 @@ func TestUserSession(t *testing.T) {
 		}
 		if testCase.userRows != nil {
 			mock.ExpectQuery("^SELECT (.+)").WillReturnRows(testCase.userRows)
+		}
+		if testCase.policyRows != nil {
+			mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND \\(\\(`policies`.`id` = 1\\)\\)(.+)$").WillReturnRows(testCase.policyRows)
 		}
 		req, _ := http.NewRequest(
 			"POST",
