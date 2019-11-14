@@ -46,12 +46,12 @@ func TestGroup_AfterFind(t *testing.T) {
 	}
 	err := testCase.AfterFind()
 	asserts.NoError(err)
-	asserts.Equal(testCase.PolicyList, []int{1})
+	asserts.Equal(testCase.PolicyList, []uint{1})
 
 	testCase.Policies = "[1,2,3,4,5]"
 	err = testCase.AfterFind()
 	asserts.NoError(err)
-	asserts.Equal(testCase.PolicyList, []int{1, 2, 3, 4, 5})
+	asserts.Equal(testCase.PolicyList, []uint{1, 2, 3, 4, 5})
 
 	testCase.Policies = "[1,2,3,4,5"
 	err = testCase.AfterFind()
@@ -60,5 +60,5 @@ func TestGroup_AfterFind(t *testing.T) {
 	testCase.Policies = "[]"
 	err = testCase.AfterFind()
 	asserts.NoError(err)
-	asserts.Equal(testCase.PolicyList, []int{})
+	asserts.Equal(testCase.PolicyList, []uint{})
 }

@@ -7,18 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var r *gin.Engine
-
-// SetupTestEngine 设置测试用gin.Engine
-func SetupTestEngine(engine *gin.Engine) {
-	r = engine
-}
-
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
-	if r == nil {
-		r = gin.Default()
-	}
+	r := gin.Default()
 
 	/*
 		中间件
