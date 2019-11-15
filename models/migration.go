@@ -25,7 +25,7 @@ func migration() {
 	util.Log().Info("开始进行数据库自动迁移...")
 
 	// 自动迁移模式
-	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{})
+	DB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
