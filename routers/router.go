@@ -46,6 +46,13 @@ func InitRouter() *gin.Engine {
 				user.GET("Me", controllers.UserMe)
 			}
 
+			// 文件
+			file := auth.Group("File")
+			{
+				// 当前登录用户信息
+				file.POST("Upload", controllers.FileUpload)
+			}
+
 		}
 
 	}
