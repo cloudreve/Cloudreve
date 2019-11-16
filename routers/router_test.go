@@ -22,6 +22,9 @@ var mock sqlmock.Sqlmock
 
 // TestMain 初始化数据库Mock
 func TestMain(m *testing.M) {
+	// 设置gin为测试模式
+	gin.SetMode(gin.TestMode)
+
 	var db *sql.DB
 	var err error
 	db, mock, err = sqlmock.New()
@@ -31,8 +34,6 @@ func TestMain(m *testing.M) {
 	model.DB, _ = gorm.Open("mysql", db)
 	defer db.Close()
 
-	// 设置gin为测试模式
-	gin.SetMode(gin.TestMode)
 	m.Run()
 }
 
