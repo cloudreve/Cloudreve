@@ -24,3 +24,13 @@ func ContainsUint(s []uint, e uint) bool {
 	}
 	return false
 }
+
+// ContainsString 返回list中是否包含
+func ContainsString(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

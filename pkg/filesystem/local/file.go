@@ -6,6 +6,7 @@ import "mime/multipart"
 type FileData struct {
 	File     multipart.File
 	Size     uint64
+	Name     string
 	MIMEType string
 }
 
@@ -23,4 +24,8 @@ func (file FileData) GetSize() uint64 {
 
 func (file FileData) Close() error {
 	return file.Close()
+}
+
+func (file FileData) GetFileName() string {
+	return file.Name
 }

@@ -19,6 +19,8 @@ const (
 	CodeCheckLogin = 401
 	// CodeNoRightErr 未授权访问
 	CodeNoRightErr = 403
+	// CodeUploadFailed 上传出错
+	CodeUploadFailed = 4001
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

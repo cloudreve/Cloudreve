@@ -54,6 +54,24 @@ type UserOption struct {
 	WebDAVKey       string `json:"webdav_key"`
 }
 
+// DeductionCapacity 扣除用户容量配额
+func (user *User) DeductionCapacity(size uint64) bool {
+	if size <= user.GetRemainingCapacity() {
+		user.Storage += size
+		DB.Save(user)
+		return true
+	}
+	return false
+}
+
+// GetRemainingCapacity 获取剩余配额
+func (user *User) GetRemainingCapacity() uint64 {
+	if user.Group.MaxStorage <= user.Storage {
+		return 0
+	}
+	return user.Group.MaxStorage - user.Storage
+}
+
 // GetPolicyID 获取用户当前的上传策略ID
 func (user *User) GetPolicyID() uint {
 	// 用户未指定时，返回可用的第一个

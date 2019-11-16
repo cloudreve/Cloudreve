@@ -164,3 +164,55 @@ func TestUser_GetPolicyID(t *testing.T) {
 		asserts.Equal(testCase.expected, newUser.GetPolicyID(), "测试用例 #%d 未通过", key)
 	}
 }
+
+func TestUser_GetRemainingCapacity(t *testing.T) {
+	asserts := assert.New(t)
+	newUser := NewUser()
+
+	newUser.Group.MaxStorage = 100
+	asserts.Equal(uint64(100), newUser.GetRemainingCapacity())
+
+	newUser.Group.MaxStorage = 100
+	newUser.Storage = 1
+	asserts.Equal(uint64(99), newUser.GetRemainingCapacity())
+
+	newUser.Group.MaxStorage = 100
+	newUser.Storage = 100
+	asserts.Equal(uint64(0), newUser.GetRemainingCapacity())
+
+	newUser.Group.MaxStorage = 100
+	newUser.Storage = 200
+	asserts.Equal(uint64(0), newUser.GetRemainingCapacity())
+}
+
+func TestUser_DeductionCapacity(t *testing.T) {
+	asserts := assert.New(t)
+
+	userRows := sqlmock.NewRows([]string{"id", "deleted_at", "storage", "options", "group_id"}).
+		AddRow(1, nil, 0, "{}", 1)
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(userRows)
+	groupRows := sqlmock.NewRows([]string{"id", "name", "policies"}).
+		AddRow(1, "管理员", "[1]")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
+
+	policyRows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "默认上传策略")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
+
+	newUser, err := GetUserByID(1)
+	newUser.Group.MaxStorage = 100
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	asserts.Equal(false, newUser.DeductionCapacity(101))
+	asserts.Equal(uint64(0), newUser.Storage)
+
+	asserts.Equal(true, newUser.DeductionCapacity(1))
+	asserts.Equal(uint64(1), newUser.Storage)
+
+	asserts.Equal(true, newUser.DeductionCapacity(99))
+	asserts.Equal(uint64(100), newUser.Storage)
+
+	asserts.Equal(false, newUser.DeductionCapacity(1))
+	asserts.Equal(uint64(100), newUser.Storage)
+}

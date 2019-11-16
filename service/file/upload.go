@@ -28,14 +28,18 @@ func (service *UploadService) Upload(c *gin.Context) serializer.Response {
 		MIMEType: service.File.Header.Get("Content-Type"),
 		File:     file,
 		Size:     uint64(service.File.Size),
+		Name:     service.Name,
 	}
-
 	user, _ := c.Get("user")
-
 	fs := filesystem.FileSystem{
-		User: user.(*model.User),
+		BeforeUpload: filesystem.GenericBeforeUpload,
+		User:         user.(*model.User),
 	}
+
 	err = fs.Upload(fileData)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
+	}
 
 	return serializer.Response{
 		Code: 0,
