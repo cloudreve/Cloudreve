@@ -37,6 +37,13 @@ type FileSystem struct {
 
 }
 
+// NewFileSystem 初始化一个文件系统
+func NewFileSystem(user *model.User) *FileSystem {
+	return &FileSystem{
+		User: user,
+	}
+}
+
 // Upload 上传文件
 func (fs *FileSystem) Upload(file FileData) (err error) {
 	err = fs.BeforeUpload(fs, file)

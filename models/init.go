@@ -8,12 +8,13 @@ import (
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // DB 数据库链接单例
 var DB *gorm.DB
 
-// Database 初始化 MySQL 链接
+// Init 初始化 MySQL 链接
 func Init() {
 	util.Log().Info("初始化数据库连接")
 
@@ -22,7 +23,7 @@ func Init() {
 		err error
 	)
 	if conf.DatabaseConfig.Type == "UNSET" {
-		//TODO 使用内置SQLite数据库
+		db, err = gorm.Open("sqlite3", "cloudreve.db")
 	} else {
 		db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",
 			conf.DatabaseConfig.User,
