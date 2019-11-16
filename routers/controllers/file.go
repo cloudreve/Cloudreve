@@ -3,6 +3,7 @@ package controllers
 import (
 	"cloudreve/models"
 	"cloudreve/pkg/serializer"
+	"cloudreve/service/file"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,18 +16,12 @@ func FileUpload(c *gin.Context) {
 		return
 	}
 
-	name := c.PostForm("name")
-	path := c.PostForm("path")
+	var service file.UploadService
 
-	// Source
-	_, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法获取文件数据", err))
-		return
+	if err := c.ShouldBind(&service); err == nil {
+		res := service.Upload(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
 	}
-
-	c.JSON(200, serializer.Response{
-		Code: 0,
-		Msg:  name + path,
-	})
 }
