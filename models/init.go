@@ -1,9 +1,9 @@
 package model
 
 import (
-	"cloudreve/pkg/conf"
-	"cloudreve/pkg/util"
 	"fmt"
+	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"time"
 

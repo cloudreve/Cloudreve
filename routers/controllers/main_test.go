@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"cloudreve/pkg/serializer"
 	"encoding/json"
 	"errors"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/go-playground/validator.v8"
 	"testing"

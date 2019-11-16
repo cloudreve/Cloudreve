@@ -1,10 +1,10 @@
 package user
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/serializer"
-	"cloudreve/pkg/util"
 	"fmt"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 )

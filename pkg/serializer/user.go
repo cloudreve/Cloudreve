@@ -1,6 +1,6 @@
 package serializer
 
-import "cloudreve/models"
+import "github.com/HFO4/cloudreve/models"
 
 // CheckLogin 检查登录
 func CheckLogin() Response {

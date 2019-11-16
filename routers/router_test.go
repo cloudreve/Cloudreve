@@ -2,13 +2,13 @@ package routers
 
 import (
 	"bytes"
-	"cloudreve/middleware"
-	"cloudreve/models"
-	"cloudreve/pkg/serializer"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/middleware"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/mojocn/base64Captcha"

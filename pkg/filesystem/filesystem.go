@@ -1,7 +1,7 @@
 package filesystem
 
 import (
-	"cloudreve/models"
+	"github.com/HFO4/cloudreve/models"
 	"io"
 )
 

@@ -1,9 +1,9 @@
 package routers
 
 import (
-	"cloudreve/middleware"
-	"cloudreve/pkg/conf"
-	"cloudreve/routers/controllers"
+	"github.com/HFO4/cloudreve/middleware"
+	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-gonic/gin"
 )
 

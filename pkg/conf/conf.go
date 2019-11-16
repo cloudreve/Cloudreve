@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/go-ini/ini"
 	"github.com/mojocn/base64Captcha"
 	"gopkg.in/go-playground/validator.v8"

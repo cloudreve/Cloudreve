@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )

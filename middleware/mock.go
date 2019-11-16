@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 

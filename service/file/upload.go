@@ -1,10 +1,10 @@
 package file
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/filesystem"
-	"cloudreve/pkg/filesystem/local"
-	"cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"mime/multipart"
 )

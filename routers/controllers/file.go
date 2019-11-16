@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/serializer"
-	"cloudreve/service/file"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/service/file"
 	"github.com/gin-gonic/gin"
 )
 

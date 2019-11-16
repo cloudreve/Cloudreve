@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"cloudreve/pkg/conf"
-	"cloudreve/pkg/serializer"
-	"cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 )

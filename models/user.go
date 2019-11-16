@@ -1,10 +1,10 @@
 package model
 
 import (
-	"cloudreve/pkg/util"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"strings"

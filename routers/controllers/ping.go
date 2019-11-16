@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/conf"
-	"cloudreve/routers"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/routers"
 	"github.com/gin-gonic/gin"
 	"math/rand"
 	"time"

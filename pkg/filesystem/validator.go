@@ -1,7 +1,7 @@
 package filesystem
 
 import (
-	"cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"path/filepath"
 )
 

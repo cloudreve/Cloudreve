@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"cloudreve/models"
-	"cloudreve/pkg/util"
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
