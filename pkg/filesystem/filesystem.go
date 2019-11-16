@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"context"
 	"github.com/HFO4/cloudreve/models"
 	"io"
 )
@@ -25,11 +26,11 @@ type FileSystem struct {
 	  钩子函数
 	*/
 	// 上传文件前
-	BeforeUpload func(fs *FileSystem, file FileData) error
+	BeforeUpload func(ctx context.Context, fs *FileSystem, file FileData) error
 	// 上传文件后
-	AfterUpload func(fs *FileSystem) error
+	AfterUpload func(ctx context.Context, fs *FileSystem) error
 	// 文件验证失败后
-	ValidateFailed func(fs *FileSystem) error
+	ValidateFailed func(ctx context.Context, fs *FileSystem) error
 
 	/*
 	  文件系统处理适配器
@@ -45,8 +46,8 @@ func NewFileSystem(user *model.User) *FileSystem {
 }
 
 // Upload 上传文件
-func (fs *FileSystem) Upload(file FileData) (err error) {
-	err = fs.BeforeUpload(fs, file)
+func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
+	err = fs.BeforeUpload(ctx, fs, file)
 	if err != nil {
 		return err
 	}

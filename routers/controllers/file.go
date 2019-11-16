@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/file"
@@ -16,10 +17,17 @@ func FileUpload(c *gin.Context) {
 		return
 	}
 
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+	ctx, cancel = context.WithCancel(context.Background())
+
 	var service file.UploadService
+	defer cancel()
 
 	if err := c.ShouldBind(&service); err == nil {
-		res := service.Upload(c)
+		res := service.Upload(ctx, c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

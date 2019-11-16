@@ -1,6 +1,7 @@
 package file
 
 import (
+	"context"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
@@ -17,7 +18,7 @@ type UploadService struct {
 }
 
 // Upload 处理本地策略小文件上传
-func (service *UploadService) Upload(c *gin.Context) serializer.Response {
+func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serializer.Response {
 	// TODO 检查文件大小是否小于分片最大大小
 	file, err := service.File.Open()
 	if err != nil {
@@ -36,7 +37,7 @@ func (service *UploadService) Upload(c *gin.Context) serializer.Response {
 		User:         user.(*model.User),
 	}
 
-	err = fs.Upload(fileData)
+	err = fs.Upload(ctx, fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
 	}
