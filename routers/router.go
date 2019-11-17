@@ -49,8 +49,10 @@ func InitRouter() *gin.Engine {
 			// 文件
 			file := auth.Group("File")
 			{
-				// 当前登录用户信息
+				// 小文件上传
 				file.POST("Upload", controllers.FileUpload)
+				// 小文件上传
+				file.POST("UploadStream", controllers.FileUploadStream)
 			}
 
 		}

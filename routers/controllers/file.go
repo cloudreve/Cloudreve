@@ -3,9 +3,12 @@ package controllers
 import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/file"
 	"github.com/gin-gonic/gin"
+	"strconv"
 )
 
 // FileUpload 本地策略文件上传
@@ -29,4 +32,45 @@ func FileUpload(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
+}
+
+func FileUploadStream(c *gin.Context) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
+	if err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	fileData := local.FileStream{
+		MIMEType: c.Request.Header.Get("Content-Type"),
+		File:     c.Request.Body,
+		Size:     fileSize,
+		Name:     c.Request.Header.Get("X-FileName"),
+	}
+	user, _ := c.Get("user")
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user.(*model.User))
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+		return
+	}
+
+	// 给文件系统分配钩子
+	fs.BeforeUpload = filesystem.GenericBeforeUpload
+
+	// 执行上传
+	err = fs.Upload(ctx, fileData)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Code: 0,
+		Msg:  "Pong",
+	})
 }
