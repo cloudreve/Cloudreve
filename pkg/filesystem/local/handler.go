@@ -18,7 +18,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string) 
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {
-		err := os.MkdirAll(basePath, 0666)
+		err := os.MkdirAll(basePath, 0700)
 		if err != nil {
 			return err
 		}
