@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"path/filepath"
+	"strings"
 )
 
 // ValidateFileSize 验证上传的文件大小是否超出限制
@@ -26,7 +27,7 @@ func (fs *FileSystem) ValidateExtension(ctx context.Context, fileName string) bo
 		return true
 	}
 
-	ext := filepath.Ext(fileName)
+	ext := strings.ToLower(filepath.Ext(fileName))
 	// 无扩展名时
 	if len(ext) == 0 {
 		return false

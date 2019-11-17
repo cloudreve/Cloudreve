@@ -86,5 +86,6 @@ func TestFileSystem_ValidateExtension(t *testing.T) {
 	asserts.False(fs.ValidateExtension(ctx, "1.jpg.png"))
 	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
 	asserts.True(fs.ValidateExtension(ctx, "1.png.jpg"))
+	asserts.True(fs.ValidateExtension(ctx, "1.png.jpG"))
 	asserts.False(fs.ValidateExtension(ctx, "1.png"))
 }
