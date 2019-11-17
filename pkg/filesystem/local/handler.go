@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"os"
@@ -19,7 +18,6 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string) 
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {
-		fmt.Println("创建", basePath)
 		err := os.MkdirAll(basePath, 0666)
 		if err != nil {
 			return err

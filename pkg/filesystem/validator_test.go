@@ -1,0 +1,90 @@
+package filesystem
+
+import (
+	"context"
+	"database/sql"
+	"github.com/DATA-DOG/go-sqlmock"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+var mock sqlmock.Sqlmock
+
+// TestMain 初始化数据库Mock
+func TestMain(m *testing.M) {
+	var db *sql.DB
+	var err error
+	db, mock, err = sqlmock.New()
+	if err != nil {
+		panic("An error was not expected when opening a stub database connection")
+	}
+	model.DB, _ = gorm.Open("mysql", db)
+	defer db.Close()
+	m.Run()
+}
+
+func TestFileSystem_ValidateCapacity(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{
+			Storage: 10,
+			Group: model.Group{
+				MaxStorage: 11,
+			},
+		},
+	}
+
+	asserts.True(fs.ValidateCapacity(ctx, 1))
+	asserts.Equal(uint64(11), fs.User.Storage)
+
+	fs.User.Storage = 5
+	asserts.False(fs.ValidateCapacity(ctx, 10))
+	asserts.Equal(uint64(5), fs.User.Storage)
+}
+
+func TestFileSystem_ValidateFileSize(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{
+			Policy: model.Policy{
+				MaxSize: 10,
+			},
+		},
+	}
+
+	asserts.True(fs.ValidateFileSize(ctx, 5))
+	asserts.True(fs.ValidateFileSize(ctx, 10))
+	asserts.False(fs.ValidateFileSize(ctx, 11))
+}
+
+func TestFileSystem_ValidateExtension(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{
+			Policy: model.Policy{
+				OptionsSerialized: model.PolicyOption{
+					FileType: nil,
+				},
+			},
+		},
+	}
+
+	asserts.True(fs.ValidateExtension(ctx, "1"))
+	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
+
+	fs.User.Policy.OptionsSerialized.FileType = []string{}
+	asserts.True(fs.ValidateExtension(ctx, "1"))
+	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
+
+	fs.User.Policy.OptionsSerialized.FileType = []string{"txt", "jpg"}
+	asserts.False(fs.ValidateExtension(ctx, "1"))
+	asserts.False(fs.ValidateExtension(ctx, "1.jpg.png"))
+	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
+	asserts.True(fs.ValidateExtension(ctx, "1.png.jpg"))
+	asserts.False(fs.ValidateExtension(ctx, "1.png"))
+}

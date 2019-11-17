@@ -27,7 +27,6 @@ func (fs *FileSystem) ValidateExtension(ctx context.Context, fileName string) bo
 	}
 
 	ext := filepath.Ext(fileName)
-
 	// 无扩展名时
 	if len(ext) == 0 {
 		return false
