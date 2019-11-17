@@ -2,7 +2,10 @@ package model
 
 import (
 	"encoding/json"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
+	"strconv"
+	"time"
 )
 
 // Policy 存储策略
@@ -63,4 +66,51 @@ func (policy *Policy) SerializeOptions() (err error) {
 	optionsValue, err := json.Marshal(&policy.OptionsSerialized)
 	policy.Options = string(optionsValue)
 	return err
+}
+
+// GeneratePath 生成存储文件的路径
+func (policy *Policy) GeneratePath(uid uint) string {
+	dirRule := policy.DirNameRule
+	replaceTable := map[string]string{
+		"{randomkey16}": util.RandStringRunes(16),
+		"{randomkey8}":  util.RandStringRunes(8),
+		"{timestamp}":   strconv.FormatInt(time.Now().Unix(), 10),
+		"{uid}":         strconv.Itoa(int(uid)),
+		"{datetime}":    time.Now().Format("20060102150405"),
+		"{date}":        time.Now().Format("20060102"),
+	}
+	dirRule = util.Replace(replaceTable, dirRule)
+	return dirRule
+}
+
+// GenerateFileName 生成存储文件名
+func (policy *Policy) GenerateFileName(uid uint, origin string) string {
+	fileRule := policy.FileNameRule
+
+	replaceTable := map[string]string{
+		"{randomkey16}": util.RandStringRunes(16),
+		"{randomkey8}":  util.RandStringRunes(8),
+		"{timestamp}":   strconv.FormatInt(time.Now().Unix(), 10),
+		"{uid}":         strconv.Itoa(int(uid)),
+		"{datetime}":    time.Now().Format("20060102150405"),
+		"{date}":        time.Now().Format("20060102"),
+	}
+
+	// 部分存储策略可以使用{origin}代表原始文件名
+	switch policy.Type {
+	case "qiniu":
+		// 七牛会将$(fname)自动替换为原始文件名
+		replaceTable["{originname}"] = "$(fname)"
+	case "local":
+		replaceTable["{originname}"] = origin
+	case "oss":
+		// OSS会将${filename}自动替换为原始文件名
+		replaceTable["{originname}"] = "${filename}"
+	case "upyun":
+		// Upyun会将{filename}{.suffix}自动替换为原始文件名
+		replaceTable["{originname}"] = "{filename}{.suffix}"
+	}
+
+	fileRule = util.Replace(replaceTable, fileRule)
+	return fileRule
 }

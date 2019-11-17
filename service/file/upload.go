@@ -2,7 +2,7 @@ package file
 
 import (
 	"context"
-	"github.com/HFO4/cloudreve/models"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -32,11 +32,17 @@ func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serial
 		Name:     service.Name,
 	}
 	user, _ := c.Get("user")
-	fs := filesystem.FileSystem{
-		BeforeUpload: filesystem.GenericBeforeUpload,
-		User:         user.(*model.User),
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user.(*model.User))
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
+	// 给文件系统分配钩子
+	fs.BeforeUpload = filesystem.GenericBeforeUpload
+
+	// 执行上传
 	err = fs.Upload(ctx, fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)

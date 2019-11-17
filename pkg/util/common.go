@@ -2,6 +2,7 @@ package util
 
 import (
 	"math/rand"
+	"strings"
 )
 
 // RandStringRunes 返回随机字符串
@@ -33,4 +34,12 @@ func ContainsString(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+// Replace 根据替换表执行批量替换
+func Replace(table map[string]string, s string) string {
+	for key, value := range table {
+		s = strings.Replace(s, key, value, -1)
+	}
+	return s
 }

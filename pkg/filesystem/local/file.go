@@ -11,7 +11,7 @@ type FileData struct {
 }
 
 func (file FileData) Read(p []byte) (n int, err error) {
-	return file.Read(p)
+	return file.File.Read(p)
 }
 
 func (file FileData) GetMIMEType() string {
@@ -23,7 +23,7 @@ func (file FileData) GetSize() uint64 {
 }
 
 func (file FileData) Close() error {
-	return file.Close()
+	return file.File.Close()
 }
 
 func (file FileData) GetFileName() string {

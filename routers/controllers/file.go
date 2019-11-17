@@ -17,11 +17,8 @@ func FileUpload(c *gin.Context) {
 		return
 	}
 
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-	ctx, cancel = context.WithCancel(context.Background())
+	// 建立上下文
+	ctx, cancel := context.WithCancel(context.Background())
 
 	var service file.UploadService
 	defer cancel()
