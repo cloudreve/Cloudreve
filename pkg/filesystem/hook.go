@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/HFO4/cloudreve/pkg/util"
 )
 
 // GenericBeforeUpload 通用上传前处理钩子，包含数据库操作
@@ -33,9 +34,11 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem, file FileData) err
 func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem, file FileData) error {
 	filePath := ctx.Value("path").(string)
 	// 删除临时文件
-	_, err := fs.Handler.Delete(ctx, []string{filePath})
-	if err != nil {
-		return err
+	if util.Exists(filePath) {
+		_, err := fs.Handler.Delete(ctx, []string{filePath})
+		if err != nil {
+			return err
+		}
 	}
 
 	// 归还用户容量
