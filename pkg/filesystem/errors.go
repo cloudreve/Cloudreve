@@ -7,4 +7,5 @@ var (
 	FileSizeTooBigError          = errors.New("单个文件尺寸太大")
 	FileExtensionNotAllowedError = errors.New("不允许上传此类型的文件")
 	InsufficientCapacityError    = errors.New("容量空间不足")
+	IlegalObjectNameError        = errors.New("目标名称非法")
 )

@@ -24,12 +24,14 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string) 
 		}
 	}
 
+	// 创建目标文件
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
+	// 写入文件内容
 	_, err = io.Copy(out, file)
 	return err
 }

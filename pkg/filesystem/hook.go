@@ -11,6 +11,11 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem, file FileData) err
 		return FileSizeTooBigError
 	}
 
+	// 验证文件名
+	if !fs.ValidateLegalName(ctx, file.GetFileName()) {
+		return IlegalObjectNameError
+	}
+
 	// 验证扩展名
 	if !fs.ValidateExtension(ctx, file.GetFileName()) {
 		return FileExtensionNotAllowedError

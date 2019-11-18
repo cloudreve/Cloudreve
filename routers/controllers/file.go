@@ -34,10 +34,19 @@ func FileUpload(c *gin.Context) {
 	}
 }
 
+// FileUploadStream 本地策略流式上传
 func FileUploadStream(c *gin.Context) {
+	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// 非本地策略时拒绝上传
+	if user, ok := c.Get("user"); ok && user.(*model.User).Policy.Type != "local" {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前上传策略无法使用", nil))
+		return
+	}
+
+	// 取得文件大小
 	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
@@ -63,7 +72,8 @@ func FileUploadStream(c *gin.Context) {
 	fs.BeforeUpload = filesystem.GenericBeforeUpload
 
 	// 执行上传
-	err = fs.Upload(ctx, fileData)
+	uploadCtx := context.WithValue(ctx, "ginCtx", c)
+	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
 		return

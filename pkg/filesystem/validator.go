@@ -7,6 +7,19 @@ import (
 	"strings"
 )
 
+// 文件/路径名保留字符
+var reservedCharacter = []string{"\\", "?", "*", "<", "\"", ":", ">", "/"}
+
+// ValidateLegalName 验证文件名/文件夹名是否合法
+func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
+	for _, value := range reservedCharacter {
+		if strings.Contains(name, value) {
+			return false
+		}
+	}
+	return true
+}
+
 // ValidateFileSize 验证上传的文件大小是否超出限制
 func (fs *FileSystem) ValidateFileSize(ctx context.Context, size uint64) bool {
 	return size <= fs.User.Policy.MaxSize
