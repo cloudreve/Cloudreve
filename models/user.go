@@ -40,7 +40,7 @@ type User struct {
 	Options       string `json:"-",gorm:"size:4096"`
 
 	// 关联模型
-	Group  Group
+	Group  Group  `gorm:"association_autoupdate:false"`
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 
 	// 数据库忽略字段
@@ -58,7 +58,7 @@ type UserOption struct {
 func (user *User) DeductionStorage(size uint64) bool {
 	if size <= user.Storage {
 		user.Storage -= size
-		DB.Save(user)
+		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage - ?", size))
 		return true
 	}
 	return false
@@ -68,7 +68,7 @@ func (user *User) DeductionStorage(size uint64) bool {
 func (user *User) IncreaseStorage(size uint64) bool {
 	if size <= user.GetRemainingCapacity() {
 		user.Storage += size
-		DB.Save(user)
+		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
 		return true
 	}
 	return false

@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"context"
-	"fmt"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -39,13 +38,13 @@ type FileSystem struct {
 	  钩子函数
 	*/
 	// 上传文件前
-	BeforeUpload func(ctx context.Context, fs *FileSystem, file FileData) error
+	BeforeUpload func(ctx context.Context, fs *FileSystem) error
 	// 上传文件后
 	AfterUpload func(ctx context.Context, fs *FileSystem) error
 	// 文件保存成功，插入数据库验证失败后
 	AfterValidateFailed func(ctx context.Context, fs *FileSystem) error
 	// 用户取消上传后
-	AfterUploadCanceled func(ctx context.Context, fs *FileSystem, file FileData) error
+	AfterUploadCanceled func(ctx context.Context, fs *FileSystem) error
 
 	/*
 	  文件系统处理适配器
@@ -72,15 +71,18 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	}, nil
 }
 
-/*
-	上传处理相关
+/* ================
+	 上传处理相关
+   ================
 */
 
 // Upload 上传文件
 func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
+	ctx = context.WithValue(ctx, FileCtx, file)
+
 	// 上传前的钩子
 	if fs.BeforeUpload != nil {
-		err = fs.BeforeUpload(ctx, fs, file)
+		err = fs.BeforeUpload(ctx, fs)
 		if err != nil {
 			return err
 		}
@@ -98,6 +100,15 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
 		return err
 	}
 
+	// 上传完成后的钩子
+	if fs.AfterUpload != nil {
+		ctx = context.WithValue(ctx, SavePathCtx, savePath)
+		err = fs.AfterUpload(ctx, fs)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -111,20 +122,30 @@ func (fs *FileSystem) GenerateSavePath(file FileData) string {
 
 // CancelUpload 监测客户端取消上传
 func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileData) {
-	ginCtx := ctx.Value("ginCtx").(*gin.Context)
+	ginCtx := ctx.Value(GinCtx).(*gin.Context)
 	select {
 	case <-ctx.Done():
-		fmt.Println("正常关闭")
 		// 客户端正常关闭，不执行操作
 	case <-ginCtx.Request.Context().Done():
 		// 客户端取消了上传
 		if fs.AfterUploadCanceled == nil {
 			return
 		}
-		ctx = context.WithValue(ctx, "path", path)
-		err := fs.AfterUploadCanceled(ctx, fs, file)
+		ctx = context.WithValue(ctx, SavePathCtx, path)
+		err := fs.AfterUploadCanceled(ctx, fs)
 		if err != nil {
 			util.Log().Warning("执行 AfterUploadCanceled 钩子出错，%s", err)
 		}
 	}
+}
+
+/* =================
+	 路径/目录相关
+   =================
+*/
+
+// IsPathExist 返回给定目录是否存在
+func (fs *FileSystem) IsPathExist(path string) bool {
+	_, err := model.GetFolderByPath(path, fs.User.ID)
+	return err == nil
 }

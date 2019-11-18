@@ -73,7 +73,7 @@ func FileUploadStream(c *gin.Context) {
 	fs.AfterUploadCanceled = filesystem.GenericAfterUploadCanceled
 
 	// 执行上传
-	uploadCtx := context.WithValue(ctx, "ginCtx", c)
+	uploadCtx := context.WithValue(ctx, filesystem.GinCtx, c)
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))

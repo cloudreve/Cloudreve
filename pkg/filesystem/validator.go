@@ -12,10 +12,16 @@ var reservedCharacter = []string{"\\", "?", "*", "<", "\"", ":", ">", "/"}
 
 // ValidateLegalName 验证文件名/文件夹名是否合法
 func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
+	// 是否包含保留字符
 	for _, value := range reservedCharacter {
 		if strings.Contains(name, value) {
 			return false
 		}
+	}
+
+	// 是否超出长度限制
+	if len(name) >= 256 {
+		return false
 	}
 	return true
 }

@@ -85,6 +85,11 @@ func (policy *Policy) GeneratePath(uid uint) string {
 
 // GenerateFileName 生成存储文件名
 func (policy *Policy) GenerateFileName(uid uint, origin string) string {
+	// 未开启自动重命名时，直接返回原始文件名
+	if !policy.AutoRename {
+		return origin
+	}
+
 	fileRule := policy.FileNameRule
 
 	replaceTable := map[string]string{
