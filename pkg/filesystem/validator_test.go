@@ -25,6 +25,19 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
+func TestFileSystem_ValidateLegalName(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{}
+	asserts.True(fs.ValidateLegalName(ctx, "1.txt"))
+	asserts.True(fs.ValidateLegalName(ctx, "1-1.txt"))
+	asserts.True(fs.ValidateLegalName(ctx, "1？1.txt"))
+	asserts.False(fs.ValidateLegalName(ctx, "1:1.txt"))
+	asserts.False(fs.ValidateLegalName(ctx, "../11.txt"))
+	asserts.False(fs.ValidateLegalName(ctx, "/11.txt"))
+	asserts.False(fs.ValidateLegalName(ctx, "\\11.txt"))
+}
+
 func TestFileSystem_ValidateCapacity(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()

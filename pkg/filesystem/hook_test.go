@@ -36,4 +36,6 @@ func TestGenericBeforeUpload(t *testing.T) {
 	asserts.Error(GenericBeforeUpload(ctx, &fs, file))
 	file.Name = "1.txt"
 	asserts.NoError(GenericBeforeUpload(ctx, &fs, file))
+	file.Name = "1.t/xt"
+	asserts.Error(GenericBeforeUpload(ctx, &fs, file))
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"io"
 	"path/filepath"
@@ -21,7 +22,10 @@ type FileData interface {
 
 // Handler 存储策略适配器
 type Handler interface {
+	// 上传文件
 	Put(ctx context.Context, file io.ReadCloser, dst string) error
+	// 删除一个或多个文件
+	Delete(ctx context.Context, files []string) ([]string, error)
 }
 
 // FileSystem 管理文件的文件系统
@@ -39,7 +43,9 @@ type FileSystem struct {
 	// 上传文件后
 	AfterUpload func(ctx context.Context, fs *FileSystem) error
 	// 文件保存成功，插入数据库验证失败后
-	ValidateFailed func(ctx context.Context, fs *FileSystem) error
+	AfterValidateFailed func(ctx context.Context, fs *FileSystem) error
+	// 用户取消上传后
+	AfterUploadCanceled func(ctx context.Context, fs *FileSystem, file FileData) error
 
 	/*
 	  文件系统处理适配器
@@ -73,9 +79,11 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 // Upload 上传文件
 func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
 	// 上传前的钩子
-	err = fs.BeforeUpload(ctx, fs, file)
-	if err != nil {
-		return err
+	if fs.BeforeUpload != nil {
+		err = fs.BeforeUpload(ctx, fs, file)
+		if err != nil {
+			return err
+		}
 	}
 
 	// 生成文件名和路径
@@ -106,10 +114,17 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileDa
 	ginCtx := ctx.Value("ginCtx").(*gin.Context)
 	select {
 	case <-ctx.Done():
+		fmt.Println("正常关闭")
 		// 客户端正常关闭，不执行操作
 	case <-ginCtx.Request.Context().Done():
-		// 客户端取消了上传,删除保存的文件
-		fmt.Println("取消上传")
-		// 归还空间
+		// 客户端取消了上传
+		if fs.AfterUploadCanceled == nil {
+			return
+		}
+		ctx = context.WithValue(ctx, "path", path)
+		err := fs.AfterUploadCanceled(ctx, fs, file)
+		if err != nil {
+			util.Log().Warning("执行 AfterUploadCanceled 钩子出错，%s", err)
+		}
 	}
 }

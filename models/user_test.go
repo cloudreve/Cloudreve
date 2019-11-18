@@ -204,15 +204,15 @@ func TestUser_DeductionCapacity(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
-	asserts.Equal(false, newUser.DeductionCapacity(101))
+	asserts.Equal(false, newUser.IncreaseStorage(101))
 	asserts.Equal(uint64(0), newUser.Storage)
 
-	asserts.Equal(true, newUser.DeductionCapacity(1))
+	asserts.Equal(true, newUser.IncreaseStorage(1))
 	asserts.Equal(uint64(1), newUser.Storage)
 
-	asserts.Equal(true, newUser.DeductionCapacity(99))
+	asserts.Equal(true, newUser.IncreaseStorage(99))
 	asserts.Equal(uint64(100), newUser.Storage)
 
-	asserts.Equal(false, newUser.DeductionCapacity(1))
+	asserts.Equal(false, newUser.IncreaseStorage(1))
 	asserts.Equal(uint64(100), newUser.Storage)
 }

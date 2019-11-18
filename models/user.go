@@ -54,8 +54,18 @@ type UserOption struct {
 	WebDAVKey       string `json:"webdav_key"`
 }
 
-// DeductionCapacity 扣除用户容量配额
-func (user *User) DeductionCapacity(size uint64) bool {
+// DeductionStorage 减少用户已用容量
+func (user *User) DeductionStorage(size uint64) bool {
+	if size <= user.Storage {
+		user.Storage -= size
+		DB.Save(user)
+		return true
+	}
+	return false
+}
+
+// IncreaseStorage 检查并增加用户已用容量
+func (user *User) IncreaseStorage(size uint64) bool {
 	if size <= user.GetRemainingCapacity() {
 		user.Storage += size
 		DB.Save(user)
