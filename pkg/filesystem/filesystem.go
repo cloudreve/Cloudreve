@@ -104,7 +104,16 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
 	if fs.AfterUpload != nil {
 		ctx = context.WithValue(ctx, SavePathCtx, savePath)
 		err = fs.AfterUpload(ctx, fs)
+
 		if err != nil {
+			// 上传完成后续处理失败
+			if fs.AfterValidateFailed != nil {
+				followUpErr := fs.AfterValidateFailed(ctx, fs)
+				// 失败后再失败...
+				if followUpErr != nil {
+					util.Log().Warning("AfterValidateFailed 钩子执行失败，%s", followUpErr)
+				}
+			}
 			return err
 		}
 	}

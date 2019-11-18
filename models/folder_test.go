@@ -1,7 +1,7 @@
 package model
 
 import (
-	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,12 +9,16 @@ import (
 func TestGetFolderByPath(t *testing.T) {
 	asserts := assert.New(t)
 
-	//policyRows := sqlmock.NewRows([]string{"id", "name"}).
-	//	AddRow(1, "默认上传策略")
-	//mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
-
-	folder,_ := GetFolderByPath("/测试/test",1)
-	fmt.Println(folder)
+	folderRows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "test")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(folderRows)
+	folder, _ := GetFolderByPath("/测试/test", 1)
+	asserts.Equal("test", folder.Name)
 	asserts.NoError(mock.ExpectationsWereMet())
-	asserts.NoError(mock.)
+
+	folderRows = sqlmock.NewRows([]string{"id", "name"})
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(folderRows)
+	folder, err := GetFolderByPath("/测试/test", 1)
+	asserts.Error(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 }

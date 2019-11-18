@@ -71,6 +71,8 @@ func FileUploadStream(c *gin.Context) {
 	// 给文件系统分配钩子
 	fs.BeforeUpload = filesystem.GenericBeforeUpload
 	fs.AfterUploadCanceled = filesystem.GenericAfterUploadCanceled
+	fs.AfterUpload = filesystem.GenericAfterUpload
+	fs.AfterValidateFailed = filesystem.GenericAfterUploadCanceled
 
 	// 执行上传
 	uploadCtx := context.WithValue(ctx, filesystem.GinCtx, c)

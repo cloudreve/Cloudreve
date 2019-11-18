@@ -48,8 +48,8 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 		err := os.Remove(value)
 		if err == nil {
 			deleted = append(deleted, value)
-			util.Log().Warning("无法删除文件，%s", err)
 		} else {
+			util.Log().Warning("无法删除文件，%s", err)
 			retErr = err
 		}
 	}
