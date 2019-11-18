@@ -27,7 +27,7 @@ func TestHandler_Put(t *testing.T) {
 		},
 		{
 			file: ioutil.NopCloser(strings.NewReader("test input file")),
-			dst:  "notexist:/S.TXT",
+			dst:  "/notexist:/S.TXT",
 			err:  true,
 		},
 	}
