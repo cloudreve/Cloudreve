@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/file"
 	"github.com/gin-gonic/gin"
 	"strconv"
@@ -54,10 +55,11 @@ func FileUploadStream(c *gin.Context) {
 	}
 
 	fileData := local.FileStream{
-		MIMEType: c.Request.Header.Get("Content-Type"),
-		File:     c.Request.Body,
-		Size:     fileSize,
-		Name:     c.Request.Header.Get("X-FileName"),
+		MIMEType:    c.Request.Header.Get("Content-Type"),
+		File:        c.Request.Body,
+		Size:        fileSize,
+		Name:        c.Request.Header.Get("X-FileName"),
+		VirtualPath: util.DotPathToStandardPath(c.Request.Header.Get("X-Path")),
 	}
 	user, _ := c.Get("user")
 

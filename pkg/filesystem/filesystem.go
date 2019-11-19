@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 )
 
-// FileData 上传来的文件数据处理器
-type FileData interface {
+// FileHeader 上传来的文件数据处理器
+type FileHeader interface {
 	io.Reader
 	io.Closer
 	GetSize() uint64
 	GetMIMEType() string
 	GetFileName() string
+	GetVirtualPath() string
 }
 
 // Handler 存储策略适配器
@@ -77,7 +78,7 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 */
 
 // Upload 上传文件
-func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
+func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	ctx = context.WithValue(ctx, FileCtx, file)
 
 	// 上传前的钩子
@@ -89,7 +90,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
 	}
 
 	// 生成文件名和路径
-	savePath := fs.GenerateSavePath(file)
+	savePath := fs.GenerateSavePath(ctx, file)
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
@@ -122,15 +123,21 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileData) (err error) {
 }
 
 // GenerateSavePath 生成要存放文件的路径
-func (fs *FileSystem) GenerateSavePath(file FileData) string {
+func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) string {
 	return filepath.Join(
-		fs.User.Policy.GeneratePath(fs.User.Model.ID),
-		fs.User.Policy.GenerateFileName(fs.User.Model.ID, file.GetFileName()),
+		fs.User.Policy.GeneratePath(
+			fs.User.Model.ID,
+			file.GetVirtualPath(),
+		),
+		fs.User.Policy.GenerateFileName(
+			fs.User.Model.ID,
+			file.GetFileName(),
+		),
 	)
 }
 
 // CancelUpload 监测客户端取消上传
-func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileData) {
+func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHeader) {
 	ginCtx := ctx.Value(GinCtx).(*gin.Context)
 	select {
 	case <-ctx.Done():

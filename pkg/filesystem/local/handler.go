@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 )
 
-type Handler struct {
-}
+// Handler 本地策略适配器
+type Handler struct{}
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string) error {

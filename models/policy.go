@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -69,7 +70,7 @@ func (policy *Policy) SerializeOptions() (err error) {
 }
 
 // GeneratePath 生成存储文件的路径
-func (policy *Policy) GeneratePath(uid uint) string {
+func (policy *Policy) GeneratePath(uid uint, path string) string {
 	dirRule := policy.DirNameRule
 	replaceTable := map[string]string{
 		"{randomkey16}": util.RandStringRunes(16),
@@ -78,9 +79,10 @@ func (policy *Policy) GeneratePath(uid uint) string {
 		"{uid}":         strconv.Itoa(int(uid)),
 		"{datetime}":    time.Now().Format("20060102150405"),
 		"{date}":        time.Now().Format("20060102"),
+		"{path}":        path + "/",
 	}
 	dirRule = util.Replace(replaceTable, dirRule)
-	return dirRule
+	return filepath.Clean(dirRule)
 }
 
 // GenerateFileName 生成存储文件名

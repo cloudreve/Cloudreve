@@ -33,11 +33,16 @@ func (file FileData) GetFileName() string {
 	return file.Name
 }
 
+func (file FileData) GetVirtualPath() string {
+	return file.Name
+}
+
 type FileStream struct {
-	File     io.ReadCloser
-	Size     uint64
-	Name     string
-	MIMEType string
+	File        io.ReadCloser
+	Size        uint64
+	VirtualPath string
+	Name        string
+	MIMEType    string
 }
 
 func (file FileStream) Read(p []byte) (n int, err error) {
@@ -58,4 +63,8 @@ func (file FileStream) Close() error {
 
 func (file FileStream) GetFileName() string {
 	return file.Name
+}
+
+func (file FileStream) GetVirtualPath() string {
+	return file.VirtualPath
 }

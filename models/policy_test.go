@@ -46,25 +46,32 @@ func TestPolicy_GeneratePath(t *testing.T) {
 	testPolicy := Policy{}
 
 	testPolicy.DirNameRule = "{randomkey16}"
-	asserts.Len(testPolicy.GeneratePath(1), 16)
+	asserts.Len(testPolicy.GeneratePath(1, "/"), 16)
 
 	testPolicy.DirNameRule = "{randomkey8}"
-	asserts.Len(testPolicy.GeneratePath(1), 8)
+	asserts.Len(testPolicy.GeneratePath(1, "/"), 8)
 
 	testPolicy.DirNameRule = "{timestamp}"
-	asserts.Equal(testPolicy.GeneratePath(1), strconv.FormatInt(time.Now().Unix(), 10))
+	asserts.Equal(testPolicy.GeneratePath(1, "/"), strconv.FormatInt(time.Now().Unix(), 10))
 
 	testPolicy.DirNameRule = "{uid}"
-	asserts.Equal(testPolicy.GeneratePath(1), strconv.Itoa(int(1)))
+	asserts.Equal(testPolicy.GeneratePath(1, "/"), strconv.Itoa(int(1)))
 
 	testPolicy.DirNameRule = "{datetime}"
-	asserts.Len(testPolicy.GeneratePath(1), 14)
+	asserts.Len(testPolicy.GeneratePath(1, "/"), 14)
 
 	testPolicy.DirNameRule = "{date}"
-	asserts.Len(testPolicy.GeneratePath(1), 8)
+	asserts.Len(testPolicy.GeneratePath(1, "/"), 8)
 
 	testPolicy.DirNameRule = "123{date}ss{datetime}"
-	asserts.Len(testPolicy.GeneratePath(1), 27)
+	asserts.Len(testPolicy.GeneratePath(1, "/"), 27)
+
+	testPolicy.DirNameRule = "/1/{path}/456"
+	asserts.Condition(func() (success bool) {
+		res := testPolicy.GeneratePath(1, "/23")
+		return res == "/1/23/456" || res == "\\1\\23\\456"
+	})
+
 }
 
 func TestPolicy_GenerateFileName(t *testing.T) {

@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
 )
 
 // GenericBeforeUpload 通用上传前处理钩子，包含数据库操作
 func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileCtx).(FileData)
+	file := ctx.Value(FileCtx).(FileHeader)
 
 	// 验证单文件尺寸
 	if !fs.ValidateFileSize(ctx, file.GetSize()) {
@@ -35,7 +34,7 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
 
 // GenericAfterUploadCanceled 通用上传取消处理钩子，包含数据库操作
 func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileCtx).(FileData)
+	file := ctx.Value(FileCtx).(FileHeader)
 
 	filePath := ctx.Value(SavePathCtx).(string)
 	// 删除临时文件
@@ -55,10 +54,8 @@ func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
 
 // GenericAfterUpload 文件上传完成后，包含数据库操作
 func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
-	// 获取Gin的上下文
-	ginCtx := ctx.Value(GinCtx).(*gin.Context)
 	// 文件存放的虚拟路径
-	virtualPath := util.DotPathToStandardPath(ginCtx.GetHeader("X-Path"))
+	virtualPath := ctx.Value(FileCtx).(FileHeader).GetVirtualPath()
 
 	// 检查路径是否存在
 	if !fs.IsPathExist(virtualPath) {
