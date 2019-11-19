@@ -9,7 +9,7 @@ import (
 
 // GenericBeforeUpload 通用上传前处理钩子，包含数据库操作
 func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileCtx).(FileHeader)
+	file := ctx.Value(FileHeaderCtx).(FileHeader)
 
 	// 验证单文件尺寸
 	if !fs.ValidateFileSize(ctx, file.GetSize()) {
@@ -35,7 +35,7 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
 
 // GenericAfterUploadCanceled 通用上传取消处理钩子，包含数据库操作
 func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileCtx).(FileHeader)
+	file := ctx.Value(FileHeaderCtx).(FileHeader)
 
 	filePath := ctx.Value(SavePathCtx).(string)
 	// 删除临时文件
@@ -56,19 +56,26 @@ func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
 // GenericAfterUpload 文件上传完成后，包含数据库操作
 func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 文件存放的虚拟路径
-	virtualPath := ctx.Value(FileCtx).(FileHeader).GetVirtualPath()
+	virtualPath := ctx.Value(FileHeaderCtx).(FileHeader).GetVirtualPath()
 
 	// 检查路径是否存在
-	if !fs.IsPathExist(virtualPath) {
+	isExist, folder := fs.IsPathExist(virtualPath)
+	if !isExist {
 		return errors.New("路径\"" + virtualPath + "\"不存在")
 	}
 
 	// 检查文件是否存在
 	if fs.IsFileExist(path.Join(
 		virtualPath,
-		ctx.Value(FileCtx).(FileHeader).GetFileName(),
+		ctx.Value(FileHeaderCtx).(FileHeader).GetFileName(),
 	)) {
 		return errors.New("同名文件已存在")
+	}
+
+	// 向数据库中插入记录
+	err := fs.AddFile(&folder)
+	if err != nil {
+		return errors.New("无法插入文件记录")
 	}
 
 	return nil

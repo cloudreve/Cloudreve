@@ -10,11 +10,11 @@ import (
 
 func TestGenericBeforeUpload(t *testing.T) {
 	asserts := assert.New(t)
-	ctx := context.Background()
 	file := local.FileData{
 		Size: 5,
 		Name: "1.txt",
 	}
+	ctx := context.WithValue(context.Background(), FileHeaderCtx, file)
 	fs := FileSystem{
 		User: &model.User{
 			Storage: 0,
@@ -30,12 +30,18 @@ func TestGenericBeforeUpload(t *testing.T) {
 		},
 	}
 
-	asserts.Error(GenericBeforeUpload(ctx, &fs, file))
+	asserts.Error(GenericBeforeUpload(ctx, &fs))
+
 	file.Size = 1
 	file.Name = "1"
-	asserts.Error(GenericBeforeUpload(ctx, &fs, file))
+	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	asserts.Error(GenericBeforeUpload(ctx, &fs))
+
 	file.Name = "1.txt"
-	asserts.NoError(GenericBeforeUpload(ctx, &fs, file))
+	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	asserts.NoError(GenericBeforeUpload(ctx, &fs))
+
 	file.Name = "1.t/xt"
-	asserts.Error(GenericBeforeUpload(ctx, &fs, file))
+	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	asserts.Error(GenericBeforeUpload(ctx, &fs))
 }

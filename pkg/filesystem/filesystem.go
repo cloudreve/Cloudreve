@@ -73,6 +73,16 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	}, nil
 }
 
+/* ============
+	 文件相关
+   ============
+*/
+
+// AddFile 新增文件记录
+func (fs *FileSystem) AddFile(parent *model.Folder) error {
+	return nil
+}
+
 /* ================
 	 上传处理相关
    ================
@@ -80,7 +90,7 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 
 // Upload 上传文件
 func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
-	ctx = context.WithValue(ctx, FileCtx, file)
+	ctx = context.WithValue(ctx, FileHeaderCtx, file)
 
 	// 上传前的钩子
 	if fs.BeforeUpload != nil {
@@ -162,9 +172,10 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 */
 
 // IsPathExist 返回给定目录是否存在
-func (fs *FileSystem) IsPathExist(path string) bool {
-	_, err := model.GetFolderByPath(path, fs.User.ID)
-	return err == nil
+// 如果存在就返回目录
+func (fs *FileSystem) IsPathExist(path string) (bool, model.Folder) {
+	folder, err := model.GetFolderByPath(path, fs.User.ID)
+	return err == nil, folder
 }
 
 // IsFileExist 返回给定路径的文件是否存在

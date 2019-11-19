@@ -7,6 +7,6 @@ const (
 	GinCtx key = iota
 	// SavePathCtx 文件物理路径
 	SavePathCtx
-	// FileCtx 上传的文件
-	FileCtx
+	// FileHeaderCtx 上传的文件
+	FileHeaderCtx
 )
