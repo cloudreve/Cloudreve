@@ -7,6 +7,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"io"
+	"path"
 	"path/filepath"
 )
 
@@ -163,5 +164,15 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 // IsPathExist 返回给定目录是否存在
 func (fs *FileSystem) IsPathExist(path string) bool {
 	_, err := model.GetFolderByPath(path, fs.User.ID)
+	return err == nil
+}
+
+// IsFileExist 返回给定路径的文件是否存在
+func (fs *FileSystem) IsFileExist(fullPath string) bool {
+	basePath := path.Dir(fullPath)
+	fileName := path.Base(fullPath)
+
+	_, err := model.GetFileByPathAndName(basePath, fileName, fs.User.ID)
+
 	return err == nil
 }

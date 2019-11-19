@@ -76,7 +76,9 @@ func TestPolicy_GeneratePath(t *testing.T) {
 
 func TestPolicy_GenerateFileName(t *testing.T) {
 	asserts := assert.New(t)
-	testPolicy := Policy{}
+	testPolicy := Policy{
+		AutoRename: true,
+	}
 
 	testPolicy.FileNameRule = "{randomkey16}"
 	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 16)

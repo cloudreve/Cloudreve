@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"path"
 )
 
 // GenericBeforeUpload 通用上传前处理钩子，包含数据库操作
@@ -61,5 +62,14 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	if !fs.IsPathExist(virtualPath) {
 		return errors.New("路径\"" + virtualPath + "\"不存在")
 	}
+
+	// 检查文件是否存在
+	if fs.IsFileExist(path.Join(
+		virtualPath,
+		ctx.Value(FileCtx).(FileHeader).GetFileName(),
+	)) {
+		return errors.New("同名文件已存在")
+	}
+
 	return nil
 }
