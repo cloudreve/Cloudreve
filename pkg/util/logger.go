@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"time"
 )
 
@@ -23,9 +24,19 @@ type Logger struct {
 	level int
 }
 
+// 日志颜色
+var colors = map[string]func(a ...interface{}) string{
+	"Warning": color.New(color.FgYellow).Add(color.Bold).SprintFunc(),
+	"Panic":   color.New(color.BgRed).Add(color.Bold).SprintFunc(),
+	"Error":   color.New(color.FgRed).Add(color.Bold).SprintFunc(),
+	"Info":    color.New(color.FgCyan).Add(color.Bold).SprintFunc(),
+	"Debug":   color.New(color.FgWhite).Add(color.Bold).SprintFunc(),
+}
+
 // Println 打印
-func (ll *Logger) Println(msg string) {
-	fmt.Printf("%s %s\n", time.Now().Format("2006-01-02 15:04:05 -0700"), msg)
+func (ll *Logger) Println(prefix string, msg string) {
+	c := color.New()
+	_, _ = c.Printf("%s %s %s\n", colors[prefix]("["+prefix+"]"), time.Now().Format("2006-01-02 15:04:05 -0700"), msg)
 }
 
 // Panic 极端错误
@@ -33,8 +44,8 @@ func (ll *Logger) Panic(format string, v ...interface{}) {
 	if LevelError > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[Panic] "+format, v...)
-	ll.Println(msg)
+	msg := fmt.Sprintf(format, v...)
+	ll.Println("Panic", msg)
 	panic(msg)
 }
 
@@ -43,8 +54,8 @@ func (ll *Logger) Error(format string, v ...interface{}) {
 	if LevelError > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[Error] "+format, v...)
-	ll.Println(msg)
+	msg := fmt.Sprintf(format, v...)
+	ll.Println("Error", msg)
 }
 
 // Warning 警告
@@ -52,8 +63,8 @@ func (ll *Logger) Warning(format string, v ...interface{}) {
 	if LevelWarning > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[Warning] "+format, v...)
-	ll.Println(msg)
+	msg := fmt.Sprintf(format, v...)
+	ll.Println("Warning", msg)
 }
 
 // Info 信息
@@ -61,8 +72,8 @@ func (ll *Logger) Info(format string, v ...interface{}) {
 	if LevelInformational > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[Info] "+format, v...)
-	ll.Println(msg)
+	msg := fmt.Sprintf(format, v...)
+	ll.Println("Info", msg)
 }
 
 // Debug 校验
@@ -70,18 +81,18 @@ func (ll *Logger) Debug(format string, v ...interface{}) {
 	if LevelDebug > ll.level {
 		return
 	}
-	msg := fmt.Sprintf("[Debug] "+format, v...)
-	ll.Println(msg)
+	msg := fmt.Sprintf(format, v...)
+	ll.Println("Debug", msg)
 }
 
 // Print GORM 的 Logger实现
-func (ll *Logger) Print(v ...interface{}) {
-	if LevelDebug > ll.level {
-		return
-	}
-	msg := fmt.Sprintf("[SQL] %s", v...)
-	ll.Println(msg)
-}
+//func (ll *Logger) Print(v ...interface{}) {
+//	if LevelDebug > ll.level {
+//		return
+//	}
+//	msg := fmt.Sprintf("[SQL] %s", v...)
+//	ll.Println(msg)
+//}
 
 // BuildLogger 构建logger
 func BuildLogger(level string) {
