@@ -45,7 +45,7 @@ func migration() {
 	// 迁移完毕后写入版本锁 version.lock
 	err := conf.WriteVersionLock()
 	if err != nil {
-		util.Log().Warning("无法写入版本控制锁 version.lock, ", err)
+		util.Log().Warning("无法写入版本控制锁 version.lock, %s", err)
 	}
 
 }
@@ -66,7 +66,7 @@ func addDefaultPolicy() {
 			IsOriginLinkEnable: false,
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
-			util.Log().Panic("无法创建初始存储策略, ", err)
+			util.Log().Panic("无法创建初始存储策略, %s", err)
 		}
 	}
 }

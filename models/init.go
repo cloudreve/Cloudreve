@@ -52,7 +52,7 @@ func Init() {
 
 	//db.SetLogger(util.Log())
 	if err != nil {
-		util.Log().Panic("连接数据库不成功", err)
+		util.Log().Panic("连接数据库不成功, %s", err)
 	}
 
 	//设置连接池

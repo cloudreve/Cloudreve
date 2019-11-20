@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -41,4 +42,28 @@ func TestHandler_Put(t *testing.T) {
 			asserts.True(util.Exists(testCase.dst))
 		}
 	}
+}
+
+func TestHandler_Delete(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx := context.Background()
+
+	file, err := os.Create("test.file")
+	asserts.NoError(err)
+	_ = file.Close()
+	list, err := handler.Delete(ctx, []string{"test.file"})
+	asserts.Equal([]string{"test.file"}, list)
+	asserts.NoError(err)
+
+	file, err = os.Create("test.file")
+	asserts.NoError(err)
+	_ = file.Close()
+	list, err = handler.Delete(ctx, []string{"test.file", "test.notexist"})
+	asserts.Equal([]string{"test.file"}, list)
+	asserts.Error(err)
+
+	list, err = handler.Delete(ctx, []string{"test.notexist"})
+	asserts.Equal([]string{}, list)
+	asserts.Error(err)
 }

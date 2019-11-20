@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	testMock "github.com/stretchr/testify/mock"
 	"io"
 )
 
@@ -27,6 +28,10 @@ type Handler interface {
 
 // FileSystem 管理文件的文件系统
 type FileSystem struct {
+	/*
+		测试用
+	*/
+	testMock.Mock
 	/*
 	   文件系统所有者
 	*/
@@ -59,7 +64,7 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	case "local":
 		handler = local.Handler{}
 	default:
-		return nil, UnknownPolicyTypeError
+		return nil, ErrUnknownPolicyType
 	}
 
 	// TODO 分配默认钩子

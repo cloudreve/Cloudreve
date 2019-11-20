@@ -13,22 +13,22 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
 
 	// 验证单文件尺寸
 	if !fs.ValidateFileSize(ctx, file.GetSize()) {
-		return FileSizeTooBigError
+		return ErrFileSizeTooBig
 	}
 
 	// 验证文件名
 	if !fs.ValidateLegalName(ctx, file.GetFileName()) {
-		return IlegalObjectNameError
+		return ErrIllegalObjectName
 	}
 
 	// 验证扩展名
 	if !fs.ValidateExtension(ctx, file.GetFileName()) {
-		return FileExtensionNotAllowedError
+		return ErrFileExtensionNotAllowed
 	}
 
 	// 验证并扣除容量
 	if !fs.ValidateCapacity(ctx, file.GetSize()) {
-		return InsufficientCapacityError
+		return ErrInsufficientCapacity
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 检查路径是否存在
 	isExist, folder := fs.IsPathExist(virtualPath)
 	if !isExist {
-		return errors.New("路径\"" + virtualPath + "\"不存在")
+		return ErrPathNotExist
 	}
 
 	// 检查文件是否存在
@@ -69,13 +69,13 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 		virtualPath,
 		ctx.Value(FileHeaderCtx).(FileHeader).GetFileName(),
 	)) {
-		return errors.New("同名文件已存在")
+		return ErrFileExisted
 	}
 
 	// 向数据库中插入记录
-	file, err := fs.AddFile(ctx, &folder)
+	file, err := fs.AddFile(ctx, folder)
 	if err != nil {
-		return errors.New("无法插入文件记录")
+		return ErrInsertFileRecord
 	}
 
 	// TODO 是否需要立即获取图像大小？

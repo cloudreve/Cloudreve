@@ -12,9 +12,9 @@ import (
 
 // IsPathExist 返回给定目录是否存在
 // 如果存在就返回目录
-func (fs *FileSystem) IsPathExist(path string) (bool, model.Folder) {
+func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 	folder, err := model.GetFolderByPath(path, fs.User.ID)
-	return err == nil, folder
+	return err == nil, &folder
 }
 
 // IsFileExist 返回给定路径的文件是否存在
