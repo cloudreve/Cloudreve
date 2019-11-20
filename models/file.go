@@ -1,6 +1,9 @@
 package model
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/jinzhu/gorm"
+)
 
 // File 文件
 type File struct {
@@ -19,6 +22,7 @@ type File struct {
 // Create 创建文件记录
 func (file *File) Create() (uint, error) {
 	if err := DB.Create(file).Error; err != nil {
+		util.Log().Warning("无法插入文件记录, %s", err)
 		return 0, err
 	}
 	return file.ID, nil
