@@ -35,8 +35,11 @@ var colors = map[string]func(a ...interface{}) string{
 
 // Println 打印
 func (ll *Logger) Println(prefix string, msg string) {
+	// TODO Release时去掉
+	color.NoColor = false
+
 	c := color.New()
-	_, _ = c.Printf("%s %s %s\n", colors[prefix]("["+prefix+"]"), time.Now().Format("2006-01-02 15:04:05 -0700"), msg)
+	_, _ = c.Printf("%s %s %s\n", colors[prefix]("["+prefix+"]"), time.Now().Format("2006-01-02 15:04:05"), msg)
 }
 
 // Panic 极端错误

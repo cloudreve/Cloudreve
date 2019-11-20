@@ -16,6 +16,14 @@ type File struct {
 	Dir        string `gorm:"size:65536"`
 }
 
+// Create 创建文件记录
+func (file *File) Create() (uint, error) {
+	if err := DB.Create(file).Error; err != nil {
+		return 0, err
+	}
+	return file.ID, nil
+}
+
 // GetFileByPathAndName 给定路径、文件名、用户ID，查找文件
 func GetFileByPathAndName(path string, name string, uid uint) (File, error) {
 	var file File

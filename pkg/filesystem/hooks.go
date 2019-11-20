@@ -73,10 +73,12 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 
 	// 向数据库中插入记录
-	err := fs.AddFile(&folder)
+	_, err := fs.AddFile(ctx, &folder)
 	if err != nil {
 		return errors.New("无法插入文件记录")
 	}
+
+	// 异步尝试生成缩略图
 
 	return nil
 }
