@@ -29,11 +29,13 @@ func InitRouter() *gin.Engine {
 	v3 := r.Group("/Api/V3")
 	{
 		// 测试用路由
-		v3.GET("Ping", controllers.Ping)
+		v3.GET("Site/Ping", controllers.Ping)
 		// 用户登录
 		v3.POST("User/Session", controllers.UserLogin)
 		// 验证码
 		v3.GET("Captcha", controllers.Captcha)
+		// 站点全局配置
+		v3.GET("Site/Config", controllers.SiteConfig)
 
 		// 需要登录保护的
 		auth := v3.Group("")
