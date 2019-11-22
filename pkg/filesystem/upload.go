@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -79,8 +80,10 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 	select {
 	case <-ctx.Done():
 		// 客户端正常关闭，不执行操作
+		fmt.Println("正常")
 	case <-ginCtx.Request.Context().Done():
 		// 客户端取消了上传
+		fmt.Println("取消")
 		if fs.AfterUploadCanceled == nil {
 			return
 		}

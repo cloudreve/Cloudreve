@@ -2,8 +2,11 @@ package filesystem
 
 import (
 	"context"
+	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -82,13 +85,65 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 	asserts.NoError(err)
 }
 
-//func TestGenericAfterUpload(t *testing.T) {
-//	asserts := assert.New(t)
-//	testObj := FileSystem{}
-//	ctx := context.WithValue(context.Background(),FileHeaderCtx,local.FileStream{
-//		VirtualPath: "/我的文件",
-//		Name:        "test.txt",
-//	})
-//
-//
-//}
+func TestGenericAfterUpload(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{
+		User: &model.User{
+			Model: gorm.Model{
+				ID: 1,
+			},
+		},
+	}
+
+	ctx := context.WithValue(context.Background(), FileHeaderCtx, local.FileStream{
+		VirtualPath: "/我的文件",
+		Name:        "test.txt",
+	})
+	ctx = context.WithValue(ctx, SavePathCtx, "")
+
+	// 正常
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
+		mock.NewRows([]string{"name"}).AddRow("我的文件"),
+	)
+	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnError(errors.New("not found"))
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT(.+)files(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	err := GenericAfterUpload(ctx, &fs)
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 路径不存在
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
+		mock.NewRows([]string{"name"}),
+	)
+	err = GenericAfterUpload(ctx, &fs)
+	asserts.Equal(ErrPathNotExist, err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 文件已存在
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
+		mock.NewRows([]string{"name"}).AddRow("我的文件"),
+	)
+	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnRows(
+		mock.NewRows([]string{"name"}).AddRow("test.txt"),
+	)
+	err = GenericAfterUpload(ctx, &fs)
+	asserts.Equal(ErrFileExisted, err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 插入失败
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
+		mock.NewRows([]string{"name"}).AddRow("我的文件"),
+	)
+	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnError(errors.New("not found"))
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT(.+)files(.+)").WillReturnError(errors.New("error"))
+	mock.ExpectRollback()
+
+	err = GenericAfterUpload(ctx, &fs)
+	asserts.Equal(ErrInsertFileRecord, err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+}
