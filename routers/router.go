@@ -35,37 +35,37 @@ func InitRouter() *gin.Engine {
 	/*
 		路由
 	*/
-	v3 := r.Group("/Api/V3")
+	v3 := r.Group("/api/v3")
 	{
 		// 测试用路由
-		v3.GET("Site/Ping", controllers.Ping)
+		v3.GET("site/ping", controllers.Ping)
 		// 用户登录
-		v3.POST("User/Session", controllers.UserLogin)
+		v3.POST("user/session", controllers.UserLogin)
 		// 验证码
-		v3.GET("Captcha", controllers.Captcha)
+		v3.GET("captcha", controllers.Captcha)
 		// 站点全局配置
-		v3.GET("Site/Config", controllers.SiteConfig)
+		v3.GET("site/config", controllers.SiteConfig)
 
 		// 需要登录保护的
 		auth := v3.Group("")
 		auth.Use(middleware.AuthRequired())
 		{
 			// 用户
-			user := auth.Group("User")
+			user := auth.Group("user")
 			{
 				// 当前登录用户信息
-				user.GET("Me", controllers.UserMe)
+				user.GET("me", controllers.UserMe)
 			}
 
 			// 文件
-			file := auth.Group("File")
+			file := auth.Group("file")
 			{
 				// 文件上传
-				file.POST("Upload", controllers.FileUploadStream)
+				file.POST("upload", controllers.FileUploadStream)
 			}
 
 			// 目录
-			directory := auth.Group("Directory")
+			directory := auth.Group("directory")
 			{
 				// 文件上传
 				directory.PUT("", controllers.Ping)

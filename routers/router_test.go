@@ -21,7 +21,7 @@ func TestPing(t *testing.T) {
 	router := InitRouter()
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/Api/V3/Site/Ping", nil)
+	req, _ := http.NewRequest("GET", "/api/v3/site/ping", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
@@ -35,7 +35,7 @@ func TestCaptcha(t *testing.T) {
 
 	req, _ := http.NewRequest(
 		"GET",
-		"/Api/V3/Captcha",
+		"/api/v3/captcha",
 		nil,
 	)
 
@@ -146,7 +146,7 @@ func TestUserSession(t *testing.T) {
 		}
 		req, _ := http.NewRequest(
 			"POST",
-			"/Api/V3/User/Session",
+			"/api/v3/user/session",
 			bytes.NewReader([]byte(testCase.reqBody)),
 		)
 		router.ServeHTTP(w, req)
@@ -199,7 +199,7 @@ func TestSessionAuthCheck(t *testing.T) {
 	for _, testCase := range testCases {
 		req, _ := http.NewRequest(
 			"GET",
-			"/Api/V3/User/Me",
+			"/api/v3/user/me",
 			nil,
 		)
 		if testCase.userRows != nil {
@@ -227,7 +227,7 @@ func TestSiteConfigRoute(t *testing.T) {
 
 	req, _ := http.NewRequest(
 		"GET",
-		"/Api/V3/Site/Config",
+		"/api/v3/site/config",
 		nil,
 	)
 	router.ServeHTTP(w, req)
@@ -245,7 +245,7 @@ func TestSiteConfigRoute(t *testing.T) {
 
 	req, _ = http.NewRequest(
 		"GET",
-		"/Api/V3/Site/Config",
+		"/api/v3/site/config",
 		nil,
 	)
 	router.ServeHTTP(w, req)
