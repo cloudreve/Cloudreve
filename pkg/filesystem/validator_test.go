@@ -73,7 +73,6 @@ func TestFileSystem_ValidateFileSize(t *testing.T) {
 	asserts.True(fs.ValidateFileSize(ctx, 5))
 	asserts.True(fs.ValidateFileSize(ctx, 10))
 	asserts.False(fs.ValidateFileSize(ctx, 11))
-	asserts.False(fs.ValidateFileSize(ctx, 0))
 }
 
 func TestFileSystem_ValidateExtension(t *testing.T) {
