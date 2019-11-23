@@ -50,7 +50,7 @@ func InitRouter() *gin.Engine {
 		auth := v3.Group("")
 		auth.Use(middleware.AuthRequired())
 		{
-			// 用户类
+			// 用户
 			user := auth.Group("User")
 			{
 				// 当前登录用户信息
@@ -62,6 +62,13 @@ func InitRouter() *gin.Engine {
 			{
 				// 文件上传
 				file.POST("Upload", controllers.FileUploadStream)
+			}
+
+			// 目录
+			directory := auth.Group("Directory")
+			{
+				// 文件上传
+				directory.PUT("", controllers.Ping)
 			}
 
 		}

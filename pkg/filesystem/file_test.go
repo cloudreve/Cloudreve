@@ -12,7 +12,7 @@ import (
 
 func TestFileSystem_AddFile(t *testing.T) {
 	asserts := assert.New(t)
-	file := local.FileData{
+	file := local.FileStream{
 		Size: 5,
 		Name: "1.txt",
 	}

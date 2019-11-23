@@ -36,6 +36,7 @@ func TestFileSystem_ValidateLegalName(t *testing.T) {
 	asserts.False(fs.ValidateLegalName(ctx, "../11.txt"))
 	asserts.False(fs.ValidateLegalName(ctx, "/11.txt"))
 	asserts.False(fs.ValidateLegalName(ctx, "\\11.txt"))
+	asserts.False(fs.ValidateLegalName(ctx, ""))
 }
 
 func TestFileSystem_ValidateCapacity(t *testing.T) {
@@ -72,6 +73,7 @@ func TestFileSystem_ValidateFileSize(t *testing.T) {
 	asserts.True(fs.ValidateFileSize(ctx, 5))
 	asserts.True(fs.ValidateFileSize(ctx, 10))
 	asserts.False(fs.ValidateFileSize(ctx, 11))
+	asserts.False(fs.ValidateFileSize(ctx, 0))
 }
 
 func TestFileSystem_ValidateExtension(t *testing.T) {
