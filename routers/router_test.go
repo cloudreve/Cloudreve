@@ -2,14 +2,12 @@ package routers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/mojocn/base64Captcha"
 	"github.com/stretchr/testify/assert"
@@ -17,25 +15,6 @@ import (
 	"net/http/httptest"
 	"testing"
 )
-
-var mock sqlmock.Sqlmock
-
-// TestMain 初始化数据库Mock
-func TestMain(m *testing.M) {
-	// 设置gin为测试模式
-	gin.SetMode(gin.TestMode)
-
-	var db *sql.DB
-	var err error
-	db, mock, err = sqlmock.New()
-	if err != nil {
-		panic("An error was not expected when opening a stub database connection")
-	}
-	model.DB, _ = gorm.Open("mysql", db)
-	defer db.Close()
-
-	m.Run()
-}
 
 func TestPing(t *testing.T) {
 	asserts := assert.New(t)
@@ -238,4 +217,44 @@ func TestSessionAuthCheck(t *testing.T) {
 		w.Body.Reset()
 	}
 
+}
+
+func TestSiteConfigRoute(t *testing.T) {
+	switchToMemDB()
+	asserts := assert.New(t)
+	router := InitRouter()
+	w := httptest.NewRecorder()
+
+	req, _ := http.NewRequest(
+		"GET",
+		"/Api/V3/Site/Config",
+		nil,
+	)
+	router.ServeHTTP(w, req)
+	asserts.Equal(200, w.Code)
+	asserts.Contains(w.Body.String(), "Cloudreve")
+
+	w.Body.Reset()
+
+	// 消除无效值
+	model.DB.Model(&model.Setting{
+		Model: gorm.Model{
+			ID: 2,
+		},
+	}).UpdateColumn("name", "siteName_b")
+
+	req, _ = http.NewRequest(
+		"GET",
+		"/Api/V3/Site/Config",
+		nil,
+	)
+	router.ServeHTTP(w, req)
+	asserts.Equal(200, w.Code)
+	asserts.Contains(w.Body.String(), "\"title\":\"\"")
+
+	model.DB.Model(&model.Setting{
+		Model: gorm.Model{
+			ID: 2,
+		},
+	}).UpdateColumn("name", "siteName")
 }

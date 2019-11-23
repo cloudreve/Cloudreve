@@ -4,6 +4,7 @@ import (
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers/controllers"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,6 +16,14 @@ func InitRouter() *gin.Engine {
 		中间件
 	*/
 	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
+
+	// CORS TODO: 根据配置文件来
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
+		AllowHeaders:     []string{"X-PINGOTHER", "Content-Type"},
+		AllowCredentials: true,
+	}))
 
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {

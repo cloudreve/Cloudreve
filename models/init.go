@@ -45,7 +45,7 @@ func Init() {
 		return conf.DatabaseConfig.TablePrefix + defaultTableName
 	}
 
-	// Debug 模式下，输出所有 SQL 日志
+	// Debug模式下，输出所有 SQL 日志
 	if conf.SystemConfig.Debug {
 		db.LogMode(true)
 	}

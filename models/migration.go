@@ -3,6 +3,7 @@ package model
 import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/mcuadros/go-version"
 	"io/ioutil"
@@ -11,8 +12,8 @@ import (
 //执行数据迁移
 func migration() {
 	// 检查 version.lock 确认是否需要执行迁移
-	// Debug 模式下一定会执行迁移
-	if !conf.SystemConfig.Debug {
+	// Debug 模式及测试模式下一定会执行迁移
+	if !conf.SystemConfig.Debug && gin.Mode() != gin.TestMode {
 		if util.Exists("version.lock") {
 			versionLock, _ := ioutil.ReadFile("version.lock")
 			if version.Compare(string(versionLock), conf.BackendVersion, "=") {
@@ -47,6 +48,8 @@ func migration() {
 	if err != nil {
 		util.Log().Warning("无法写入版本控制锁 version.lock, %s", err)
 	}
+
+	util.Log().Info("数据库自动迁移结束")
 
 }
 
