@@ -11,10 +11,10 @@ type File struct {
 	gorm.Model
 	Name       string
 	SourceName string
-	UserID     uint
+	UserID     uint `gorm:"index:user_id"`
 	Size       uint64
 	PicInfo    string
-	FolderID   uint
+	FolderID   uint `gorm:"index:folder_id"`
 	PolicyID   uint
 	Dir        string `gorm:"size:65536"`
 }

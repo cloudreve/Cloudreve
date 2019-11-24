@@ -67,8 +67,8 @@ func InitRouter() *gin.Engine {
 			// 目录
 			directory := auth.Group("directory")
 			{
-				// 文件上传
-				directory.PUT("", controllers.Ping)
+				// 创建目录
+				directory.PUT("", controllers.CreateDirectory)
 			}
 
 		}
