@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -38,6 +39,30 @@ func TestFile_Create(t *testing.T) {
 	mock.ExpectRollback()
 	fileID, err = file.Create()
 	asserts.Error(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+}
+
+func TestFolder_GetChildFile(t *testing.T) {
+	asserts := assert.New(t)
+	folder := &Folder{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}
+
+	// 找不到
+	mock.ExpectQuery("SELECT(.+)folder_id(.+)").WithArgs(1).WillReturnError(errors.New("error"))
+	files, err := folder.GetChildFile()
+	asserts.Error(err)
+	asserts.Len(files, 0)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 找到了
+	mock.ExpectQuery("SELECT(.+)folder_id(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"name", "id"}).AddRow("1.txt", 1).AddRow("2.txt", 2))
+	files, err = folder.GetChildFile()
+	asserts.NoError(err)
+	asserts.Len(files, 2)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 }

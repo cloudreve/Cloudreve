@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"errors"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/gin-gonic/gin"
@@ -78,7 +79,10 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 // NewFileSystemFromContext 从gin.Context创建文件系统
 // TODO:test
 func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
-	user, _ := c.Get("user")
+	user, exist := c.Get("user")
+	if !exist {
+		return nil, errors.New("无法找到用户")
+	}
 	fs, err := NewFileSystem(user.(*model.User))
 	return fs, err
 }

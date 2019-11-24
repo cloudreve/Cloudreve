@@ -16,7 +16,7 @@ type Folder struct {
 	PositionAbsolute string `gorm:"size:65536"`
 }
 
-// Create 创建目录 TODO:test
+// Create 创建目录
 func (folder *Folder) Create() (uint, error) {
 	if err := DB.Create(folder).Error; err != nil {
 		util.Log().Warning("无法插入目录记录, %s", err)
@@ -32,7 +32,7 @@ func GetFolderByPath(path string, uid uint) (Folder, error) {
 	return folder, result.Error
 }
 
-// GetChildFolder 查找子目录 TODO:test
+// GetChildFolder 查找子目录
 func (folder *Folder) GetChildFolder() ([]Folder, error) {
 	var folders []Folder
 	result := DB.Where("parent_id = ?", folder.ID).Find(&folders)

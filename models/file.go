@@ -35,7 +35,7 @@ func GetFileByPathAndName(path string, name string, uid uint) (File, error) {
 	return file, result.Error
 }
 
-// GetChildFile 查找目录下子文件 TODO:test
+// GetChildFile 查找目录下子文件
 func (folder *Folder) GetChildFile() ([]File, error) {
 	var files []File
 	result := DB.Where("folder_id = ?", folder.ID).Find(&files)

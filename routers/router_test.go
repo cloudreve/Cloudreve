@@ -258,3 +258,41 @@ func TestSiteConfigRoute(t *testing.T) {
 		},
 	}).UpdateColumn("name", "siteName")
 }
+
+func TestListDirectoryRoute(t *testing.T) {
+	switchToMemDB()
+	asserts := assert.New(t)
+	router := InitRouter()
+	w := httptest.NewRecorder()
+
+	// 成功
+	req, _ := http.NewRequest(
+		"GET",
+		"/api/v3/directory?path=/",
+		nil,
+	)
+	middleware.SessionMock = map[string]interface{}{"user_id": 1}
+	router.ServeHTTP(w, req)
+	asserts.Equal(200, w.Code)
+	resJSON := &serializer.Response{}
+	err := json.Unmarshal(w.Body.Bytes(), resJSON)
+	asserts.NoError(err)
+	asserts.Equal(0, resJSON.Code)
+
+	w.Body.Reset()
+
+	// 缺少参数
+	req, _ = http.NewRequest(
+		"GET",
+		"/api/v3/directory",
+		nil,
+	)
+	middleware.SessionMock = map[string]interface{}{"user_id": 1}
+	router.ServeHTTP(w, req)
+	asserts.Equal(200, w.Code)
+	resJSON = &serializer.Response{}
+	err = json.Unmarshal(w.Body.Bytes(), resJSON)
+	asserts.NoError(err)
+	asserts.NotEqual(0, resJSON.Code)
+
+}

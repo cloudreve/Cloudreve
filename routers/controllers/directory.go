@@ -19,7 +19,7 @@ func CreateDirectory(c *gin.Context) {
 // ListDirectory 列出目录下内容
 func ListDirectory(c *gin.Context) {
 	var service explorer.DirectoryService
-	if err := c.ShouldBindJSON(&service); err == nil {
+	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.ListDirectory(c)
 		c.JSON(200, res)
 	} else {

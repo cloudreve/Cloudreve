@@ -19,9 +19,13 @@ type Object struct {
 	Pic  string `json:"pic"`
 	Size uint64 `json:"size"`
 	Type string `json:"type"`
+	Date string `json:"date"`
 }
 
-// List 列出路径下的内容
+// List 列出路径下的内容,
+// pathProcessor为最终对象路径的处理钩子。
+// 有些情况下（如在分享页面列对象）时，
+// 路径需要截取掉被分享目录路径之前的部分。
 func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(string) string) ([]Object, error) {
 	// 获取父目录
 	isExist, folder := fs.IsPathExist(path)
@@ -58,6 +62,7 @@ func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(
 			Pic:  "",
 			Size: 0,
 			Type: "dir",
+			Date: folder.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
@@ -77,13 +82,14 @@ func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(
 			Pic:  file.PicInfo,
 			Size: file.Size,
 			Type: "file",
+			Date: file.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
 	return objects, nil
 }
 
-// CreateDirectory 在`base`路径下创建名为`dir`的目录 TODO: test
+// CreateDirectory 根据给定的完整创建目录，不会递归创建
 func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) error {
 	// 获取要创建目录的父路径和目录名
 	fullPath = path.Clean(fullPath)
