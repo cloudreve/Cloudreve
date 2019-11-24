@@ -31,6 +31,13 @@ func (file *File) Create() (uint, error) {
 // GetFileByPathAndName 给定路径、文件名、用户ID，查找文件
 func GetFileByPathAndName(path string, name string, uid uint) (File, error) {
 	var file File
-	result := DB.Where("user_id = ? AND dir = ? AND name=?", uid, path, name).Find(&file)
+	result := DB.Where("user_id = ? AND dir = ? AND name=?", uid, path, name).First(&file)
 	return file, result.Error
+}
+
+// GetChildFile 查找目录下子文件 TODO:test
+func (folder *Folder) GetChildFile() ([]File, error) {
+	var files []File
+	result := DB.Where("folder_id = ?", folder.ID).Find(&files)
+	return files, result.Error
 }

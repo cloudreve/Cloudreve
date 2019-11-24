@@ -37,10 +37,9 @@ func FileUploadStream(c *gin.Context) {
 		Name:        c.Request.Header.Get("X-FileName"),
 		VirtualPath: util.DotPathToStandardPath(c.Request.Header.Get("X-Path")),
 	}
-	user, _ := c.Get("user")
 
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(user.(*model.User))
+	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return

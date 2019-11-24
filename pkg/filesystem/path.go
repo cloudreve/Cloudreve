@@ -11,7 +11,79 @@ import (
    =================
 */
 
-// CreateDirectory 在`base`路径下创建名为`dir`的目录
+// Object 文件或者目录
+type Object struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+	Pic  string `json:"pic"`
+	Size uint64 `json:"size"`
+	Type string `json:"type"`
+}
+
+// List 列出路径下的内容
+func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(string) string) ([]Object, error) {
+	// 获取父目录
+	isExist, folder := fs.IsPathExist(path)
+	// 不存在时返回空的结果
+	if !isExist {
+		return nil, nil
+	}
+
+	// 获取子目录
+	childFolders, _ := folder.GetChildFolder()
+	// 获取子文件
+	childFiles, _ := folder.GetChildFile()
+
+	// 汇总处理结果
+	objects := make([]Object, 0, len(childFiles)+len(childFolders))
+	// 所有对象的父目录
+	var processedPath string
+
+	for _, folder := range childFolders {
+		// 路径处理钩子，
+		// 所有对象父目录都是一样的，所以只处理一次
+		if processedPath == "" {
+			if pathProcessor != nil {
+				processedPath = pathProcessor(folder.Position)
+			} else {
+				processedPath = folder.Position
+			}
+		}
+
+		objects = append(objects, Object{
+			ID:   folder.ID,
+			Name: folder.Name,
+			Path: processedPath,
+			Pic:  "",
+			Size: 0,
+			Type: "dir",
+		})
+	}
+
+	for _, file := range childFiles {
+		if processedPath == "" {
+			if pathProcessor != nil {
+				processedPath = pathProcessor(file.Dir)
+			} else {
+				processedPath = file.Dir
+			}
+		}
+
+		objects = append(objects, Object{
+			ID:   file.ID,
+			Name: file.Name,
+			Path: processedPath,
+			Pic:  file.PicInfo,
+			Size: file.Size,
+			Type: "file",
+		})
+	}
+
+	return objects, nil
+}
+
+// CreateDirectory 在`base`路径下创建名为`dir`的目录 TODO: test
 func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) error {
 	// 获取要创建目录的父路径和目录名
 	fullPath = path.Clean(fullPath)

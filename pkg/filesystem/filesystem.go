@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/gin-gonic/gin"
 	testMock "github.com/stretchr/testify/mock"
 	"io"
 )
@@ -72,4 +73,12 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 		User:    user,
 		Handler: handler,
 	}, nil
+}
+
+// NewFileSystemFromContext 从gin.Context创建文件系统
+// TODO:test
+func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
+	user, _ := c.Get("user")
+	fs, err := NewFileSystem(user.(*model.User))
+	return fs, err
 }

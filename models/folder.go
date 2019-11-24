@@ -16,7 +16,7 @@ type Folder struct {
 	PositionAbsolute string `gorm:"size:65536"`
 }
 
-// Create 创建目录
+// Create 创建目录 TODO:test
 func (folder *Folder) Create() (uint, error) {
 	if err := DB.Create(folder).Error; err != nil {
 		util.Log().Warning("无法插入目录记录, %s", err)
@@ -28,6 +28,13 @@ func (folder *Folder) Create() (uint, error) {
 // GetFolderByPath 根据绝对路径和UID查找目录
 func GetFolderByPath(path string, uid uint) (Folder, error) {
 	var folder Folder
-	result := DB.Where("owner_id = ? AND position_absolute = ?", uid, path).Find(&folder)
+	result := DB.Where("owner_id = ? AND position_absolute = ?", uid, path).First(&folder)
 	return folder, result.Error
+}
+
+// GetChildFolder 查找子目录 TODO:test
+func (folder *Folder) GetChildFolder() ([]Folder, error) {
+	var folders []Folder
+	result := DB.Where("parent_id = ?", folder.ID).Find(&folders)
+	return folders, result.Error
 }

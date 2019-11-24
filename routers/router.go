@@ -69,6 +69,8 @@ func InitRouter() *gin.Engine {
 			{
 				// 创建目录
 				directory.PUT("", controllers.CreateDirectory)
+				// 列出目录下内容
+				directory.GET("", controllers.ListDirectory)
 			}
 
 		}
