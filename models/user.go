@@ -52,6 +52,7 @@ type UserOption struct {
 	ProfileOn       int    `json:"profile_on"`
 	PreferredPolicy uint   `json:"preferred_policy"`
 	WebDAVKey       string `json:"webdav_key"`
+	PreferredTheme  string `json:"preferred_theme"`
 }
 
 // DeductionStorage 减少用户已用容量

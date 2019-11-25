@@ -15,12 +15,12 @@ func TestCheckSettingValue(t *testing.T) {
 func TestBuildSiteConfig(t *testing.T) {
 	asserts := assert.New(t)
 
-	res := BuildSiteConfig(map[string]string{"not exist": ""})
+	res := BuildSiteConfig(map[string]string{"not exist": ""}, nil)
 	asserts.Equal("", res.Data.(SiteConfig).SiteName)
 
-	res = BuildSiteConfig(map[string]string{"siteName": "123"})
+	res = BuildSiteConfig(map[string]string{"siteName": "123"}, nil)
 	asserts.Equal("123", res.Data.(SiteConfig).SiteName)
 
-	res = BuildSiteConfig(map[string]string{"qq_login": "1"})
+	res = BuildSiteConfig(map[string]string{"qq_login": "1"}, nil)
 	asserts.Equal(true, res.Data.(SiteConfig).QQLogin)
 }

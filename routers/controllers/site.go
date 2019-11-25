@@ -23,7 +23,14 @@ func SiteConfig(c *gin.Context) {
 		"defaultTheme",
 	})
 
-	c.JSON(200, serializer.BuildSiteConfig(siteConfig))
+	// 如果已登录，则同时返回用户信息
+	user, _ := c.Get("user")
+	if user, ok := user.(*model.User); ok {
+		c.JSON(200, serializer.BuildSiteConfig(siteConfig, user))
+		return
+	}
+
+	c.JSON(200, serializer.BuildSiteConfig(siteConfig, nil))
 }
 
 // Ping 状态检查页面

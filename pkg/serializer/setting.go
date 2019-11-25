@@ -12,6 +12,7 @@ type SiteConfig struct {
 	QQLogin       bool   `json:"QQLogin"`
 	Themes        string `json:"themes"`
 	DefaultTheme  string `json:"defaultTheme"`
+	User          User   `json:"user"`
 }
 
 func checkSettingValue(setting map[string]string, key string) string {
@@ -22,7 +23,11 @@ func checkSettingValue(setting map[string]string, key string) string {
 }
 
 // BuildSiteConfig 站点全局设置
-func BuildSiteConfig(settings map[string]string) Response {
+func BuildSiteConfig(settings map[string]string, user *model.User) Response {
+	var userRes User
+	if user != nil {
+		userRes = BuildUser(*user)
+	}
 	return Response{
 		Data: SiteConfig{
 			SiteName:      checkSettingValue(settings, "siteName"),
@@ -33,5 +38,6 @@ func BuildSiteConfig(settings map[string]string) Response {
 			QQLogin:       model.IsTrueVal(checkSettingValue(settings, "qq_login")),
 			Themes:        checkSettingValue(settings, "themes"),
 			DefaultTheme:  checkSettingValue(settings, "defaultTheme"),
+			User:          userRes,
 		}}
 }

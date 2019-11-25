@@ -1,6 +1,9 @@
 package serializer
 
-import "github.com/HFO4/cloudreve/models"
+import (
+	"fmt"
+	"github.com/HFO4/cloudreve/models"
+)
 
 // CheckLogin 检查登录
 func CheckLogin() Response {
@@ -12,23 +15,28 @@ func CheckLogin() Response {
 
 // User 用户序列化器
 type User struct {
-	ID        uint   `json:"id"`
-	Email     string `json:"user_name"`
-	Nickname  string `json:"nickname"`
-	Status    int    `json:"status"`
-	Avatar    string `json:"avatar"`
-	CreatedAt int64  `json:"created_at"`
+	ID             uint   `json:"id"`
+	Email          string `json:"user_name"`
+	Nickname       string `json:"nickname"`
+	Status         int    `json:"status"`
+	Avatar         string `json:"avatar"`
+	CreatedAt      int64  `json:"created_at"`
+	PreferredTheme string `json:"preferred_theme"`
+	Policy         struct {
+	} `json:"policy"`
 }
 
 // BuildUser 序列化用户
 func BuildUser(user model.User) User {
+	fmt.Println(user)
 	return User{
-		ID:        user.ID,
-		Email:     user.Email,
-		Nickname:  user.Nick,
-		Status:    user.Status,
-		Avatar:    user.Avatar,
-		CreatedAt: user.CreatedAt.Unix(),
+		ID:             user.ID,
+		Email:          user.Email,
+		Nickname:       user.Nick,
+		Status:         user.Status,
+		Avatar:         user.Avatar,
+		CreatedAt:      user.CreatedAt.Unix(),
+		PreferredTheme: user.OptionsSerialized.PreferredTheme,
 	}
 }
 
