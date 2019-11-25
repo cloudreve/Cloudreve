@@ -21,7 +21,7 @@ func InitRouter() *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
-		AllowHeaders:     []string{"X-PINGOTHER", "Content-Type"},
+		AllowHeaders:     []string{"Content-Length", "Content-Type", "X-Path", "X-FileName"},
 		AllowCredentials: true,
 	}))
 

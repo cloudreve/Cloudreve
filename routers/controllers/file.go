@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"net/url"
 	"strconv"
 )
 
@@ -30,12 +31,20 @@ func FileUploadStream(c *gin.Context) {
 		return
 	}
 
+	// 解码文件名和路径
+	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-FileName"))
+	filePath, err := url.QueryUnescape(c.Request.Header.Get("X-Path"))
+	if err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
 	fileData := local.FileStream{
 		MIMEType:    c.Request.Header.Get("Content-Type"),
 		File:        c.Request.Body,
 		Size:        fileSize,
-		Name:        c.Request.Header.Get("X-FileName"),
-		VirtualPath: util.DotPathToStandardPath(c.Request.Header.Get("X-Path")),
+		Name:        fileName,
+		VirtualPath: util.DotPathToStandardPath(filePath),
 	}
 
 	// 创建文件系统

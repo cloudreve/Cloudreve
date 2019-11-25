@@ -38,7 +38,6 @@ type PolicyOption struct {
 	OPPassword           string   `json:"op_pwd"`
 	FileType             []string `json:"file_type"`
 	MimeType             string   `json:"mimetype"`
-	SpeedLimit           int      `json:"speed_limit"`
 	RangeTransferEnabled bool     `json:"range_transfer_enabled"`
 }
 
@@ -53,6 +52,9 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 func (policy *Policy) AfterFind() (err error) {
 	// 解析上传策略设置到OptionsSerialized
 	err = json.Unmarshal([]byte(policy.Options), &policy.OptionsSerialized)
+	if policy.OptionsSerialized.FileType == nil {
+		policy.OptionsSerialized.FileType = []string{}
+	}
 	return err
 }
 

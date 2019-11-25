@@ -1,6 +1,8 @@
 package serializer
 
 import (
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -23,4 +25,13 @@ func TestBuildSiteConfig(t *testing.T) {
 
 	res = BuildSiteConfig(map[string]string{"qq_login": "1"}, nil)
 	asserts.Equal(true, res.Data.(SiteConfig).QQLogin)
+	asserts.Equal(uint(0), res.Data.(SiteConfig).User.ID)
+
+	// 非空用户
+	res = BuildSiteConfig(map[string]string{"qq_login": "1"}, &model.User{
+		Model: gorm.Model{
+			ID: 5,
+		},
+	})
+	asserts.Equal(uint(5), res.Data.(SiteConfig).User.ID)
 }

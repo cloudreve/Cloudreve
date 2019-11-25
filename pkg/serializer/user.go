@@ -22,8 +22,21 @@ type User struct {
 	Avatar         string `json:"avatar"`
 	CreatedAt      int64  `json:"created_at"`
 	PreferredTheme string `json:"preferred_theme"`
-	Policy         struct {
-	} `json:"policy"`
+	Policy         Policy `json:"policy"`
+	Group          Group  `json:"group"`
+}
+
+type Policy struct {
+	SaveType    string   `json:"saveType"`
+	MaxSize     string   `json:"maxSize"`
+	AllowedType []string `json:"allowedType"`
+	UploadURL   string   `json:"upUrl"`
+}
+
+type Group struct {
+	AllowShare           bool `json:"allowShare"`
+	AllowRemoteDownload  bool `json:"allowRemoteDownload"`
+	AllowTorrentDownload bool `json:"allowTorrentDownload"`
 }
 
 // BuildUser 序列化用户
@@ -37,6 +50,17 @@ func BuildUser(user model.User) User {
 		Avatar:         user.Avatar,
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
+		Policy: Policy{
+			SaveType:    user.Policy.Type,
+			MaxSize:     fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/1024*1024),
+			AllowedType: user.Policy.OptionsSerialized.FileType,
+			UploadURL:   user.Policy.Server,
+		},
+		Group: Group{
+			AllowShare:           user.Group.ShareEnabled,
+			AllowRemoteDownload:  user.Group.Aria2Option[0] == '1',
+			AllowTorrentDownload: user.Group.Aria2Option[2] == '1',
+		},
 	}
 }
 

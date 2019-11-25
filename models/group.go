@@ -15,6 +15,7 @@ type Group struct {
 	WebDAVEnabled bool
 	Aria2Option   string
 	Color         string
+	SpeedLimit    int
 
 	// 数据库忽略字段
 	PolicyList []uint `gorm:"-"`
