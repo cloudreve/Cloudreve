@@ -17,6 +17,9 @@ type File struct {
 	FolderID   uint `gorm:"index:folder_id"`
 	PolicyID   uint
 	Dir        string `gorm:"size:65536"`
+
+	// 关联模型
+	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 }
 
 // Create 创建文件记录
@@ -40,4 +43,13 @@ func (folder *Folder) GetChildFile() ([]File, error) {
 	var files []File
 	result := DB.Where("folder_id = ?", folder.ID).Find(&files)
 	return files, result.Error
+}
+
+// GetPolicy 获取文件所属策略
+// TODO:test
+func (file *File) GetPolicy() *Policy {
+	if file.Policy.Model.ID == 0 {
+		file.Policy, _ = GetPolicyByID(file.PolicyID)
+	}
+	return &file.Policy
 }

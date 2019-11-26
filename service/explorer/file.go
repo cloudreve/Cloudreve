@@ -18,9 +18,10 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
-
 	}
 
+	// 开始处理下载
+	ctx = context.WithValue(ctx, filesystem.GinCtx, c)
 	_, err = fs.Download(ctx, service.Path)
 
 	if err != nil {

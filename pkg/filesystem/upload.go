@@ -44,7 +44,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		followUpErr := fs.Trigger(ctx, fs.AfterValidateFailed)
 		// 失败后再失败...
 		if followUpErr != nil {
-			util.Log().Warning("AfterValidateFailed 钩子执行失败，%s", followUpErr)
+			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", followUpErr)
 		}
 
 		return err
@@ -85,7 +85,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 		ctx = context.WithValue(ctx, SavePathCtx, path)
 		err := fs.Trigger(ctx, fs.AfterUploadCanceled)
 		if err != nil {
-			util.Log().Warning("执行 AfterUploadCanceled 钩子出错，%s", err)
+			util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
 		}
 	}
 }

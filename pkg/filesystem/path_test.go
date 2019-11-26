@@ -21,7 +21,7 @@ func TestFileSystem_IsFileExist(t *testing.T) {
 	mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/s", "1.txt").WillReturnRows(
 		sqlmock.NewRows([]string{"Name"}).AddRow("s"),
 	)
-	testResult := fs.IsFileExist("/s/1.txt")
+	testResult, _ := fs.IsFileExist("/s/1.txt")
 	asserts.True(testResult)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -29,7 +29,7 @@ func TestFileSystem_IsFileExist(t *testing.T) {
 	mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/ss/dfsd", "1.txt").WillReturnRows(
 		sqlmock.NewRows([]string{"Name"}),
 	)
-	testResult = fs.IsFileExist("/ss/dfsd/1.txt")
+	testResult, _ = fs.IsFileExist("/ss/dfsd/1.txt")
 	asserts.False(testResult)
 	asserts.NoError(mock.ExpectationsWereMet())
 }

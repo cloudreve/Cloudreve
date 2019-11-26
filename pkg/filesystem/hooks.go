@@ -21,6 +21,8 @@ func (fs *FileSystem) Use(name string, hook Hook) {
 		fs.AfterValidateFailed = append(fs.AfterValidateFailed, hook)
 	case "AfterUploadCanceled":
 		fs.AfterUploadCanceled = append(fs.AfterUploadCanceled, hook)
+	case "BeforeFileDownload":
+		fs.BeforeFileDownload = append(fs.BeforeFileDownload, hook)
 	}
 }
 
@@ -35,6 +37,15 @@ func (fs *FileSystem) Trigger(ctx context.Context, hooks []Hook) error {
 		}
 	}
 	return nil
+}
+
+// HookIsFileExist 检查虚拟路径文件是否存在
+func HookIsFileExist(ctx context.Context, fs *FileSystem) error {
+	filePath := ctx.Value(PathCtx).(string)
+	if ok, _ := fs.IsFileExist(filePath); ok {
+		return nil
+	}
+	return ErrObjectNotExist
 }
 
 // HookValidateFile 一系列对文件检验的集合
@@ -107,10 +118,10 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 
 	// 检查文件是否存在
-	if fs.IsFileExist(path.Join(
+	if ok, _ := fs.IsFileExist(path.Join(
 		virtualPath,
 		ctx.Value(FileHeaderCtx).(FileHeader).GetFileName(),
-	)) {
+	)); ok {
 		return ErrFileExisted
 	}
 

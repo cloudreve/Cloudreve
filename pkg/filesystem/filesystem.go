@@ -29,10 +29,10 @@ type Handler interface {
 
 // FileSystem 管理文件的文件系统
 type FileSystem struct {
-	/*
-	   文件系统所有者
-	*/
+	// 文件系统所有者
 	User *model.User
+	// 操作文件使用的上传策略
+	Policy *model.Policy
 
 	/*
 	   钩子函数
@@ -45,6 +45,8 @@ type FileSystem struct {
 	AfterValidateFailed []Hook
 	// 用户取消上传后
 	AfterUploadCanceled []Hook
+	// 文件下载前
+	BeforeFileDownload []Hook
 
 	/*
 	   文件系统处理适配器
@@ -54,21 +56,36 @@ type FileSystem struct {
 
 // NewFileSystem 初始化一个文件系统
 func NewFileSystem(user *model.User) (*FileSystem, error) {
-	var handler Handler
-
-	// 根据存储策略类型分配适配器
-	switch user.Policy.Type {
-	case "local":
-		handler = local.Handler{}
-	default:
-		return nil, ErrUnknownPolicyType
+	fs := &FileSystem{
+		User: user,
 	}
 
+	// 分配存储策略适配器
+	err := fs.dispatchHandler()
+
 	// TODO 分配默认钩子
-	return &FileSystem{
-		User:    user,
-		Handler: handler,
-	}, nil
+	return fs, err
+}
+
+// dispatchHandler 根据存储策略分配文件适配器
+// TODO: 测试
+func (fs *FileSystem) dispatchHandler() error {
+	var policyType string
+	if fs.Policy == nil {
+		// 如果没有具体指定，就是用用户当前存储策略
+		policyType = fs.User.Policy.Type
+	} else {
+		policyType = fs.Policy.Type
+	}
+
+	// 根据存储策略类型分配适配器
+	switch policyType {
+	case "local":
+		fs.Handler = local.Handler{}
+		return nil
+	default:
+		return ErrUnknownPolicyType
+	}
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统

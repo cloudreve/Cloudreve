@@ -108,7 +108,7 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	}
 
 	// 是否有同名文件
-	if fs.IsFileExist(path.Join(base, dir)) {
+	if ok, _ := fs.IsFileExist(path.Join(base, dir)); ok {
 		return ErrFileExisted
 	}
 
@@ -133,11 +133,11 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 }
 
 // IsFileExist 返回给定路径的文件是否存在
-func (fs *FileSystem) IsFileExist(fullPath string) bool {
+func (fs *FileSystem) IsFileExist(fullPath string) (bool, model.File) {
 	basePath := path.Dir(fullPath)
 	fileName := path.Base(fullPath)
 
-	_, err := model.GetFileByPathAndName(basePath, fileName, fs.User.ID)
+	file, err := model.GetFileByPathAndName(basePath, fileName, fs.User.ID)
 
-	return err == nil
+	return err == nil, file
 }
