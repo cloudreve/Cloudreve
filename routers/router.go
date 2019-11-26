@@ -62,6 +62,8 @@ func InitRouter() *gin.Engine {
 			{
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
+				// 下载文件
+				file.GET("", controllers.Download)
 			}
 
 			// 目录

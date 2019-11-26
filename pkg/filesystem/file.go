@@ -2,7 +2,10 @@ package filesystem
 
 import (
 	"context"
+	"errors"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"io"
 )
 
 /* ============
@@ -31,4 +34,9 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 	}
 
 	return &newFile, nil
+}
+
+// Download 处理下载文件请求
+func (fs *FileSystem) Download(ctx context.Context, path string) (io.ReadCloser, error) {
+	return nil, serializer.NewError(serializer.CodeEncryptError, "人都的", errors.New("不是人都的"))
 }

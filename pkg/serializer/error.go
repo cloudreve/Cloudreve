@@ -10,6 +10,27 @@ type Response struct {
 	Error string      `json:"error,omitempty"`
 }
 
+// AppError 应用错误，实现了error接口
+type AppError struct {
+	Code     int
+	Msg      string
+	RawError error
+}
+
+// NewError 返回新的错误对象 todo:测试 还有下面的
+func NewError(code int, msg string, err error) AppError {
+	return AppError{
+		Code:     code,
+		Msg:      msg,
+		RawError: err,
+	}
+}
+
+// Error 返回业务代码确定的可读错误信息
+func (err AppError) Error() string {
+	return err.Msg
+}
+
 // 三位数错误编码为复用http原本含义
 // 五位数错误编码为应用自定义错误
 // 五开头的五位数错误编码为服务器端错误，比如数据库操作失败
@@ -33,6 +54,8 @@ const (
 	CodeIOFailed = 50004
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
+	// CodeNotSet 未定错误，后续尝试从error中获取
+	CodeNotSet = -1
 )
 
 // DBErr 数据库操作失败
@@ -53,6 +76,13 @@ func ParamErr(msg string, err error) Response {
 
 // Err 通用错误处理
 func Err(errCode int, msg string, err error) Response {
+	// 如果错误code未定，则尝试从AppError中获取
+	if errCode == CodeNotSet {
+		if appError, ok := err.(AppError); ok {
+			errCode = appError.Code
+			err = appError.RawError
+		}
+	}
 	res := Response{
 		Code: errCode,
 		Msg:  msg,

@@ -7,10 +7,26 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
 	"net/url"
 	"strconv"
 )
+
+// Download 文件下载
+func Download(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.FileDownloadService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Download(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
 
 // FileUploadStream 本地策略流式上传
 func FileUploadStream(c *gin.Context) {
