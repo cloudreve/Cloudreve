@@ -34,7 +34,7 @@ func TestHandler_Put(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		err := handler.Put(ctx, testCase.file, testCase.dst)
+		err := handler.Put(ctx, testCase.file, testCase.dst, 15)
 		if testCase.err {
 			asserts.Error(err)
 		} else {

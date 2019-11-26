@@ -55,10 +55,13 @@ func FileUploadStream(c *gin.Context) {
 	}
 
 	// 给文件系统分配钩子
-	fs.BeforeUpload = filesystem.GenericBeforeUpload
-	fs.AfterUploadCanceled = filesystem.GenericAfterUploadCanceled
-	fs.AfterUpload = filesystem.GenericAfterUpload
-	fs.AfterValidateFailed = filesystem.GenericAfterUploadCanceled
+	fs.Use("BeforeUpload", filesystem.HookValidateFile)
+	fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
+	fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
+	fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterUpload", filesystem.GenericAfterUpload)
+	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
+	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
 	uploadCtx := context.WithValue(ctx, filesystem.GinCtx, c)

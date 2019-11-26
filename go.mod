@@ -14,6 +14,7 @@ require (
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/pkg/errors v0.8.0
+	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.4.0
 	gopkg.in/go-playground/validator.v8 v8.18.2

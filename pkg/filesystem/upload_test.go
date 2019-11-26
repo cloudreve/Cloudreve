@@ -19,7 +19,7 @@ type FileHeaderMock struct {
 	testMock.Mock
 }
 
-func (m FileHeaderMock) Put(ctx context.Context, file io.ReadCloser, dst string) error {
+func (m FileHeaderMock) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	args := m.Called(ctx, file, dst)
 	return args.Error(0)
 }
@@ -61,9 +61,9 @@ func TestFileSystem_Upload(t *testing.T) {
 	asserts.NoError(err)
 
 	// BeforeUpload 返回错误
-	fs.BeforeUpload = func(ctx context.Context, fs *FileSystem) error {
+	fs.Use("BeforeUpload", func(ctx context.Context, fs *FileSystem) error {
 		return errors.New("error")
-	}
+	})
 	err = fs.Upload(ctx, file)
 	asserts.Error(err)
 	fs.BeforeUpload = nil

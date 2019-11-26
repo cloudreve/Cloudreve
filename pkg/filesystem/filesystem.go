@@ -6,7 +6,6 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/gin-gonic/gin"
-	testMock "github.com/stretchr/testify/mock"
 	"io"
 )
 
@@ -23,17 +22,13 @@ type FileHeader interface {
 // Handler 存储策略适配器
 type Handler interface {
 	// 上传文件
-	Put(ctx context.Context, file io.ReadCloser, dst string) error
+	Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error
 	// 删除一个或多个文件
 	Delete(ctx context.Context, files []string) ([]string, error)
 }
 
 // FileSystem 管理文件的文件系统
 type FileSystem struct {
-	/*
-		测试用
-	*/
-	testMock.Mock
 	/*
 	   文件系统所有者
 	*/
@@ -43,13 +38,13 @@ type FileSystem struct {
 	   钩子函数
 	*/
 	// 上传文件前
-	BeforeUpload func(ctx context.Context, fs *FileSystem) error
+	BeforeUpload []Hook
 	// 上传文件后
-	AfterUpload func(ctx context.Context, fs *FileSystem) error
+	AfterUpload []Hook
 	// 文件保存成功，插入数据库验证失败后
-	AfterValidateFailed func(ctx context.Context, fs *FileSystem) error
+	AfterValidateFailed []Hook
 	// 用户取消上传后
-	AfterUploadCanceled func(ctx context.Context, fs *FileSystem) error
+	AfterUploadCanceled []Hook
 
 	/*
 	   文件系统处理适配器
@@ -77,7 +72,6 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统
-// TODO:test
 func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 	user, exist := c.Get("user")
 	if !exist {

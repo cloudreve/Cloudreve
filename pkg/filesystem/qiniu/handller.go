@@ -1,11 +1,14 @@
-package local
+package qiniu
 
 import (
 	"context"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"os"
-	"path/filepath"
+
+	"github.com/qiniu/api.v7/v7/auth"
+	"github.com/qiniu/api.v7/v7/storage"
 )
 
 // Handler 本地策略适配器
@@ -13,29 +16,31 @@ type Handler struct{}
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+	// 凭证生成
+	putPolicy := storage.PutPolicy{
+		Scope: "cloudrevetest",
+	}
+	mac := auth.New("YNzTBBpDUq4EEiFV0-vyJCZCJ0LvUEI0_WvxtEXE", "Clm9d9M2CH7pZ8vm049ZlGZStQxrRQVRTjU_T5_0")
+	upToken := putPolicy.UploadToken(mac)
+
+	cfg := storage.Config{}
+	// 空间对应的机房
+	cfg.Zone = &storage.ZoneHuadong
+	formUploader := storage.NewFormUploader(&cfg)
+	ret := storage.PutRet{}
+	putExtra := storage.PutExtra{
+		Params: map[string]string{},
+	}
+
 	defer file.Close()
 
-	// 如果目标目录不存在，创建
-	basePath := filepath.Dir(dst)
-	if !util.Exists(basePath) {
-		err := os.MkdirAll(basePath, 0700)
-		if err != nil {
-			util.Log().Warning("无法创建目录，%s", err)
-			return err
-		}
-	}
-
-	// 创建目标文件
-	out, err := os.Create(dst)
+	err := formUploader.Put(ctx, &ret, upToken, dst, file, int64(size), &putExtra)
 	if err != nil {
-		util.Log().Warning("无法创建文件，%s", err)
+		fmt.Println(err)
 		return err
 	}
-	defer out.Close()
-
-	// 写入文件内容
-	_, err = io.Copy(out, file)
-	return err
+	fmt.Println(ret.Key, ret.Hash)
+	return nil
 }
 
 // Delete 删除一个或多个文件，

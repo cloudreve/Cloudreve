@@ -18,11 +18,9 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	ctx = context.WithValue(ctx, FileHeaderCtx, file)
 
 	// 上传前的钩子
-	if fs.BeforeUpload != nil {
-		err = fs.BeforeUpload(ctx, fs)
-		if err != nil {
-			return err
-		}
+	err = fs.Trigger(ctx, fs.BeforeUpload)
+	if err != nil {
+		return err
 	}
 
 	// 生成文件名和路径
@@ -32,27 +30,24 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	go fs.CancelUpload(ctx, savePath, file)
 
 	// 保存文件
-	err = fs.Handler.Put(ctx, file, savePath)
+	err = fs.Handler.Put(ctx, file, savePath, file.GetSize())
 	if err != nil {
 		return err
 	}
 
 	// 上传完成后的钩子
-	if fs.AfterUpload != nil {
-		ctx = context.WithValue(ctx, SavePathCtx, savePath)
-		err = fs.AfterUpload(ctx, fs)
+	ctx = context.WithValue(ctx, SavePathCtx, savePath)
+	err = fs.Trigger(ctx, fs.AfterUpload)
 
-		if err != nil {
-			// 上传完成后续处理失败
-			if fs.AfterValidateFailed != nil {
-				followUpErr := fs.AfterValidateFailed(ctx, fs)
-				// 失败后再失败...
-				if followUpErr != nil {
-					util.Log().Warning("AfterValidateFailed 钩子执行失败，%s", followUpErr)
-				}
-			}
-			return err
+	if err != nil {
+		// 上传完成后续处理失败
+		followUpErr := fs.Trigger(ctx, fs.AfterValidateFailed)
+		// 失败后再失败...
+		if followUpErr != nil {
+			util.Log().Warning("AfterValidateFailed 钩子执行失败，%s", followUpErr)
 		}
+
+		return err
 	}
 
 	util.Log().Info("新文件上传:%s , 大小:%d, 上传者:%s", file.GetFileName(), file.GetSize(), fs.User.Nick)
@@ -88,7 +83,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 			return
 		}
 		ctx = context.WithValue(ctx, SavePathCtx, path)
-		err := fs.AfterUploadCanceled(ctx, fs)
+		err := fs.Trigger(ctx, fs.AfterUploadCanceled)
 		if err != nil {
 			util.Log().Warning("执行 AfterUploadCanceled 钩子出错，%s", err)
 		}

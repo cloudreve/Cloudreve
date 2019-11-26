@@ -7,8 +7,38 @@ import (
 	"path"
 )
 
-// GenericBeforeUpload 通用上传前处理钩子，包含数据库操作
-func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
+// Hook 钩子函数
+type Hook func(ctx context.Context, fs *FileSystem) error
+
+// Use 注入钩子
+func (fs *FileSystem) Use(name string, hook Hook) {
+	switch name {
+	case "BeforeUpload":
+		fs.BeforeUpload = append(fs.BeforeUpload, hook)
+	case "AfterUpload":
+		fs.AfterUpload = append(fs.AfterUpload, hook)
+	case "AfterValidateFailed":
+		fs.AfterValidateFailed = append(fs.AfterValidateFailed, hook)
+	case "AfterUploadCanceled":
+		fs.AfterUploadCanceled = append(fs.AfterUploadCanceled, hook)
+	}
+}
+
+// Trigger 触发钩子,遇到第一个错误时
+// 返回错误，后续钩子不会继续执行
+func (fs *FileSystem) Trigger(ctx context.Context, hooks []Hook) error {
+	for _, hook := range hooks {
+		err := hook(ctx, fs)
+		if err != nil {
+			util.Log().Warning("钩子执行失败：%s", err)
+			return err
+		}
+	}
+	return nil
+}
+
+// HookValidateFile 一系列对文件检验的集合
+func HookValidateFile(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(FileHeaderCtx).(FileHeader)
 
 	// 验证单文件尺寸
@@ -26,6 +56,13 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
 		return ErrFileExtensionNotAllowed
 	}
 
+	return nil
+
+}
+
+// HookValidateCapacity 验证并扣除用户容量，包含数据库操作
+func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
+	file := ctx.Value(FileHeaderCtx).(FileHeader)
 	// 验证并扣除容量
 	if !fs.ValidateCapacity(ctx, file.GetSize()) {
 		return ErrInsufficientCapacity
@@ -33,10 +70,8 @@ func GenericBeforeUpload(ctx context.Context, fs *FileSystem) error {
 	return nil
 }
 
-// GenericAfterUploadCanceled 通用上传取消处理钩子，包含数据库操作
-func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileHeaderCtx).(FileHeader)
-
+// HookDeleteTempFile 删除已保存的临时文件
+func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
 	filePath := ctx.Value(SavePathCtx).(string)
 	// 删除临时文件
 	if util.Exists(filePath) {
@@ -45,6 +80,13 @@ func GenericAfterUploadCanceled(ctx context.Context, fs *FileSystem) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// HookGiveBackCapacity 归还用户容量
+func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
+	file := ctx.Value(FileHeaderCtx).(FileHeader)
 
 	// 归还用户容量
 	if !fs.User.DeductionStorage(file.GetSize()) {

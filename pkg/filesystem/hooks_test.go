@@ -34,20 +34,20 @@ func TestGenericBeforeUpload(t *testing.T) {
 		},
 	}
 
-	asserts.Error(GenericBeforeUpload(ctx, &fs))
+	asserts.Error(HookValidateFile(ctx, &fs))
 
 	file.Size = 1
 	file.Name = "1"
 	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
-	asserts.Error(GenericBeforeUpload(ctx, &fs))
+	asserts.Error(HookValidateFile(ctx, &fs))
 
 	file.Name = "1.txt"
 	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
-	asserts.NoError(GenericBeforeUpload(ctx, &fs))
+	asserts.NoError(HookValidateFile(ctx, &fs))
 
 	file.Name = "1.t/xt"
 	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
-	asserts.Error(GenericBeforeUpload(ctx, &fs))
+	asserts.Error(HookValidateFile(ctx, &fs))
 }
 
 func TestGenericAfterUploadCanceled(t *testing.T) {
@@ -67,7 +67,9 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 	}
 
 	// 成功
-	err = GenericAfterUploadCanceled(ctx, &fs)
+	err = HookDeleteTempFile(ctx, &fs)
+	asserts.NoError(err)
+	err = HookGiveBackCapacity(ctx, &fs)
 	asserts.NoError(err)
 	asserts.Equal(uint64(0), fs.User.Storage)
 
@@ -76,12 +78,12 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 	f.Close()
 
 	// 容量不能再降低
-	err = GenericAfterUploadCanceled(ctx, &fs)
+	err = HookGiveBackCapacity(ctx, &fs)
 	asserts.Error(err)
 
 	//文件不存在
 	fs.User.Storage = 5
-	err = GenericAfterUploadCanceled(ctx, &fs)
+	err = HookDeleteTempFile(ctx, &fs)
 	asserts.NoError(err)
 }
 
