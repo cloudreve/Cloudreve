@@ -149,3 +149,49 @@ func TestGenericAfterUpload(t *testing.T) {
 	asserts.NoError(mock.ExpectationsWereMet())
 
 }
+
+func TestFileSystem_Use(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{}
+
+	hook := func(ctx context.Context, fs *FileSystem) error {
+		return nil
+	}
+
+	// 添加一个
+	fs.Use("BeforeUpload", hook)
+	asserts.Len(fs.BeforeUpload, 1)
+
+	// 添加一个
+	fs.Use("BeforeUpload", hook)
+	asserts.Len(fs.BeforeUpload, 2)
+
+	// 不存在
+	fs.Use("BeforeUpload2333", hook)
+}
+
+func TestFileSystem_Trigger(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{
+		User: &model.User{},
+	}
+	ctx := context.Background()
+
+	hook := func(ctx context.Context, fs *FileSystem) error {
+		fs.User.Storage++
+		return nil
+	}
+
+	// 一个
+	fs.Use("BeforeUpload", hook)
+	err := fs.Trigger(ctx, fs.BeforeUpload)
+	asserts.NoError(err)
+	asserts.Equal(uint64(1), fs.User.Storage)
+
+	// 多个
+	fs.Use("BeforeUpload", hook)
+	fs.Use("BeforeUpload", hook)
+	err = fs.Trigger(ctx, fs.BeforeUpload)
+	asserts.NoError(err)
+	asserts.Equal(uint64(4), fs.User.Storage)
+}
