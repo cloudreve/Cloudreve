@@ -20,9 +20,9 @@ const (
 	// CodeNoRightErr 未授权访问
 	CodeNoRightErr = 403
 	// CodeUploadFailed 上传出错
-	CodeUploadFailed = 4001
+	CodeUploadFailed = 40002
 	// CodeCreateFolderFailed 目录创建失败
-	CodeCreateFolderFailed = 4002
+	CodeCreateFolderFailed = 40003
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

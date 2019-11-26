@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -294,5 +295,76 @@ func TestListDirectoryRoute(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), resJSON)
 	asserts.NoError(err)
 	asserts.NotEqual(0, resJSON.Code)
+
+}
+
+func TestLocalFileUpload(t *testing.T) {
+	switchToMemDB()
+	asserts := assert.New(t)
+	router := InitRouter()
+	w := httptest.NewRecorder()
+	middleware.SessionMock = map[string]interface{}{"user_id": 1}
+
+	testCases := []struct {
+		GetRequest func() *http.Request
+		ExpectCode int
+		RollBack   func()
+	}{
+		// 文件大小指定错误
+		{
+			GetRequest: func() *http.Request {
+				req, _ := http.NewRequest(
+					"POST",
+					"/api/v3/file/upload",
+					nil,
+				)
+				req.Header.Add("Content-Length", "ddf")
+				return req
+			},
+			ExpectCode: 40001,
+		},
+		// 返回错误
+		{
+			GetRequest: func() *http.Request {
+				req, _ := http.NewRequest(
+					"POST",
+					"/api/v3/file/upload",
+					strings.NewReader("2333"),
+				)
+				req.Header.Add("Content-Length", "4")
+				req.Header.Add("X-FileName", "大地的%sfsf")
+				return req
+			},
+			ExpectCode: 40002,
+		},
+		// 成功
+		{
+			GetRequest: func() *http.Request {
+				req, _ := http.NewRequest(
+					"POST",
+					"/api/v3/file/upload",
+					strings.NewReader("2333"),
+				)
+				req.Header.Add("Content-Length", "4")
+				req.Header.Add("X-FileName", "TestFileUploadRoute.txt")
+				return req
+			},
+			ExpectCode: 0,
+		},
+	}
+
+	for key, testCase := range testCases {
+		req := testCase.GetRequest()
+		router.ServeHTTP(w, req)
+		asserts.Equal(200, w.Code)
+		resJSON := &serializer.Response{}
+		err := json.Unmarshal(w.Body.Bytes(), resJSON)
+		asserts.NoError(err, "测试用例%d", key)
+		asserts.Equal(testCase.ExpectCode, resJSON.Code, "测试用例%d", key)
+		if testCase.RollBack != nil {
+			testCase.RollBack()
+		}
+		w.Body.Reset()
+	}
 
 }
