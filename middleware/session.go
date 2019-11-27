@@ -14,8 +14,8 @@ var Store redis.Store
 
 // Session 初始化session
 func Session(secret string) gin.HandlerFunc {
-	if conf.RedisConfig.Server != "" {
-		// 如果配置使用了Redis
+	// Redis设置不为空，且非测试模式时使用Redis
+	if conf.RedisConfig.Server != "" && gin.Mode() == gin.TestMode {
 		var err error
 		Store, err = redis.NewStoreWithDB(10, "tcp", conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
 		if err != nil {
