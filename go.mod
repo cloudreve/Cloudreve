@@ -10,6 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-ini/ini v1.50.0
 	github.com/jinzhu/gorm v1.9.11
+	github.com/juju/ratelimit v1.0.1
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mcuadros/go-version v0.0.0-20190830083331-035f6764e8d2
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2

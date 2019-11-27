@@ -77,6 +77,8 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 		case <-ctx.Done():
 			// 客户端正常关闭，不执行操作
 		default:
+			// 客户端取消上传，删除临时文件
+			util.Log().Debug("客户端取消上传")
 			if fs.AfterUploadCanceled == nil {
 				return
 			}

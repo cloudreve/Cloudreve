@@ -4,6 +4,7 @@ import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/juju/ratelimit"
 	"io"
 )
 
@@ -11,6 +12,23 @@ import (
 	 文件相关
    ============
 */
+
+// 限速后的ReaderSeeker
+type lrs struct {
+	io.ReadSeeker
+	r io.Reader
+}
+
+func (r lrs) Read(p []byte) (int, error) {
+	return r.r.Read(p)
+}
+
+// withSpeedLimit 给原有的ReadSeeker加上限速
+func withSpeedLimit(rs io.ReadSeeker, speed int) io.ReadSeeker {
+	bucket := ratelimit.NewBucketWithRate(float64(speed), int64(speed))
+	lrs := lrs{rs, ratelimit.Reader(rs, bucket)}
+	return lrs
+}
 
 // AddFile 新增文件记录
 func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model.File, error) {
@@ -33,6 +51,23 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 	}
 
 	return &newFile, nil
+}
+
+// GetDownloadContent 获取用于下载的文件流
+func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (io.ReadSeeker, error) {
+	// 获取原始文件流
+	rs, err := fs.GetContent(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// 如果用户组有速度限制，就返回限制流速的ReaderSeeker
+	if fs.User.Group.SpeedLimit != 0 {
+		return withSpeedLimit(rs, fs.User.Group.SpeedLimit), nil
+	}
+	// 否则返回原始流
+	return rs, nil
+
 }
 
 // GetContent 获取文件内容，path为虚拟路径

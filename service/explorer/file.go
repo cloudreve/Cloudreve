@@ -24,7 +24,7 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 
 	// 开始处理下载
 	ctx = context.WithValue(ctx, filesystem.GinCtx, c)
-	rs, err := fs.GetContent(ctx, service.Path)
+	rs, err := fs.GetDownloadContent(ctx, service.Path)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
