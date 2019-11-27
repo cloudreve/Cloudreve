@@ -67,3 +67,25 @@ func TestHandler_Delete(t *testing.T) {
 	asserts.Equal([]string{}, list)
 	asserts.Error(err)
 }
+
+func TestHandler_Get(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 成功
+	file, err := os.Create("TestHandler_Get.txt")
+	asserts.NoError(err)
+	_ = file.Close()
+
+	rs, err := handler.Get(ctx, "TestHandler_Get.txt")
+	asserts.NoError(err)
+	asserts.NotNil(rs)
+
+	// 文件不存在
+
+	rs, err = handler.Get(ctx, "TestHandler_Get_notExist.txt")
+	asserts.Error(err)
+	asserts.Nil(rs)
+}

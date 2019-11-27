@@ -72,7 +72,6 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 }
 
 // dispatchHandler 根据存储策略分配文件适配器
-// TODO: 测试
 func (fs *FileSystem) dispatchHandler() error {
 	var policyType string
 	if fs.Policy == nil {
