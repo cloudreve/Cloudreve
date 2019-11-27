@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"os"
@@ -10,6 +11,31 @@ import (
 
 // Handler 本地策略适配器
 type Handler struct{}
+
+// Get 获取文件内容
+// TODO:测试
+func (handler Handler) Get(ctx context.Context, path string) (io.ReadSeeker, error) {
+	// 打开文件
+	file, err := os.Open(path)
+	if err != nil {
+		util.Log().Debug("无法打开文件：%s", err)
+		return nil, err
+	}
+
+	// 开启一个协程，用于请求结束后关闭reader
+	go closeReader(ctx, file)
+
+	return file, nil
+}
+
+// closeReader 用于在请求结束后关闭reader
+func closeReader(ctx context.Context, closer io.Closer) {
+	select {
+	case <-ctx.Done():
+		err := closer.Close()
+		fmt.Println("关闭reader", err)
+	}
+}
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {

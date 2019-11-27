@@ -25,6 +25,8 @@ type Handler interface {
 	Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error
 	// 删除一个或多个文件
 	Delete(ctx context.Context, files []string) ([]string, error)
+	// 获取文件
+	Get(ctx context.Context, path string) (io.ReadSeeker, error)
 }
 
 // FileSystem 管理文件的文件系统
@@ -33,6 +35,8 @@ type FileSystem struct {
 	User *model.User
 	// 操作文件使用的上传策略
 	Policy *model.Policy
+	// 当前正在处理的文件对象
+	Target *model.File
 
 	/*
 	   钩子函数

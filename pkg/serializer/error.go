@@ -26,6 +26,12 @@ func NewError(code int, msg string, err error) AppError {
 	}
 }
 
+// WithError 将应用error携带标准库中的error
+func (err *AppError) WithError(raw error) AppError {
+	err.RawError = raw
+	return *err
+}
+
 // Error 返回业务代码确定的可读错误信息
 func (err AppError) Error() string {
 	return err.Msg

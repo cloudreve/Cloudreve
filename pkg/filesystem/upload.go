@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"context"
-	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -73,19 +72,20 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHeader) {
 	ginCtx := ctx.Value(GinCtx).(*gin.Context)
 	select {
-	case <-ctx.Done():
-		// 客户端正常关闭，不执行操作
-		fmt.Println("正常")
 	case <-ginCtx.Request.Context().Done():
-		// 客户端取消了上传
-		fmt.Println("取消")
-		if fs.AfterUploadCanceled == nil {
-			return
+		select {
+		case <-ctx.Done():
+			// 客户端正常关闭，不执行操作
+		default:
+			if fs.AfterUploadCanceled == nil {
+				return
+			}
+			ctx = context.WithValue(ctx, SavePathCtx, path)
+			err := fs.Trigger(ctx, fs.AfterUploadCanceled)
+			if err != nil {
+				util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
+			}
 		}
-		ctx = context.WithValue(ctx, SavePathCtx, path)
-		err := fs.Trigger(ctx, fs.AfterUploadCanceled)
-		if err != nil {
-			util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
-		}
+
 	}
 }
