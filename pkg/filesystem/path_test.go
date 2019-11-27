@@ -153,6 +153,13 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	asserts.Equal(ErrFileExisted, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
+	// 存在同名目录
+	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "ab"))
+	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "ab"))
+	err = fs.CreateDirectory(ctx, "/ad/ab")
+	asserts.Equal(ErrFolderExisted, err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
 	// 成功创建
 	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "ab"))
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))

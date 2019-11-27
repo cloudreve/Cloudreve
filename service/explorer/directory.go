@@ -36,7 +36,7 @@ func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Respon
 	}
 }
 
-// CreateDirectory 创建目录 TODO:test
+// CreateDirectory 创建目录
 func (service *DirectoryService) CreateDirectory(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
