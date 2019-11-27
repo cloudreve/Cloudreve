@@ -107,6 +107,12 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 		return ErrPathNotExist
 	}
 
+	// 是否有同名目录
+	b, _ := fs.IsPathExist(fullPath)
+	if b {
+		return ErrFolderExisted
+	}
+
 	// 是否有同名文件
 	if ok, _ := fs.IsFileExist(path.Join(base, dir)); ok {
 		return ErrFileExisted

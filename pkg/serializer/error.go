@@ -50,6 +50,8 @@ const (
 	CodeUploadFailed = 40002
 	// CodeCreateFolderFailed 目录创建失败
 	CodeCreateFolderFailed = 40003
+	// CodeObjectExist 对象已存在
+	CodeObjectExist = 40004
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
