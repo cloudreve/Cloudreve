@@ -41,7 +41,7 @@ type Group struct {
 
 // BuildUser 序列化用户
 func BuildUser(user model.User) User {
-	fmt.Println(user)
+	aria2Option := user.Group.GetAria2Option()
 	return User{
 		ID:             user.ID,
 		Email:          user.Email,
@@ -58,8 +58,8 @@ func BuildUser(user model.User) User {
 		},
 		Group: Group{
 			AllowShare:           user.Group.ShareEnabled,
-			AllowRemoteDownload:  user.Group.Aria2Option[0] == '1',
-			AllowTorrentDownload: user.Group.Aria2Option[2] == '1',
+			AllowRemoteDownload:  aria2Option[0],
+			AllowTorrentDownload: aria2Option[2],
 		},
 	}
 }

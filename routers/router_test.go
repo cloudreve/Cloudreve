@@ -82,6 +82,10 @@ func TestUserSession(t *testing.T) {
 			expected: serializer.BuildUserResponse(model.User{
 				Email: "admin@cloudreve.org",
 				Nick:  "admin",
+				Policy: model.Policy{
+					Type:              "local",
+					OptionsSerialized: model.PolicyOption{FileType: []string{}},
+				},
 			}),
 		},
 		// 登录信息正确，需要验证码,验证码错误

@@ -47,6 +47,9 @@ func TestGetUserByID(t *testing.T) {
 			Model: gorm.Model{
 				ID: 1,
 			},
+			OptionsSerialized: PolicyOption{
+				FileType: []string{},
+			},
 			Name: "默认上传策略",
 		},
 	}, user)

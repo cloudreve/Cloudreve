@@ -149,13 +149,6 @@ func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 	return err
 }
 
-//SerializeOptions 将序列后的Option写入到数据库字段
-func (user *User) SerializeOptions() (err error) {
-	optionsValue, err := json.Marshal(&user.OptionsSerialized)
-	user.Options = string(optionsValue)
-	return err
-}
-
 // AfterFind 找到用户后的钩子
 func (user *User) AfterFind() (err error) {
 	// 解析用户设置到OptionsSerialized
@@ -163,6 +156,13 @@ func (user *User) AfterFind() (err error) {
 
 	// 预加载存储策略
 	user.Policy, _ = GetPolicyByID(user.GetPolicyID())
+	return err
+}
+
+//SerializeOptions 将序列后的Option写入到数据库字段
+func (user *User) SerializeOptions() (err error) {
+	optionsValue, err := json.Marshal(&user.OptionsSerialized)
+	user.Options = string(optionsValue)
 	return err
 }
 
