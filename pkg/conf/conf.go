@@ -38,6 +38,20 @@ type captcha struct {
 	CaptchaLen         int `validate:"gt=0"`
 }
 
+// redis 配置
+type redis struct {
+	Server   string
+	Password string
+	DB       string
+}
+
+// RedisConfig Redis服务器配置
+var RedisConfig = &redis{
+	Server:   "",
+	Password: "",
+	DB:       "0",
+}
+
 // DatabaseConfig 数据库配置
 var DatabaseConfig = &database{
 	Type: "UNSET",
@@ -79,6 +93,7 @@ func Init(path string) {
 		"Database": DatabaseConfig,
 		"System":   SystemConfig,
 		"Captcha":  CaptchaConfig,
+		"Redis":    RedisConfig,
 	}
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)
