@@ -24,6 +24,7 @@ func Session(secret string) gin.HandlerFunc {
 	} else {
 		Store = memstore.NewStore([]byte(secret))
 	}
+
 	// Also set Secure: true if using SSL, you should though
 	Store.Options(sessions.Options{HttpOnly: true, MaxAge: 7 * 86400, Path: "/"})
 	return sessions.Sessions("cloudreve-session", Store)
