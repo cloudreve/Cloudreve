@@ -21,7 +21,7 @@ func InitRouter() *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Length", "Content-Type", "X-Path", "X-FileName"},
+		AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
 		AllowCredentials: true,
 	}))
 
@@ -63,7 +63,7 @@ func InitRouter() *gin.Engine {
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
 				// 下载文件
-				file.GET("", controllers.Download)
+				file.GET("*path", controllers.Download)
 			}
 
 			// 目录

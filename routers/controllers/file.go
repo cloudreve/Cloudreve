@@ -20,7 +20,7 @@ func Download(c *gin.Context) {
 	defer cancel()
 
 	var service explorer.FileDownloadService
-	if err := c.ShouldBindQuery(&service); err == nil {
+	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Download(ctx, c)
 		if res.Code != 0 {
 			c.JSON(200, res)

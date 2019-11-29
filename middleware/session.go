@@ -10,17 +10,19 @@ import (
 )
 
 // Store session存储
-var Store redis.Store
+var Store memstore.Store
 
 // Session 初始化session
 func Session(secret string) gin.HandlerFunc {
 	// Redis设置不为空，且非测试模式时使用Redis
-	if conf.RedisConfig.Server != "" && gin.Mode() == gin.TestMode {
+	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		var err error
 		Store, err = redis.NewStoreWithDB(10, "tcp", conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
 		if err != nil {
-			util.Log().Panic("无法连接到Redis：%s", err)
+			util.Log().Panic("无法连接到 Redis：%s", err)
 		}
+
+		util.Log().Info("已连接到 Redis 服务器：%s", conf.RedisConfig.Server)
 	} else {
 		Store = memstore.NewStore([]byte(secret))
 	}

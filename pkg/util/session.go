@@ -11,12 +11,17 @@ func SetSession(c *gin.Context, list map[string]interface{}) {
 	for key, value := range list {
 		s.Set(key, value)
 	}
-	s.Save()
+
+	err := s.Save()
+	if err != nil {
+		Log().Warning("无法设置 Session 值：%s", err)
+	}
 }
 
 // GetSession 获取session
 func GetSession(c *gin.Context, key string) interface{} {
 	s := sessions.Default(c)
+	Log().Debug("Key:%s Val:%s", key, s.Get(key))
 	return s.Get(key)
 }
 

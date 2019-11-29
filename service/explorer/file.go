@@ -11,7 +11,7 @@ import (
 
 // FileDownloadService 文件下载服务，path为文件完整路径
 type FileDownloadService struct {
-	Path string `form:"path" binding:"required,min=1,max=65535"`
+	Path string `uri:"path" binding:"required,min=1,max=65535"`
 }
 
 // Download 文件下载
