@@ -53,18 +53,18 @@ func TestHandler_Delete(t *testing.T) {
 	asserts.NoError(err)
 	_ = file.Close()
 	list, err := handler.Delete(ctx, []string{"test.file"})
-	asserts.Equal([]string{"test.file"}, list)
+	asserts.Equal([]string{}, list)
 	asserts.NoError(err)
 
 	file, err = os.Create("test.file")
 	asserts.NoError(err)
 	_ = file.Close()
 	list, err = handler.Delete(ctx, []string{"test.file", "test.notexist"})
-	asserts.Equal([]string{"test.file"}, list)
+	asserts.Equal([]string{"test.notexist"}, list)
 	asserts.Error(err)
 
 	list, err = handler.Delete(ctx, []string{"test.notexist"})
-	asserts.Equal([]string{}, list)
+	asserts.Equal([]string{"test.notexist"}, list)
 	asserts.Error(err)
 }
 
