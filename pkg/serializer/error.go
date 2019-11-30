@@ -42,6 +42,8 @@ func (err AppError) Error() string {
 // 五开头的五位数错误编码为服务器端错误，比如数据库操作失败
 // 四开头的五位数错误编码为客户端错误，有时候是客户端代码写错了，有时候是用户操作错误
 const (
+	// CodeNotFullySuccess 未完全成功
+	CodeNotFullySuccess = 203
 	// CodeCheckLogin 未登录
 	CodeCheckLogin = 401
 	// CodeNoRightErr 未授权访问

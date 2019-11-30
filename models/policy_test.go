@@ -13,16 +13,16 @@ func TestGetPolicyByID(t *testing.T) {
 	asserts := assert.New(t)
 
 	rows := sqlmock.NewRows([]string{"name", "type", "options"}).
-		AddRow("默认上传策略", "local", "{\"op_name\":\"123\"}")
+		AddRow("默认存储策略", "local", "{\"op_name\":\"123\"}")
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND \\(\\(`policies`.`id` = 1\\)\\)(.+)$").WillReturnRows(rows)
-	policy, err := GetPolicyByID(1)
+	policy, err := GetPolicyByID(uint(1))
 	asserts.NoError(err)
-	asserts.Equal("默认上传策略", policy.Name)
+	asserts.Equal("默认存储策略", policy.Name)
 	asserts.Equal("123", policy.OptionsSerialized.OPName)
 
 	rows = sqlmock.NewRows([]string{"name", "type", "options"})
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND \\(\\(`policies`.`id` = 1\\)\\)(.+)$").WillReturnRows(rows)
-	policy, err = GetPolicyByID(1)
+	policy, err = GetPolicyByID(uint(1))
 	asserts.Error(err)
 }
 

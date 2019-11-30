@@ -17,4 +17,5 @@ var (
 	ErrPathNotExist            = serializer.NewError(404, "路径不存在", nil)
 	ErrObjectNotExist          = serializer.NewError(404, "文件不存在", nil)
 	ErrIO                      = serializer.NewError(serializer.CodeIOFailed, "无法读取文件数据", nil)
+	ErrDBListObjects           = serializer.NewError(serializer.CodeDBError, "无法列取对象记录", nil)
 )

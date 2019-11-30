@@ -38,3 +38,17 @@ func (folder *Folder) GetChildFolder() ([]Folder, error) {
 	result := DB.Where("parent_id = ?", folder.ID).Find(&folders)
 	return folders, result.Error
 }
+
+// GetRecursiveChildFolder 查找所有递归子目录
+func GetRecursiveChildFolder(dirs []string, uid uint) ([]Folder, error) {
+	folders := make([]Folder, 0, len(dirs))
+	search := util.BuildRegexp(dirs, "^", "/", "|")
+	result := DB.Where("(owner_id = ? and position_absolute REGEXP ?) or position_absolute in (?)", uid, search, dirs).Find(&folders)
+	return folders, result.Error
+}
+
+// DeleteFolderByIDs 根据给定ID批量删除目录记录
+func DeleteFolderByIDs(ids []uint) error {
+	result := DB.Where("id in (?)", ids).Delete(&Folder{})
+	return result.Error
+}

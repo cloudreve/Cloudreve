@@ -30,7 +30,7 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 	}
 
 	// 设置文件名
-	c.Header("Content-Disposition", "attachment; filename=\""+fs.Target.Name+"\"")
+	c.Header("Content-Disposition", "attachment; filename=\""+fs.FileTarget[0].Name+"\"")
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, "", time.Time{}, rs)
 

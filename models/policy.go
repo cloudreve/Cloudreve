@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -41,16 +42,36 @@ type PolicyOption struct {
 	RangeTransferEnabled bool     `json:"range_transfer_enabled"`
 }
 
+// 存储策略缓存，部分情况下需要频繁查询存储策略
+var policyCache = make(map[uint]Policy)
+var rw sync.RWMutex
+
 // GetPolicyByID 用ID获取存储策略
 func GetPolicyByID(ID interface{}) (Policy, error) {
+	// 尝试读取缓存
+	rw.RLock()
+	if policy, ok := policyCache[ID.(uint)]; ok {
+		rw.RUnlock()
+		return policy, nil
+	}
+	rw.RUnlock()
+
 	var policy Policy
 	result := DB.First(&policy, ID)
+
+	// 写入缓存
+	if result.Error == nil {
+		rw.Lock()
+		policyCache[policy.ID] = policy
+		rw.Unlock()
+	}
+
 	return policy, result.Error
 }
 
-// AfterFind 找到上传策略后的钩子
+// AfterFind 找到存储策略后的钩子
 func (policy *Policy) AfterFind() (err error) {
-	// 解析上传策略设置到OptionsSerialized
+	// 解析存储策略设置到OptionsSerialized
 	err = json.Unmarshal([]byte(policy.Options), &policy.OptionsSerialized)
 	if policy.OptionsSerialized.FileType == nil {
 		policy.OptionsSerialized.FileType = []string{}

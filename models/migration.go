@@ -54,17 +54,17 @@ func migration() {
 }
 
 func addDefaultPolicy() {
-	_, err := GetPolicyByID(1)
+	_, err := GetPolicyByID(uint(1))
 	// 未找到初始存储策略时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultPolicy := Policy{
-			Name:               "默认上传策略",
+			Name:               "默认存储策略",
 			Type:               "local",
-			Server:             "/Api/V3/File/Upload",
+			Server:             "/api/v3/file/upload",
 			BaseURL:            "http://cloudreve.org/public/uploads/",
 			MaxSize:            10 * 1024 * 1024 * 1024,
 			AutoRename:         true,
-			DirNameRule:        "{date}/{uid}",
+			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
 			IsOriginLinkEnable: false,
 		}

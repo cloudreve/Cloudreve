@@ -2,7 +2,10 @@ package filesystem
 
 import (
 	"context"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"path"
 )
 
@@ -20,6 +23,113 @@ type Object struct {
 	Size uint64 `json:"size"`
 	Type string `json:"type"`
 	Date string `json:"date"`
+}
+
+// Delete 递归删除对象
+func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
+	// 已删除的总容量,map用于去重
+	var deletedStorage = make(map[uint]uint64)
+	// 已删除的文件ID
+	var deletedFileIDs = make([]uint, 0, len(fs.FileTarget))
+	// 删除失败的文件的父目录ID
+
+	// 所有文件的ID
+	var allFileIDs = make([]uint, 0, len(fs.FileTarget))
+
+	// 列出要删除的目录
+	if len(dirs) > 0 {
+		err := fs.ListDeleteDirs(ctx, dirs)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 列出要删除的文件
+	if len(files) > 0 {
+		err := fs.ListDeleteFiles(ctx, files)
+		if err != nil {
+			return err
+		}
+		// 去除待删除文件中包含软连接的部分
+		filesToBeDelete, err := model.RemoveFilesWithSoftLinks(fs.FileTarget)
+		if err != nil {
+			return ErrDBListObjects.WithError(err)
+		}
+
+		// 根据存储策略将文件分组
+		policyGroup := fs.GroupFileByPolicy(ctx, filesToBeDelete)
+
+		// 按照存储策略分组删除对象
+		failed := fs.deleteGroupedFile(ctx, policyGroup)
+
+		for i := 0; i < len(fs.FileTarget); i++ {
+			if util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
+				// TODO 删除失败时不删除文件记录及父目录
+			} else {
+				deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
+				deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
+			}
+			allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
+		}
+	}
+
+	// 删除文件记录
+	err := model.DeleteFileByIDs(allFileIDs)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+
+	// 归还容量
+	var total uint64
+	for _, value := range deletedStorage {
+		total += value
+	}
+	fs.User.IncreaseStorage(total)
+
+	// 删除目录
+	var allFolderIDs = make([]uint, 0, len(fs.DirTarget))
+	for _, value := range fs.DirTarget {
+		allFolderIDs = append(allFolderIDs, value.ID)
+	}
+	err = model.DeleteFolderByIDs(allFolderIDs)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+
+	if notDeleted := len(fs.FileTarget) - len(deletedFileIDs); notDeleted > 0 {
+		return serializer.NewError(serializer.CodeNotFullySuccess, fmt.Sprintf("有 %d 个文件未能成功删除，已删除它们的文件记录", notDeleted), nil)
+	}
+
+	return nil
+}
+
+// ListDeleteDirs 递归列出要删除目录，及目录下所有文件
+func (fs *FileSystem) ListDeleteDirs(ctx context.Context, dirs []string) error {
+	// 列出所有递归子目录
+	folders, err := model.GetRecursiveChildFolder(dirs, fs.User.ID)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+	fs.SetTargetDir(&folders)
+
+	// 检索目录下的子文件
+	files, err := model.GetChildFilesOfFolders(&folders)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+	fs.SetTargetFile(&files)
+
+	return nil
+}
+
+// ListDeleteFiles 根据给定的路径列出要删除的文件
+func (fs *FileSystem) ListDeleteFiles(ctx context.Context, paths []string) error {
+	files, err := model.GetFileByPaths(paths, fs.User.ID)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+	fs.SetTargetFile(&files)
+	return nil
 }
 
 // List 列出路径下的内容,

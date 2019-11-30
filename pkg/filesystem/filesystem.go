@@ -33,10 +33,12 @@ type Handler interface {
 type FileSystem struct {
 	// 文件系统所有者
 	User *model.User
-	// 操作文件使用的上传策略
+	// 操作文件使用的存储策略
 	Policy *model.Policy
 	// 当前正在处理的文件对象
-	Target *model.File
+	FileTarget []model.File
+	// 当前正在处理的目录对象
+	DirTarget []model.Folder
 
 	/*
 	   钩子函数
@@ -99,4 +101,24 @@ func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 	}
 	fs, err := NewFileSystem(user.(*model.User))
 	return fs, err
+}
+
+// SetTargetFile 设置当前处理的目标文件
+func (fs *FileSystem) SetTargetFile(files *[]model.File) {
+	if len(fs.FileTarget) == 0 {
+		fs.FileTarget = *files
+	} else {
+		fs.FileTarget = append(fs.FileTarget, *files...)
+	}
+
+}
+
+// SetTargetDir 设置当前处理的目标目录
+func (fs *FileSystem) SetTargetDir(dirs *[]model.Folder) {
+	if len(fs.DirTarget) == 0 {
+		fs.DirTarget = *dirs
+	} else {
+		fs.DirTarget = append(fs.DirTarget, *dirs...)
+	}
+
 }

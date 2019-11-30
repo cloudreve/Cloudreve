@@ -83,7 +83,7 @@ func (user *User) GetRemainingCapacity() uint64 {
 	return user.Group.MaxStorage - user.Storage
 }
 
-// GetPolicyID 获取用户当前的上传策略ID
+// GetPolicyID 获取用户当前的存储策略ID
 func (user *User) GetPolicyID() uint {
 	// 用户未指定时，返回可用的第一个
 	if user.OptionsSerialized.PreferredPolicy == 0 {

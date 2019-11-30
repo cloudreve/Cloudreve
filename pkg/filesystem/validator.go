@@ -13,7 +13,7 @@ import (
 */
 
 // 文件/路径名保留字符
-var reservedCharacter = []string{"\\", "?", "*", "<", "\"", ":", ">", "/"}
+var reservedCharacter = []string{"\\", "?", "*", "<", "\"", ":", ">", "/", "|"}
 
 // ValidateLegalName 验证文件名/文件夹名是否合法
 func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {

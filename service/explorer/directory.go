@@ -9,10 +9,10 @@ import (
 
 // DirectoryService 创建新目录服务
 type DirectoryService struct {
-	Path string `form:"path" json:"path" binding:"required,min=1,max=65535"`
+	Path string `uri:"path" json:"path" binding:"required,min=1,max=65535"`
 }
 
-// ListDirectory 列出目录内容 TODO:test
+// ListDirectory 列出目录内容
 func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)

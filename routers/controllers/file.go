@@ -38,7 +38,7 @@ func FileUploadStream(c *gin.Context) {
 
 	// 非本地策略时拒绝上传
 	if user, ok := c.Get("user"); ok && user.(*model.User).Policy.Type != "local" {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前上传策略无法使用", nil))
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
 		return
 	}
 

@@ -63,20 +63,19 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 }
 
 // Delete 删除一个或多个文件，
-// 返回已删除的文件，及遇到的最后一个错误
+// 返回未删除的文件，及遇到的最后一个错误
 func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
-	deleted := make([]string, 0, len(files))
+	deleteFailed := make([]string, 0, len(files))
 	var retErr error
 
 	for _, value := range files {
 		err := os.Remove(value)
-		if err == nil {
-			deleted = append(deleted, value)
-		} else {
+		if err != nil {
 			util.Log().Warning("无法删除文件，%s", err)
 			retErr = err
+			deleteFailed = append(deleteFailed, value)
 		}
 	}
 
-	return deleted, retErr
+	return deleteFailed, retErr
 }

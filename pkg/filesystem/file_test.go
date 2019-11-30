@@ -74,7 +74,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	asserts.Equal(ErrObjectNotExist, err)
 	asserts.Nil(rs)
 
-	// 未知上传策略
+	// 未知存储策略
 	file, err := os.Create("TestFileSystem_GetContent.txt")
 	asserts.NoError(err)
 	_ = file.Close()

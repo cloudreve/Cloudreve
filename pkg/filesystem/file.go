@@ -85,7 +85,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 	if !exist {
 		return nil, ErrObjectNotExist
 	}
-	fs.Target = &file
+	fs.FileTarget = []model.File{file}
 
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = file.GetPolicy()
@@ -101,4 +101,52 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 	}
 
 	return rs, nil
+}
+
+// deleteGroupedFile 对分组好的文件执行删除操作，
+// 返回每个分组失败的文件列表
+func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*model.File) map[uint][]string {
+	// 失败的文件列表
+	failed := make(map[uint][]string, len(files))
+
+	for policyID, toBeDeletedFiles := range files {
+		// 列举出需要物理删除的文件的物理路径
+		sourceNames := make([]string, 0, len(toBeDeletedFiles))
+		for i := 0; i < len(toBeDeletedFiles); i++ {
+			sourceNames = append(sourceNames, toBeDeletedFiles[i].SourceName)
+		}
+
+		// 切换上传策略
+		fs.Policy = toBeDeletedFiles[0].GetPolicy()
+		err := fs.dispatchHandler()
+		if err != nil {
+			failed[policyID] = sourceNames
+			continue
+		}
+
+		// 执行删除
+		failedFile, _ := fs.Handler.Delete(ctx, sourceNames)
+		failed[policyID] = failedFile
+
+	}
+
+	return failed
+}
+
+// GroupFileByPolicy 将目标文件按照存储策略分组
+func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File) map[uint][]*model.File {
+	var policyGroup = make(map[uint][]*model.File)
+
+	for key := range files {
+		if file, ok := policyGroup[files[key].GetPolicy().ID]; ok {
+			// 如果已存在分组，直接追加
+			policyGroup[files[key].GetPolicy().ID] = append(file, &files[key])
+		} else {
+			// 分布不存在，创建
+			policyGroup[files[key].GetPolicy().ID] = make([]*model.File, 0)
+			policyGroup[files[key].GetPolicy().ID] = append(policyGroup[files[key].GetPolicy().ID], &files[key])
+		}
+	}
+
+	return policyGroup
 }

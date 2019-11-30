@@ -22,7 +22,7 @@ func TestGetUserByID(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
 
 	policyRows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "默认上传策略")
+		AddRow(1, "默认存储策略")
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
 
 	user, err := GetUserByID(1)
@@ -50,7 +50,7 @@ func TestGetUserByID(t *testing.T) {
 			OptionsSerialized: PolicyOption{
 				FileType: []string{},
 			},
-			Name: "默认上传策略",
+			Name: "默认存储策略",
 		},
 	}, user)
 
@@ -105,7 +105,7 @@ func TestUser_AfterFind(t *testing.T) {
 	asserts := assert.New(t)
 
 	policyRows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "默认上传策略")
+		AddRow(1, "默认存储策略")
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
 
 	newUser := NewUser()
@@ -117,7 +117,7 @@ func TestUser_AfterFind(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Equal(expected, newUser.OptionsSerialized)
-	asserts.Equal("默认上传策略", newUser.Policy.Name)
+	asserts.Equal("默认存储策略", newUser.Policy.Name)
 }
 
 func TestUser_BeforeSave(t *testing.T) {
@@ -199,7 +199,7 @@ func TestUser_DeductionCapacity(t *testing.T) {
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
 
 	policyRows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "默认上传策略")
+		AddRow(1, "默认存储策略")
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
 
 	newUser, err := GetUserByID(1)

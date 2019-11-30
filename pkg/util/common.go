@@ -2,6 +2,7 @@ package util
 
 import (
 	"math/rand"
+	"regexp"
 	"strings"
 )
 
@@ -42,4 +43,16 @@ func Replace(table map[string]string, s string) string {
 		s = strings.Replace(s, key, value, -1)
 	}
 	return s
+}
+
+// BuildRegexp 构建用于SQL查询用的多条件正则
+func BuildRegexp(search []string, prefix, suffix, condition string) string {
+	var res string
+	for key, value := range search {
+		res += prefix + regexp.QuoteMeta(value) + suffix
+		if key < len(search)-1 {
+			res += condition
+		}
+	}
+	return res
 }
