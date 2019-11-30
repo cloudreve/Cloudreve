@@ -99,11 +99,15 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	}
 
 	// 过滤具有软连接的文件
-	for i := 0; i < len(files); i++ {
-		for _, value := range filesWithSoftLinks {
-			if value.PolicyID != files[i].PolicyID || value.SourceName != files[i].SourceName {
-				filteredFiles = append(filteredFiles, files[i])
-				break
+	if len(filesWithSoftLinks) == 0 {
+		filteredFiles = files
+	} else {
+		for i := 0; i < len(files); i++ {
+			for _, value := range filesWithSoftLinks {
+				if value.PolicyID != files[i].PolicyID || value.SourceName != files[i].SourceName {
+					filteredFiles = append(filteredFiles, files[i])
+					break
+				}
 			}
 		}
 	}

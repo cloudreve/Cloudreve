@@ -11,6 +11,7 @@ import (
 
 var mock sqlmock.Sqlmock
 var memDB *gorm.DB
+var mockDB *gorm.DB
 
 // TestMain 初始化数据库Mock
 func TestMain(m *testing.M) {
@@ -29,7 +30,8 @@ func TestMain(m *testing.M) {
 	model.Init()
 	memDB = model.DB
 
-	model.DB, _ = gorm.Open("mysql", db)
+	mockDB, _ = gorm.Open("mysql", db)
+	model.DB = memDB
 	defer db.Close()
 
 	m.Run()
@@ -37,4 +39,8 @@ func TestMain(m *testing.M) {
 
 func switchToMemDB() {
 	model.DB = memDB
+}
+
+func switchToMockDB() {
+	model.DB = mockDB
 }
