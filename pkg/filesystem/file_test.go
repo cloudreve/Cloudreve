@@ -22,7 +22,7 @@ func TestFileSystem_AddFile(t *testing.T) {
 		Model: gorm.Model{
 			ID: 1,
 		},
-		PositionAbsolute: "/我的文件",
+		Position: "/",
 	}
 	fs := FileSystem{
 		User: &model.User{

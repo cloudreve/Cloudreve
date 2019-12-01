@@ -136,9 +136,9 @@ func (fs *FileSystem) ListDeleteFiles(ctx context.Context, paths []string) error
 // pathProcessor为最终对象路径的处理钩子。
 // 有些情况下（如在分享页面列对象）时，
 // 路径需要截取掉被分享目录路径之前的部分。
-func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(string) string) ([]Object, error) {
+func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor func(string) string) ([]Object, error) {
 	// 获取父目录
-	isExist, folder := fs.IsPathExist(path)
+	isExist, folder := fs.IsPathExist(dirPath)
 	// 不存在时返回空的结果
 	if !isExist {
 		return nil, nil
@@ -177,11 +177,13 @@ func (fs *FileSystem) List(ctx context.Context, path string, pathProcessor func(
 	}
 
 	for _, file := range childFiles {
+		filePath := path.Join(folder.Position, folder.Name, file.Name)
+
 		if processedPath == "" {
 			if pathProcessor != nil {
-				processedPath = pathProcessor(file.Dir)
+				processedPath = pathProcessor(filePath)
 			} else {
-				processedPath = file.Dir
+				processedPath = filePath
 			}
 		}
 
@@ -230,11 +232,10 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 
 	// 创建目录
 	newFolder := model.Folder{
-		Name:             dir,
-		ParentID:         parent.ID,
-		Position:         base,
-		OwnerID:          fs.User.ID,
-		PositionAbsolute: fullPath,
+		Name:     dir,
+		ParentID: parent.ID,
+		Position: base,
+		OwnerID:  fs.User.ID,
 	}
 	_, err := newFolder.Create()
 
