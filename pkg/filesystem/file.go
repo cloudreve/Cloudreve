@@ -138,13 +138,13 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 	var policyGroup = make(map[uint][]*model.File)
 
 	for key := range files {
-		if file, ok := policyGroup[files[key].GetPolicy().ID]; ok {
+		if file, ok := policyGroup[files[key].PolicyID]; ok {
 			// 如果已存在分组，直接追加
-			policyGroup[files[key].GetPolicy().ID] = append(file, &files[key])
+			policyGroup[files[key].PolicyID] = append(file, &files[key])
 		} else {
 			// 分布不存在，创建
-			policyGroup[files[key].GetPolicy().ID] = make([]*model.File, 0)
-			policyGroup[files[key].GetPolicy().ID] = append(policyGroup[files[key].GetPolicy().ID], &files[key])
+			policyGroup[files[key].PolicyID] = make([]*model.File, 0)
+			policyGroup[files[key].PolicyID] = append(policyGroup[files[key].PolicyID], &files[key])
 		}
 	}
 

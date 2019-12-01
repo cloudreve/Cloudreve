@@ -61,7 +61,6 @@ func GetChildFilesOfFolders(folders *[]Folder) ([]File, error) {
 }
 
 // GetPolicy 获取文件所属策略
-// TODO:test
 func (file *File) GetPolicy() *Policy {
 	if file.Policy.Model.ID == 0 {
 		file.Policy, _ = GetPolicyByID(file.PolicyID)
@@ -91,7 +90,7 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	var filesWithSoftLinks []File
 	tx := DB
 	for _, value := range files {
-		tx = tx.Or("source_name = ? and policy_id = ? and id != ?", value.SourceName, value.GetPolicy().ID, value.ID)
+		tx = tx.Or("source_name = ? and policy_id = ? and id != ?", value.SourceName, value.PolicyID, value.ID)
 	}
 	result := tx.Find(&filesWithSoftLinks)
 	if result.Error != nil {
@@ -99,16 +98,22 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	}
 
 	// 过滤具有软连接的文件
+	// TODO: 优化复杂度
 	if len(filesWithSoftLinks) == 0 {
 		filteredFiles = files
 	} else {
 		for i := 0; i < len(files); i++ {
+			finder := false
 			for _, value := range filesWithSoftLinks {
-				if value.PolicyID != files[i].PolicyID || value.SourceName != files[i].SourceName {
-					filteredFiles = append(filteredFiles, files[i])
+				if value.PolicyID == files[i].PolicyID && value.SourceName == files[i].SourceName {
+					finder = true
 					break
 				}
 			}
+			if !finder {
+				filteredFiles = append(filteredFiles, files[i])
+			}
+
 		}
 	}
 

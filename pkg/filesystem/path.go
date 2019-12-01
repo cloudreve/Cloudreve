@@ -67,8 +67,8 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 				// TODO 删除失败时不删除文件记录及父目录
 			} else {
 				deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
-				deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
 			}
+			deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
 			allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
 		}
 	}
@@ -76,7 +76,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 	// 删除文件记录
 	err := model.DeleteFileByIDs(allFileIDs)
 	if err != nil {
-		return ErrDBListObjects.WithError(err)
+		return ErrDBDeleteObjects.WithError(err)
 	}
 
 	// 归还容量
@@ -84,7 +84,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 	for _, value := range deletedStorage {
 		total += value
 	}
-	fs.User.IncreaseStorage(total)
+	fs.User.DeductionStorage(total)
 
 	// 删除目录
 	var allFolderIDs = make([]uint, 0, len(fs.DirTarget))
@@ -93,7 +93,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 	}
 	err = model.DeleteFolderByIDs(allFolderIDs)
 	if err != nil {
-		return ErrDBListObjects.WithError(err)
+		return ErrDBDeleteObjects.WithError(err)
 	}
 
 	if notDeleted := len(fs.FileTarget) - len(deletedFileIDs); notDeleted > 0 {

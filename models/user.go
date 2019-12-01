@@ -57,16 +57,26 @@ type UserOption struct {
 
 // DeductionStorage 减少用户已用容量
 func (user *User) DeductionStorage(size uint64) bool {
+	if size == 0 {
+		return true
+	}
 	if size <= user.Storage {
 		user.Storage -= size
 		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage - ?", size))
 		return true
 	}
+	// 如果要减少的容量超出以用容量，则设为零
+	user.Storage = 0
+	DB.Model(user).UpdateColumn("storage", 0)
+
 	return false
 }
 
 // IncreaseStorage 检查并增加用户已用容量
 func (user *User) IncreaseStorage(size uint64) bool {
+	if size == 0 {
+		return true
+	}
 	if size <= user.GetRemainingCapacity() {
 		user.Storage += size
 		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
