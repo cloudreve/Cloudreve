@@ -140,9 +140,10 @@ func (user *User) BeforeSave() (err error) {
 func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 	// 创建用户的默认根目录
 	defaultFolder := &Folder{
-		Name:     "根目录",
-		Position: ".",
-		OwnerID:  user.ID,
+		Name:             "根目录",
+		Position:         ".",
+		OwnerID:          user.ID,
+		PositionAbsolute: "/",
 	}
 	tx.Create(defaultFolder)
 	return err

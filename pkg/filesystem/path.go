@@ -177,13 +177,11 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	}
 
 	for _, file := range childFiles {
-		filePath := path.Join(folder.Position, folder.Name, file.Name)
-
 		if processedPath == "" {
 			if pathProcessor != nil {
-				processedPath = pathProcessor(filePath)
+				processedPath = pathProcessor(file.Dir)
 			} else {
-				processedPath = filePath
+				processedPath = file.Dir
 			}
 		}
 

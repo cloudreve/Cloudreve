@@ -9,11 +9,11 @@ import (
 type Folder struct {
 	// 表字段
 	gorm.Model
-	Name     string
-	ParentID uint   `gorm:"index:parent_id"`
-	Position string `gorm:"size:65536"`
-	OwnerID  uint   `gorm:"index:owner_id"`
-	//PositionAbsolute string `gorm:"size:65536"`
+	Name             string `gorm:"unique_index:idx_only_one_name"`
+	ParentID         uint   `gorm:"index:parent_id;unique_index:idx_only_one_name"`
+	Position         string `gorm:"size:65536"`
+	OwnerID          uint   `gorm:"index:owner_id"`
+	PositionAbsolute string `gorm:"size:65536"`
 }
 
 // Create 创建目录
