@@ -78,7 +78,9 @@ func InitRouter() *gin.Engine {
 			// 对象，文件和目录的抽象
 			object := auth.Group("object")
 			{
+				// 删除对象
 				object.DELETE("", controllers.Delete)
+				object.PATCH("", controllers.Move)
 			}
 
 		}

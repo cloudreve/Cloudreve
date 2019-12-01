@@ -6,3 +6,12 @@ import "strings"
 func DotPathToStandardPath(path string) string {
 	return "/" + strings.Replace(path, ",", "/", -1)
 }
+
+// FillSlash 给路径补全`/`
+func FillSlash(path string) string {
+	if path == "/" {
+		return path
+	}
+	return path + "/"
+
+}

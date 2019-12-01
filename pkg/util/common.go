@@ -56,3 +56,13 @@ func BuildRegexp(search []string, prefix, suffix, condition string) string {
 	}
 	return res
 }
+
+// BuildConcat 根据数据库类型构建字符串连接表达式
+func BuildConcat(str1, str2 string, DBType string) string {
+	switch DBType {
+	case "mysql":
+		return "CONCAT(" + str1 + "," + str2 + ")"
+	default:
+		return str1 + "||" + str2
+	}
+}

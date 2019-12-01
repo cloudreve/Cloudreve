@@ -20,3 +20,18 @@ func Delete(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// Move 移动文件或目录
+func Move(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ItemMoveService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Move(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

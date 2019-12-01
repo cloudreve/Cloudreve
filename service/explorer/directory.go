@@ -43,17 +43,14 @@ func (service *DirectoryService) CreateDirectory(c *gin.Context) serializer.Resp
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
-
 	// 上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	// 创建目录
 	err = fs.CreateDirectory(ctx, service.Path)
 	if err != nil {
 		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
 	}
-
 	return serializer.Response{
 		Code: 0,
 	}

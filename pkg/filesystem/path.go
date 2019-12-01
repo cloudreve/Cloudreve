@@ -25,6 +25,33 @@ type Object struct {
 	Date string `json:"date"`
 }
 
+// Move 移动文件和目录
+func (fs *FileSystem) Move(ctx context.Context, dirs, files []string, src, dst string) error {
+	// 获取目的目录
+	isDstExist, dstFolder := fs.IsPathExist(dst)
+	isSrcExist, srcFolder := fs.IsPathExist(src)
+	// 不存在时返回空的结果
+	if !isDstExist || !isSrcExist {
+		return ErrPathNotExist
+	}
+
+	// 处理目录移动
+	err := srcFolder.MoveFolderTo(dirs, dstFolder)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+	}
+
+	// 处理文件移动
+	err = srcFolder.MoveFileTo(files, dstFolder)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+	}
+
+	// 移动文件
+
+	return err
+}
+
 // Delete 递归删除对象
 func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 	// 已删除的总容量,map用于去重
@@ -141,7 +168,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	isExist, folder := fs.IsPathExist(dirPath)
 	// 不存在时返回空的结果
 	if !isExist {
-		return nil, nil
+		return []Object{}, nil
 	}
 
 	// 获取子目录
@@ -205,38 +232,34 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	fullPath = path.Clean(fullPath)
 	base := path.Dir(fullPath)
 	dir := path.Base(fullPath)
-
 	// 检查目录名是否合法
 	if !fs.ValidateLegalName(ctx, dir) {
 		return ErrIllegalObjectName
 	}
-
 	// 父目录是否存在
 	isExist, parent := fs.IsPathExist(base)
 	if !isExist {
 		return ErrPathNotExist
 	}
-
 	// 是否有同名目录
+	// TODO: 有了unique约束后可以不用在此检查
 	b, _ := fs.IsPathExist(fullPath)
 	if b {
 		return ErrFolderExisted
 	}
-
 	// 是否有同名文件
 	if ok, _ := fs.IsFileExist(path.Join(base, dir)); ok {
 		return ErrFileExisted
 	}
-
 	// 创建目录
 	newFolder := model.Folder{
-		Name:     dir,
-		ParentID: parent.ID,
-		Position: base,
-		OwnerID:  fs.User.ID,
+		Name:             dir,
+		ParentID:         parent.ID,
+		Position:         base,
+		PositionAbsolute: fullPath,
+		OwnerID:          fs.User.ID,
 	}
 	_, err := newFolder.Create()
-
 	return err
 }
 

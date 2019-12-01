@@ -126,3 +126,11 @@ func DeleteFileByIDs(ids []uint) error {
 	result := DB.Where("id in (?)", ids).Delete(&File{})
 	return result.Error
 }
+
+// GetRecursiveByPaths 根据给定的文件路径(s)递归查找文件
+func GetRecursiveByPaths(paths []string, uid uint) ([]File, error) {
+	files := make([]File, 0, len(paths))
+	search := util.BuildRegexp(paths, "^", "/", "|")
+	result := DB.Where("(user_id = ? and dir REGEXP ?) or dir in (?)", uid, search, paths).Find(&files)
+	return files, result.Error
+}
