@@ -52,7 +52,7 @@ func GetRecursiveChildFolder(dirs []string, uid uint) ([]Folder, error) {
 
 // DeleteFolderByIDs 根据给定ID批量删除目录记录
 func DeleteFolderByIDs(ids []uint) error {
-	result := DB.Where("id in (?)", ids).Delete(&Folder{})
+	result := DB.Where("id in (?)", ids).Unscoped().Delete(&Folder{})
 	return result.Error
 }
 
@@ -62,14 +62,8 @@ func DeleteFolderByIDs(ids []uint) error {
 
 // MoveFileTo 将此目录下的文件递归移动至dstFolder
 func (folder *Folder) MoveFileTo(files []string, dstFolder *Folder) error {
-	// 生成绝对路径
-	fullFilePath := make([]string, len(files))
-	for i := 0; i < len(files); i++ {
-		fullFilePath[i] = path.Join(folder.PositionAbsolute, files[i])
-	}
-
 	// 更改顶级要移动文件的父目录指向
-	err := DB.Model(File{}).Where("dir in (?) and user_id = ?", fullFilePath, folder.OwnerID).
+	err := DB.Model(File{}).Where("dir in (?) and user_id = ?", folder.PositionAbsolute, folder.OwnerID).
 		Update(map[string]interface{}{
 			"folder_id": dstFolder.ID,
 			"dir":       dstFolder.PositionAbsolute,

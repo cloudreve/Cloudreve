@@ -27,10 +27,11 @@ type User struct {
 }
 
 type Policy struct {
-	SaveType    string   `json:"saveType"`
-	MaxSize     string   `json:"maxSize"`
-	AllowedType []string `json:"allowedType"`
-	UploadURL   string   `json:"upUrl"`
+	SaveType       string   `json:"saveType"`
+	MaxSize        string   `json:"maxSize"`
+	AllowedType    []string `json:"allowedType"`
+	UploadURL      string   `json:"upUrl"`
+	AllowGetSource bool     `json:"allowSource"`
 }
 
 type Group struct {
@@ -51,10 +52,11 @@ func BuildUser(user model.User) User {
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
 		Policy: Policy{
-			SaveType:    user.Policy.Type,
-			MaxSize:     fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/1024*1024),
-			AllowedType: user.Policy.OptionsSerialized.FileType,
-			UploadURL:   user.Policy.Server,
+			SaveType:       user.Policy.Type,
+			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/1024*1024),
+			AllowedType:    user.Policy.OptionsSerialized.FileType,
+			UploadURL:      user.Policy.Server,
+			AllowGetSource: user.Policy.IsOriginLinkEnable,
 		},
 		Group: Group{
 			AllowShare:           user.Group.ShareEnabled,

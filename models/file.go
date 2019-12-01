@@ -123,7 +123,7 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 
 // DeleteFileByIDs 根据给定ID批量删除文件记录
 func DeleteFileByIDs(ids []uint) error {
-	result := DB.Where("id in (?)", ids).Delete(&File{})
+	result := DB.Where("id in (?)", ids).Unscoped().Delete(&File{})
 	return result.Error
 }
 

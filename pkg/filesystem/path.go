@@ -77,31 +77,32 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 		if err != nil {
 			return err
 		}
-		// 去除待删除文件中包含软连接的部分
-		filesToBeDelete, err := model.RemoveFilesWithSoftLinks(fs.FileTarget)
-		if err != nil {
-			return ErrDBListObjects.WithError(err)
+	}
+
+	// 去除待删除文件中包含软连接的部分
+	filesToBeDelete, err := model.RemoveFilesWithSoftLinks(fs.FileTarget)
+	if err != nil {
+		return ErrDBListObjects.WithError(err)
+	}
+
+	// 根据存储策略将文件分组
+	policyGroup := fs.GroupFileByPolicy(ctx, filesToBeDelete)
+
+	// 按照存储策略分组删除对象
+	failed := fs.deleteGroupedFile(ctx, policyGroup)
+
+	for i := 0; i < len(fs.FileTarget); i++ {
+		if util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
+			// TODO 删除失败时不删除文件记录及父目录
+		} else {
+			deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
 		}
-
-		// 根据存储策略将文件分组
-		policyGroup := fs.GroupFileByPolicy(ctx, filesToBeDelete)
-
-		// 按照存储策略分组删除对象
-		failed := fs.deleteGroupedFile(ctx, policyGroup)
-
-		for i := 0; i < len(fs.FileTarget); i++ {
-			if util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
-				// TODO 删除失败时不删除文件记录及父目录
-			} else {
-				deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
-			}
-			deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
-			allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
-		}
+		deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
+		allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
 	}
 
 	// 删除文件记录
-	err := model.DeleteFileByIDs(allFileIDs)
+	err = model.DeleteFileByIDs(allFileIDs)
 	if err != nil {
 		return ErrDBDeleteObjects.WithError(err)
 	}
