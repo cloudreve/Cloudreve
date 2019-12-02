@@ -29,7 +29,7 @@ func Init() {
 		db, err = gorm.Open("sqlite3", ":memory:")
 	} else {
 		if conf.DatabaseConfig.Type == "UNSET" {
-			// 未指定数据库时，使用Sqlite
+			// 未指定数据库时，使用SQLite
 			db, err = gorm.Open("sqlite3", "cloudreve.db")
 		} else {
 			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",

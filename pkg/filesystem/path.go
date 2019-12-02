@@ -35,7 +35,7 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []string, src, dst s
 		return ErrPathNotExist
 	}
 
-	// 处理目录移动
+	// 处理目录及子文件移动
 	err := srcFolder.MoveFolderTo(dirs, dstFolder)
 	if err != nil {
 		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
@@ -134,7 +134,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []string) error {
 // ListDeleteDirs 递归列出要删除目录，及目录下所有文件
 func (fs *FileSystem) ListDeleteDirs(ctx context.Context, dirs []string) error {
 	// 列出所有递归子目录
-	folders, err := model.GetRecursiveChildFolder(dirs, fs.User.ID)
+	folders, err := model.GetRecursiveChildFolder(dirs, fs.User.ID, true)
 	if err != nil {
 		return ErrDBListObjects.WithError(err)
 	}

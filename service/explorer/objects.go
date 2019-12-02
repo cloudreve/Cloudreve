@@ -16,8 +16,8 @@ type ItemMoveService struct {
 
 // ItemService 处理多文件/目录相关服务
 type ItemService struct {
-	Items []string `json:"items" binding:"exists"`
-	Dirs  []string `json:"dirs" binding:"exists"`
+	Items []string `json:"items" binding:"exists,dive,ne=/"`
+	Dirs  []string `json:"dirs" binding:"exists,dive,ne=/"`
 }
 
 // Delete 删除对象
