@@ -162,14 +162,14 @@ func (folder *Folder) MoveFolderTo(dirs []string, dstFolder *Folder) error {
 	}
 
 	// 更新被移动的目录递归的子目录和文件
-	for _, toBeMoved := range subFolders {
-
+	for parKey, toBeMoved := range subFolders {
+		ignorePath := fullDirs[parKey]
 		// TODO 找到更好的修改办法
 
-		for key, subFolder := range toBeMoved {
+		for _, subFolder := range toBeMoved {
 			// 每个分组的第一个目录已经变更指向，直接跳过
-			if key > 0 {
-				newPosition := path.Join(dstFolder.PositionAbsolute, strings.Replace(subFolder.Position, folder.Position, "", 1))
+			if subFolder.PositionAbsolute != ignorePath {
+				newPosition := path.Join(dstFolder.PositionAbsolute, strings.Replace(subFolder.Position, folder.PositionAbsolute, "", 1))
 				DB.Model(&subFolder).Updates(map[string]interface{}{
 					"position":          newPosition,
 					"position_absolute": path.Join(newPosition, subFolder.Name),
