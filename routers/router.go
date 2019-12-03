@@ -80,7 +80,10 @@ func InitRouter() *gin.Engine {
 			{
 				// 删除对象
 				object.DELETE("", controllers.Delete)
+				// 移动对象
 				object.PATCH("", controllers.Move)
+				// 复制对象
+				object.POST("copy", controllers.Copy)
 			}
 
 		}

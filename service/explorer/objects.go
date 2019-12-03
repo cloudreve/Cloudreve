@@ -48,8 +48,33 @@ func (service *ItemMoveService) Move(ctx context.Context, c *gin.Context) serial
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
-	// 删除对象
+	// 移动对象
 	err = fs.Move(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Code: 0,
+	}
+
+}
+
+// Copy 复制对象
+func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serializer.Response {
+	// 复制操作只能对一个目录或文件对象进行操作
+	if len(service.Src.Items)+len(service.Src.Dirs) > 1 {
+		return serializer.ParamErr("只能复制一个对象", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 移动对象
+	err = fs.Copy(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

@@ -25,6 +25,27 @@ type Object struct {
 	Date string `json:"date"`
 }
 
+// Copy 复制src目录下的文件或目录到dst
+func (fs *FileSystem) Copy(ctx context.Context, dirs, files []string, src, dst string) error {
+	// 获取目的目录
+	isDstExist, dstFolder := fs.IsPathExist(dst)
+	isSrcExist, srcFolder := fs.IsPathExist(src)
+	// 不存在时返回空的结果
+	if !isDstExist || !isSrcExist {
+		return ErrPathNotExist
+	}
+
+	// 复制目录
+	if len(dirs) > 0 {
+		err := srcFolder.RenameFolderTo(dirs, dstFolder, true)
+		if err != nil {
+			return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+		}
+	}
+
+	return nil
+}
+
 // Move 移动文件和目录
 func (fs *FileSystem) Move(ctx context.Context, dirs, files []string, src, dst string) error {
 	// 获取目的目录
@@ -36,7 +57,7 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []string, src, dst s
 	}
 
 	// 处理目录及子文件移动
-	err := srcFolder.MoveFolderTo(dirs, dstFolder)
+	err := srcFolder.RenameFolderTo(dirs, dstFolder, false)
 	if err != nil {
 		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
 	}

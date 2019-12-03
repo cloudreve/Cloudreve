@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
@@ -127,8 +128,8 @@ func (folder *Folder) MoveFileTo(files []string, dstFolder *Folder) error {
 
 }
 
-// MoveFolderTo 将此目录下的目录移动至dstFolder
-func (folder *Folder) MoveFolderTo(dirs []string, dstFolder *Folder) error {
+// RenameFolderTo 将folder目录下的dirs子目录复制或移动到dstFolder
+func (folder *Folder) RenameFolderTo(dirs []string, dstFolder *Folder, isCopy bool) error {
 	// 生成绝对路径
 	fullDirs := make([]string, len(dirs))
 	for i := 0; i < len(dirs); i++ {
@@ -150,13 +151,46 @@ func (folder *Folder) MoveFolderTo(dirs []string, dstFolder *Folder) error {
 		subFolders[key] = toBeMoved
 	}
 
-	// 更改顶级要移动目录的父目录指向
-	err := DB.Model(Folder{}).Where("position_absolute in (?) and owner_id = ?", fullDirs, folder.OwnerID).
-		Update(map[string]interface{}{
-			"parent_id":         dstFolder.ID,
-			"position":          dstFolder.PositionAbsolute,
-			"position_absolute": gorm.Expr(util.BuildConcat("?", "name", conf.DatabaseConfig.Type), util.FillSlash(dstFolder.PositionAbsolute)),
-		}).Error
+	// 记录复制要用到的父目录源路径和新的ID
+	var copyCache = make(map[string]uint)
+
+	var err error
+	if isCopy {
+		// 复制
+		// TODO:支持多目录
+		origin := Folder{}
+		if DB.Where("position_absolute in (?) and owner_id = ?", fullDirs, folder.OwnerID).Find(&origin).Error != nil {
+			return errors.New("找不到原始目录")
+		}
+
+		oldPosition := origin.PositionAbsolute
+
+		// 更新复制后的相关属性
+		origin.PositionAbsolute = util.FillSlash(dstFolder.PositionAbsolute) + origin.Name
+		origin.Position = dstFolder.PositionAbsolute
+		origin.ParentID = dstFolder.ID
+
+		// 清空主键
+		origin.Model = gorm.Model{}
+
+		if err := DB.Create(&origin).Error; err != nil {
+			return err
+		}
+
+		// 记录新的主键
+		copyCache[oldPosition] = origin.Model.ID
+
+	} else {
+		// 移动
+		// 更改顶级要移动目录的父目录指向
+		err = DB.Model(Folder{}).Where("position_absolute in (?) and owner_id = ?", fullDirs, folder.OwnerID).
+			Update(map[string]interface{}{
+				"parent_id":         dstFolder.ID,
+				"position":          dstFolder.PositionAbsolute,
+				"position_absolute": gorm.Expr(util.BuildConcat("?", "name", conf.DatabaseConfig.Type), util.FillSlash(dstFolder.PositionAbsolute)),
+			}).Error
+	}
+
 	if err != nil {
 		return err
 	}
@@ -166,14 +200,48 @@ func (folder *Folder) MoveFolderTo(dirs []string, dstFolder *Folder) error {
 		ignorePath := fullDirs[parKey]
 		// TODO 找到更好的修改办法
 
-		for _, subFolder := range toBeMoved {
-			// 每个分组的第一个目录已经变更指向，直接跳过
-			if subFolder.PositionAbsolute != ignorePath {
-				newPosition := path.Join(dstFolder.PositionAbsolute, strings.Replace(subFolder.Position, folder.PositionAbsolute, "", 1))
-				DB.Model(&subFolder).Updates(map[string]interface{}{
-					"position":          newPosition,
-					"position_absolute": path.Join(newPosition, subFolder.Name),
-				})
+		if isCopy {
+			index := 0
+			for len(toBeMoved) != 0 {
+				innerIndex := index % len(toBeMoved)
+
+				// 如果是顶级父目录，直接删除，不需要复制
+				if toBeMoved[innerIndex].PositionAbsolute == ignorePath {
+					toBeMoved = append(toBeMoved[:innerIndex], toBeMoved[innerIndex+1:]...)
+					continue
+				}
+
+				// 如果缓存中存在父目录ID，执行复制,并删除
+				if newID, ok := copyCache[toBeMoved[innerIndex].Position]; ok {
+					oldPosition := toBeMoved[innerIndex].PositionAbsolute
+					newPosition := path.Join(
+						dstFolder.PositionAbsolute, strings.Replace(
+							toBeMoved[innerIndex].Position,
+							folder.PositionAbsolute, "", 1),
+					)
+					toBeMoved[innerIndex].Position = newPosition
+					toBeMoved[innerIndex].PositionAbsolute = path.Join(newPosition, toBeMoved[innerIndex].Name)
+					toBeMoved[innerIndex].ParentID = newID
+					toBeMoved[innerIndex].Model = gorm.Model{}
+					if err := DB.Create(&toBeMoved[innerIndex]).Error; err != nil {
+						return err
+					}
+					copyCache[oldPosition] = toBeMoved[innerIndex].Model.ID
+					toBeMoved = append(toBeMoved[:innerIndex], toBeMoved[innerIndex+1:]...)
+				}
+			}
+
+		} else {
+			for _, subFolder := range toBeMoved {
+				// 每个分组的第一个目录已经变更指向，直接跳过
+				if subFolder.PositionAbsolute != ignorePath {
+					newPosition := path.Join(dstFolder.PositionAbsolute, strings.Replace(subFolder.Position, folder.PositionAbsolute, "", 1))
+					// 移动
+					DB.Model(&subFolder).Updates(map[string]interface{}{
+						"position":          newPosition,
+						"position_absolute": path.Join(newPosition, subFolder.Name),
+					})
+				}
 			}
 		}
 
@@ -188,11 +256,22 @@ func (folder *Folder) MoveFolderTo(dirs []string, dstFolder *Folder) error {
 		if err != nil {
 			return err
 		}
+
 		for _, subFile := range toBeMovedFile {
 			newPosition := path.Join(dstFolder.PositionAbsolute, strings.Replace(subFile.Dir, folder.PositionAbsolute, "", 1))
-			DB.Model(&subFile).Updates(map[string]interface{}{
-				"dir": newPosition,
-			})
+			if isCopy {
+				// 复制
+				subFile.Dir = newPosition
+				subFile.Model = gorm.Model{}
+				if err := DB.Create(&subFile).Error; err != nil {
+					util.Log().Warning("无法复制子文件：%s", err)
+				}
+			} else {
+				DB.Model(&subFile).Updates(map[string]interface{}{
+					"dir": newPosition,
+				})
+			}
+
 		}
 
 	}

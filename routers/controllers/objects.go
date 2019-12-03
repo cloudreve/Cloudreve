@@ -35,3 +35,18 @@ func Move(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// Copy 复制文件或目录
+func Copy(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ItemMoveService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Copy(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
