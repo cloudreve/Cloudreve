@@ -4,6 +4,6 @@ go:
 git:
   depth: 1
 script:
-  - go test -v -race -coverprofile=profile.out -covermode=atomic ./...
+  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t uuid-repo-token
