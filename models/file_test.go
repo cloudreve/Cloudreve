@@ -272,7 +272,7 @@ func TestDeleteFileByIDs(t *testing.T) {
 	// 出错
 	{
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
 		err := DeleteFileByIDs([]uint{1, 2, 3})
@@ -282,7 +282,7 @@ func TestDeleteFileByIDs(t *testing.T) {
 	// 成功
 	{
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		err := DeleteFileByIDs([]uint{1, 2, 3})

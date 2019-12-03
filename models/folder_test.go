@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -75,20 +76,21 @@ func TestFolder_GetChildFolder(t *testing.T) {
 }
 
 func TestGetRecursiveChildFolder(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	dirs := []string{"/目录1", "/目录2"}
 
 	// 正常
 	{
 		mock.ExpectQuery("SELECT(.+)folders(.+)").
-			WithArgs(1, util.BuildRegexp(dirs, "^", "/", "|"), "/目录1", "/目录2").
+			WithArgs(1, util.BuildRegexp(dirs, "^", "/", "|"), 1, "/目录1", "/目录2").
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "name"}).
 					AddRow(1, "sub1").
 					AddRow(2, "sub2").
 					AddRow(3, "sub3"),
 			)
-		subs, err := GetRecursiveChildFolder(dirs, 1)
+		subs, err := GetRecursiveChildFolder(dirs, 1, true)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Len(subs, 3)
@@ -96,9 +98,9 @@ func TestGetRecursiveChildFolder(t *testing.T) {
 	// 出错
 	{
 		mock.ExpectQuery("SELECT(.+)folders(.+)").
-			WithArgs(1, util.BuildRegexp(dirs, "^", "/", "|"), "/目录1", "/目录2").
+			WithArgs(1, util.BuildRegexp(dirs, "^", "/", "|"), 1, "/目录1", "/目录2").
 			WillReturnError(errors.New("233"))
-		subs, err := GetRecursiveChildFolder(dirs, 1)
+		subs, err := GetRecursiveChildFolder(dirs, 1, true)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Len(subs, 0)
@@ -111,7 +113,7 @@ func TestDeleteFolderByIDs(t *testing.T) {
 	// 出错
 	{
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
 		err := DeleteFolderByIDs([]uint{1, 2, 3})
@@ -121,7 +123,7 @@ func TestDeleteFolderByIDs(t *testing.T) {
 	// 成功
 	{
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		err := DeleteFolderByIDs([]uint{1, 2, 3})

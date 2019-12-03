@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -175,6 +176,7 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 }
 
 func TestFileSystem_ListDeleteFiles(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
@@ -201,6 +203,7 @@ func TestFileSystem_ListDeleteFiles(t *testing.T) {
 }
 
 func TestFileSystem_ListDeleteDirs(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
@@ -260,6 +263,7 @@ func TestFileSystem_ListDeleteDirs(t *testing.T) {
 }
 
 func TestFileSystem_Delete(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
@@ -272,6 +276,7 @@ func TestFileSystem_Delete(t *testing.T) {
 
 	// 全部未成功
 	{
+		// 列出要删除的目录
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id"}).
@@ -285,6 +290,7 @@ func TestFileSystem_Delete(t *testing.T) {
 				sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).
 					AddRow(4, "1.txt", "1.txt", 2, 1),
 			)
+		// 查询顶级的文件
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "1.txt", "1.txt", 1, 2))
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
@@ -293,7 +299,7 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 		// 删除文件记录
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 归还容量
@@ -303,7 +309,7 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectCommit()
 		// 删除目录
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 
@@ -340,7 +346,7 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 		// 删除文件记录
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 归还容量
@@ -350,7 +356,7 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectCommit()
 		// 删除目录
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)delete(.+)").
+		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 
