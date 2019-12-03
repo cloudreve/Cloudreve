@@ -85,6 +85,16 @@ func (user *User) IncreaseStorage(size uint64) bool {
 	return false
 }
 
+// IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
+func (user *User) IncreaseStorageWithoutCheck(size uint64) {
+	if size == 0 {
+		return
+	}
+	user.Storage += size
+	DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
+
+}
+
 // GetRemainingCapacity 获取剩余配额
 func (user *User) GetRemainingCapacity() uint64 {
 	if user.Group.MaxStorage <= user.Storage {

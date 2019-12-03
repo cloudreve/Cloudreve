@@ -54,3 +54,25 @@ func TestCurrentUser(t *testing.T) {
 	asserts.NotNil(user)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
+
+func TestAuthRequired(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+	AuthRequiredFunc := AuthRequired()
+
+	// 未登录
+	AuthRequiredFunc(c)
+	asserts.NotNil(c)
+
+	// 类型错误
+	c.Set("user", 123)
+	AuthRequiredFunc(c)
+	asserts.NotNil(c)
+
+	// 正常
+	c.Set("user", &model.User{})
+	AuthRequiredFunc(c)
+	asserts.NotNil(c)
+}
