@@ -196,7 +196,11 @@ func (folder *Folder) MoveOrCopyFolderTo(dirs []string, dstFolder *Folder, isCop
 		// 复制
 		// TODO:支持多目录
 		origin := Folder{}
-		if DB.Where("position_absolute in (?) and owner_id = ?", fullDirs, folder.OwnerID).Find(&origin).Error != nil {
+		if DB.Where(
+			"position_absolute in (?) and owner_id = ?",
+			fullDirs,
+			folder.OwnerID,
+		).Find(&origin).Error != nil {
 			return 0, errors.New("找不到原始目录")
 		}
 
@@ -220,7 +224,11 @@ func (folder *Folder) MoveOrCopyFolderTo(dirs []string, dstFolder *Folder, isCop
 	} else {
 		// 移动
 		// 更改顶级要移动目录的父目录指向
-		err = DB.Model(Folder{}).Where("position_absolute in (?) and owner_id = ?", fullDirs, folder.OwnerID).
+		err = DB.Model(Folder{}).
+			Where("position_absolute in (?) and owner_id = ?",
+				fullDirs,
+				folder.OwnerID,
+			).
 			Update(map[string]interface{}{
 				"parent_id": dstFolder.ID,
 				"position":  dstFolder.PositionAbsolute,
@@ -272,7 +280,10 @@ func (folder *Folder) MoveOrCopyFolderTo(dirs []string, dstFolder *Folder, isCop
 							folder.PositionAbsolute, "", 1),
 					)
 					toBeMoved[innerIndex].Position = newPosition
-					toBeMoved[innerIndex].PositionAbsolute = path.Join(newPosition, toBeMoved[innerIndex].Name)
+					toBeMoved[innerIndex].PositionAbsolute = path.Join(
+						newPosition,
+						toBeMoved[innerIndex].Name,
+					)
 					toBeMoved[innerIndex].ParentID = newID
 					toBeMoved[innerIndex].Model = gorm.Model{}
 					if err := DB.Create(&toBeMoved[innerIndex]).Error; err != nil {

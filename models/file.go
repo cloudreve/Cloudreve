@@ -127,13 +127,13 @@ func DeleteFileByIDs(ids []uint) error {
 	return result.Error
 }
 
-// GetRecursiveByPaths 根据给定的文件路径(s)递归查找文件
-func GetRecursiveByPaths(paths []string, uid uint) ([]File, error) {
-	files := make([]File, 0, len(paths))
-	search := util.BuildRegexp(paths, "^", "/", "|")
-	result := DB.Where("(user_id = ? and dir REGEXP ?) or (user_id = ？ and dir in (?))", uid, search, uid, paths).Find(&files)
-	return files, result.Error
-}
+//// GetRecursiveByPaths 根据给定的文件路径(s)递归查找文件
+//func GetRecursiveByPaths(paths []string, uid uint) ([]File, error) {
+//	files := make([]File, 0, len(paths))
+//	search := util.BuildRegexp(paths, "^", "/", "|")
+//	result := DB.Where("(user_id = ? and dir REGEXP ?) or (user_id = ？ and dir in (?))", uid, search, uid, paths).Find(&files)
+//	return files, result.Error
+//}
 
 // GetFilesByParentIDs 根据父目录ID查找文件
 func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {

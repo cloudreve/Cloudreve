@@ -290,3 +290,20 @@ func TestDeleteFileByIDs(t *testing.T) {
 		asserts.NoError(err)
 	}
 }
+
+func TestGetFilesByParentIDs(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 4, 5, 6).
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name"}).
+				AddRow(4, "4.txt").
+				AddRow(5, "5.txt").
+				AddRow(6, "6.txt"),
+		)
+	files, err := GetFilesByParentIDs([]uint{4, 5, 6}, 1)
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Len(files, 3)
+}

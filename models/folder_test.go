@@ -107,6 +107,52 @@ func TestGetRecursiveChildFolder(t *testing.T) {
 	}
 }
 
+func TestGetRecursiveChildFolderSQLite(t *testing.T) {
+	conf.DatabaseConfig.Type = "sqlite3"
+	asserts := assert.New(t)
+
+	// 测试目录结构
+	//      1
+	//     2  3
+	//   4  5   6
+
+	// 查询第一层
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, "/test").
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name"}).
+				AddRow(1, "folder1"),
+		)
+	// 查询第二层
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1).
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name"}).
+				AddRow(2, "folder2").
+				AddRow(3, "folder3"),
+		)
+	// 查询第三层
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 2, 3).
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name"}).
+				AddRow(4, "folder4").
+				AddRow(5, "folder5").
+				AddRow(6, "folder6"),
+		)
+	// 查询第四层
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 4, 5, 6).
+		WillReturnRows(
+			sqlmock.NewRows([]string{"id", "name"}),
+		)
+
+	folders, err := GetRecursiveChildFolder([]string{"/test"}, 1, true)
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Len(folders, 6)
+}
+
 func TestDeleteFolderByIDs(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -129,5 +175,131 @@ func TestDeleteFolderByIDs(t *testing.T) {
 		err := DeleteFolderByIDs([]uint{1, 2, 3})
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
+	}
+}
+
+func TestFolder_MoveOrCopyFileTo(t *testing.T) {
+	asserts := assert.New(t)
+	// 当前目录
+	folder := Folder{
+		OwnerID:          1,
+		PositionAbsolute: "/test",
+	}
+	// 目标目录
+	dstFolder := Folder{
+		Model:            gorm.Model{ID: 10},
+		PositionAbsolute: "/dst",
+	}
+
+	// 复制文件
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(
+				"1.txt",
+				"2.txt",
+				1,
+				"/test",
+			).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "size"}).
+				AddRow(1, 10).
+				AddRow(2, 20),
+		)
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		storage, err := folder.MoveOrCopyFileTo(
+			[]string{"1.txt", "2.txt"},
+			&dstFolder,
+			true,
+		)
+		asserts.NoError(err)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal(uint64(30), storage)
+	}
+
+	// 复制文件, 检索文件出错
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(
+				"1.txt",
+				"2.txt",
+				1,
+				"/test",
+			).WillReturnError(errors.New("error"))
+
+		storage, err := folder.MoveOrCopyFileTo(
+			[]string{"1.txt", "2.txt"},
+			&dstFolder,
+			true,
+		)
+		asserts.Error(err)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal(uint64(0), storage)
+	}
+
+	// 复制文件,第二个文件插入出错
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(
+				"1.txt",
+				"2.txt",
+				1,
+				"/test",
+			).WillReturnRows(
+			sqlmock.NewRows([]string{"id", "size"}).
+				AddRow(1, 10).
+				AddRow(2, 20),
+		)
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+		storage, err := folder.MoveOrCopyFileTo(
+			[]string{"1.txt", "2.txt"},
+			&dstFolder,
+			true,
+		)
+		asserts.Error(err)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal(uint64(10), storage)
+	}
+
+	// 移动文件 成功
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst", 10, sqlmock.AnyArg(), "1.txt", "2.txt", 1, "/test").
+			WillReturnResult(sqlmock.NewResult(1, 2))
+		mock.ExpectCommit()
+		storage, err := folder.MoveOrCopyFileTo(
+			[]string{"1.txt", "2.txt"},
+			&dstFolder,
+			false,
+		)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(uint64(0), storage)
+	}
+
+	// 移动文件 出错
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst", 10, sqlmock.AnyArg(), "1.txt", "2.txt", 1, "/test").
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+		storage, err := folder.MoveOrCopyFileTo(
+			[]string{"1.txt", "2.txt"},
+			&dstFolder,
+			false,
+		)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
 	}
 }

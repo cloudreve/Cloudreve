@@ -56,6 +56,9 @@ func (fs *FileSystem) Copy(ctx context.Context, dirs, files []string, src, dst s
 		newUsedStorage += subFileSizes
 	}
 
+	// 扣除容量
+	fs.User.IncreaseStorageWithoutCheck(newUsedStorage)
+
 	return nil
 }
 
