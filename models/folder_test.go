@@ -303,3 +303,394 @@ func TestFolder_MoveOrCopyFileTo(t *testing.T) {
 		asserts.Equal(uint64(0), storage)
 	}
 }
+
+func TestFolder_MoveOrCopyFolderTo_Copy(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
+	asserts := assert.New(t)
+	// 父目录
+	parFolder := Folder{
+		OwnerID:          1,
+		PositionAbsolute: "/",
+	}
+	// 目标目录
+	dstFolder := Folder{
+		Model:            gorm.Model{ID: 10},
+		PositionAbsolute: "/dst",
+	}
+
+	// 测试复制目录结构
+	//       test(2)
+	//    1(3)    2.txt
+	//  3(4) 4.txt
+
+	// 正常情况 成功
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(2, 1, "test", "/", "/test"),
+			)
+
+		// 更新顶级目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(5, 1))
+		mock.ExpectCommit()
+		// 更新子目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(6, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(7, 1))
+		mock.ExpectCommit()
+
+		// 获取子目录下的所有子文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 3, 2, 4).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "folder_id", "dir", "size"}).
+					AddRow(1, 2, "/test", 10).
+					AddRow(2, 3, "/test/1", 20),
+			)
+
+		// 更新子文件记录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(uint64(30), storage)
+
+	}
+
+	// 处理子目录时死循环避免
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/1").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(2, 1, "test", "/", "/test"),
+			)
+
+		// 更新顶级目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(5, 1))
+		mock.ExpectCommit()
+		// 更新子目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(6, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(6, 1))
+		mock.ExpectCommit()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+
+	}
+
+	// 检索子目录出错
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnError(errors.New("error"))
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+
+	}
+
+	// 寻找原始目录出错
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnError(errors.New("error"))
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+
+	}
+
+	// 更新顶级目录出错
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(2, 1, "test", "/", "/test"),
+			)
+
+		// 更新顶级目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+
+	}
+
+	// 复制子目录，一个成功一个失败
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(2, 1, "test", "/", "/test"),
+			)
+
+		// 更新顶级目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(5, 1))
+		mock.ExpectCommit()
+		// 更新子目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(6, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+
+	}
+
+	// 复制文件，一个成功一个失败
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 查找顶级待复制目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs("/test", 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(2, 1, "test", "/", "/test"),
+			)
+
+		// 更新顶级目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(5, 1))
+		mock.ExpectCommit()
+		// 更新子目录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(6, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").
+			WillReturnResult(sqlmock.NewResult(7, 1))
+		mock.ExpectCommit()
+
+		// 获取子目录下的所有子文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 3, 2, 4).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "folder_id", "dir", "size"}).
+					AddRow(1, 2, "/test", 10).
+					AddRow(2, 3, "/test/1", 20),
+			)
+
+		// 更新子文件记录
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(uint64(10), storage)
+
+	}
+
+}
+
+func TestFolder_MoveOrCopyFolderTo_Move(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
+	asserts := assert.New(t)
+	// 父目录
+	parFolder := Folder{
+		OwnerID:          1,
+		PositionAbsolute: "/",
+	}
+	// 目标目录
+	dstFolder := Folder{
+		Model:            gorm.Model{ID: 10},
+		PositionAbsolute: "/dst",
+	}
+
+	// 测试复制目录结构
+	//       test(2)
+	//    1(3)    2.txt
+	//  3(4) 4.txt
+
+	// 正常情况 成功
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 更改顶级要移动目录的父目录指向
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs(10, "/dst", "/dst/", sqlmock.AnyArg(), "/test", 1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		// 移动子目录
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst/test", "/dst/test/1", sqlmock.AnyArg(), 3).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst/test/1", "/dst/test/1/3", sqlmock.AnyArg(), 4).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		// 获取子文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 3, 2, 4).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "folder_id", "dir", "size"}).
+					AddRow(1, 2, "/test", 10).
+					AddRow(2, 3, "/test/1", 20),
+			)
+		// 移动子文件
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst/test", sqlmock.AnyArg(), 1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs("/dst/test/1", sqlmock.AnyArg(), 2).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, false)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(uint64(0), storage)
+	}
+
+	// 无法移动顶层目录
+	{
+		// 查找所有递归子目录，包括自身
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, sqlmock.AnyArg(), 1, "/test").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id", "name", "position", "position_absolute"}).
+					AddRow(3, 2, "1", "/test", "/test/1").
+					AddRow(2, 1, "test", "/", "/test").
+					AddRow(4, 3, "3", "/test/1", "/test/1/3"),
+			)
+		// 更改顶级要移动目录的父目录指向
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs(10, "/dst", "/dst/", sqlmock.AnyArg(), "/test", 1).
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+
+		storage, err := parFolder.MoveOrCopyFolderTo([]string{"/test"}, &dstFolder, false)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(uint64(0), storage)
+	}
+}

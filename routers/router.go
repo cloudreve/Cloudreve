@@ -5,12 +5,14 @@ import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
 
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
 	r := gin.Default()
+	pprof.Register(r)
 
 	/*
 		中间件

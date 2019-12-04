@@ -6,6 +6,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/fatih/color v1.7.0
 	github.com/gin-contrib/cors v1.3.0
+	github.com/gin-contrib/pprof v1.2.1
 	github.com/gin-contrib/sessions v0.0.1
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-ini/ini v1.50.0

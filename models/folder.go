@@ -261,6 +261,11 @@ func (folder *Folder) MoveOrCopyFolderTo(dirs []string, dstFolder *Folder, isCop
 			index := 0
 			for len(toBeMoved) != 0 {
 				innerIndex := index % len(toBeMoved)
+				index++
+				// 限制循环次数
+				if index > 65535 {
+					return 0, errors.New("循环超出限制")
+				}
 
 				// 如果是顶级父目录，直接删除，不需要复制
 				if toBeMoved[innerIndex].PositionAbsolute == ignorePath {

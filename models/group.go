@@ -24,13 +24,13 @@ type Group struct {
 // GetAria2Option 获取用户离线下载设备
 // TODO:测试
 func (group *Group) GetAria2Option() [3]bool {
-	if len(group.Aria2Option) != 3 {
+	if len(group.Aria2Option) != 5 {
 		return [3]bool{false, false, false}
 	}
 	return [3]bool{
 		group.Aria2Option[0] == '1',
-		group.Aria2Option[1] == '1',
 		group.Aria2Option[2] == '1',
+		group.Aria2Option[4] == '1',
 	}
 }
 
