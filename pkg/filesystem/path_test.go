@@ -408,6 +408,7 @@ func TestFileSystem_Copy(t *testing.T) {
 }
 
 func TestFileSystem_Move(t *testing.T) {
+	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
@@ -420,10 +421,7 @@ func TestFileSystem_Move(t *testing.T) {
 
 	// 目录不存在
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
-			sqlmock.NewRows([]string{"name"}),
-		)
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(
 			sqlmock.NewRows([]string{"name"}),
 		)
 		err := fs.Move(ctx, []string{}, []string{}, "/src", "/dst")

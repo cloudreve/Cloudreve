@@ -16,7 +16,7 @@ func TestFileStream_GetFileName(t *testing.T) {
 func TestFileStream_GetMIMEType(t *testing.T) {
 	asserts := assert.New(t)
 	file := FileStream{MIMEType: "123"}
-	asserts.Equal("123", file.GetFileName())
+	asserts.Equal("123", file.GetMIMEType())
 }
 
 func TestFileStream_GetSize(t *testing.T) {
