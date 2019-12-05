@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 )
 
@@ -30,19 +31,21 @@ func GetSettingByName(name string) string {
 	var setting Setting
 
 	// 优先从缓存中查找
-	if optionValue, ok := settingCache[name]; ok {
-		return optionValue
+	cacheKey := "setting_" + name
+	if optionValue, ok := cache.Store.Get(cacheKey); ok {
+		return optionValue.(string)
 	}
 	// 尝试数据库中查找
 	result := DB.Where("name = ?", name).First(&setting)
 	if result.Error == nil {
-		settingCache[setting.Name] = setting.Value
+		_ = cache.Store.Set(cacheKey, setting.Value)
 		return setting.Value
 	}
 	return ""
 }
 
 // GetSettingByNames 用多个 Name 获取设置值
+// TODO 其他设置获取也使用缓存
 func GetSettingByNames(names []string) map[string]string {
 	var queryRes []Setting
 	res := make(map[string]string)

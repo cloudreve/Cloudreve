@@ -116,3 +116,12 @@ func TestGetSettingByName(t *testing.T) {
 	asserts.NoError(mock.ExpectationsWereMet())
 
 }
+
+func TestIsTrueVal(t *testing.T) {
+	asserts := assert.New(t)
+
+	asserts.True(IsTrueVal("1"))
+	asserts.True(IsTrueVal("true"))
+	asserts.False(IsTrueVal("0"))
+	asserts.False(IsTrueVal("false"))
+}

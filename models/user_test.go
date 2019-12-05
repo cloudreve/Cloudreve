@@ -218,4 +218,91 @@ func TestUser_DeductionCapacity(t *testing.T) {
 
 	asserts.Equal(false, newUser.IncreaseStorage(1))
 	asserts.Equal(uint64(100), newUser.Storage)
+
+	asserts.True(newUser.IncreaseStorage(0))
+}
+
+func TestUser_DeductionStorage(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 减少零
+	{
+		user := User{Storage: 1}
+		asserts.True(user.DeductionStorage(0))
+		asserts.Equal(uint64(1), user.Storage)
+	}
+	// 正常
+	{
+		user := User{
+			Model:   gorm.Model{ID: 1},
+			Storage: 10,
+		}
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs(5, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		asserts.True(user.DeductionStorage(5))
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal(uint64(5), user.Storage)
+	}
+
+	// 减少的超出可用的
+	{
+		user := User{
+			Model:   gorm.Model{ID: 1},
+			Storage: 10,
+		}
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs(0, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		asserts.False(user.DeductionStorage(20))
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal(uint64(0), user.Storage)
+	}
+}
+
+func TestUser_IncreaseStorageWithoutCheck(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 增加零
+	{
+		user := User{}
+		user.IncreaseStorageWithoutCheck(0)
+		asserts.Equal(uint64(0), user.Storage)
+	}
+
+	// 减少零
+	{
+		user := User{
+			Model: gorm.Model{ID: 1},
+		}
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs(10, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		user.IncreaseStorageWithoutCheck(10)
+		asserts.Equal(uint64(10), user.Storage)
+	}
+}
+
+func TestGetUserByEmail(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WithArgs("abslant@foxmail.com").WillReturnRows(sqlmock.NewRows([]string{"id", "email"}))
+	_, err := GetUserByEmail("abslant@foxmail.com")
+
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Error(err)
+}
+
+func TestUser_AfterCreate(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{Model: gorm.Model{ID: 1}}
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	err := user.AfterCreate(DB)
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 }
