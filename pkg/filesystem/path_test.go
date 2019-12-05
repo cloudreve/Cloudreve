@@ -368,3 +368,78 @@ func TestFileSystem_Delete(t *testing.T) {
 	}
 
 }
+
+func TestFileSystem_Copy(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+		Storage: 3,
+		Group:   model.Group{MaxStorage: 3},
+	}}
+	ctx := context.Background()
+
+	// 目录不存在
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}),
+		)
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}),
+		)
+		err := fs.Copy(ctx, []string{}, []string{}, "/src", "/dst")
+		asserts.Equal(ErrPathNotExist, err)
+		asserts.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 复制目录出错
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}).AddRow("123"),
+		)
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}).AddRow("123"),
+		)
+		err := fs.Copy(ctx, []string{"test"}, []string{}, "/src", "/dst")
+		asserts.Error(err)
+	}
+
+}
+
+func TestFileSystem_Move(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+		Storage: 3,
+		Group:   model.Group{MaxStorage: 3},
+	}}
+	ctx := context.Background()
+
+	// 目录不存在
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}),
+		)
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}),
+		)
+		err := fs.Move(ctx, []string{}, []string{}, "/src", "/dst")
+		asserts.Equal(ErrPathNotExist, err)
+		asserts.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 移动目录出错
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}).AddRow("123"),
+		)
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
+			sqlmock.NewRows([]string{"name"}).AddRow("123"),
+		)
+		err := fs.Move(ctx, []string{"test"}, []string{}, "/src", "/dst")
+		asserts.Error(err)
+	}
+}

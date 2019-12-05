@@ -82,4 +82,18 @@ func TestFileSystem_Upload(t *testing.T) {
 	asserts.Error(err)
 	testHandller2.AssertExpectations(t)
 
+	// AfterUpload失败
+	testHandller3 := new(FileHeaderMock)
+	testHandller3.On("Put", testMock.Anything, testMock.Anything, testMock.Anything).Return(nil)
+	fs.Handler = testHandller3
+	fs.Use("AfterUpload", func(ctx context.Context, fs *FileSystem) error {
+		return errors.New("error")
+	})
+	fs.Use("AfterValidateFailed", func(ctx context.Context, fs *FileSystem) error {
+		return errors.New("error")
+	})
+	err = fs.Upload(ctx, file)
+	asserts.Error(err)
+	testHandller2.AssertExpectations(t)
+
 }

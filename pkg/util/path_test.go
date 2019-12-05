@@ -12,3 +12,10 @@ func TestDotPathToStandardPath(t *testing.T) {
 	asserts.Equal("/目录", DotPathToStandardPath("目录"))
 	asserts.Equal("/目录/目录2", DotPathToStandardPath("目录,目录2"))
 }
+
+func TestFillSlash(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.Equal("/", FillSlash("/"))
+	asserts.Equal("/", FillSlash(""))
+	asserts.Equal("/123/", FillSlash("/123"))
+}

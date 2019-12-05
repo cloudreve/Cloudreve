@@ -168,6 +168,18 @@ func TestFileSystem_Use(t *testing.T) {
 
 	// 不存在
 	fs.Use("BeforeUpload2333", hook)
+
+	asserts.NotPanics(func() {
+		for _, hookName := range []string{
+			"AfterUpload",
+			"AfterValidateFailed",
+			"AfterUploadCanceled",
+			"BeforeFileDownload",
+		} {
+			fs.Use(hookName, hook)
+		}
+	})
+
 }
 
 func TestFileSystem_Trigger(t *testing.T) {
@@ -194,4 +206,51 @@ func TestFileSystem_Trigger(t *testing.T) {
 	err = fs.Trigger(ctx, fs.BeforeUpload)
 	asserts.NoError(err)
 	asserts.Equal(uint64(4), fs.User.Storage)
+}
+
+func TestHookIsFileExist(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}}
+	ctx := context.WithValue(context.Background(), PathCtx, "/test.txt")
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/", "test.txt").WillReturnRows(
+			sqlmock.NewRows([]string{"Name"}).AddRow("s"),
+		)
+		err := HookIsFileExist(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/", "test.txt").WillReturnRows(
+			sqlmock.NewRows([]string{"Name"}),
+		)
+		err := HookIsFileExist(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+
+}
+
+func TestHookValidateCapacity(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model:   gorm.Model{ID: 1},
+		Storage: 0,
+		Group: model.Group{
+			MaxStorage: 11,
+		},
+	}}
+	ctx := context.WithValue(context.Background(), FileHeaderCtx, local.FileStream{Size: 10})
+	{
+		err := HookValidateCapacity(ctx, fs)
+		asserts.NoError(err)
+	}
+	{
+		err := HookValidateCapacity(ctx, fs)
+		asserts.Error(err)
+	}
 }
