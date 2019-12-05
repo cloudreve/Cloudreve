@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/fatih/color v1.7.0
+	github.com/garyburd/redigo v1.6.0
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/pprof v1.2.1
 	github.com/gin-contrib/sessions v0.0.1

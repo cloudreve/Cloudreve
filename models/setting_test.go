@@ -9,6 +9,7 @@ import (
 )
 
 var mock sqlmock.Sqlmock
+var mockDB *gorm.DB
 
 // TestMain 初始化数据库Mock
 func TestMain(m *testing.M) {
@@ -19,6 +20,7 @@ func TestMain(m *testing.M) {
 		panic("An error was not expected when opening a stub database connection")
 	}
 	DB, _ = gorm.Open("mysql", db)
+	mockDB = DB
 	defer db.Close()
 	m.Run()
 }
