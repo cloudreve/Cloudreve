@@ -141,3 +141,8 @@ func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {
 	result := DB.Where("user_id = ? and folder_id in (?)", uid, ids).Find(&files)
 	return files, result.Error
 }
+
+// Rename 重命名文件
+func (file *File) Rename(new string) error {
+	return DB.Model(&file).Update("name", new).Error
+}

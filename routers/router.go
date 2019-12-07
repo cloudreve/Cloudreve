@@ -87,6 +87,8 @@ func InitRouter() *gin.Engine {
 				object.PATCH("", controllers.Move)
 				// 复制对象
 				object.POST("copy", controllers.Copy)
+				// 重命名对象
+				object.POST("rename", controllers.Rename)
 			}
 
 		}

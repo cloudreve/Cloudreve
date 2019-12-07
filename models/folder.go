@@ -367,3 +367,11 @@ func (folder *Folder) MoveOrCopyFolderTo(dirs []string, dstFolder *Folder, isCop
 	return newUsedStorage, nil
 
 }
+
+// Rename 重命名目录
+func (folder *Folder) Rename(new string) error {
+	if err := DB.Model(&folder).Update("name", new).Error; err != nil {
+		return err
+	}
+	return nil
+}

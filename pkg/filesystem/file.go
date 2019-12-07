@@ -85,7 +85,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 	if !exist {
 		return nil, ErrObjectNotExist
 	}
-	fs.FileTarget = []model.File{file}
+	fs.FileTarget = []model.File{*file}
 
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = file.GetPolicy()

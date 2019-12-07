@@ -26,6 +26,30 @@ type Object struct {
 	Date string `json:"date"`
 }
 
+// Rename 重命名对象
+func (fs *FileSystem) Rename(ctx context.Context, src, new string) (err error) {
+	// 验证新名字
+	if !fs.ValidateLegalName(ctx, new) || !fs.ValidateExtension(ctx, new) {
+		return ErrIllegalObjectName
+	}
+
+	// 如果源对象是文件
+	fileExist, file := fs.IsFileExist(src)
+	if fileExist {
+		err = file.Rename(new)
+		return err
+	}
+
+	// 源对象是目录
+	folderExist, folder := fs.IsPathExist(src)
+	if folderExist {
+		err = folder.Rename(new)
+		return err
+	}
+
+	return ErrPathNotExist
+}
+
 // Copy 复制src目录下的文件或目录到dst
 func (fs *FileSystem) Copy(ctx context.Context, dirs, files []string, src, dst string) error {
 	// 获取目的目录
@@ -323,11 +347,11 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 }
 
 // IsFileExist 返回给定路径的文件是否存在
-func (fs *FileSystem) IsFileExist(fullPath string) (bool, model.File) {
+func (fs *FileSystem) IsFileExist(fullPath string) (bool, *model.File) {
 	basePath := path.Dir(fullPath)
 	fileName := path.Base(fullPath)
 
 	file, err := model.GetFileByPathAndName(basePath, fileName, fs.User.ID)
 
-	return err == nil, file
+	return err == nil, &file
 }
