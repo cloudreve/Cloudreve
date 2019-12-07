@@ -65,7 +65,7 @@ func (user *User) DeductionStorage(size uint64) bool {
 		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage - ?", size))
 		return true
 	}
-	// 如果要减少的容量超出以用容量，则设为零
+	// 如果要减少的容量超出已用容量，则设为零
 	user.Storage = 0
 	DB.Model(user).UpdateColumn("storage", 0)
 

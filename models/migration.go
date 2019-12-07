@@ -138,8 +138,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "sendfile", Value: `0`, Type: "download"},
 		{Name: "defaultTheme", Value: `#3f51b5`, Type: "basic"},
 		{Name: "header", Value: `X-Sendfile`, Type: "download"},
-		{Name: "themes", Value: `{"#3f51b5":{"palette":{"common":{"black":"#000","white":"#fff"},"background":{"paper":"#fff","default":"#fafafa"},"primary":{"light":"#7986cb","main":"#3f51b5","dark":"#303f9f","contrastText":"#fff"},"secondary":{"light":"#ff4081","main":"#f50057","dark":"#c51162","contrastText":"#fff"},"error":{"light":"#e57373","main":"#f44336","dark":"#d32f2f","contrastText":"#fff"},"text":{"primary":"rgba(0, 0, 0, 0.87)","secondary":"rgba(0, 0, 0, 0.54)","disabled":"rgba(0, 0, 0, 0.38)","hint":"rgba(0, 0, 0, 0.38)"},"explorer":{"filename":"#474849","icon":"#8f8f8f","bgSelected":"#D5DAF0","emptyIcon":"#e8e8e8"}}}}
-`, Type: "basic"},
+		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"light":"#7986cb","main":"#3f51b5","dark":"#303f9f","contrastText":"#fff"},"secondary":{"light":"#ff4081","main":"#f50057","dark":"#c51162","contrastText":"#fff"},"error":{"light":"#e57373","main":"#f44336","dark":"#d32f2f","contrastText":"#fff"},"explorer":{"filename":"#474849","icon":"#8f8f8f","bgSelected":"#D5DAF0","emptyIcon":"#e8e8e8"}}}}`, Type: "basic"},
 		{Name: "refererCheck", Value: `true`, Type: "share"},
 		{Name: "header", Value: `X-Sendfile`, Type: "download"},
 		{Name: "aria2_tmppath", Value: `/path/to/public/download`, Type: "aria2"},

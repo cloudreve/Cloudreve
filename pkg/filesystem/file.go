@@ -107,6 +107,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 // 返回每个分组失败的文件列表
 func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*model.File) map[uint][]string {
 	// 失败的文件列表
+	// TODO 并行删除
 	failed := make(map[uint][]string, len(files))
 
 	for policyID, toBeDeletedFiles := range files {

@@ -299,17 +299,17 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 		// 删除文件记录
 		mock.ExpectBegin()
-		mock.ExpectExec("DELETE(.+)").
+		mock.ExpectExec("DELETE(.+)files").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 归还容量
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").
+		mock.ExpectExec("UPDATE(.+)users").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 删除目录
 		mock.ExpectBegin()
-		mock.ExpectExec("DELETE(.+)").
+		mock.ExpectExec("DELETE(.+)folders").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 

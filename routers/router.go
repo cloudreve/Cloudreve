@@ -57,6 +57,7 @@ func InitRouter() *gin.Engine {
 			{
 				// 当前登录用户信息
 				user.GET("me", controllers.UserMe)
+				user.GET("storage", controllers.UserStorage)
 			}
 
 			// 文件

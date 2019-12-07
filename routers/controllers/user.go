@@ -20,8 +20,14 @@ func UserLogin(c *gin.Context) {
 
 // UserMe 获取当前登录的用户
 func UserMe(c *gin.Context) {
-	user := CurrentUser(c)
-	res := serializer.BuildUserResponse(*user)
+	currUser := CurrentUser(c)
+	res := serializer.BuildUserResponse(*currUser)
 	c.JSON(200, res)
+}
 
+// UserStorage 获取用户的存储信息
+func UserStorage(c *gin.Context) {
+	currUser := CurrentUser(c)
+	res := serializer.BuildUserStorageResponse(*currUser)
+	c.JSON(200, res)
 }

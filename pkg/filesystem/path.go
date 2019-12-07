@@ -7,6 +7,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"path"
+	"sync"
 )
 
 /* =================
@@ -209,12 +210,25 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 		return []Object{}, nil
 	}
 
+	var wg sync.WaitGroup
+	var childFolders []model.Folder
+	var childFiles []model.File
+	wg.Add(2)
+
 	// 获取子目录
-	childFolders, _ := folder.GetChildFolder()
+	go func() {
+		childFolders, _ = folder.GetChildFolder()
+		wg.Done()
+	}()
+
 	// 获取子文件
-	childFiles, _ := folder.GetChildFile()
+	go func() {
+		childFiles, _ = folder.GetChildFile()
+		wg.Done()
+	}()
 
 	// 汇总处理结果
+	wg.Wait()
 	objects := make([]Object, 0, len(childFiles)+len(childFolders))
 	// 所有对象的父目录
 	var processedPath string

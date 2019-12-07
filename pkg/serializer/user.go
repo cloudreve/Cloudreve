@@ -22,11 +22,11 @@ type User struct {
 	Avatar         string `json:"avatar"`
 	CreatedAt      int64  `json:"created_at"`
 	PreferredTheme string `json:"preferred_theme"`
-	Policy         Policy `json:"policy"`
-	Group          Group  `json:"group"`
+	Policy         policy `json:"policy"`
+	Group          group  `json:"group"`
 }
 
-type Policy struct {
+type policy struct {
 	SaveType       string   `json:"saveType"`
 	MaxSize        string   `json:"maxSize"`
 	AllowedType    []string `json:"allowedType"`
@@ -34,10 +34,16 @@ type Policy struct {
 	AllowGetSource bool     `json:"allowSource"`
 }
 
-type Group struct {
+type group struct {
 	AllowShare           bool `json:"allowShare"`
 	AllowRemoteDownload  bool `json:"allowRemoteDownload"`
 	AllowTorrentDownload bool `json:"allowTorrentDownload"`
+}
+
+type storage struct {
+	Used  uint64 `json:"used"`
+	Free  uint64 `json:"free"`
+	Total uint64 `json:"total"`
 }
 
 // BuildUser 序列化用户
@@ -51,14 +57,14 @@ func BuildUser(user model.User) User {
 		Avatar:         user.Avatar,
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
-		Policy: Policy{
+		Policy: policy{
 			SaveType:       user.Policy.Type,
-			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/1024*1024),
+			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/(1024*1024)),
 			AllowedType:    user.Policy.OptionsSerialized.FileType,
 			UploadURL:      user.Policy.Server,
 			AllowGetSource: user.Policy.IsOriginLinkEnable,
 		},
-		Group: Group{
+		Group: group{
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  aria2Option[0],
 			AllowTorrentDownload: aria2Option[2],
@@ -70,5 +76,22 @@ func BuildUser(user model.User) User {
 func BuildUserResponse(user model.User) Response {
 	return Response{
 		Data: BuildUser(user),
+	}
+}
+
+// BuildUserStorageResponse 序列化用户存储概况响应
+func BuildUserStorageResponse(user model.User) Response {
+	storageResp := storage{
+		Used:  user.Storage,
+		Free:  user.Group.MaxStorage - user.Storage,
+		Total: user.Group.MaxStorage,
+	}
+
+	if user.Group.MaxStorage < user.Storage {
+		storageResp.Free = 0
+	}
+
+	return Response{
+		Data: storageResp,
 	}
 }
