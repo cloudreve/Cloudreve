@@ -21,6 +21,9 @@ type File struct {
 
 	// 关联模型
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
+
+	// 数据库忽略字段
+	PositionTemp string `gorm:"-"`
 }
 
 // Create 创建文件记录
@@ -32,17 +35,28 @@ func (file *File) Create() (uint, error) {
 	return file.ID, nil
 }
 
-// GetFileByPathAndName 给定路径(s)、文件名、用户ID，查找文件
-func GetFileByPathAndName(path string, name string, uid uint) (File, error) {
+// GetChildFile 查找目录下名为name的子文件
+func (folder *Folder) GetChildFile(name string) (*File, error) {
 	var file File
-	result := DB.Where("user_id = ? AND dir = ? AND name=?", uid, path, name).First(&file)
-	return file, result.Error
+	result := DB.Where("folder_id = ? AND name = ?", folder.ID, name).Find(&file)
+
+	if result.Error == nil {
+		file.PositionTemp = path.Join(folder.PositionTemp, folder.Name, file.Name)
+	}
+	return &file, result.Error
 }
 
-// GetChildFile 查找目录下子文件
-func (folder *Folder) GetChildFile() ([]File, error) {
+// GetChildFiles 查找目录下子文件
+func (folder *Folder) GetChildFiles() ([]File, error) {
 	var files []File
 	result := DB.Where("folder_id = ?", folder.ID).Find(&files)
+	return files, result.Error
+}
+
+// GetFilesByIDs 根据文件ID批量获取文件
+func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
+	var files []File
+	result := DB.Where("id in (?) AND user_id = ?", ids, uid).Find(&files)
 	return files, result.Error
 }
 
@@ -66,19 +80,6 @@ func (file *File) GetPolicy() *Policy {
 		file.Policy, _ = GetPolicyByID(file.PolicyID)
 	}
 	return &file.Policy
-}
-
-// GetFileByPaths 根据给定的文件路径(s)查找文件
-func GetFileByPaths(paths []string, uid uint) ([]File, error) {
-	var files []File
-	tx := DB
-	for _, value := range paths {
-		base := path.Base(value)
-		dir := path.Dir(value)
-		tx = tx.Or("dir = ? and name = ? and user_id = ?", dir, base, uid)
-	}
-	result := tx.Find(&files)
-	return files, result.Error
 }
 
 // RemoveFilesWithSoftLinks 去除给定的文件列表中有软链接的文件
@@ -126,14 +127,6 @@ func DeleteFileByIDs(ids []uint) error {
 	result := DB.Where("id in (?)", ids).Unscoped().Delete(&File{})
 	return result.Error
 }
-
-//// GetRecursiveByPaths 根据给定的文件路径(s)递归查找文件
-//func GetRecursiveByPaths(paths []string, uid uint) ([]File, error) {
-//	files := make([]File, 0, len(paths))
-//	search := util.BuildRegexp(paths, "^", "/", "|")
-//	result := DB.Where("(user_id = ? and dir REGEXP ?) or (user_id = ？ and dir in (?))", uid, search, uid, paths).Find(&files)
-//	return files, result.Error
-//}
 
 // GetFilesByParentIDs 根据父目录ID查找文件
 func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {

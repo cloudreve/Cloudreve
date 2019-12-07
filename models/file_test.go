@@ -8,17 +8,6 @@ import (
 	"testing"
 )
 
-func TestGetFileByPathAndName(t *testing.T) {
-	asserts := assert.New(t)
-
-	fileRows := sqlmock.NewRows([]string{"id", "name"}).
-		AddRow(1, "1.cia")
-	mock.ExpectQuery("SELECT(.+)").WillReturnRows(fileRows)
-	file, _ := GetFileByPathAndName("/", "1.cia", 1)
-	asserts.Equal("1.cia", file.Name)
-	asserts.NoError(mock.ExpectationsWereMet())
-}
-
 func TestFile_Create(t *testing.T) {
 	asserts := assert.New(t)
 	file := File{
@@ -45,6 +34,32 @@ func TestFile_Create(t *testing.T) {
 
 func TestFolder_GetChildFile(t *testing.T) {
 	asserts := assert.New(t)
+	folder := Folder{Model: gorm.Model{ID: 1}, Name: "/"}
+	// 存在
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, "1.txt").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "1.txt"))
+		file, err := folder.GetChildFile("1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal("1.txt", file.Name)
+		asserts.Equal("/1.txt", file.PositionTemp)
+	}
+
+	// 不存在
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, "1.txt").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		_, err := folder.GetChildFile("1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+}
+
+func TestFolder_GetChildFiles(t *testing.T) {
+	asserts := assert.New(t)
 	folder := &Folder{
 		Model: gorm.Model{
 			ID: 1,
@@ -53,18 +68,44 @@ func TestFolder_GetChildFile(t *testing.T) {
 
 	// 找不到
 	mock.ExpectQuery("SELECT(.+)folder_id(.+)").WithArgs(1).WillReturnError(errors.New("error"))
-	files, err := folder.GetChildFile()
+	files, err := folder.GetChildFiles()
 	asserts.Error(err)
 	asserts.Len(files, 0)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 找到了
 	mock.ExpectQuery("SELECT(.+)folder_id(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"name", "id"}).AddRow("1.txt", 1).AddRow("2.txt", 2))
-	files, err = folder.GetChildFile()
+	files, err = folder.GetChildFiles()
 	asserts.NoError(err)
 	asserts.Len(files, 2)
 	asserts.NoError(mock.ExpectationsWereMet())
 
+}
+
+func TestGetFilesByIDs(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 出错
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 2, 3, 1).
+			WillReturnError(errors.New("error"))
+		folders, err := GetFilesByIDs([]uint{1, 2, 3}, 1)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Len(folders, 0)
+	}
+
+	// 部分找到
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 2, 3, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "1"))
+		folders, err := GetFilesByIDs([]uint{1, 2, 3}, 1)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Len(folders, 1)
+	}
 }
 
 func TestGetChildFilesOfFolders(t *testing.T) {
@@ -146,46 +187,6 @@ func TestFile_GetPolicy(t *testing.T) {
 		file.GetPolicy()
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal(uint(24), file.Policy.ID)
-	}
-}
-
-func TestGetFileByPaths(t *testing.T) {
-	asserts := assert.New(t)
-	paths := []string{"/我的目录/文件.txt", "/根目录文件.txt"}
-
-	// 正常情况
-	{
-		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("/我的目录", "文件.txt", 1, "/", "根目录文件.txt", 1).
-			WillReturnRows(
-				sqlmock.NewRows([]string{"id", "name"}).
-					AddRow(1, "文件.txt").
-					AddRow(2, "根目录文件.txt"),
-			)
-		files, err := GetFileByPaths(paths, 1)
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.NoError(err)
-		asserts.Equal([]File{
-			File{
-				Model: gorm.Model{ID: 1},
-				Name:  "文件.txt",
-			},
-			File{
-				Model: gorm.Model{ID: 2},
-				Name:  "根目录文件.txt",
-			},
-		}, files)
-	}
-
-	// 出错
-	{
-		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("/我的目录", "文件.txt", 1, "/", "根目录文件.txt", 1).
-			WillReturnError(errors.New("error"))
-		files, err := GetFileByPaths(paths, 1)
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.Error(err)
-		asserts.Len(files, 0)
 	}
 }
 

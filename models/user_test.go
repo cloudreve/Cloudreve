@@ -306,3 +306,25 @@ func TestUser_AfterCreate(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
+
+func TestUser_Root(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{Model: gorm.Model{ID: 1}}
+
+	// 根目录存在
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "根目录"))
+		root, err := user.Root()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal("根目录", root.Name)
+	}
+
+	// 根目录不存在
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		_, err := user.Root()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+}

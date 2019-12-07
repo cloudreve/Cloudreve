@@ -55,6 +55,13 @@ type UserOption struct {
 	PreferredTheme  string `json:"preferred_theme"`
 }
 
+// Root 获取用户的根目录
+func (user *User) Root() (*Folder, error) {
+	var folder Folder
+	err := DB.Where("parent_id = 0 AND owner_id = ?", user.ID).First(&folder).Error
+	return &folder, err
+}
+
 // DeductionStorage 减少用户已用容量
 func (user *User) DeductionStorage(size uint64) bool {
 	if size == 0 {
@@ -160,10 +167,8 @@ func (user *User) BeforeSave() (err error) {
 func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 	// 创建用户的默认根目录
 	defaultFolder := &Folder{
-		Name:             "根目录",
-		Position:         ".",
-		OwnerID:          user.ID,
-		PositionAbsolute: "/",
+		Name:    "/",
+		OwnerID: user.ID,
 	}
 	tx.Create(defaultFolder)
 	return err

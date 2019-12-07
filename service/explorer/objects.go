@@ -22,8 +22,8 @@ type ItemRenameService struct {
 
 // ItemService 处理多文件/目录相关服务
 type ItemService struct {
-	Items []string `json:"items" binding:"exists,dive,ne=/"`
-	Dirs  []string `json:"dirs" binding:"exists,dive,ne=/"`
+	Items []uint `json:"items" binding:"exists"`
+	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
 // Delete 删除对象
