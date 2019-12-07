@@ -42,7 +42,6 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 		Size:       file.GetSize(),
 		FolderID:   parent.ID,
 		PolicyID:   fs.User.Policy.ID,
-		Dir:        parent.PositionAbsolute,
 	}
 	_, err := newFile.Create()
 

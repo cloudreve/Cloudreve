@@ -17,7 +17,6 @@ type File struct {
 	PicInfo    string
 	FolderID   uint `gorm:"index:folder_id;unique_index:idx_only_one"`
 	PolicyID   uint
-	Dir        string `gorm:"size:65536"`
 
 	// 关联模型
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
