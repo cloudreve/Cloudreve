@@ -392,26 +392,37 @@ func TestFileSystem_Copy(t *testing.T) {
 
 	// 目录不存在
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(
 			sqlmock.NewRows([]string{"name"}),
 		)
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(
 			sqlmock.NewRows([]string{"name"}),
 		)
-		err := fs.Copy(ctx, []string{}, []string{}, "/src", "/dst")
+		err := fs.Copy(ctx, []uint{}, []uint{}, "/src", "/dst")
 		asserts.Equal(ErrPathNotExist, err)
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 
 	// 复制目录出错
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
-			sqlmock.NewRows([]string{"name"}).AddRow("123"),
-		)
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
-			sqlmock.NewRows([]string{"name"}).AddRow("123"),
-		)
-		err := fs.Copy(ctx, []string{"test"}, []string{}, "/src", "/dst")
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		// 1
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 1, "src").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		// 1
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 1, "dst").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+
+		err := fs.Copy(ctx, []uint{1}, []uint{}, "/src", "/dst")
 		asserts.Error(err)
 	}
 
@@ -434,20 +445,30 @@ func TestFileSystem_Move(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(
 			sqlmock.NewRows([]string{"name"}),
 		)
-		err := fs.Move(ctx, []string{}, []string{}, "/src", "/dst")
+		err := fs.Move(ctx, []uint{}, []uint{}, "/src", "/dst")
 		asserts.Equal(ErrPathNotExist, err)
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 
 	// 移动目录出错
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/src").WillReturnRows(
-			sqlmock.NewRows([]string{"name"}).AddRow("123"),
-		)
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/dst").WillReturnRows(
-			sqlmock.NewRows([]string{"name"}).AddRow("123"),
-		)
-		err := fs.Move(ctx, []string{"test"}, []string{}, "/src", "/dst")
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		// 1
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 1, "src").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		// 1
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 1, "dst").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+		err := fs.Move(ctx, []uint{1}, []uint{}, "/src", "/dst")
 		asserts.Error(err)
 	}
 }

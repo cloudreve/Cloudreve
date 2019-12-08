@@ -16,7 +16,7 @@ type Folder struct {
 	OwnerID  uint   `gorm:"index:owner_id"`
 
 	// 数据库忽略字段
-	PositionTemp string `gorm:"-"`
+	Position string `gorm:"-"`
 }
 
 // Create 创建目录
@@ -37,7 +37,7 @@ func (folder *Folder) GetChild(name string) (*Folder, error) {
 
 	// 将子目录的路径传递下去
 	if err == nil {
-		resFolder.PositionTemp = path.Join(folder.PositionTemp, folder.Name)
+		resFolder.Position = path.Join(folder.Position, folder.Name)
 	}
 	return &resFolder, err
 }

@@ -104,9 +104,13 @@ func TestGenericAfterUpload(t *testing.T) {
 	ctx = context.WithValue(ctx, SavePathCtx, "")
 
 	// 正常
-	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
-		mock.NewRows([]string{"name"}).AddRow("我的文件"),
-	)
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	// 1
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "我的文件").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnError(errors.New("not found"))
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)files(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
@@ -125,9 +129,13 @@ func TestGenericAfterUpload(t *testing.T) {
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 文件已存在
-	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
-		mock.NewRows([]string{"name"}).AddRow("我的文件"),
-	)
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	// 1
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "我的文件").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnRows(
 		mock.NewRows([]string{"name"}).AddRow("test.txt"),
 	)
@@ -136,9 +144,14 @@ func TestGenericAfterUpload(t *testing.T) {
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 插入失败
-	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(
-		mock.NewRows([]string{"name"}).AddRow("我的文件"),
-	)
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	// 1
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "我的文件").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+
 	mock.ExpectQuery("SELECT(.+)files(.+)").WillReturnError(errors.New("not found"))
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)files(.+)").WillReturnError(errors.New("error"))
@@ -217,7 +230,10 @@ func TestHookIsFileExist(t *testing.T) {
 	}}
 	ctx := context.WithValue(context.Background(), PathCtx, "/test.txt")
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/", "test.txt").WillReturnRows(
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "test.txt").WillReturnRows(
 			sqlmock.NewRows([]string{"Name"}).AddRow("s"),
 		)
 		err := HookIsFileExist(ctx, fs)
@@ -225,7 +241,10 @@ func TestHookIsFileExist(t *testing.T) {
 		asserts.NoError(err)
 	}
 	{
-		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "/", "test.txt").WillReturnRows(
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)").WithArgs(uint(1), "test.txt").WillReturnRows(
 			sqlmock.NewRows([]string{"Name"}),
 		)
 		err := HookIsFileExist(ctx, fs)

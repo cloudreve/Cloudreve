@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"path"
 )
 
 // Hook 钩子函数
@@ -118,10 +117,10 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 
 	// 检查文件是否存在
-	if ok, _ := fs.IsFileExist(path.Join(
-		virtualPath,
+	if ok, _ := fs.IsChildFileExist(
+		folder,
 		ctx.Value(FileHeaderCtx).(FileHeader).GetFileName(),
-	)); ok {
+	); ok {
 		return ErrFileExisted
 	}
 

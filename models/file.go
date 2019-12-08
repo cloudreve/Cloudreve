@@ -22,7 +22,7 @@ type File struct {
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 
 	// 数据库忽略字段
-	PositionTemp string `gorm:"-"`
+	Position string `gorm:"-"`
 }
 
 // Create 创建文件记录
@@ -40,7 +40,7 @@ func (folder *Folder) GetChildFile(name string) (*File, error) {
 	result := DB.Where("folder_id = ? AND name = ?", folder.ID, name).Find(&file)
 
 	if result.Error == nil {
-		file.PositionTemp = path.Join(folder.PositionTemp, folder.Name, file.Name)
+		file.Position = path.Join(folder.Position, folder.Name, file.Name)
 	}
 	return &file, result.Error
 }

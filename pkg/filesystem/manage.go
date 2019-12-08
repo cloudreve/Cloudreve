@@ -238,7 +238,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 		return []Object{}, nil
 	}
 
-	var parentPath = path.Join(folder.PositionTemp, folder.Name)
+	var parentPath = path.Join(folder.Position, folder.Name)
 	var childFolders []model.Folder
 	var childFiles []model.File
 

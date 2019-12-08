@@ -20,6 +20,7 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 	}
 
 	// 递归步入目录
+	// TODO:装入树形缓存
 	var currentFolder *model.Folder
 	for _, folderName := range pathList {
 		var err error

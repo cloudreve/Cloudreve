@@ -19,3 +19,11 @@ func TestFillSlash(t *testing.T) {
 	asserts.Equal("/", FillSlash(""))
 	asserts.Equal("/123/", FillSlash("/123"))
 }
+
+func TestSplitPath(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.Equal([]string{}, SplitPath(""))
+	asserts.Equal([]string{}, SplitPath("1"))
+	asserts.Equal([]string{"/"}, SplitPath("/"))
+	asserts.Equal([]string{"/", "123", "321"}, SplitPath("/123/321"))
+}

@@ -51,7 +51,7 @@ func TestFolder_GetChild(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Equal(sub.Name, "sub")
-		asserts.Equal("/", sub.PositionTemp)
+		asserts.Equal("/", sub.Position)
 	}
 
 	// 目录不存在

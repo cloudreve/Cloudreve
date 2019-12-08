@@ -124,8 +124,8 @@ func TestObjectDelete(t *testing.T) {
 		// 路径不存在，返回无错误
 		{
 			GetRequest: func() *http.Request {
-				body := explorer.ItemServiceTemp{
-					Items: []string{"/TestObjectDelete.txt"},
+				body := explorer.ItemService{
+					Items: []uint{1},
 				}
 				bodyStr, _ := json.Marshal(body)
 				req, _ := http.NewRequest(
@@ -139,10 +139,10 @@ func TestObjectDelete(t *testing.T) {
 		},
 		// 文件删除失败，返回203
 		{
-			Mock: []string{"INSERT INTO `files` (`id`, `created_at`, `updated_at`, `deleted_at`, `name`, `source_name`, `user_id`, `size`, `pic_info`, `folder_id`, `policy_id`, `dir`) VALUES(5, '2019-11-30 07:08:33', '2019-11-30 07:08:33', NULL, 'pigeon.zip', '65azil3B_pigeon.zip', 1, 1667217, '', 1, 1, '/');"},
+			Mock: []string{"INSERT INTO `files` (`id`, `created_at`, `updated_at`, `deleted_at`, `name`, `source_name`, `user_id`, `size`, `pic_info`, `folder_id`, `policy_id`) VALUES(5, '2019-11-30 07:08:33', '2019-11-30 07:08:33', NULL, 'pigeon.zip', '65azil3B_pigeon.zip', 1, 1667217, '', 1, 1);"},
 			GetRequest: func() *http.Request {
-				body := explorer.ItemServiceTemp{
-					Items: []string{"/pigeon.zip"},
+				body := explorer.ItemService{
+					Items: []uint{5},
 				}
 				bodyStr, _ := json.Marshal(body)
 				req, _ := http.NewRequest(

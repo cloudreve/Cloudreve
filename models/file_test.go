@@ -44,7 +44,7 @@ func TestFolder_GetChildFile(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Equal("1.txt", file.Name)
-		asserts.Equal("/1.txt", file.PositionTemp)
+		asserts.Equal("/1.txt", file.Position)
 	}
 
 	// 不存在

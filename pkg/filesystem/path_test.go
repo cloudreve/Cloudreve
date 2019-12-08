@@ -128,3 +128,25 @@ func TestFileSystem_IsPathExist(t *testing.T) {
 	}
 
 }
+
+func TestFileSystem_IsChildFileExist(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}}
+	folder := model.Folder{
+		Model:    gorm.Model{ID: 1},
+		Name:     "123",
+		Position: "/",
+	}
+
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, "321").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(2, "321"))
+	exist, childFile := fs.IsChildFileExist(&folder, "321")
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.True(exist)
+	asserts.Equal("/123/321", childFile.Position)
+}
