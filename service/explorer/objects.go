@@ -16,8 +16,8 @@ type ItemMoveService struct {
 
 // ItemRenameService 处理多文件/目录重命名
 type ItemRenameService struct {
-	Src     string `json:"src" binding:"required,min=1,max=65535,ne=/"`
-	NewName string `json:"new_name" binding:"required,min=1,max=255"`
+	Src     ItemService `json:"src" binding:"exists"`
+	NewName string      `json:"new_name" binding:"required,min=1,max=255"`
 }
 
 // ItemService 处理多文件/目录相关服务
@@ -93,6 +93,11 @@ func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serial
 
 // Rename 重命名对象
 func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) serializer.Response {
+	// 重命名作只能对一个目录或文件对象进行操作
+	if len(service.Src.Items)+len(service.Src.Dirs) > 1 {
+		return serializer.ParamErr("只能操作一个对象", nil)
+	}
+
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -100,7 +105,7 @@ func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) se
 	}
 
 	// 重命名对象
-	err = fs.Rename(ctx, service.Src, service.NewName)
+	err = fs.Rename(ctx, service.Src.Dirs, service.Src.Items, service.NewName)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

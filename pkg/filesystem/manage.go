@@ -26,24 +26,37 @@ type Object struct {
 }
 
 // Rename 重命名对象
-func (fs *FileSystem) Rename(ctx context.Context, src, new string) (err error) {
+func (fs *FileSystem) Rename(ctx context.Context, dir, file []uint, new string) (err error) {
 	// 验证新名字
 	if !fs.ValidateLegalName(ctx, new) || !fs.ValidateExtension(ctx, new) {
 		return ErrIllegalObjectName
 	}
 
 	// 如果源对象是文件
-	fileExist, file := fs.IsFileExist(src)
-	if fileExist {
-		err = file.Rename(new)
-		return err
+	if len(file) > 0 {
+		fileObject, err := model.GetFilesByIDs([]uint{file[0]}, fs.User.ID)
+		if err != nil || len(fileObject) == 0 {
+			return ErrPathNotExist
+		}
+
+		err = fileObject[0].Rename(new)
+		if err != nil {
+			return ErrFileExisted
+		}
+		return nil
 	}
 
-	// 源对象是目录
-	folderExist, folder := fs.IsPathExist(src)
-	if folderExist {
-		err = folder.Rename(new)
-		return err
+	if len(dir) > 0 {
+		folderObject, err := model.GetFoldersByIDs([]uint{dir[0]}, fs.User.ID)
+		if err != nil || len(folderObject) == 0 {
+			return ErrPathNotExist
+		}
+
+		err = folderObject[0].Rename(new)
+		if err != nil {
+			return ErrFileExisted
+		}
+		return nil
 	}
 
 	return ErrPathNotExist

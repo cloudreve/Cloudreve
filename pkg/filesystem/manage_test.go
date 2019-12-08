@@ -411,7 +411,7 @@ func TestFileSystem_Copy(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 		// 1
 		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1, 1, "src").
+			WithArgs(1, 1, "dst").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 		// 根目录
 		mock.ExpectQuery("SELECT(.+)").
@@ -419,17 +419,17 @@ func TestFileSystem_Copy(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 		// 1
 		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1, 1, "dst").
+			WithArgs(1, 1, "src").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 
 		err := fs.Copy(ctx, []uint{1}, []uint{}, "/src", "/dst")
 		asserts.Error(err)
+		asserts.NoError(mock.ExpectationsWereMet())
 	}
 
 }
 
 func TestFileSystem_Move(t *testing.T) {
-	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
@@ -458,7 +458,7 @@ func TestFileSystem_Move(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 		// 1
 		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1, 1, "src").
+			WithArgs(1, 1, "dst").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 		// 根目录
 		mock.ExpectQuery("SELECT(.+)").
@@ -466,9 +466,10 @@ func TestFileSystem_Move(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 		// 1
 		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1, 1, "dst").
+			WithArgs(1, 1, "src").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 		err := fs.Move(ctx, []uint{1}, []uint{}, "/src", "/dst")
 		asserts.Error(err)
+		asserts.NoError(mock.ExpectationsWereMet())
 	}
 }

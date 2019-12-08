@@ -6,7 +6,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
 )
 
 // FileDownloadService 文件下载服务，path为文件完整路径
@@ -32,7 +31,7 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 	// 设置文件名
 	c.Header("Content-Disposition", "attachment; filename=\""+fs.FileTarget[0].Name+"\"")
 	// 发送文件
-	http.ServeContent(c.Writer, c.Request, "", time.Time{}, rs)
+	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
 
 	return serializer.Response{
 		Code: 0,
