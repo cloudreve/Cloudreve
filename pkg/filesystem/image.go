@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
 )
@@ -15,6 +16,24 @@ import (
 
 // HandledExtension 可以生成缩略图的文件扩展名
 var HandledExtension = []string{"jpg", "jpeg", "png", "gif"}
+
+// GetThumb 获取文件的缩略图
+func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentResponse, error) {
+	// 根据 ID 查找文件
+	file, err := model.GetFilesByIDs([]uint{id}, fs.User.ID)
+	if err != nil || len(file) == 0 || file[0].PicInfo == "" {
+		return &response.ContentResponse{
+			Redirect: false,
+		}, ErrObjectNotExist
+	}
+
+	fs.FileTarget = []model.File{file[0]}
+
+	res, err := fs.Handler.Thumb(ctx, file[0].SourceName)
+
+	// TODO 出错时重新生成缩略图
+	return res, err
+}
 
 // GenerateThumbnail 尝试为本地策略文件生成缩略图并获取图像原始大小
 func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
@@ -61,6 +80,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸
+// TODO 从配置文件读取
 func (fs *FileSystem) GenerateThumbnailSize(w, h int) (uint, uint) {
-	return 230, 200
+	return 400, 300
 }

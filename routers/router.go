@@ -43,6 +43,10 @@ func InitRouter() *gin.Engine {
 		v3.GET("site/ping", controllers.Ping)
 		// 用户登录
 		v3.POST("user/session", controllers.UserLogin)
+		// WebAuthn登陆初始化
+		v3.GET("user/authn/:username", controllers.StartLoginAuthn)
+		// WebAuthn登陆
+		v3.POST("user/authn/finish/:username", controllers.FinishLoginAuthn)
 		// 验证码
 		v3.GET("captcha", controllers.Captcha)
 		// 站点全局配置
@@ -58,6 +62,13 @@ func InitRouter() *gin.Engine {
 				// 当前登录用户信息
 				user.GET("me", controllers.UserMe)
 				user.GET("storage", controllers.UserStorage)
+
+				// WebAuthn 注册相关
+				authn := user.Group("authn")
+				{
+					authn.PUT("", controllers.StartRegAuthn)
+					authn.PUT("finish", controllers.FinishRegAuthn)
+				}
 			}
 
 			// 文件
@@ -66,7 +77,9 @@ func InitRouter() *gin.Engine {
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
 				// 下载文件
-				file.GET("*path", controllers.Download)
+				file.GET("download/*path", controllers.Download)
+				// 下载文件
+				file.GET("thumb/:id", controllers.Thumb)
 			}
 
 			// 目录

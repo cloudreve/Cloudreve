@@ -1,7 +1,6 @@
 package user
 
 import (
-	"fmt"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -52,8 +51,6 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	util.SetSession(c, map[string]interface{}{
 		"user_id": expectedUser.ID,
 	})
-
-	fmt.Println(expectedUser)
 
 	return serializer.BuildUserResponse(expectedUser)
 

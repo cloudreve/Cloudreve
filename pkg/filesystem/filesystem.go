@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/gin-gonic/gin"
 	"io"
 )
@@ -27,6 +28,8 @@ type Handler interface {
 	Delete(ctx context.Context, files []string) ([]string, error)
 	// 获取文件
 	Get(ctx context.Context, path string) (io.ReadSeeker, error)
+	// 获取缩略图
+	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
 }
 
 // FileSystem 管理文件的文件系统

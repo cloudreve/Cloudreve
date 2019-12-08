@@ -1,5 +1,6 @@
 package controllers
 
+import "C"
 import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
@@ -9,9 +10,44 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"net/url"
 	"strconv"
 )
+
+// Thumb 获取文件缩略图
+func Thumb(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+		return
+	}
+
+	// 获取文件ID
+	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(200, serializer.ParamErr("无法解析文件ID", err))
+		return
+	}
+
+	// 获取缩略图
+	resp, err := fs.GetThumb(ctx, uint(fileID))
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err))
+		return
+	}
+
+	if resp.Redirect {
+		c.Redirect(http.StatusMovedPermanently, resp.URL)
+		return
+	}
+	http.ServeContent(c.Writer, c.Request, "thumb.png", fs.FileTarget[0].UpdatedAt, resp.Content)
+
+}
 
 // Download 文件下载
 func Download(c *gin.Context) {

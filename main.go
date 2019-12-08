@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers"
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,8 @@ func init() {
 	if !conf.SystemConfig.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	authn.Init()
 }
 
 func main() {

@@ -73,7 +73,7 @@ func (image *Thumb) Save(path string) (err error) {
 		return err
 	}
 
-	err = jpeg.Encode(out, image.src, nil)
+	err = png.Encode(out, image.src)
 	return err
 
 }

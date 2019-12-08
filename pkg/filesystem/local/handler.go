@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"os"
@@ -81,4 +82,17 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 	}
 
 	return deleteFailed, retErr
+}
+
+// Thumb 获取文件缩略图
+func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+	file, err := handler.Get(ctx, path+"._thumb")
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.ContentResponse{
+		Redirect: false,
+		Content:  file,
+	}, nil
 }

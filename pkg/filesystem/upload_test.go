@@ -5,6 +5,7 @@ import (
 	"errors"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,11 @@ func (m FileHeaderMock) Put(ctx context.Context, file io.ReadCloser, dst string,
 func (m FileHeaderMock) Delete(ctx context.Context, files []string) ([]string, error) {
 	args := m.Called(ctx, files)
 	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m FileHeaderMock) Thumb(ctx context.Context, files string) (*response.ContentResponse, error) {
+	args := m.Called(ctx, files)
+	return args.Get(0).(*response.ContentResponse), args.Error(1)
 }
 
 func TestFileSystem_Upload(t *testing.T) {
