@@ -130,8 +130,6 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 		return ErrInsertFileRecord
 	}
 
-	// TODO 是否需要立即获取图像大小？
-
 	// 异步尝试生成缩略图
 	go fs.GenerateThumbnail(ctx, file)
 

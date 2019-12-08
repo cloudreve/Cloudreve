@@ -138,3 +138,8 @@ func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {
 func (file *File) Rename(new string) error {
 	return DB.Model(&file).Update("name", new).Error
 }
+
+// UpdatePicInfo 更新文件的图像信息
+func (file *File) UpdatePicInfo(value string) error {
+	return DB.Model(&file).Update("pic_info", value).Error
+}

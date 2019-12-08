@@ -75,6 +75,9 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 			retErr = err
 			deleteFailed = append(deleteFailed, value)
 		}
+
+		// 尝试删除文件的缩略图（如果有）
+		_ = os.Remove(value + "._thumb")
 	}
 
 	return deleteFailed, retErr
