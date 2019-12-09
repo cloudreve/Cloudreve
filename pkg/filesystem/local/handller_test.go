@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -88,4 +89,26 @@ func TestHandler_Get(t *testing.T) {
 	rs, err = handler.Get(ctx, "TestHandler_Get_notExist.txt")
 	asserts.Error(err)
 	asserts.Nil(rs)
+}
+
+func TestHandler_Thumb(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx := context.Background()
+	file, err := os.Create("TestHandler_Thumb" + conf.ThumbConfig.FileSuffix)
+	asserts.NoError(err)
+	file.Close()
+
+	// 正常
+	{
+		thumb, err := handler.Thumb(ctx, "TestHandler_Thumb")
+		asserts.NoError(err)
+		asserts.NotNil(thumb.Content)
+	}
+
+	// 不存在
+	{
+		_, err := handler.Thumb(ctx, "not_exist")
+		asserts.Error(err)
+	}
 }
