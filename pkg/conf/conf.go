@@ -3,7 +3,6 @@ package conf
 import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/go-ini/ini"
-	"github.com/mojocn/base64Captcha"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -45,36 +44,11 @@ type redis struct {
 	DB       string
 }
 
-// RedisConfig Redis服务器配置
-var RedisConfig = &redis{
-	Server:   "",
-	Password: "",
-	DB:       "0",
-}
-
-// DatabaseConfig 数据库配置
-var DatabaseConfig = &database{
-	Type: "UNSET",
-}
-
-// SystemConfig 系统公用配置
-var SystemConfig = &system{
-	Debug: false,
-}
-
-// CaptchaConfig 验证码配置
-var CaptchaConfig = &captcha{
-	Height:             60,
-	Width:              240,
-	Mode:               3,
-	ComplexOfNoiseText: base64Captcha.CaptchaComplexLower,
-	ComplexOfNoiseDot:  base64Captcha.CaptchaComplexLower,
-	IsShowHollowLine:   false,
-	IsShowNoiseDot:     false,
-	IsShowNoiseText:    false,
-	IsShowSlimeLine:    false,
-	IsShowSineLine:     false,
-	CaptchaLen:         6,
+// 缩略图 配置
+type thumb struct {
+	MaxWidth   uint
+	MaxHeight  uint
+	FileSuffix string `validate:"min=1"`
 }
 
 var cfg *ini.File
@@ -90,10 +64,11 @@ func Init(path string) {
 	}
 
 	sections := map[string]interface{}{
-		"Database": DatabaseConfig,
-		"System":   SystemConfig,
-		"Captcha":  CaptchaConfig,
-		"Redis":    RedisConfig,
+		"Database":  DatabaseConfig,
+		"System":    SystemConfig,
+		"Captcha":   CaptchaConfig,
+		"Redis":     RedisConfig,
+		"Thumbnail": ThumbConfig,
 	}
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)

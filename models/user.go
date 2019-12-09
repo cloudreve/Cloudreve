@@ -2,12 +2,9 @@ package model
 
 import (
 	"crypto/sha1"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"strings"
@@ -57,41 +54,6 @@ type UserOption struct {
 	PreferredPolicy uint   `json:"preferred_policy"`
 	WebDAVKey       string `json:"webdav_key"`
 	PreferredTheme  string `json:"preferred_theme"`
-}
-
-func (user User) WebAuthnID() []byte {
-	bs := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bs, uint64(user.ID))
-	return bs
-}
-
-func (user User) WebAuthnName() string {
-	return user.Email
-}
-
-func (user User) WebAuthnDisplayName() string {
-	return user.Nick
-}
-
-func (user User) WebAuthnIcon() string {
-	return "https://cdn4.buysellads.net/uu/1/46074/1559075156-slack-carbon-red_2x.png"
-}
-
-func (user User) WebAuthnCredentials() []webauthn.Credential {
-	var res []webauthn.Credential
-	err := json.Unmarshal([]byte(user.Authn), &res)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return res
-}
-
-func (user *User) RegisterAuthn(credential *webauthn.Credential) {
-	res, err := json.Marshal([]webauthn.Credential{*credential})
-	if err != nil {
-		fmt.Println(err)
-	}
-	DB.Model(user).UpdateColumn("authn", string(res))
 }
 
 // Root 获取用户的根目录
@@ -157,18 +119,17 @@ func (user *User) GetPolicyID() uint {
 			return user.Group.PolicyList[0]
 		}
 		return 1
-	} else {
-		// 用户指定时，先检查是否为可用策略列表中的值
-		if util.ContainsUint(user.Group.PolicyList, user.OptionsSerialized.PreferredPolicy) {
-			return user.OptionsSerialized.PreferredPolicy
-		}
-		// 不可用时，返回第一个
-		if len(user.Group.PolicyList) != 0 {
-			return user.Group.PolicyList[0]
-		}
-		return 1
-
 	}
+	// 用户指定时，先检查是否为可用策略列表中的值
+	if util.ContainsUint(user.Group.PolicyList, user.OptionsSerialized.PreferredPolicy) {
+		return user.OptionsSerialized.PreferredPolicy
+	}
+	// 不可用时，返回第一个
+	if len(user.Group.PolicyList) != 0 {
+		return user.Group.PolicyList[0]
+	}
+	return 1
+
 }
 
 // GetUserByID 用ID获取用户

@@ -5,11 +5,11 @@ import (
 	"github.com/duo-labs/webauthn/webauthn"
 )
 
-var Authn *webauthn.WebAuthn
+var AuthnInstance *webauthn.WebAuthn
 
 func Init() {
 	var err error
-	Authn, err = webauthn.New(&webauthn.Config{
+	AuthnInstance, err = webauthn.New(&webauthn.Config{
 		RPDisplayName: "Duo Labs",                 // Display Name for your site
 		RPID:          "localhost",                // Generally the FQDN for your site
 		RPOrigin:      "http://localhost:3000",    // The origin URL for WebAuthn requests

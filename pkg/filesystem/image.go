@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -54,7 +55,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
-		util.Log().Warning("生成缩略图时无法解析[%s]图像数据：%s", file.SourceName, err)
+		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
 		return
 	}
 
@@ -64,9 +65,9 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 生成缩略图
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
-	err = image.Save(file.SourceName + "._thumb")
+	err = image.Save(file.SourceName + conf.ThumbConfig.FileSuffix)
 	if err != nil {
-		util.Log().Warning("无法保存缩略图：%s", file.SourceName, err)
+		util.Log().Warning("无法保存缩略图：%s", err)
 		return
 	}
 
@@ -75,12 +76,12 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	// 失败时删除缩略图文件
 	if err != nil {
-		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + "._thumb"})
+		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + conf.ThumbConfig.FileSuffix})
 	}
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸
-// TODO 从配置文件读取
+// TODO 优先从数据库中获得
 func (fs *FileSystem) GenerateThumbnailSize(w, h int) (uint, uint) {
-	return 400, 300
+	return conf.ThumbConfig.MaxWidth, conf.ThumbConfig.MaxHeight
 }

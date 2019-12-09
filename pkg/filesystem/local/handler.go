@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
@@ -78,7 +79,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 		}
 
 		// 尝试删除文件的缩略图（如果有）
-		_ = os.Remove(value + "._thumb")
+		_ = os.Remove(value + conf.ThumbConfig.FileSuffix)
 	}
 
 	return deleteFailed, retErr
@@ -86,7 +87,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	file, err := handler.Get(ctx, path+"._thumb")
+	file, err := handler.Get(ctx, path+conf.ThumbConfig.FileSuffix)
 	if err != nil {
 		return nil, err
 	}

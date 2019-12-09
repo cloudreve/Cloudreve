@@ -20,7 +20,7 @@ func StartLoginAuthn(c *gin.Context) {
 		return
 	}
 
-	options, sessionData, err := authn.Authn.BeginLogin(expectedUser)
+	options, sessionData, err := authn.AuthnInstance.BeginLogin(expectedUser)
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
@@ -52,7 +52,7 @@ func FinishLoginAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err = json.Unmarshal(sessionDataJSON, &sessionData)
 
-	_, err = authn.Authn.FinishLogin(expectedUser, sessionData, c.Request)
+	_, err = authn.AuthnInstance.FinishLogin(expectedUser, sessionData, c.Request)
 
 	if err != nil {
 		c.JSON(200, serializer.Err(401, "用户邮箱或密码错误", err))
@@ -68,7 +68,7 @@ func FinishLoginAuthn(c *gin.Context) {
 // StartRegAuthn 开始注册WebAuthn信息
 func StartRegAuthn(c *gin.Context) {
 	currUser := CurrentUser(c)
-	options, sessionData, err := authn.Authn.BeginRegistration(currUser)
+	options, sessionData, err := authn.AuthnInstance.BeginRegistration(currUser)
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
@@ -94,7 +94,7 @@ func FinishRegAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err := json.Unmarshal(sessionDataJSON, &sessionData)
 
-	credential, err := authn.Authn.FinishRegistration(currUser, sessionData, c.Request)
+	credential, err := authn.AuthnInstance.FinishRegistration(currUser, sessionData, c.Request)
 
 	currUser.RegisterAuthn(credential)
 	if err != nil {
