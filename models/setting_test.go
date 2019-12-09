@@ -3,6 +3,7 @@ package model
 import (
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -26,6 +27,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetSettingByType(t *testing.T) {
+	cache.Store = cache.NewMemoStore()
 	asserts := assert.New(t)
 
 	//找到设置时
@@ -57,6 +59,7 @@ func TestGetSettingByType(t *testing.T) {
 }
 
 func TestGetSettingByNames(t *testing.T) {
+	cache.Store = cache.NewMemoStore()
 	asserts := assert.New(t)
 
 	//找到设置时
@@ -102,6 +105,7 @@ func TestGetSettingByNames(t *testing.T) {
 
 // TestGetSettingByName 测试GetSettingByName
 func TestGetSettingByName(t *testing.T) {
+	cache.Store = cache.NewMemoStore()
 	asserts := assert.New(t)
 
 	//找到设置时
