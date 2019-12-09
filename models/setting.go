@@ -37,17 +37,16 @@ func GetSettingByName(name string) string {
 }
 
 // GetSettingByNames 用多个 Name 获取设置值
-// TODO 其他设置获取也使用缓存
 func GetSettingByNames(names []string) map[string]string {
 	var queryRes []Setting
-	res, miss := cache.GetsSettingByName(names)
+	res, miss := cache.GetSettings(names, "setting_")
 
 	DB.Where("name IN (?)", miss).Find(&queryRes)
 	for _, setting := range queryRes {
 		res[setting.Name] = setting.Value
 	}
 
-	_ = cache.SetSettings(res)
+	_ = cache.SetSettings(res, "setting_")
 	return res
 }
 

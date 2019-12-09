@@ -9,13 +9,18 @@ import (
 var Store Driver
 
 func init() {
-	Store = NewRedisStore(10, "tcp", "127.0.0.1:6379", "", "0")
-	return
-
+	//Store = NewRedisStore(10, "tcp", "127.0.0.1:6379", "", "0")
+	//return
 	if conf.RedisConfig.Server == "" || gin.Mode() == gin.TestMode {
 		Store = NewMemoStore()
 	} else {
-		Store = NewRedisStore(10, "tcp", conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB)
+		Store = NewRedisStore(
+			10,
+			"tcp",
+			conf.RedisConfig.Server,
+			conf.RedisConfig.Password,
+			conf.RedisConfig.DB,
+		)
 	}
 }
 
@@ -41,9 +46,9 @@ func Get(key string) (interface{}, bool) {
 	return Store.Get(key)
 }
 
-// GetsSettingByName 根据名称批量获取设置项缓存
-func GetsSettingByName(keys []string) (map[string]string, []string) {
-	raw, miss := Store.Gets(keys, "setting_")
+// GetSettings 根据名称批量获取设置项缓存
+func GetSettings(keys []string, prefix string) (map[string]string, []string) {
+	raw, miss := Store.Gets(keys, prefix)
 
 	res := make(map[string]string, len(raw))
 	for k, v := range raw {
@@ -54,10 +59,10 @@ func GetsSettingByName(keys []string) (map[string]string, []string) {
 }
 
 // SetSettings 批量设置站点设置缓存
-func SetSettings(values map[string]string) error {
+func SetSettings(values map[string]string, prefix string) error {
 	var toBeSet = make(map[string]interface{}, len(values))
 	for key, value := range values {
 		toBeSet[key] = interface{}(value)
 	}
-	return Store.Sets(toBeSet, "setting_")
+	return Store.Sets(toBeSet, prefix)
 }
