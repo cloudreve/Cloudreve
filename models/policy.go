@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -42,11 +43,16 @@ type PolicyOption struct {
 	RangeTransferEnabled bool     `json:"range_transfer_enabled"`
 }
 
+func init() {
+	// 注册缓存用到的复杂结构
+	gob.Register(Policy{})
+}
+
 // GetPolicyByID 用ID获取存储策略
 func GetPolicyByID(ID interface{}) (Policy, error) {
 	// 尝试读取缓存
 	cacheKey := "policy_" + strconv.Itoa(int(ID.(uint)))
-	if policy, ok := cache.Store.Get(cacheKey); ok {
+	if policy, ok := cache.Get(cacheKey); ok {
 		return policy.(Policy), nil
 	}
 
@@ -55,7 +61,7 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 
 	// 写入缓存
 	if result.Error == nil {
-		_ = cache.Store.Set(cacheKey, policy)
+		_ = cache.Set(cacheKey, policy)
 	}
 
 	return policy, result.Error

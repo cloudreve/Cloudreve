@@ -24,3 +24,27 @@ func (store *MemoStore) Set(key string, value interface{}) error {
 func (store *MemoStore) Get(key string) (interface{}, bool) {
 	return store.Store.Load(key)
 }
+
+// Gets 批量取值
+func (store *MemoStore) Gets(keys []string, prefix string) (map[string]interface{}, []string) {
+	var res = make(map[string]interface{})
+	var notFound = make([]string, 0, len(keys))
+
+	for _, key := range keys {
+		if value, ok := store.Store.Load(prefix + key); ok {
+			res[key] = value
+		} else {
+			notFound = append(notFound, key)
+		}
+	}
+
+	return res, notFound
+}
+
+// Sets 批量设置值
+func (store *MemoStore) Sets(values map[string]interface{}, prefix string) error {
+	for key, value := range values {
+		store.Store.Store(prefix+key, value)
+	}
+	return nil
+}
