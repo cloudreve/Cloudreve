@@ -7,13 +7,27 @@ import (
 	"github.com/rafaeljusto/redigomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestNewRedisStore(t *testing.T) {
 	asserts := assert.New(t)
 
-	store := NewRedisStore(10, "tcp", ":2333", "", "0")
+	store := NewRedisStore(10, "tcp", "", "", "0")
 	asserts.NotNil(store)
+
+	conn, err := store.pool.Dial()
+	asserts.Nil(conn)
+	asserts.Error(err)
+
+	testConn := redigomock.NewConn()
+	cmd := testConn.Command("PING").Expect("PONG")
+	err = store.pool.TestOnBorrow(testConn, time.Now())
+	if testConn.Stats(cmd) != 1 {
+		fmt.Println("Command was not used")
+		return
+	}
+	asserts.NoError(err)
 }
 
 func TestRedisStore_Set(t *testing.T) {
