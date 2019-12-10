@@ -54,6 +54,8 @@ const (
 	CodeCreateFolderFailed = 40003
 	// CodeObjectExist 对象已存在
 	CodeObjectExist = 40004
+	// CodeSignExpired 签名过期
+	CodeSignExpired = 40005
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

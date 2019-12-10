@@ -4,7 +4,12 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // RandStringRunes 返回随机字符串
 func RandStringRunes(n int) string {
