@@ -1,22 +1,22 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 // SignRequired 验证请求签名
+// TODO 测试
 func SignRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 获取待验证的签名正文
-		queries := c.Request.URL.Query()
-		queries.Del("sign")
-		c.Request.URL.RawQuery = queries.Encode()
-		requestURI := c.Request.URL.RequestURI()
-		fmt.Println(requestURI)
+		err := auth.CheckURI(c.Request.URL)
+		if err != nil {
+			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, err.Error(), err))
+			c.Abort()
+		}
 		c.Next()
 	}
 }

@@ -18,7 +18,19 @@ import (
 
 // AnonymousGetContent 匿名获取文件资源
 func AnonymousGetContent(c *gin.Context) {
-	c.JSON(200, serializer.Response{})
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.FileAnonymousGetService
+	if err := c.ShouldBind(&service); err == nil {
+		res := service.Download(ctx, c)
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
 }
 
 // GetSource 获取文件的外链地址

@@ -14,6 +14,19 @@ type FileDownloadService struct {
 	Path string `uri:"path" binding:"required,min=1,max=65535"`
 }
 
+type FileAnonymousGetService struct {
+	ID   uint   `uri:"id" binding:"required,min=1"`
+	Name string `uri:"name" binding:"required"`
+}
+
+// Download 签名的匿名文件下载
+func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Context) serializer.Response {
+
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
 // Download 文件下载
 func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统

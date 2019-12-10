@@ -40,6 +40,18 @@ func SignURI(uri string, expires int64) (*url.URL, error) {
 	return base, nil
 }
 
+// CheckURI 对URI进行鉴权
+func CheckURI(url *url.URL) error {
+	//获取待验证的签名正文
+	queries := url.Query()
+	sign := queries.Get("sign")
+	queries.Del("sign")
+	url.RawQuery = queries.Encode()
+	requestURI := url.RequestURI()
+
+	return General.Check(requestURI, sign)
+}
+
 // Init 初始化通用鉴权器
 // TODO slave模式下从配置文件获取
 func Init() {
