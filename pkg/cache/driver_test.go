@@ -42,3 +42,11 @@ func TestSetSettings(t *testing.T) {
 	asserts.Equal("3", value1)
 	asserts.Equal("4", value2)
 }
+
+func TestInit(t *testing.T) {
+	asserts := assert.New(t)
+
+	asserts.NotPanics(func() {
+		Init()
+	})
+}

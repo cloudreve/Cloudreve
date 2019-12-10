@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
 	"io"
@@ -149,4 +150,27 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 	}
 
 	return policyGroup
+}
+
+// GetSource 获取可直接访问文件的外链地址
+func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error) {
+	// 查找文件记录
+	fileObject, err := model.GetFilesByIDs([]uint{fileID}, fs.User.ID)
+	if err != nil || len(fileObject) == 0 {
+		return "", ErrObjectNotExist.WithError(err)
+	}
+
+	fs.FileTarget = []model.File{fileObject[0]}
+	// 将当前存储策略重设为文件使用的
+	fs.Policy = fileObject[0].GetPolicy()
+	err = fs.dispatchHandler()
+	if err != nil {
+		return "", err
+	}
+
+	// 检查存储策略是否可以获得外链
+	if !fs.Policy.IsOriginLinkEnable {
+		return "", serializer.NewError(serializer.CodePolicyNotAllowed, "当前存储策略无法获得外链", nil)
+	}
+	return "", nil
 }

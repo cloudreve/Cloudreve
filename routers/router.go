@@ -41,12 +41,17 @@ func InitRouter() *gin.Engine {
 	{
 		// 测试用路由
 		v3.GET("site/ping", controllers.Ping)
-		// 用户登录
-		v3.POST("user/session", controllers.UserLogin)
-		// WebAuthn登陆初始化
-		v3.GET("user/authn/:username", controllers.StartLoginAuthn)
-		// WebAuthn登陆
-		v3.POST("user/authn/finish/:username", controllers.FinishLoginAuthn)
+
+		// 不需要登录的用户相关路由
+		{
+			// 用户登录
+			v3.POST("user/session", controllers.UserLogin)
+			// WebAuthn登陆初始化
+			v3.GET("user/authn/:username", controllers.StartLoginAuthn)
+			// WebAuthn登陆
+			v3.POST("user/authn/finish/:username", controllers.FinishLoginAuthn)
+		}
+
 		// 验证码
 		v3.GET("captcha", controllers.Captcha)
 		// 站点全局配置
@@ -80,6 +85,8 @@ func InitRouter() *gin.Engine {
 				file.GET("download/*path", controllers.Download)
 				// 下载文件
 				file.GET("thumb/:id", controllers.Thumb)
+				// 取得文件外链
+				file.GET("source/:id", controllers.GetSource)
 			}
 
 			// 目录

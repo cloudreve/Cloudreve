@@ -4,6 +4,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/authn"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers"
 	"github.com/gin-gonic/gin"
@@ -11,6 +12,7 @@ import (
 
 func init() {
 	conf.Init("conf/conf.ini")
+	cache.Init()
 	model.Init()
 
 	// Debug 关闭时，切换为生产模式

@@ -8,7 +8,8 @@ import (
 // Store 缓存存储器
 var Store Driver
 
-func init() {
+// Init 初始化缓存
+func Init() {
 	//Store = NewRedisStore(10, "tcp", "127.0.0.1:6379", "", "0")
 	//return
 	if conf.RedisConfig.Server == "" || gin.Mode() == gin.TestMode {

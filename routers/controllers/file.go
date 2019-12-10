@@ -15,6 +15,40 @@ import (
 	"strconv"
 )
 
+// GetSource 获取文件的外链地址
+func GetSource(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+		return
+	}
+
+	// 获取文件ID
+	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(200, serializer.ParamErr("无法解析文件ID", err))
+		return
+	}
+
+	sourceURL, err := fs.GetSource(ctx, uint(fileID))
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeNotSet, err.Error(), err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Code: 0,
+		Data: struct {
+			URL string `json:"url"`
+		}{URL: sourceURL},
+	})
+
+}
+
 // Thumb 获取文件缩略图
 func Thumb(c *gin.Context) {
 	// 创建上下文
