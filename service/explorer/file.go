@@ -21,6 +21,25 @@ type FileAnonymousGetService struct {
 
 // Download 签名的匿名文件下载
 func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Context) serializer.Response {
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodeGroupNotAllowed, err.Error(), err)
+	}
+
+	// 查找文件
+	err = fs.SetTargetFileByIDs([]uint{service.ID})
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	// 获取文件流
+	rs, err := fs.GetDownloadContent(ctx, "")
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	// 发送文件
+	http.ServeContent(c.Writer, c.Request, service.Name, fs.FileTarget[0].UpdatedAt, rs)
 
 	return serializer.Response{
 		Code: 0,

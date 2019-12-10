@@ -82,21 +82,24 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 	}
 
 	// 找到文件
-	exist, file := fs.IsFileExist(path)
-	if !exist {
-		return nil, ErrObjectNotExist
+	if len(fs.FileTarget) == 0 {
+		exist, file := fs.IsFileExist(path)
+		if !exist {
+			return nil, ErrObjectNotExist
+		}
+		fs.FileTarget = []model.File{*file}
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
 	}
-	fs.FileTarget = []model.File{*file}
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
+
 	// 将当前存储策略重设为文件使用的
-	fs.Policy = file.GetPolicy()
+	fs.Policy = fs.FileTarget[0].GetPolicy()
 	err = fs.dispatchHandler()
 	if err != nil {
 		return nil, err
 	}
 
 	// 获取文件流
-	rs, err := fs.Handler.Get(ctx, file.SourceName)
+	rs, err := fs.Handler.Get(ctx, fs.FileTarget[0].SourceName)
 	if err != nil {
 		return nil, ErrIO.WithError(err)
 	}

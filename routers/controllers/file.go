@@ -23,7 +23,7 @@ func AnonymousGetContent(c *gin.Context) {
 	defer cancel()
 
 	var service explorer.FileAnonymousGetService
-	if err := c.ShouldBind(&service); err == nil {
+	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Download(ctx, c)
 		if res.Code != 0 {
 			c.JSON(200, res)

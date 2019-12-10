@@ -79,6 +79,22 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	return fs, err
 }
 
+// NewAnonymousFileSystem 初始化匿名文件系统
+// TODO 测试
+func NewAnonymousFileSystem() (*FileSystem, error) {
+	fs := &FileSystem{
+		User: &model.User{},
+	}
+
+	anonymousGroup, err := model.GetGroupByID(3)
+	if err != nil {
+		return nil, err
+	}
+
+	fs.User.Group = anonymousGroup
+	return fs, nil
+}
+
 // dispatchHandler 根据存储策略分配文件适配器
 func (fs *FileSystem) dispatchHandler() error {
 	var policyType string
@@ -133,4 +149,14 @@ func (fs *FileSystem) SetTargetDir(dirs *[]model.Folder) {
 		fs.DirTarget = append(fs.DirTarget, *dirs...)
 	}
 
+}
+
+// SetTargetFileByIDs 根据文件ID设置目标文件，忽略用户ID
+func (fs *FileSystem) SetTargetFileByIDs(ids []uint) error {
+	files, err := model.GetFilesByIDs(ids, 0)
+	if err != nil || len(files) == 0 {
+		return ErrFileExisted.WithError(err)
+	}
+	fs.SetTargetFile(&files)
+	return nil
 }

@@ -64,6 +64,8 @@ const (
 	CodePolicyNotAllowed = 50003
 	// CodeIOFailed IO操作失败
 	CodeIOFailed = 50004
+	// CodeGroupNotAllowed 当前用户组不允许
+	CodeGroupNotAllowed = 50005
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
 	// CodeNotSet 未定错误，后续尝试从error中获取
