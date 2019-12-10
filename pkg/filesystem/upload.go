@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 
 // Upload 上传文件
 func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
-	ctx = context.WithValue(ctx, FileHeaderCtx, file)
+	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 
 	// 上传前的钩子
 	err = fs.Trigger(ctx, fs.BeforeUpload)
@@ -35,7 +36,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	}
 
 	// 上传完成后的钩子
-	ctx = context.WithValue(ctx, SavePathCtx, savePath)
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 	err = fs.Trigger(ctx, fs.AfterUpload)
 
 	if err != nil {
@@ -70,7 +71,7 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 
 // CancelUpload 监测客户端取消上传
 func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHeader) {
-	ginCtx := ctx.Value(GinCtx).(*gin.Context)
+	ginCtx := ctx.Value(fsctx.GinCtx).(*gin.Context)
 	select {
 	case <-ginCtx.Request.Context().Done():
 		select {
@@ -82,7 +83,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 			if fs.AfterUploadCanceled == nil {
 				return
 			}
-			ctx = context.WithValue(ctx, SavePathCtx, path)
+			ctx = context.WithValue(ctx, fsctx.SavePathCtx, path)
 			err := fs.Trigger(ctx, fs.AfterUploadCanceled)
 			if err != nil {
 				util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)

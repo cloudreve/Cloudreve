@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/gin-gonic/gin"
 	"io"
+	"net/url"
 )
 
 // FileHeader 上传来的文件数据处理器
@@ -30,6 +31,8 @@ type Handler interface {
 	Get(ctx context.Context, path string) (io.ReadSeeker, error)
 	// 获取缩略图
 	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
+	// 获取外链地址，url
+	Source(ctx context.Context, path string, url url.URL, expires int64) (string, error)
 }
 
 // FileSystem 管理文件的文件系统
@@ -79,17 +82,23 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 // dispatchHandler 根据存储策略分配文件适配器
 func (fs *FileSystem) dispatchHandler() error {
 	var policyType string
+	var currentPolicy *model.Policy
+
 	if fs.Policy == nil {
 		// 如果没有具体指定，就是用用户当前存储策略
 		policyType = fs.User.Policy.Type
+		currentPolicy = &fs.User.Policy
 	} else {
 		policyType = fs.Policy.Type
+		currentPolicy = fs.Policy
 	}
 
 	// 根据存储策略类型分配适配器
 	switch policyType {
 	case "local":
-		fs.Handler = local.Handler{}
+		fs.Handler = local.Handler{
+			Policy: currentPolicy,
+		}
 		return nil
 	default:
 		return ErrUnknownPolicyType

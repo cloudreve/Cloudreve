@@ -3,6 +3,7 @@ package explorer
 import (
 	"context"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -22,7 +23,7 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 	}
 
 	// 开始处理下载
-	ctx = context.WithValue(ctx, filesystem.GinCtx, c)
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	rs, err := fs.GetDownloadContent(ctx, service.Path)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)

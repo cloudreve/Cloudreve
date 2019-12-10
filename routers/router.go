@@ -39,23 +39,37 @@ func InitRouter() *gin.Engine {
 	*/
 	v3 := r.Group("/api/v3")
 	{
-		// 测试用路由
-		v3.GET("site/ping", controllers.Ping)
-
-		// 不需要登录的用户相关路由
+		// 全局设置相关
+		site := v3.Group("site")
 		{
-			// 用户登录
-			v3.POST("user/session", controllers.UserLogin)
-			// WebAuthn登陆初始化
-			v3.GET("user/authn/:username", controllers.StartLoginAuthn)
-			// WebAuthn登陆
-			v3.POST("user/authn/finish/:username", controllers.FinishLoginAuthn)
+			// 测试用路由
+			site.GET("ping", controllers.Ping)
+			// 验证码
+			site.GET("captcha", controllers.Captcha)
+			// 站点全局配置
+			site.GET("config", controllers.SiteConfig)
 		}
 
-		// 验证码
-		v3.GET("captcha", controllers.Captcha)
-		// 站点全局配置
-		v3.GET("site/config", controllers.SiteConfig)
+		// 用户相关路由
+		user := v3.Group("user")
+		{
+			// 用户登录
+			user.POST("session", controllers.UserLogin)
+			// WebAuthn登陆初始化
+			user.GET("authn/:username", controllers.StartLoginAuthn)
+			// WebAuthn登陆
+			user.POST("authn/finish/:username", controllers.FinishLoginAuthn)
+		}
+
+		// 需要携带签名验证的
+		sign := v3.Group("")
+		sign.Use(middleware.SignRequired())
+		{
+			file := sign.Group("file")
+			{
+				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+			}
+		}
 
 		// 需要登录保护的
 		auth := v3.Group("")

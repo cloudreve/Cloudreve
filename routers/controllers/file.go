@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -14,6 +15,11 @@ import (
 	"net/url"
 	"strconv"
 )
+
+// AnonymousGetContent 匿名获取文件资源
+func AnonymousGetContent(c *gin.Context) {
+	c.JSON(200, serializer.Response{})
+}
 
 // GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
@@ -152,7 +158,7 @@ func FileUploadStream(c *gin.Context) {
 	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
-	uploadCtx := context.WithValue(ctx, filesystem.GinCtx, c)
+	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))

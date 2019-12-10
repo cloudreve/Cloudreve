@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestGenericBeforeUpload(t *testing.T) {
 		Size: 5,
 		Name: "1.txt",
 	}
-	ctx := context.WithValue(context.Background(), FileHeaderCtx, file)
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
 	fs := FileSystem{
 		User: &model.User{
 			Storage: 0,
@@ -38,15 +39,15 @@ func TestGenericBeforeUpload(t *testing.T) {
 
 	file.Size = 1
 	file.Name = "1"
-	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	ctx = context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
 	asserts.Error(HookValidateFile(ctx, &fs))
 
 	file.Name = "1.txt"
-	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	ctx = context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
 	asserts.NoError(HookValidateFile(ctx, &fs))
 
 	file.Name = "1.t/xt"
-	ctx = context.WithValue(context.Background(), FileHeaderCtx, file)
+	ctx = context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
 	asserts.Error(HookValidateFile(ctx, &fs))
 }
 
@@ -59,8 +60,8 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 		Size: 5,
 		Name: "TestGenericAfterUploadCanceled",
 	}
-	ctx := context.WithValue(context.Background(), SavePathCtx, "TestGenericAfterUploadCanceled")
-	ctx = context.WithValue(ctx, FileHeaderCtx, file)
+	ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "TestGenericAfterUploadCanceled")
+	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 	fs := FileSystem{
 		User:    &model.User{Storage: 5},
 		Handler: local.Handler{},
@@ -97,11 +98,11 @@ func TestGenericAfterUpload(t *testing.T) {
 		},
 	}
 
-	ctx := context.WithValue(context.Background(), FileHeaderCtx, local.FileStream{
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
 		VirtualPath: "/我的文件",
 		Name:        "test.txt",
 	})
-	ctx = context.WithValue(ctx, SavePathCtx, "")
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, "")
 
 	// 正常
 	mock.ExpectQuery("SELECT(.+)").
@@ -228,7 +229,7 @@ func TestHookIsFileExist(t *testing.T) {
 			ID: 1,
 		},
 	}}
-	ctx := context.WithValue(context.Background(), PathCtx, "/test.txt")
+	ctx := context.WithValue(context.Background(), fsctx.PathCtx, "/test.txt")
 	{
 		mock.ExpectQuery("SELECT(.+)").
 			WithArgs(1).
@@ -263,7 +264,7 @@ func TestHookValidateCapacity(t *testing.T) {
 			MaxStorage: 11,
 		},
 	}}
-	ctx := context.WithValue(context.Background(), FileHeaderCtx, local.FileStream{Size: 10})
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 10})
 	{
 		err := HookValidateCapacity(ctx, fs)
 		asserts.NoError(err)

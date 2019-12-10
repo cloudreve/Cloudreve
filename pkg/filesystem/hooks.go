@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
 )
 
@@ -40,7 +41,7 @@ func (fs *FileSystem) Trigger(ctx context.Context, hooks []Hook) error {
 
 // HookIsFileExist 检查虚拟路径文件是否存在
 func HookIsFileExist(ctx context.Context, fs *FileSystem) error {
-	filePath := ctx.Value(PathCtx).(string)
+	filePath := ctx.Value(fsctx.PathCtx).(string)
 	if ok, _ := fs.IsFileExist(filePath); ok {
 		return nil
 	}
@@ -49,7 +50,7 @@ func HookIsFileExist(ctx context.Context, fs *FileSystem) error {
 
 // HookValidateFile 一系列对文件检验的集合
 func HookValidateFile(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileHeaderCtx).(FileHeader)
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 
 	// 验证单文件尺寸
 	if !fs.ValidateFileSize(ctx, file.GetSize()) {
@@ -72,7 +73,7 @@ func HookValidateFile(ctx context.Context, fs *FileSystem) error {
 
 // HookValidateCapacity 验证并扣除用户容量，包含数据库操作
 func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileHeaderCtx).(FileHeader)
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 	// 验证并扣除容量
 	if !fs.ValidateCapacity(ctx, file.GetSize()) {
 		return ErrInsufficientCapacity
@@ -82,7 +83,7 @@ func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
 
 // HookDeleteTempFile 删除已保存的临时文件
 func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
-	filePath := ctx.Value(SavePathCtx).(string)
+	filePath := ctx.Value(fsctx.SavePathCtx).(string)
 	// 删除临时文件
 	if util.Exists(filePath) {
 		_, err := fs.Handler.Delete(ctx, []string{filePath})
@@ -96,7 +97,7 @@ func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
 
 // HookGiveBackCapacity 归还用户容量
 func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
-	file := ctx.Value(FileHeaderCtx).(FileHeader)
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 
 	// 归还用户容量
 	if !fs.User.DeductionStorage(file.GetSize()) {
@@ -108,7 +109,7 @@ func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
 // GenericAfterUpload 文件上传完成后，包含数据库操作
 func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 文件存放的虚拟路径
-	virtualPath := ctx.Value(FileHeaderCtx).(FileHeader).GetVirtualPath()
+	virtualPath := ctx.Value(fsctx.FileHeaderCtx).(FileHeader).GetVirtualPath()
 
 	// 检查路径是否存在
 	isExist, folder := fs.IsPathExist(virtualPath)
@@ -119,7 +120,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 检查文件是否存在
 	if ok, _ := fs.IsChildFileExist(
 		folder,
-		ctx.Value(FileHeaderCtx).(FileHeader).GetFileName(),
+		ctx.Value(fsctx.FileHeaderCtx).(FileHeader).GetFileName(),
 	); ok {
 		return ErrFileExisted
 	}

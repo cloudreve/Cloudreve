@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
@@ -33,8 +34,8 @@ func withSpeedLimit(rs io.ReadSeeker, speed int) io.ReadSeeker {
 
 // AddFile 新增文件记录
 func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model.File, error) {
-	file := ctx.Value(FileHeaderCtx).(FileHeader)
-	filePath := ctx.Value(SavePathCtx).(string)
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	filePath := ctx.Value(fsctx.SavePathCtx).(string)
 
 	newFile := model.File{
 		Name:       file.GetFileName(),
@@ -86,7 +87,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 		return nil, ErrObjectNotExist
 	}
 	fs.FileTarget = []model.File{*file}
-
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = file.GetPolicy()
 	err = fs.dispatchHandler()
@@ -161,6 +162,8 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 	}
 
 	fs.FileTarget = []model.File{fileObject[0]}
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fileObject[0])
+
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = fileObject[0].GetPolicy()
 	err = fs.dispatchHandler()
@@ -172,5 +175,13 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 	if !fs.Policy.IsOriginLinkEnable {
 		return "", serializer.NewError(serializer.CodePolicyNotAllowed, "当前存储策略无法获得外链", nil)
 	}
-	return "", nil
+
+	// 生成外链地址
+	siteURL := model.GetSiteURL()
+	source, err := fs.Handler.Source(ctx, fileObject[0].SourceName, *siteURL, 0)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
+	}
+
+	return source, nil
 }

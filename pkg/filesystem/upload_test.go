@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -40,6 +42,11 @@ func (m FileHeaderMock) Thumb(ctx context.Context, files string) (*response.Cont
 	return args.Get(0).(*response.ContentResponse), args.Error(1)
 }
 
+func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
+	args := m.Called(ctx, path, url, expires)
+	return args.Get(0).(string), args.Error(1)
+}
+
 func TestFileSystem_Upload(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -61,7 +68,7 @@ func TestFileSystem_Upload(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Request, _ = http.NewRequest("POST", "/", nil)
-	ctx = context.WithValue(ctx, GinCtx, c)
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	cancel()
 	file := local.FileStream{
 		Size:        5,

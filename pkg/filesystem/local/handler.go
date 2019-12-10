@@ -2,16 +2,25 @@ package local
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 )
 
 // Handler 本地策略适配器
-type Handler struct{}
+type Handler struct {
+	Policy *model.Policy
+}
 
 // Get 获取文件内容
 func (handler Handler) Get(ctx context.Context, path string) (io.ReadSeeker, error) {
@@ -96,4 +105,24 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 		Redirect: false,
 		Content:  file,
 	}, nil
+}
+
+// Source 获取外链URL
+func (handler Handler) Source(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
+	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return "", errors.New("无法获取文件记录上下文")
+	}
+
+	// 签名生成文件记录
+	signedURI, err := auth.SignURI(
+		fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
+		0,
+	)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
+	}
+
+	finalURL := url.ResolveReference(signedURI).String()
+	return finalURL, nil
 }

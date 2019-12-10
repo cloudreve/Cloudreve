@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
@@ -35,8 +36,8 @@ func TestFileSystem_AddFile(t *testing.T) {
 			},
 		},
 	}
-	ctx := context.WithValue(context.Background(), FileHeaderCtx, file)
-	ctx = context.WithValue(ctx, SavePathCtx, "/Uploads/1_sad.txt")
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, "/Uploads/1_sad.txt")
 
 	_, err := fs.AddFile(ctx, &folder)
 

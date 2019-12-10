@@ -3,6 +3,7 @@ package model
 import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
+	"net/url"
 )
 
 // Setting 系统设置模型
@@ -61,4 +62,13 @@ func GetSettingByType(types []string) map[string]string {
 	}
 
 	return res
+}
+
+// GetSiteURL 获取站点地址
+func GetSiteURL() *url.URL {
+	base, err := url.Parse(GetSettingByName("siteURL"))
+	if err != nil {
+		base, _ = url.Parse("https://cloudreve.org")
+	}
+	return base
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"net/url"
 )
 
 var (
@@ -21,7 +22,26 @@ type Auth interface {
 	Check(body string, sign string) error
 }
 
+// SignURI 对URI进行签名
+// TODO 测试
+func SignURI(uri string, expires int64) (*url.URL, error) {
+	// 生成签名
+	sign := General.Sign(uri, expires)
+
+	// 将签名加到URI中
+	base, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	queries := base.Query()
+	queries.Set("sign", sign)
+	base.RawQuery = queries.Encode()
+
+	return base, nil
+}
+
 // Init 初始化通用鉴权器
+// TODO slave模式下从配置文件获取
 func Init() {
 	General = HMACAuth{
 		SecretKey: []byte(model.GetSettingByName("secret_key")),
