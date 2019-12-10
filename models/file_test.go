@@ -106,6 +106,17 @@ func TestGetFilesByIDs(t *testing.T) {
 		asserts.NoError(err)
 		asserts.Len(folders, 1)
 	}
+
+	// 忽略UID查找
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 2, 3).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "1"))
+		folders, err := GetFilesByIDs([]uint{1, 2, 3}, 0)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Len(folders, 1)
+	}
 }
 
 func TestGetChildFilesOfFolders(t *testing.T) {

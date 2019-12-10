@@ -22,17 +22,18 @@ type Auth interface {
 	Check(body string, sign string) error
 }
 
-// SignURI 对URI进行签名
+// SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
 // TODO 测试
 func SignURI(uri string, expires int64) (*url.URL, error) {
-	// 生成签名
-	sign := General.Sign(uri, expires)
-
-	// 将签名加到URI中
 	base, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
 	}
+
+	// 生成签名
+	sign := General.Sign(base.Path, expires)
+
+	// 将签名加到URI中
 	queries := base.Query()
 	queries.Set("sign", sign)
 	base.RawQuery = queries.Encode()
@@ -47,9 +48,8 @@ func CheckURI(url *url.URL) error {
 	sign := queries.Get("sign")
 	queries.Del("sign")
 	url.RawQuery = queries.Encode()
-	requestURI := url.RequestURI()
 
-	return General.Check(requestURI, sign)
+	return General.Check(url.Path, sign)
 }
 
 // Init 初始化通用鉴权器

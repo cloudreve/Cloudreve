@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -74,5 +75,18 @@ func TestAuthRequired(t *testing.T) {
 	// 正常
 	c.Set("user", &model.User{})
 	AuthRequiredFunc(c)
+	asserts.NotNil(c)
+}
+
+func TestSignRequired(t *testing.T) {
+	asserts := assert.New(t)
+	auth.General = auth.HMACAuth{SecretKey: []byte(util.RandStringRunes(256))}
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request, _ = http.NewRequest("GET", "/test", nil)
+	SignRequiredFunc := SignRequired()
+
+	// 鉴权失败
+	SignRequiredFunc(c)
 	asserts.NotNil(c)
 }

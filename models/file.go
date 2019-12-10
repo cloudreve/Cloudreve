@@ -54,7 +54,6 @@ func (folder *Folder) GetChildFiles() ([]File, error) {
 
 // GetFilesByIDs 根据文件ID批量获取文件,
 // UID为0表示忽略用户，只根据文件ID检索
-// TODO 测试
 func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 	var files []File
 	var result *gorm.DB
