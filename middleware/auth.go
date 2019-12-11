@@ -9,7 +9,6 @@ import (
 )
 
 // SignRequired 验证请求签名
-// TODO 测试
 func SignRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := auth.CheckURI(c.Request.URL)

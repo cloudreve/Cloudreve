@@ -140,3 +140,29 @@ func TestIsTrueVal(t *testing.T) {
 	asserts.False(IsTrueVal("0"))
 	asserts.False(IsTrueVal("false"))
 }
+
+func TestGetSiteURL(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 正常
+	{
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+
+		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://drive.cloudreve.org"))
+		siteURL := GetSiteURL()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal("https://drive.cloudreve.org", siteURL.String())
+	}
+
+	// 失败 返回默认值
+	{
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+
+		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, ":][\\/\\]sdf"))
+		siteURL := GetSiteURL()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal("https://cloudreve.org", siteURL.String())
+	}
+}

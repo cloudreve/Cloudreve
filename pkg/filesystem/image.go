@@ -29,7 +29,6 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	}
 
 	fs.FileTarget = []model.File{file[0]}
-
 	res, err := fs.Handler.Thumb(ctx, file[0].SourceName)
 
 	// TODO 出错时重新生成缩略图

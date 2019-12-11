@@ -266,3 +266,47 @@ func TestRedisStore_Sets(t *testing.T) {
 		asserts.Error(err)
 	}
 }
+
+func TestRedisStore_Delete(t *testing.T) {
+	asserts := assert.New(t)
+	conn := redigomock.NewConn()
+	pool := &redis.Pool{
+		Dial:    func() (redis.Conn, error) { return conn, nil },
+		MaxIdle: 10,
+	}
+	store := &RedisStore{pool: pool}
+
+	// 正常
+	{
+		cmd := conn.Command("DEL", redigomock.NewAnyData(), redigomock.NewAnyData(), redigomock.NewAnyData(), redigomock.NewAnyData()).ExpectSlice("OK")
+		err := store.Delete([]string{"1", "2", "3", "4"}, "test_")
+		asserts.NoError(err)
+		if conn.Stats(cmd) != 1 {
+			fmt.Println("Command was not used")
+			return
+		}
+	}
+
+	// 命令执行失败
+	{
+		conn.Clear()
+		cmd := conn.Command("DEL", redigomock.NewAnyData(), redigomock.NewAnyData(), redigomock.NewAnyData(), redigomock.NewAnyData()).ExpectError(errors.New("error"))
+		err := store.Delete([]string{"1", "2", "3", "4"}, "test_")
+		asserts.Error(err)
+		if conn.Stats(cmd) != 1 {
+			fmt.Println("Command was not used")
+			return
+		}
+	}
+
+	// 连接失败
+	{
+		conn.Clear()
+		store.pool = &redis.Pool{
+			Dial:    func() (redis.Conn, error) { return nil, errors.New("error") },
+			MaxIdle: 10,
+		}
+		err := store.Delete([]string{"1", "2", "3", "4"}, "test_")
+		asserts.Error(err)
+	}
+}

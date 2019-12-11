@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/gin-gonic/gin"
@@ -62,4 +63,64 @@ func TestDispatchHandler(t *testing.T) {
 	fs.Policy = &model.Policy{Type: "unknown"}
 	err = fs.dispatchHandler()
 	asserts.Error(err)
+}
+
+func TestFileSystem_SetTargetFileByIDs(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 成功
+	{
+		fs := &FileSystem{}
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 2).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "1.txt"))
+		err := fs.SetTargetFileByIDs([]uint{1, 2})
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Len(fs.FileTarget, 1)
+		asserts.NoError(err)
+	}
+
+	// 未找到
+	{
+		fs := &FileSystem{}
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1, 2).WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		err := fs.SetTargetFileByIDs([]uint{1, 2})
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Len(fs.FileTarget, 0)
+		asserts.Error(err)
+	}
+}
+
+func TestFileSystem_CleanTargets(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{
+		FileTarget: []model.File{{}, {}},
+		DirTarget:  []model.Folder{{}, {}},
+	}
+
+	fs.CleanTargets()
+	asserts.Len(fs.FileTarget, 0)
+	asserts.Len(fs.DirTarget, 0)
+}
+
+func TestNewAnonymousFileSystem(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 正常
+	{
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policies"}).AddRow(3, "游客", "[]"))
+		fs, err := NewAnonymousFileSystem()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal("游客", fs.User.Group.Name)
+	}
+
+	// 游客用户组不存在
+	{
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policies"}))
+		fs, err := NewAnonymousFileSystem()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Nil(fs)
+	}
 }

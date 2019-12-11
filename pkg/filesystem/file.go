@@ -72,7 +72,6 @@ func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (io.R
 }
 
 // GetContent 获取文件内容，path为虚拟路径
-// TODO:测试
 func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeker, error) {
 	// 触发`下载前`钩子
 	err := fs.Trigger(ctx, fs.BeforeFileDownload)
@@ -94,6 +93,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = fs.FileTarget[0].GetPolicy()
 	err = fs.dispatchHandler()
+	defer fs.CleanTargets()
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,11 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 
 	// 检查存储策略是否可以获得外链
 	if !fs.Policy.IsOriginLinkEnable {
-		return "", serializer.NewError(serializer.CodePolicyNotAllowed, "当前存储策略无法获得外链", nil)
+		return "", serializer.NewError(
+			serializer.CodePolicyNotAllowed,
+			"当前存储策略无法获得外链",
+			nil,
+		)
 	}
 
 	// 生成外链地址

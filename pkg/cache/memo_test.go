@@ -106,3 +106,22 @@ func TestMemoStore_Sets(t *testing.T) {
 		"4": "4.val",
 	}, vals)
 }
+
+func TestMemoStore_Delete(t *testing.T) {
+	asserts := assert.New(t)
+	store := NewMemoStore()
+
+	err := store.Sets(map[string]interface{}{
+		"1": "1.val",
+		"2": "2.val",
+		"3": "3.val",
+		"4": "4.val",
+	}, "test_")
+	asserts.NoError(err)
+
+	err = store.Delete([]string{"1", "2"}, "test_")
+	asserts.NoError(err)
+	values, miss := store.Gets([]string{"1", "2", "3", "4"}, "test_")
+	asserts.Equal([]string{"1", "2"}, miss)
+	asserts.Equal(map[string]interface{}{"3": "3.val", "4": "4.val"}, values)
+}

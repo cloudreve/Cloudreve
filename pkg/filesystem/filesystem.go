@@ -80,7 +80,6 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 }
 
 // NewAnonymousFileSystem 初始化匿名文件系统
-// TODO 测试
 func NewAnonymousFileSystem() (*FileSystem, error) {
 	fs := &FileSystem{
 		User: &model.User{},
@@ -159,4 +158,10 @@ func (fs *FileSystem) SetTargetFileByIDs(ids []uint) error {
 	}
 	fs.SetTargetFile(&files)
 	return nil
+}
+
+// CleanTargets 清空目标
+func (fs *FileSystem) CleanTargets() {
+	fs.FileTarget = []model.File{}
+	fs.DirTarget = []model.Folder{}
 }

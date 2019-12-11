@@ -2,11 +2,16 @@ package local
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -110,5 +115,39 @@ func TestHandler_Thumb(t *testing.T) {
 	{
 		_, err := handler.Thumb(ctx, "not_exist")
 		asserts.Error(err)
+	}
+}
+
+func TestHandler_Source(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx := context.Background()
+	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
+
+	// 成功
+	{
+		file := model.File{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name: "test.jpg",
+		}
+		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0)
+		asserts.NoError(err)
+		asserts.NotEmpty(sourceURL)
+		asserts.Contains(sourceURL, "sign=")
+		asserts.Contains(sourceURL, "https://cloudreve.org")
+	}
+
+	// 无法获取上下文
+	{
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0)
+		asserts.Error(err)
+		asserts.Empty(sourceURL)
 	}
 }

@@ -169,13 +169,30 @@ func (store *RedisStore) Sets(values map[string]interface{}, prefix string) erro
 		setValues[prefix+key] = serialized
 	}
 
-	if rc.Err() == nil {
-		_, err := rc.Do("MSET", redis.Args{}.AddFlat(setValues)...)
-		if err != nil {
-			return err
-		}
-		return nil
+	_, err := rc.Do("MSET", redis.Args{}.AddFlat(setValues)...)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+// Delete 批量删除给定的键
+func (store *RedisStore) Delete(keys []string, prefix string) error {
+	rc := store.pool.Get()
+	defer rc.Close()
+	if rc.Err() != nil {
+		return rc.Err()
 	}
 
-	return rc.Err()
+	// 处理前缀
+	for i := 0; i < len(keys); i++ {
+		keys[i] = prefix + keys[i]
+	}
+
+	_, err := rc.Do("DEL", redis.Args{}.AddFlat(keys)...)
+	if err != nil {
+		return err
+	}
+	return nil
 }

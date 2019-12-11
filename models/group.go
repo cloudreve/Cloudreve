@@ -22,7 +22,6 @@ type Group struct {
 }
 
 // GetAria2Option 获取用户离线下载设备
-// TODO:测试
 func (group *Group) GetAria2Option() [3]bool {
 	if len(group.Aria2Option) != 5 {
 		return [3]bool{false, false, false}

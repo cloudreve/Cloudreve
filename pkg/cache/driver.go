@@ -33,6 +33,8 @@ type Driver interface {
 	Gets(keys []string, prefix string) (map[string]interface{}, []string)
 	// 批量设置值
 	Sets(values map[string]interface{}, prefix string) error
+	// 删除值
+	Delete(keys []string, prefix string) error
 }
 
 // Set 设置缓存值
@@ -43,6 +45,11 @@ func Set(key string, value interface{}) error {
 // Get 获取缓存值
 func Get(key string) (interface{}, bool) {
 	return Store.Get(key)
+}
+
+// Deletes 删除值
+func Deletes(keys []string, prefix string) error {
+	return Store.Delete(keys, prefix)
 }
 
 // GetSettings 根据名称批量获取设置项缓存

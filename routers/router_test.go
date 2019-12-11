@@ -28,7 +28,7 @@ func TestCaptcha(t *testing.T) {
 
 	req, _ := http.NewRequest(
 		"GET",
-		"/api/v3/captcha",
+		"/api/v3/site/captcha",
 		nil,
 	)
 
@@ -239,7 +239,7 @@ func TestSiteConfigRoute(t *testing.T) {
 	)
 	router.ServeHTTP(w, req)
 	asserts.Equal(200, w.Code)
-	asserts.Contains(w.Body.String(), "\"title\":\"\"")
+	asserts.Contains(w.Body.String(), "\"title\"")
 
 	model.DB.Model(&model.Setting{
 		Model: gorm.Model{

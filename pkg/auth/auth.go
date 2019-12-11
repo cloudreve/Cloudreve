@@ -23,7 +23,6 @@ type Auth interface {
 }
 
 // SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
-// TODO 测试
 func SignURI(uri string, expires int64) (*url.URL, error) {
 	base, err := url.Parse(uri)
 	if err != nil {

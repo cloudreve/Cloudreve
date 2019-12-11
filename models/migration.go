@@ -195,7 +195,8 @@ func addDefaultGroups() {
 	// 未找到初始游客用户组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name: "游客",
+			Name:     "游客",
+			Policies: "[]",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建初始游客用户组, %s", err)

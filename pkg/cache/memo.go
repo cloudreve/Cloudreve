@@ -48,3 +48,11 @@ func (store *MemoStore) Sets(values map[string]interface{}, prefix string) error
 	}
 	return nil
 }
+
+// Delete 批量删除值
+func (store *MemoStore) Delete(keys []string, prefix string) error {
+	for _, key := range keys {
+		store.Store.Delete(prefix + key)
+	}
+	return nil
+}

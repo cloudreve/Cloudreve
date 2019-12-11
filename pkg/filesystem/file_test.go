@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -261,5 +263,111 @@ func TestFileSystem_deleteGroupedFile(t *testing.T) {
 			2: {"2_1.txt", "2_2.txt"},
 			3: {"3_1.txt"},
 		}, failed)
+	}
+}
+
+func TestFileSystem_GetSource(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{Model: gorm.Model{ID: 1}},
+	}
+	auth.General = auth.HMACAuth{SecretKey: []byte("123")}
+
+	// 正常
+	{
+		// 清空缓存
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(2, 1).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
+					AddRow(2, 35, "1.txt"),
+			)
+		// 查找上传策略
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
+					AddRow(35, "local", true),
+			)
+		// 查找站点URL
+		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://cloudreve.org"))
+
+		sourceURL, err := fs.GetSource(ctx, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.NotEmpty(sourceURL)
+	}
+
+	// 文件不存在
+	{
+		// 清空缓存
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(2, 1).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}),
+			)
+
+		sourceURL, err := fs.GetSource(ctx, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrObjectNotExist.Code, err.(serializer.AppError).Code)
+		asserts.Empty(sourceURL)
+	}
+
+	// 未知上传策略
+	{
+		// 清空缓存
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(2, 1).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
+					AddRow(2, 35, "1.txt"),
+			)
+		// 查找上传策略
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
+					AddRow(35, "?", true),
+			)
+
+		sourceURL, err := fs.GetSource(ctx, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Empty(sourceURL)
+	}
+
+	// 不允许获取外链
+	{
+		// 清空缓存
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(2, 1).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
+					AddRow(2, 35, "1.txt"),
+			)
+		// 查找上传策略
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
+					AddRow(35, "local", false),
+			)
+
+		sourceURL, err := fs.GetSource(ctx, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(serializer.CodePolicyNotAllowed, err.(serializer.AppError).Code)
+		asserts.Empty(sourceURL)
 	}
 }
