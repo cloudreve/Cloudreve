@@ -32,12 +32,13 @@ func (handler Handler) Get(ctx context.Context, path string) (io.ReadSeeker, err
 	}
 
 	// 开启一个协程，用于请求结束后关闭reader
-	go closeReader(ctx, file)
+	// go closeReader(ctx, file)
 
 	return file, nil
 }
 
 // closeReader 用于在请求结束后关闭reader
+// TODO 让业务代码自己关闭
 func closeReader(ctx context.Context, closer io.Closer) {
 	select {
 	case <-ctx.Done():

@@ -35,9 +35,11 @@ type policy struct {
 }
 
 type group struct {
-	AllowShare           bool `json:"allowShare"`
-	AllowRemoteDownload  bool `json:"allowRemoteDownload"`
-	AllowTorrentDownload bool `json:"allowTorrentDownload"`
+	ID                   uint   `json:"id"`
+	Name                 string `json:"name"`
+	AllowShare           bool   `json:"allowShare"`
+	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
+	AllowTorrentDownload bool   `json:"allowTorrentDownload"`
 }
 
 type storage struct {
@@ -65,6 +67,8 @@ func BuildUser(user model.User) User {
 			AllowGetSource: user.Policy.IsOriginLinkEnable,
 		},
 		Group: group{
+			ID:                   user.GroupID,
+			Name:                 user.Group.Name,
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  aria2Option[0],
 			AllowTorrentDownload: aria2Option[2],

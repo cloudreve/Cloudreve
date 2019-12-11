@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 )
 
@@ -41,6 +42,11 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, service.Name, fs.FileTarget[0].UpdatedAt, rs)
 
+	// 检查是否需要关闭文件
+	if fc, ok := rs.(io.Closer); ok {
+		defer fc.Close()
+	}
+
 	return serializer.Response{
 		Code: 0,
 	}
@@ -65,6 +71,11 @@ func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context
 	c.Header("Content-Disposition", "attachment; filename=\""+fs.FileTarget[0].Name+"\"")
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
+
+	// 检查是否需要关闭文件
+	if fc, ok := rs.(io.Closer); ok {
+		defer fc.Close()
+	}
 
 	return serializer.Response{
 		Code: 0,

@@ -75,6 +75,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	rs, err := fs.GetContent(ctx, "not exist file")
 	asserts.Equal(ErrObjectNotExist, err)
 	asserts.Nil(rs)
+	fs.CleanTargets()
 
 	// 未知存储策略
 	file, err := os.Create("TestFileSystem_GetContent.txt")
@@ -90,6 +91,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	rs, err = fs.GetContent(ctx, "/TestFileSystem_GetContent.txt")
 	asserts.Error(err)
 	asserts.NoError(mock.ExpectationsWereMet())
+	fs.CleanTargets()
 
 	// 打开文件失败
 	mock.ExpectQuery("SELECT(.+)").
@@ -101,6 +103,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	rs, err = fs.GetContent(ctx, "/TestFileSystem_GetContent.txt")
 	asserts.Equal(serializer.CodeIOFailed, err.(serializer.AppError).Code)
 	asserts.NoError(mock.ExpectationsWereMet())
+	fs.CleanTargets()
 
 	// 打开成功
 	mock.ExpectQuery("SELECT(.+)").
