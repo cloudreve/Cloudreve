@@ -166,6 +166,10 @@ func addDefaultGroups() {
 			Color:         "danger",
 			WebDAVEnabled: true,
 			Aria2Option:   "0,0,0",
+			OptionsSerialized: GroupOption{
+				ArchiveDownloadEnabled: true,
+				ArchiveTaskEnabled:     true,
+			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建管理用户组, %s", err)

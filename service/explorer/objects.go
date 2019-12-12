@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,25 @@ type ItemService struct {
 
 // ArchiveAndDownload 创建归档并下載文件
 func (service *ItemService) ArchiveAndDownload(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 检查用户组权限
+	if !fs.User.Group.OptionsSerialized.ArchiveDownloadEnabled {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+	}
+
+	// 开始压缩，获取压缩后的stream
+	rs, err := fs.Compress(ctx, service.Dirs, service.Items)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
+	}
+
+	fmt.Println(rs)
+
 	return serializer.Response{
 		Code: 0,
 	}
