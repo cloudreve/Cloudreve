@@ -17,6 +17,20 @@ import (
 	"strconv"
 )
 
+func ArchiveAndDownload(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ItemService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.ArchiveAndDownload(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AnonymousGetContent 匿名获取文件资源
 func AnonymousGetContent(c *gin.Context) {
 	// 创建上下文

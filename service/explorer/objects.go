@@ -26,6 +26,13 @@ type ItemService struct {
 	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
+// ArchiveAndDownload 创建归档并下載文件
+func (service *ItemService) ArchiveAndDownload(ctx context.Context, c *gin.Context) serializer.Response {
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
 // Delete 删除对象
 func (service *ItemService) Delete(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统

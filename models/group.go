@@ -16,9 +16,17 @@ type Group struct {
 	Aria2Option   string
 	Color         string
 	SpeedLimit    int
+	Options       string `json:"-",gorm:"size:4096"`
 
 	// 数据库忽略字段
-	PolicyList []uint `gorm:"-"`
+	PolicyList        []uint      `gorm:"-"`
+	OptionsSerialized GroupOption `gorm:"-"`
+}
+
+// GroupOption 用户组其他配置
+type GroupOption struct {
+	ArchiveDownloadEnabled bool `json:"archive_download"`
+	ArchiveTaskEnabled     bool `json:"archive_task"`
 }
 
 // GetAria2Option 获取用户离线下载设备
@@ -42,8 +50,19 @@ func GetGroupByID(ID interface{}) (Group, error) {
 
 // AfterFind 找到用户组后的钩子，处理Policy列表
 func (group *Group) AfterFind() (err error) {
-	// 解析用户设置到OptionsSerialized
-	err = json.Unmarshal([]byte(group.Policies), &group.PolicyList)
+	// 解析用户组策略列表
+	if group.Policies != "" {
+		err = json.Unmarshal([]byte(group.Policies), &group.PolicyList)
+	}
+	if err != nil {
+		return err
+	}
+
+	// 解析用户组设置
+	if group.Options != "" {
+		err = json.Unmarshal([]byte(group.Options), &group.OptionsSerialized)
+	}
+
 	return err
 }
 
@@ -53,9 +72,16 @@ func (group *Group) BeforeSave() (err error) {
 	return err
 }
 
-//SerializePolicyList 将序列后的可选策略列表写入数据库字段
+//SerializePolicyList 将序列后的可选策略列表、配置写入数据库字段
+// TODO 完善测试
 func (group *Group) SerializePolicyList() (err error) {
-	optionsValue, err := json.Marshal(&group.PolicyList)
-	group.Policies = string(optionsValue)
+	policies, err := json.Marshal(&group.PolicyList)
+	group.Policies = string(policies)
+	if err != nil {
+		return err
+	}
+
+	optionsValue, err := json.Marshal(&group.OptionsSerialized)
+	group.Options = string(optionsValue)
 	return err
 }
