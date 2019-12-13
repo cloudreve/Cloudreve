@@ -38,13 +38,16 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	}
 
 	// 创建临时压缩文件
-	zipFilePath := filepath.Join(model.GetSettingByName("temp_path"), fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()))
+	zipFilePath := filepath.Join(
+		model.GetSettingByName("temp_path"),
+		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
+	)
 	zipFile, err := util.CreatNestedFile(zipFilePath)
-	defer zipFile.Close()
 	if err != nil {
 		util.Log().Warning("%s", err)
 		return "", err
 	}
+	defer zipFile.Close()
 
 	// 创建压缩文件Writer
 	zipWriter := zip.NewWriter(zipFile)

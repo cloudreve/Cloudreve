@@ -4,7 +4,6 @@ import (
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers/controllers"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
@@ -19,13 +18,13 @@ func InitRouter() *gin.Engine {
 	*/
 	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
 
-	// CORS TODO: 根据配置文件来
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
-		AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
-		AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
-		AllowCredentials: true,
-	}))
+	//// CORS TODO: 根据配置文件来
+	//r.Use(cors.New(cors.Config{
+	//	AllowOrigins:     []string{"http://localhost:3000"},
+	//	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
+	//	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
+	//	AllowCredentials: true,
+	//}))
 
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {
@@ -67,8 +66,10 @@ func InitRouter() *gin.Engine {
 		{
 			file := sign.Group("file")
 			{
-				// 下載文件
+				// 文件外链
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+				// 下載已经打包好的文件
+				file.GET("archive/:id/archive.zip", controllers.DownloadArchive)
 			}
 		}
 
@@ -104,8 +105,6 @@ func InitRouter() *gin.Engine {
 				file.GET("source/:id", controllers.GetSource)
 				// 打包要下载的文件
 				file.POST("archive", controllers.Archive)
-				// 下載已经打包好的文件
-				file.Use(middleware.SignRequired()).GET("archive/:id", controllers.DownloadArchive)
 			}
 
 			// 目录

@@ -6,11 +6,9 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -48,19 +46,18 @@ func (service *ArchiveDownloadService) Download(ctx context.Context, c *gin.Cont
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	if fs.User.Group.OptionsSerialized.OneTimeDownloadEnabled {
+		// 清理资源，删除临时文件
+		_ = cache.Deletes([]string{service.ID}, "archive_")
+	}
+
+	c.Header("Content-Disposition", "attachment;")
 	c.Header("Content-Type", "application/zip")
-	http.ServeContent(c.Writer, c.Request, "archive.zip", time.Now(), rs)
+	http.ServeContent(c.Writer, c.Request, "", time.Now(), rs)
 
 	// 检查是否需要关闭文件
 	if fc, ok := rs.(io.Closer); ok {
 		err = fc.Close()
-	}
-
-	// 清理资源，删除临时文件
-	_ = cache.Deletes([]string{service.ID}, "archive_")
-	err = os.Remove(zipPath.(string))
-	if err != nil {
-		util.Log().Warning("无法删除临时文件 %s ：%s", zipPath, err)
 	}
 
 	return serializer.Response{

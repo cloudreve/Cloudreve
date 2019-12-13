@@ -61,13 +61,13 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 	}
 	zipID := util.RandStringRunes(16)
 	signedURI, err := auth.SignURI(
-		fmt.Sprintf("/api/v3/file/archive/%s", zipID),
-		time.Now().Unix()+120,
+		fmt.Sprintf("/api/v3/file/archive/%s/archive.zip", zipID),
+		time.Now().Unix()+30,
 	)
 	finalURL := siteURL.ResolveReference(signedURI).String()
 
 	// 将压缩文件记录存入缓存
-	err = cache.Set("archive_"+zipID, zipFile, 120)
+	err = cache.Set("archive_"+zipID, zipFile, 30)
 	if err != nil {
 		return serializer.Err(serializer.CodeIOFailed, "无法写入缓存", err)
 	}

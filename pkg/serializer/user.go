@@ -40,6 +40,7 @@ type group struct {
 	AllowShare           bool   `json:"allowShare"`
 	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
 	AllowTorrentDownload bool   `json:"allowTorrentDownload"`
+	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
 }
 
 type storage struct {
@@ -72,6 +73,7 @@ func BuildUser(user model.User) User {
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  aria2Option[0],
 			AllowTorrentDownload: aria2Option[2],
+			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownloadEnabled,
 		},
 	}
 }

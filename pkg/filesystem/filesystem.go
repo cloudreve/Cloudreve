@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"context"
-	"errors"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
@@ -121,10 +120,11 @@ func (fs *FileSystem) dispatchHandler() error {
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统
+// TODO 用户不存在时使用匿名文件系统
 func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 	user, exist := c.Get("user")
 	if !exist {
-		return nil, errors.New("无法找到用户")
+		return NewAnonymousFileSystem()
 	}
 	fs, err := NewFileSystem(user.(*model.User))
 	return fs, err
