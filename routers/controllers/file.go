@@ -17,7 +17,23 @@ import (
 	"strconv"
 )
 
-func ArchiveAndDownload(c *gin.Context) {
+func DownloadArchive(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ArchiveDownloadService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Download(ctx, c)
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+func Archive(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

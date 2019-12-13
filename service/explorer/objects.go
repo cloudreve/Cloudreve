@@ -12,6 +12,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"net/url"
+	"time"
 )
 
 // ItemMoveService 处理多文件/目录移动
@@ -61,7 +62,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 	zipID := util.RandStringRunes(16)
 	signedURI, err := auth.SignURI(
 		fmt.Sprintf("/api/v3/file/archive/%s", zipID),
-		120,
+		time.Now().Unix()+120,
 	)
 	finalURL := siteURL.ResolveReference(signedURI).String()
 

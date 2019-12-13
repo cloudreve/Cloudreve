@@ -67,6 +67,7 @@ func InitRouter() *gin.Engine {
 		{
 			file := sign.Group("file")
 			{
+				// 下載文件
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
 			}
 		}
@@ -101,8 +102,10 @@ func InitRouter() *gin.Engine {
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
 				file.GET("source/:id", controllers.GetSource)
-				// 测试用：压缩文件和目录并下載
-				file.POST("archive", controllers.ArchiveAndDownload)
+				// 打包要下载的文件
+				file.POST("archive", controllers.Archive)
+				// 下載已经打包好的文件
+				file.Use(middleware.SignRequired()).GET("archive/:id", controllers.DownloadArchive)
 			}
 
 			// 目录
