@@ -22,9 +22,9 @@ type FileHeaderMock struct {
 	testMock.Mock
 }
 
-func (m FileHeaderMock) Get(ctx context.Context, path string) (io.ReadSeeker, error) {
+func (m FileHeaderMock) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	args := m.Called(ctx, path)
-	return args.Get(0).(io.ReadSeeker), args.Error(1)
+	return args.Get(0).(response.RSCloser), args.Error(1)
 }
 
 func (m FileHeaderMock) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {

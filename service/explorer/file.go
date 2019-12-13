@@ -8,7 +8,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
-	"io"
 	"net/http"
 	"time"
 )
@@ -45,6 +44,7 @@ func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Con
 
 	// 获取文件流
 	rs, err := fs.GetPhysicalFileContent(ctx, zipPath.(string))
+	defer rs.Close()
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -57,11 +57,6 @@ func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Con
 	c.Header("Content-Disposition", "attachment;")
 	c.Header("Content-Type", "application/zip")
 	http.ServeContent(c.Writer, c.Request, "", time.Now(), rs)
-
-	// 检查是否需要关闭文件
-	if fc, ok := rs.(io.Closer); ok {
-		err = fc.Close()
-	}
 
 	return serializer.Response{
 		Code: 0,
@@ -84,17 +79,13 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 
 	// 获取文件流
 	rs, err := fs.GetDownloadContent(ctx, "")
+	defer rs.Close()
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, service.Name, fs.FileTarget[0].UpdatedAt, rs)
-
-	// 检查是否需要关闭文件
-	if fc, ok := rs.(io.Closer); ok {
-		defer fc.Close()
-	}
 
 	return serializer.Response{
 		Code: 0,
@@ -139,6 +130,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	// 开始处理下载
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	rs, err := fs.GetDownloadContent(ctx, "")
+	defer rs.Close()
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -153,11 +145,6 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
-
-	// 检查是否需要关闭文件
-	if fc, ok := rs.(io.Closer); ok {
-		defer fc.Close()
-	}
 
 	return serializer.Response{
 		Code: 0,

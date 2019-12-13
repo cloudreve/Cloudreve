@@ -25,7 +25,7 @@ type Handler struct {
 }
 
 // Get 获取文件内容
-func (handler Handler) Get(ctx context.Context, path string) (io.ReadSeeker, error) {
+func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 打开文件
 	file, err := os.Open(path)
 	if err != nil {

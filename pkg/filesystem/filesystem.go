@@ -27,7 +27,7 @@ type Handler interface {
 	// 删除一个或多个文件
 	Delete(ctx context.Context, files []string) ([]string, error)
 	// 获取文件
-	Get(ctx context.Context, path string) (io.ReadSeeker, error)
+	Get(ctx context.Context, path string) (response.RSCloser, error)
 	// 获取缩略图
 	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
 	// 获取外链地址，url

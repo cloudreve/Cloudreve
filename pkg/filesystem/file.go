@@ -4,6 +4,7 @@ import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
@@ -18,7 +19,7 @@ import (
 
 // 限速后的ReaderSeeker
 type lrs struct {
-	io.ReadSeeker
+	response.RSCloser
 	r io.Reader
 }
 
@@ -27,7 +28,7 @@ func (r lrs) Read(p []byte) (int, error) {
 }
 
 // withSpeedLimit 给原有的ReadSeeker加上限速
-func (fs *FileSystem) withSpeedLimit(rs io.ReadSeeker) io.ReadSeeker {
+func (fs *FileSystem) withSpeedLimit(rs response.RSCloser) response.RSCloser {
 	// 如果用户组有速度限制，就返回限制流速的ReaderSeeker
 	if fs.User.Group.SpeedLimit != 0 {
 		speed := fs.User.Group.SpeedLimit
@@ -63,7 +64,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 }
 
 // GetPhysicalFileContent 根据文件物理路径获取文件流
-func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (io.ReadSeeker, error) {
+func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 重设上传策略
 	fs.Policy = &model.Policy{Type: "local"}
 	_ = fs.dispatchHandler()
@@ -78,7 +79,7 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 }
 
 // GetDownloadContent 获取用于下载的文件流
-func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (io.ReadSeeker, error) {
+func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 获取原始文件流
 	rs, err := fs.GetContent(ctx, path)
 	if err != nil {
@@ -91,7 +92,7 @@ func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (io.R
 }
 
 // GetContent 获取文件内容，path为虚拟路径
-func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeker, error) {
+func (fs *FileSystem) GetContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 触发`下载前`钩子
 	err := fs.Trigger(ctx, fs.BeforeFileDownload)
 	if err != nil {
