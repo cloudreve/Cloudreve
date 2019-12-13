@@ -147,6 +147,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "aria2_options", Value: `{"max-tries":5}`, Type: "aria2"},
 		{Name: "task_queue_token", Value: ``, Type: "task"},
 		{Name: "secret_key", Value: util.RandStringRunes(256), Type: "auth"},
+		{Name: "temp_path", Value: "temp", Type: "path"},
 	}
 
 	for _, value := range defaultSettings {

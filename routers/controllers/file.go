@@ -22,16 +22,13 @@ func ArchiveAndDownload(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service = explorer.ItemService{
-		Items: []uint{117, 118, 119, 120, 121, 122, 123},
-		Dirs:  []uint{},
+	var service explorer.ItemService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Archive(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
 	}
-	//if err := c.ShouldBindJSON(&service); err == nil {
-	_ = service.ArchiveAndDownload(ctx, c)
-	//c.JSON(200, res)
-	//} else {
-	//	c.JSON(200, ErrorResponse(err))
-	//}
 }
 
 // AnonymousGetContent 匿名获取文件资源

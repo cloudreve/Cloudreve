@@ -2,10 +2,16 @@ package explorer
 
 import (
 	"context"
+	"fmt"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"net/url"
 )
 
 // ItemMoveService 处理多文件/目录移动
@@ -27,8 +33,8 @@ type ItemService struct {
 	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
-// ArchiveAndDownload 创建归档并下載文件
-func (service *ItemService) ArchiveAndDownload(ctx context.Context, c *gin.Context) serializer.Response {
+// Archive 创建归档
+func (service *ItemService) Archive(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -40,20 +46,34 @@ func (service *ItemService) ArchiveAndDownload(ctx context.Context, c *gin.Conte
 		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
 	}
 
-	//// 写HTTP头
-	//c.Header("Content-Type", "application/zip")
-	//c.Header("Content-Disposition", "attachment; filename=\"archive.zip\"")
-
-	// 开始压缩，获取压缩后的stream
+	// 开始压缩
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-
-	err = fs.Compress(ctx, service.Dirs, service.Items, c.Writer)
+	zipFile, err := fs.Compress(ctx, service.Dirs, service.Items)
 	if err != nil {
-		return serializer.Err(serializer.CodeGroupNotAllowed, "无法创建", nil)
+		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
+	}
+
+	// 生成一次性压缩文件下载地址
+	siteURL, err := url.Parse(model.GetSettingByName("siteURL"))
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法解析站点URL", err)
+	}
+	zipID := util.RandStringRunes(16)
+	signedURI, err := auth.SignURI(
+		fmt.Sprintf("/api/v3/file/archive/%s", zipID),
+		120,
+	)
+	finalURL := siteURL.ResolveReference(signedURI).String()
+
+	// 将压缩文件记录存入缓存
+	err = cache.Set("archive_"+zipID, zipFile)
+	if err != nil {
+		return serializer.Err(serializer.CodeIOFailed, "无法写入缓存", err)
 	}
 
 	return serializer.Response{
 		Code: 0,
+		Data: finalURL,
 	}
 }
 
