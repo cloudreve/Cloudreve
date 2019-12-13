@@ -2,8 +2,8 @@ package explorer
 
 import (
 	"context"
-	"fmt"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
@@ -40,13 +40,17 @@ func (service *ItemService) ArchiveAndDownload(ctx context.Context, c *gin.Conte
 		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
 	}
 
-	// 开始压缩，获取压缩后的stream
-	rs, err := fs.Compress(ctx, service.Dirs, service.Items)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
-	}
+	//// 写HTTP头
+	//c.Header("Content-Type", "application/zip")
+	//c.Header("Content-Disposition", "attachment; filename=\"archive.zip\"")
 
-	fmt.Println(rs)
+	// 开始压缩，获取压缩后的stream
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
+
+	err = fs.Compress(ctx, service.Dirs, service.Items, c.Writer)
+	if err != nil {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "无法创建", nil)
+	}
 
 	return serializer.Response{
 		Code: 0,

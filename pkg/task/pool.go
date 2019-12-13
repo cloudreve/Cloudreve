@@ -77,11 +77,11 @@ func (pool *Pool) Schedule() {
 }
 
 // Wait 等待队列中所有任务完成或有Job返回错误中止
-func (pool *Pool) Wait() {
+func (pool *Pool) Wait() chan bool {
 	pool.lock.Lock()
 	pool.waiting = true
 	pool.lock.Unlock()
-	_ = <-pool.finishSignal
+	return pool.finishSignal
 }
 
 // Submit 提交新任务
@@ -110,7 +110,11 @@ func (pool *Pool) start(job Job) {
 	err := job.Do()
 	if err != nil {
 		pool.closed = true
-		close(pool.terminateSignal)
+		select {
+		case <-pool.terminateSignal:
+		default:
+			close(pool.terminateSignal)
+		}
 	}
 
 	pool.lock.Lock()
