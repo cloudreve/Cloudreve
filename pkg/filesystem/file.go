@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
 	"io"
+	"strconv"
 )
 
 /* ============
@@ -105,8 +106,8 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (io.ReadSeeke
 			return nil, ErrObjectNotExist
 		}
 		fs.FileTarget = []model.File{*file}
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
 	}
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
 
 	// 将当前存储策略重设为文件使用的
 	fs.Policy = fs.FileTarget[0].GetPolicy()
@@ -171,6 +172,45 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 	}
 
 	return policyGroup
+}
+
+// GetDownloadURL 创建文件下载链接
+func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string) (string, error) {
+	// 找到文件
+	if len(fs.FileTarget) == 0 {
+		exist, file := fs.IsFileExist(path)
+		if !exist {
+			return "", ErrObjectNotExist
+		}
+		fs.FileTarget = []model.File{*file}
+	}
+
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
+
+	// 将当前存储策略重设为文件使用的
+	fs.Policy = fs.FileTarget[0].GetPolicy()
+	err := fs.dispatchHandler()
+	if err != nil {
+		return "", err
+	}
+
+	// 生成下載地址
+	siteURL := model.GetSiteURL()
+	ttl, err := strconv.ParseInt(model.GetSettingByName("download_timeout"), 10, 64)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeInternalSetting, "无法获取下载地址有效期", err)
+	}
+	source, err := fs.Handler.GetDownloadURL(
+		ctx,
+		fs.FileTarget[0].SourceName,
+		*siteURL,
+		ttl,
+	)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeNotSet, "无法获取下载地址", err)
+	}
+
+	return source, nil
 }
 
 // GetSource 获取可直接访问文件的外链地址

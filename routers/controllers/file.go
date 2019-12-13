@@ -22,9 +22,9 @@ func DownloadArchive(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.ArchiveDownloadService
+	var service explorer.DownloadService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Download(ctx, c)
+		res := service.DownloadArchived(ctx, c)
 		if res.Code != 0 {
 			c.JSON(200, res)
 		}
@@ -137,13 +137,28 @@ func Thumb(c *gin.Context) {
 
 }
 
-// Download 文件下载
+// CreateDownloadSession 创建文件下载会话
+func CreateDownloadSession(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.FileDownloadCreateService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.CreateDownloadSession(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// DownloadArchived 文件下载
 func Download(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.FileDownloadService
+	var service explorer.DownloadService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Download(ctx, c)
 		if res.Code != 0 {

@@ -75,6 +75,8 @@ func InitRouter() *gin.Engine {
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
 				// 下載已经打包好的文件
 				file.GET("archive/:id/archive.zip", controllers.DownloadArchive)
+				// 下载文件
+				file.GET("download/:id", controllers.Download)
 			}
 		}
 
@@ -102,9 +104,9 @@ func InitRouter() *gin.Engine {
 			{
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
-				// 下载文件
-				file.GET("download/*path", controllers.Download)
-				// 下载文件
+				// 创建文件下载会话
+				file.PUT("download/*path", controllers.CreateDownloadSession)
+				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
 				file.GET("source/:id", controllers.GetSource)

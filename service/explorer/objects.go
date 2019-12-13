@@ -61,7 +61,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 		return serializer.Err(serializer.CodeNotSet, "无法解析站点URL", err)
 	}
 	zipID := util.RandStringRunes(16)
-	ttl, err := strconv.Atoi(model.GetSettingByName("local_archive_timeout"))
+	ttl, err := strconv.Atoi(model.GetSettingByName("archive_timeout"))
 	if err != nil {
 		ttl = 30
 	}

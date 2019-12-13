@@ -6,6 +6,7 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
@@ -15,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Handler 本地策略适配器
@@ -119,6 +121,32 @@ func (handler Handler) Source(ctx context.Context, path string, url url.URL, exp
 	signedURI, err := auth.SignURI(
 		fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
 		0,
+	)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
+	}
+
+	finalURL := url.ResolveReference(signedURI).String()
+	return finalURL, nil
+}
+
+func (handler Handler) GetDownloadURL(ctx context.Context, path string, url url.URL, ttl int64) (string, error) {
+	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return "", errors.New("无法获取文件记录上下文")
+	}
+
+	// 创建下载会话，将文件信息写入缓存
+	downloadSessionID := util.RandStringRunes(16)
+	err := cache.Set("download_"+downloadSessionID, file, int(ttl))
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeCacheOperation, "无法创建下載会话", err)
+	}
+
+	// 签名生成文件记录
+	signedURI, err := auth.SignURI(
+		fmt.Sprintf("/api/v3/file/download/%s", downloadSessionID),
+		time.Now().Unix()+ttl,
 	)
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)

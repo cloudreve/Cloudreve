@@ -46,6 +46,10 @@ func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, ex
 	args := m.Called(ctx, path, url, expires)
 	return args.Get(0).(string), args.Error(1)
 }
+func (m FileHeaderMock) GetDownloadURL(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
+	args := m.Called(ctx, path, url, expires)
+	return args.Get(0).(string), args.Error(1)
+}
 
 func TestFileSystem_Upload(t *testing.T) {
 	asserts := assert.New(t)

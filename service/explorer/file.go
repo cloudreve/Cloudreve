@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
@@ -12,22 +13,24 @@ import (
 	"time"
 )
 
-// FileDownloadService 文件下载服务，path为文件完整路径
-type FileDownloadService struct {
+// FileDownloadCreateService 文件下载会话创建服务，path为文件完整路径
+type FileDownloadCreateService struct {
 	Path string `uri:"path" binding:"required,min=1,max=65535"`
 }
 
+// FileAnonymousGetService 匿名（外链）获取文件服务
 type FileAnonymousGetService struct {
 	ID   uint   `uri:"id" binding:"required,min=1"`
 	Name string `uri:"name" binding:"required"`
 }
 
-type ArchiveDownloadService struct {
+// DownloadService 文件下載服务
+type DownloadService struct {
 	ID string `uri:"id" binding:"required"`
 }
 
-// Download 下載已打包的多文件
-func (service *ArchiveDownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
+// DownloadArchived 下載已打包的多文件
+func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -98,23 +101,56 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	}
 }
 
-// Download 文件下载
-func (service *FileDownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
+// CreateDownloadSession 创建下载会话，获取下载URL
+func (service *FileDownloadCreateService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
+	// 获取下载地址
+	downloadURL, err := fs.GetDownloadURL(ctx, service.Path)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Code: 0,
+		Data: downloadURL,
+	}
+}
+
+// Download 文件下载
+func (service *DownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 查找打包的临时文件
+	file, exist := cache.Get("download_" + service.ID)
+	if !exist {
+		return serializer.Err(404, "文件下载会话不存在", nil)
+	}
+	fs.FileTarget = []model.File{file.(model.File)}
+
 	// 开始处理下载
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	rs, err := fs.GetDownloadContent(ctx, service.Path)
+	rs, err := fs.GetDownloadContent(ctx, "")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
 	// 设置文件名
 	c.Header("Content-Disposition", "attachment; filename=\""+fs.FileTarget[0].Name+"\"")
+
+	if fs.User.Group.OptionsSerialized.OneTimeDownloadEnabled {
+		// 清理资源，删除临时文件
+		_ = cache.Deletes([]string{service.ID}, "download_")
+	}
+
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
 

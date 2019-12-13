@@ -66,6 +66,10 @@ const (
 	CodeEncryptError = 50002
 	// CodeIOFailed IO操作失败
 	CodeIOFailed = 50004
+	// CodeInternalSetting 内部设置参数错误
+	CodeInternalSetting = 50005
+	// CodeCacheOperation 缓存操作失败
+	CodeCacheOperation = 50006
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
 	// CodeNotSet 未定错误，后续尝试从error中获取

@@ -32,6 +32,8 @@ type Handler interface {
 	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
 	// 获取外链地址，url
 	Source(ctx context.Context, path string, url url.URL, expires int64) (string, error)
+	//获取下载地址
+	GetDownloadURL(ctx context.Context, path string, url url.URL, expires int64) (string, error)
 }
 
 // FileSystem 管理文件的文件系统
