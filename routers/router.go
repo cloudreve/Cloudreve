@@ -102,7 +102,7 @@ func InitRouter() *gin.Engine {
 				// 取得文件外链
 				file.GET("source/:id", controllers.GetSource)
 				// 测试用：压缩文件和目录并下載
-				file.GET("archive", controllers.ArchiveAndDownload)
+				file.POST("archive", controllers.ArchiveAndDownload)
 			}
 
 			// 目录
