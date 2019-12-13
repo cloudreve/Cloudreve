@@ -15,7 +15,7 @@ func NewMemoStore() *MemoStore {
 }
 
 // Set 存储值
-func (store *MemoStore) Set(key string, value interface{}) error {
+func (store *MemoStore) Set(key string, value interface{}, ttl int) error {
 	store.Store.Store(key, value)
 	return nil
 }

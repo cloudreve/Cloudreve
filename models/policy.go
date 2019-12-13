@@ -61,7 +61,7 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 
 	// 写入缓存
 	if result.Error == nil {
-		_ = cache.Set(cacheKey, policy)
+		_ = cache.Set(cacheKey, policy, -1)
 	}
 
 	return policy, result.Error

@@ -66,7 +66,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 	finalURL := siteURL.ResolveReference(signedURI).String()
 
 	// 将压缩文件记录存入缓存
-	err = cache.Set("archive_"+zipID, zipFile)
+	err = cache.Set("archive_"+zipID, zipFile, 120)
 	if err != nil {
 		return serializer.Err(serializer.CodeIOFailed, "无法写入缓存", err)
 	}

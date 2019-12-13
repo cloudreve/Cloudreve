@@ -75,7 +75,7 @@ func NewRedisStore(size int, network, address, password, database string) *Redis
 }
 
 // Set 存储值
-func (store *RedisStore) Set(key string, value interface{}) error {
+func (store *RedisStore) Set(key string, value interface{}, ttl int) error {
 	rc := store.pool.Get()
 	defer rc.Close()
 
@@ -88,7 +88,12 @@ func (store *RedisStore) Set(key string, value interface{}) error {
 		return rc.Err()
 	}
 
-	_, err = rc.Do("SET", key, serialized)
+	if ttl > 0 {
+		_, err = rc.Do("SETEX", key, ttl, serialized)
+	} else {
+		_, err = rc.Do("SET", key, serialized)
+	}
+
 	if err != nil {
 		return err
 	}

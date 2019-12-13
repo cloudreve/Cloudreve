@@ -52,6 +52,7 @@ func TestFileSystem_AddFile(t *testing.T) {
 	f, err := fs.AddFile(ctx, &folder)
 
 	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Equal("/Uploads/1_sad.txt", f.SourceName)
 }
 
@@ -146,6 +147,7 @@ func TestFileSystem_GetDownloadContent(t *testing.T) {
 	_, err = fs.GetDownloadContent(ctx, "/TestFileSystem_GetDownloadContent.txt")
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
+	fs.CleanTargets()
 
 	// 有限速
 	mock.ExpectQuery("SELECT(.+)").
@@ -302,6 +304,7 @@ func TestFileSystem_GetSource(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.NotEmpty(sourceURL)
+		fs.CleanTargets()
 	}
 
 	// 文件不存在
@@ -321,6 +324,7 @@ func TestFileSystem_GetSource(t *testing.T) {
 		asserts.Error(err)
 		asserts.Equal(ErrObjectNotExist.Code, err.(serializer.AppError).Code)
 		asserts.Empty(sourceURL)
+		fs.CleanTargets()
 	}
 
 	// 未知上传策略
@@ -346,6 +350,7 @@ func TestFileSystem_GetSource(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Empty(sourceURL)
+		fs.CleanTargets()
 	}
 
 	// 不允许获取外链
@@ -372,5 +377,6 @@ func TestFileSystem_GetSource(t *testing.T) {
 		asserts.Error(err)
 		asserts.Equal(serializer.CodePolicyNotAllowed, err.(serializer.AppError).Code)
 		asserts.Empty(sourceURL)
+		fs.CleanTargets()
 	}
 }

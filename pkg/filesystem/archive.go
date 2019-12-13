@@ -85,7 +85,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 
 		// 创建压缩文件头
 		header := &zip.FileHeader{
-			Name:               file.Name,
+			Name:               filepath.Join(file.Position, file.Name),
 			Modified:           file.UpdatedAt,
 			UncompressedSize64: file.Size,
 		}
@@ -103,5 +103,22 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 		}
 
 		_, err = io.Copy(writer, fileToZip)
+	} else if folder != nil {
+		// 对象是目录
+		// 获取子文件
+		subFiles, err := folder.GetChildFiles()
+		if err == nil && len(subFiles) > 0 {
+			for i := 0; i < len(subFiles); i++ {
+				fs.doCompress(ctx, &subFiles[i], nil, zipWriter, isArchive)
+			}
+
+		}
+		// 获取子目录，继续递归遍历
+		subFolders, err := folder.GetChildFolder()
+		if err == nil && len(subFolders) > 0 {
+			for i := 0; i < len(subFolders); i++ {
+				fs.doCompress(ctx, nil, &subFolders[i], zipWriter, isArchive)
+			}
+		}
 	}
 }

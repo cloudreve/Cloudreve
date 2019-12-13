@@ -12,7 +12,7 @@ var Store Driver = NewMemoStore()
 func Init() {
 	//Store = NewRedisStore(10, "tcp", "127.0.0.1:6379", "", "0")
 	//return
-	if conf.RedisConfig.Server != "" && gin.Mode() == gin.TestMode {
+	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		Store = NewRedisStore(
 			10,
 			"tcp",
@@ -26,7 +26,7 @@ func Init() {
 // Driver 键值缓存存储容器
 type Driver interface {
 	// 设置值
-	Set(key string, value interface{}) error
+	Set(key string, value interface{}, ttl int) error
 	// 取值
 	Get(key string) (interface{}, bool)
 	// 批量取值，返回成功取值的map即不存在的值
@@ -38,8 +38,8 @@ type Driver interface {
 }
 
 // Set 设置缓存值
-func Set(key string, value interface{}) error {
-	return Store.Set(key, value)
+func Set(key string, value interface{}, ttl int) error {
+	return Store.Set(key, value, ttl)
 }
 
 // Get 获取缓存值

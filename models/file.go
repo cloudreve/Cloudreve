@@ -40,7 +40,7 @@ func (folder *Folder) GetChildFile(name string) (*File, error) {
 	result := DB.Where("folder_id = ? AND name = ?", folder.ID, name).Find(&file)
 
 	if result.Error == nil {
-		file.Position = path.Join(folder.Position, folder.Name, file.Name)
+		file.Position = path.Join(folder.Position, folder.Name)
 	}
 	return &file, result.Error
 }
@@ -49,6 +49,12 @@ func (folder *Folder) GetChildFile(name string) (*File, error) {
 func (folder *Folder) GetChildFiles() ([]File, error) {
 	var files []File
 	result := DB.Where("folder_id = ?", folder.ID).Find(&files)
+
+	if result.Error == nil {
+		for i := 0; i < len(files); i++ {
+			files[i].Position = path.Join(folder.Position, folder.Name)
+		}
+	}
 	return files, result.Error
 }
 

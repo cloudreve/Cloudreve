@@ -42,7 +42,19 @@ func TestRedisStore_Set(t *testing.T) {
 	// 正常情况
 	{
 		cmd := conn.Command("SET", "test", redigomock.NewAnyData()).ExpectStringSlice("OK")
-		err := store.Set("test", "test val")
+		err := store.Set("test", "test val", -1)
+		asserts.NoError(err)
+		if conn.Stats(cmd) != 1 {
+			fmt.Println("Command was not used")
+			return
+		}
+	}
+
+	// 带有TTL
+	// 正常情况
+	{
+		cmd := conn.Command("SETEX", "test", 10, redigomock.NewAnyData()).ExpectStringSlice("OK")
+		err := store.Set("test", "test val", 10)
 		asserts.NoError(err)
 		if conn.Stats(cmd) != 1 {
 			fmt.Println("Command was not used")
@@ -57,7 +69,7 @@ func TestRedisStore_Set(t *testing.T) {
 		}{
 			Key: "123",
 		}
-		err := store.Set("test", value)
+		err := store.Set("test", value, -1)
 		asserts.Error(err)
 	}
 
@@ -65,7 +77,7 @@ func TestRedisStore_Set(t *testing.T) {
 	{
 		conn.Clear()
 		cmd := conn.Command("SET", "test", redigomock.NewAnyData()).ExpectError(errors.New("error"))
-		err := store.Set("test", "test val")
+		err := store.Set("test", "test val", -1)
 		asserts.Error(err)
 		if conn.Stats(cmd) != 1 {
 			fmt.Println("Command was not used")
@@ -78,7 +90,7 @@ func TestRedisStore_Set(t *testing.T) {
 			Dial:    func() (redis.Conn, error) { return nil, errors.New("error") },
 			MaxIdle: 10,
 		}
-		err := store.Set("test", "123")
+		err := store.Set("test", "123", -1)
 		asserts.Error(err)
 	}
 

@@ -8,12 +8,12 @@ import (
 func TestSet(t *testing.T) {
 	asserts := assert.New(t)
 
-	asserts.NoError(Set("123", "321"))
+	asserts.NoError(Set("123", "321", -1))
 }
 
 func TestGet(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.NoError(Set("123", "321"))
+	asserts.NoError(Set("123", "321", -1))
 
 	value, ok := Get("123")
 	asserts.True(ok)
@@ -25,7 +25,7 @@ func TestGet(t *testing.T) {
 
 func TestGetSettings(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.NoError(Set("test_1", "1"))
+	asserts.NoError(Set("test_1", "1", -1))
 
 	values, missed := GetSettings([]string{"1", "2"}, "test_")
 	asserts.Equal(map[string]string{"1": "1"}, values)

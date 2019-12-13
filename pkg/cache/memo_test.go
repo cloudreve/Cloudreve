@@ -17,7 +17,7 @@ func TestMemoStore_Set(t *testing.T) {
 	asserts := assert.New(t)
 
 	store := NewMemoStore()
-	err := store.Set("KEY", "vAL")
+	err := store.Set("KEY", "vAL", -1)
 	asserts.NoError(err)
 
 	val, ok := store.Store.Load("KEY")
@@ -31,7 +31,7 @@ func TestMemoStore_Get(t *testing.T) {
 
 	// 正常情况
 	{
-		_ = store.Set("string", "string_val")
+		_ = store.Set("string", "string_val", -1)
 		val, ok := store.Get("string")
 		asserts.Equal("string_val", val)
 		asserts.True(ok)
@@ -50,7 +50,7 @@ func TestMemoStore_Get(t *testing.T) {
 			key int
 		}
 		test := testStruct{key: 233}
-		_ = store.Set("struct", test)
+		_ = store.Set("struct", test, -1)
 		val, ok := store.Get("struct")
 		asserts.True(ok)
 		res, ok := val.(testStruct)
@@ -64,10 +64,10 @@ func TestMemoStore_Gets(t *testing.T) {
 	asserts := assert.New(t)
 	store := NewMemoStore()
 
-	err := store.Set("1", "1,val")
-	err = store.Set("2", "2,val")
-	err = store.Set("3", "3,val")
-	err = store.Set("4", "4,val")
+	err := store.Set("1", "1,val", -1)
+	err = store.Set("2", "2,val", -1)
+	err = store.Set("3", "3,val", -1)
+	err = store.Set("4", "4,val", -1)
 	asserts.NoError(err)
 
 	// 全部命中

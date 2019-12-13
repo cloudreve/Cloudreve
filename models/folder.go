@@ -46,6 +46,12 @@ func (folder *Folder) GetChild(name string) (*Folder, error) {
 func (folder *Folder) GetChildFolder() ([]Folder, error) {
 	var folders []Folder
 	result := DB.Where("parent_id = ?", folder.ID).Find(&folders)
+
+	if result.Error == nil {
+		for i := 0; i < len(folders); i++ {
+			folders[i].Position = path.Join(folder.Position, folder.Name)
+		}
+	}
 	return folders, result.Error
 }
 
