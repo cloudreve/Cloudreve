@@ -51,6 +51,16 @@ type thumb struct {
 	FileSuffix string `validate:"min=1"`
 }
 
+// 跨域配置
+type cors struct {
+	AllowAllOrigins  bool
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
+	AllowCredentials bool
+	ExposeHeaders    []string
+}
+
 var cfg *ini.File
 
 // Init 初始化配置文件
@@ -69,6 +79,7 @@ func Init(path string) {
 		"Captcha":   CaptchaConfig,
 		"Redis":     RedisConfig,
 		"Thumbnail": ThumbConfig,
+		"CORS":      CORSConfig,
 	}
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)

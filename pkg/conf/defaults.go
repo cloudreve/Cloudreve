@@ -34,6 +34,16 @@ var CaptchaConfig = &captcha{
 	CaptchaLen:         6,
 }
 
+// CORSConfig 跨域配置
+var CORSConfig = &cors{
+	AllowAllOrigins:  false,
+	AllowOrigins:     []string{"UNSET"},
+	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
+	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
+	AllowCredentials: true,
+	ExposeHeaders:    nil,
+}
+
 var ThumbConfig = &thumb{
 	MaxWidth:   400,
 	MaxHeight:  300,

@@ -4,6 +4,7 @@ import (
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers/controllers"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
@@ -18,13 +19,17 @@ func InitRouter() *gin.Engine {
 	*/
 	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
 
-	//// CORS TODO: 根据配置文件来
-	//r.Use(cors.New(cors.Config{
-	//	AllowOrigins:     []string{"http://localhost:3000"},
-	//	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
-	//	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
-	//	AllowCredentials: true,
-	//}))
+	// CORS TODO: 根据配置文件来
+	if conf.CORSConfig.AllowOrigins[0] != "UNSET" || conf.CORSConfig.AllowAllOrigins {
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     conf.CORSConfig.AllowOrigins,
+			AllowAllOrigins:  conf.CORSConfig.AllowAllOrigins,
+			AllowMethods:     conf.CORSConfig.AllowHeaders,
+			AllowHeaders:     conf.CORSConfig.AllowHeaders,
+			AllowCredentials: conf.CORSConfig.AllowCredentials,
+			ExposeHeaders:    conf.CORSConfig.ExposeHeaders,
+		}))
+	}
 
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {

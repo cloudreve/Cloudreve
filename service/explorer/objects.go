@@ -12,6 +12,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -60,14 +61,18 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 		return serializer.Err(serializer.CodeNotSet, "无法解析站点URL", err)
 	}
 	zipID := util.RandStringRunes(16)
+	ttl, err := strconv.Atoi(model.GetSettingByName("local_archive_timeout"))
+	if err != nil {
+		ttl = 30
+	}
 	signedURI, err := auth.SignURI(
 		fmt.Sprintf("/api/v3/file/archive/%s/archive.zip", zipID),
-		time.Now().Unix()+30,
+		time.Now().Unix()+int64(ttl),
 	)
 	finalURL := siteURL.ResolveReference(signedURI).String()
 
 	// 将压缩文件记录存入缓存
-	err = cache.Set("archive_"+zipID, zipFile, 30)
+	err = cache.Set("archive_"+zipID, zipFile, ttl)
 	if err != nil {
 		return serializer.Err(serializer.CodeIOFailed, "无法写入缓存", err)
 	}
