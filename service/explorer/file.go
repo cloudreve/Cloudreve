@@ -112,7 +112,7 @@ func (service *FileDownloadCreateService) CreateDownloadSession(ctx context.Cont
 	}
 }
 
-// Download 文件下载
+// Download 通过签名URL的文件下载，无需登录
 func (service *DownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
@@ -145,6 +145,28 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
+
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
+// PreviewContent 预览文件，需要登录会话
+func (service *FileDownloadCreateService) PreviewContent(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 获取文件流
+	rs, err := fs.GetDownloadContent(ctx, service.Path)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+	defer rs.Close()
+
+	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, rs)
 
 	return serializer.Response{
 		Code: 0,

@@ -137,20 +137,22 @@ func Thumb(c *gin.Context) {
 
 }
 
-// RedirectToDownload 创建下载会话并重定向至下载地址
-func RedirectToDownload(c *gin.Context) {
+// Preview 预览文件
+func Preview(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	var service explorer.FileDownloadCreateService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.CreateDownloadSession(ctx, c)
-		if res.Code == 0 {
+		res := service.PreviewContent(ctx, c)
+		// 是否需要重定向
+		if res.Code == -301 {
 			c.Redirect(301, res.Data.(string))
-			return
 		}
-		c.JSON(200, res)
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
@@ -171,7 +173,7 @@ func CreateDownloadSession(c *gin.Context) {
 	}
 }
 
-// DownloadArchived 文件下载
+// Download 文件下载
 func Download(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
