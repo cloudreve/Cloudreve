@@ -148,5 +148,5 @@ func TestFileSystem_IsChildFileExist(t *testing.T) {
 	exist, childFile := fs.IsChildFileExist(&folder, "321")
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.True(exist)
-	asserts.Equal("/123/321", childFile.Position)
+	asserts.Equal("/123", childFile.Position)
 }

@@ -83,6 +83,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	asserts.NoError(err)
 	_ = file.Close()
 
+	cache.Deletes([]string{"1"}, "policy_")
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
@@ -95,6 +96,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	fs.CleanTargets()
 
 	// 打开文件失败
+	cache.Deletes([]string{"1"}, "policy_")
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
@@ -107,6 +109,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	fs.CleanTargets()
 
 	// 打开成功
+	cache.Deletes([]string{"1"}, "policy_")
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
