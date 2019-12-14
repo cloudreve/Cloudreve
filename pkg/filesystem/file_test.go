@@ -380,3 +380,111 @@ func TestFileSystem_GetSource(t *testing.T) {
 		fs.CleanTargets()
 	}
 }
+
+func TestFileSystem_GetDownloadURL(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{Model: gorm.Model{ID: 1}},
+	}
+	auth.General = auth.HMACAuth{SecretKey: []byte("123")}
+
+	// 正常
+	{
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		err = cache.Deletes([]string{"35"}, "policy_")
+		err = cache.Deletes([]string{"download_timeout"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 1))
+		// 查找上传策略
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
+					AddRow(35, "local", true),
+			)
+		// 相关设置
+		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://cloudreve.org"))
+		mock.ExpectQuery("SELECT(.+)").WithArgs("download_timeout").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "20"))
+
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.NotEmpty(downloadURL)
+		fs.CleanTargets()
+	}
+
+	// 文件不存在
+	{
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		err = cache.Deletes([]string{"35"}, "policy_")
+		err = cache.Deletes([]string{"download_timeout"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}))
+
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Empty(downloadURL)
+		fs.CleanTargets()
+	}
+
+	// 未知存储策略
+	{
+		err := cache.Deletes([]string{"siteURL"}, "setting_")
+		err = cache.Deletes([]string{"35"}, "policy_")
+		err = cache.Deletes([]string{"download_timeout"}, "setting_")
+		asserts.NoError(err)
+		// 查找文件
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 1))
+		// 查找上传策略
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
+					AddRow(35, "unknown", true),
+			)
+
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Empty(downloadURL)
+		fs.CleanTargets()
+	}
+}
+
+func TestFileSystem_GetPhysicalFileContent(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{},
+	}
+
+	// 文件不存在
+	{
+		rs, err := fs.GetPhysicalFileContent(ctx, "not_exist.txt")
+		asserts.Error(err)
+		asserts.Nil(rs)
+	}
+
+	// 成功
+	{
+		testFile, err := os.Create("GetPhysicalFileContent.txt")
+		asserts.NoError(err)
+		asserts.NoError(testFile.Close())
+
+		rs, err := fs.GetPhysicalFileContent(ctx, "GetPhysicalFileContent.txt")
+		asserts.NoError(err)
+		asserts.NoError(rs.Close())
+		asserts.NotNil(rs)
+	}
+}

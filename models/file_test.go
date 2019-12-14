@@ -64,6 +64,8 @@ func TestFolder_GetChildFiles(t *testing.T) {
 		Model: gorm.Model{
 			ID: 1,
 		},
+		Position: "/123",
+		Name:     "456",
 	}
 
 	// 找不到
@@ -78,6 +80,7 @@ func TestFolder_GetChildFiles(t *testing.T) {
 	files, err = folder.GetChildFiles()
 	asserts.NoError(err)
 	asserts.Len(files, 2)
+	asserts.Equal("/123/456", files[0].Position)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 }

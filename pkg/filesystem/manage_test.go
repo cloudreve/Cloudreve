@@ -473,3 +473,111 @@ func TestFileSystem_Move(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 }
+
+func TestFileSystem_Rename(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}}
+	ctx := context.Background()
+
+	// 重命名文件 成功
+	{
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)files(.+)").
+			WithArgs("new.txt", sqlmock.AnyArg(), 10).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 重命名文件 不存在
+	{
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrPathNotExist, err)
+	}
+
+	// 重命名文件 失败
+	{
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)files(.+)").
+			WithArgs("new.txt", sqlmock.AnyArg(), 10).
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrFileExisted, err)
+	}
+
+	// 重命名目录 成功
+	{
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old"))
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)folders(.+)").
+			WithArgs("new", sqlmock.AnyArg(), 10).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 重命名目录 不存在
+	{
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrPathNotExist, err)
+	}
+
+	// 重命名目录 失败
+	{
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old"))
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)folders(.+)").
+			WithArgs("new", sqlmock.AnyArg(), 10).
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrFileExisted, err)
+	}
+
+	// 未选中任何对象
+	{
+		err := fs.Rename(ctx, []uint{}, []uint{}, "new")
+		asserts.Error(err)
+		asserts.Equal(ErrPathNotExist, err)
+	}
+
+	// 新名字不合法
+	{
+		err := fs.Rename(ctx, []uint{10}, []uint{}, "ne/w")
+		asserts.Error(err)
+		asserts.Equal(ErrIllegalObjectName, err)
+	}
+}

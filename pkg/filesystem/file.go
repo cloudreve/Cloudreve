@@ -208,7 +208,7 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string) (string, 
 		ttl,
 	)
 	if err != nil {
-		return "", serializer.NewError(serializer.CodeNotSet, "无法获取下载地址", err)
+		return "", err
 	}
 
 	return source, nil

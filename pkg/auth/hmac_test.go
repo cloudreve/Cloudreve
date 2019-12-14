@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -9,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var mock sqlmock.Sqlmock
@@ -63,6 +65,16 @@ func TestHMACAuth_Check(t *testing.T) {
 	{
 		sign := auth.Sign("content", 1)
 		asserts.Error(auth.Check("content", sign+":"))
+	}
+
+	// 过期日期格式错误
+	{
+		asserts.Error(auth.Check("content", "ErrAuthFailed:ErrAuthFailed"))
+	}
+
+	// 签名有误
+	{
+		asserts.Error(auth.Check("content", fmt.Sprintf("sign:%d", time.Now().Unix()+10)))
 	}
 }
 

@@ -137,6 +137,25 @@ func Thumb(c *gin.Context) {
 
 }
 
+// RedirectToDownload 创建下载会话并重定向至下载地址
+func RedirectToDownload(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.FileDownloadCreateService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.CreateDownloadSession(ctx, c)
+		if res.Code == 0 {
+			c.Redirect(301, res.Data.(string))
+			return
+		}
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // CreateDownloadSession 创建文件下载会话
 func CreateDownloadSession(c *gin.Context) {
 	// 创建上下文

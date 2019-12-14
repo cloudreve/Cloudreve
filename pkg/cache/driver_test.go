@@ -23,6 +23,15 @@ func TestGet(t *testing.T) {
 	asserts.False(ok)
 }
 
+func TestDeletes(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.NoError(Set("123", "321", -1))
+	err := Deletes([]string{"123"}, "")
+	asserts.NoError(err)
+	_, exist := Get("123")
+	asserts.False(exist)
+}
+
 func TestGetSettings(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.NoError(Set("test_1", "1", -1))

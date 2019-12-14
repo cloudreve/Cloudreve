@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/gob"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"path"
@@ -23,6 +24,11 @@ type File struct {
 
 	// 数据库忽略字段
 	Position string `gorm:"-"`
+}
+
+func init() {
+	// 注册缓存用到的复杂结构
+	gob.Register(File{})
 }
 
 // Create 创建文件记录

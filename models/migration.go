@@ -67,6 +67,9 @@ func addDefaultPolicy() {
 			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
 			IsOriginLinkEnable: false,
+			OptionsSerialized: PolicyOption{
+				FileType: []string{},
+			},
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
 			util.Log().Panic("无法创建初始存储策略, %s", err)
@@ -76,7 +79,7 @@ func addDefaultPolicy() {
 
 func addDefaultSettings() {
 	defaultSettings := []Setting{
-		{Name: "siteURL", Value: `http://lite.aoaoao.me/`, Type: "basic"},
+		{Name: "siteURL", Value: ``, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteStatus", Value: `open`, Type: "basic"},
 		{Name: "regStatus", Value: `0`, Type: "register"},

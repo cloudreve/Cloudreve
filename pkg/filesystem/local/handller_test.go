@@ -151,3 +151,36 @@ func TestHandler_Source(t *testing.T) {
 		asserts.Empty(sourceURL)
 	}
 }
+
+func TestHandler_GetDownloadURL(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx := context.Background()
+	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
+
+	// 成功
+	{
+		file := model.File{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name: "test.jpg",
+		}
+		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		downloadURL, err := handler.GetDownloadURL(ctx, "", *baseURL, 10)
+		asserts.NoError(err)
+		asserts.Contains(downloadURL, "sign=")
+		asserts.Contains(downloadURL, "https://cloudreve.org")
+	}
+
+	// 无法获取上下文
+	{
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		downloadURL, err := handler.GetDownloadURL(ctx, "", *baseURL, 10)
+		asserts.Error(err)
+		asserts.Empty(downloadURL)
+	}
+}

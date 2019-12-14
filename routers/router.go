@@ -106,6 +106,8 @@ func InitRouter() *gin.Engine {
 				file.POST("upload", controllers.FileUploadStream)
 				// 创建文件下载会话
 				file.PUT("download/*path", controllers.CreateDownloadSession)
+				// 创建文件下载并重定向到下载地址
+				file.GET("redirect/*path", controllers.RedirectToDownload)
 				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
