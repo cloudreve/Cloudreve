@@ -3,8 +3,12 @@ package filesystem
 import (
 	"context"
 	"errors"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"io/ioutil"
+	"strings"
 )
 
 // Hook 钩子函数
@@ -71,6 +75,17 @@ func HookValidateFile(ctx context.Context, fs *FileSystem) error {
 
 }
 
+// HookResetPolicy 重设存储策略为已有文件
+func HookResetPolicy(ctx context.Context, fs *FileSystem) error {
+	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return ErrObjectNotExist
+	}
+
+	fs.Policy = originFile.GetPolicy()
+	return fs.dispatchHandler()
+}
+
 // HookValidateCapacity 验证并扣除用户容量，包含数据库操作
 func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
@@ -81,10 +96,27 @@ func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
 	return nil
 }
 
+// HookChangeCapacity 根据原有文件和新文件的大小更新用户容量
+func HookChangeCapacity(ctx context.Context, fs *FileSystem) error {
+	newFile := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	originFile := ctx.Value(fsctx.FileModelCtx).(model.File)
+
+	if newFile.GetSize() > originFile.Size {
+		if !fs.ValidateCapacity(ctx, newFile.GetSize()-originFile.Size) {
+			return ErrInsufficientCapacity
+		}
+		return nil
+	}
+
+	fs.User.DeductionStorage(originFile.Size - newFile.GetSize())
+	return nil
+}
+
 // HookDeleteTempFile 删除已保存的临时文件
 func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
 	filePath := ctx.Value(fsctx.SavePathCtx).(string)
 	// 删除临时文件
+	// TODO 其他策略。Exists？
 	if util.Exists(filePath) {
 		_, err := fs.Handler.Delete(ctx, []string{filePath})
 		if err != nil {
@@ -95,6 +127,22 @@ func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
 	return nil
 }
 
+// HookCleanFileContent 清空文件内容
+func HookCleanFileContent(ctx context.Context, fs *FileSystem) error {
+	filePath := ctx.Value(fsctx.SavePathCtx).(string)
+	// 清空内容
+	return fs.Handler.Put(ctx, ioutil.NopCloser(strings.NewReader("")), filePath, 0)
+}
+
+// HookClearFileSize 将原始文件的尺寸设为0
+func HookClearFileSize(ctx context.Context, fs *FileSystem) error {
+	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return ErrObjectNotExist
+	}
+	return originFile.UpdateSize(0)
+}
+
 // HookGiveBackCapacity 归还用户容量
 func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
@@ -103,6 +151,34 @@ func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
 	if !fs.User.DeductionStorage(file.GetSize()) {
 		return errors.New("无法继续降低用户已用存储")
 	}
+	return nil
+}
+
+// GenericAfterUpdate 文件内容更新后
+func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
+	// 更新文件尺寸
+	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return ErrObjectNotExist
+	}
+	newFile, ok := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	if !ok {
+		return ErrObjectNotExist
+	}
+	err := originFile.UpdateSize(newFile.GetSize())
+	if err != nil {
+		return err
+	}
+
+	// 尝试清空原有缩略图
+	go func() {
+		if originFile.PicInfo != "" {
+			_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
+			fs.GenerateThumbnail(ctx, &originFile)
+		}
+
+	}()
+
 	return nil
 }
 

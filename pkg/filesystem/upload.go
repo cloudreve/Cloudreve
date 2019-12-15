@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -23,8 +24,14 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		return err
 	}
 
-	// 生成文件名和路径
-	savePath := fs.GenerateSavePath(ctx, file)
+	// 生成文件名和路径, 如果是更新操作就从原始文件获取
+	var savePath string
+	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if ok {
+		savePath = originFile.SourceName
+	} else {
+		savePath = fs.GenerateSavePath(ctx, file)
+	}
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
@@ -50,7 +57,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		return err
 	}
 
-	util.Log().Info("新文件上传:%s , 大小:%d, 上传者:%s", file.GetFileName(), file.GetSize(), fs.User.Nick)
+	util.Log().Info("新文件PUT:%s , 大小:%d, 上传者:%s", file.GetFileName(), file.GetSize(), fs.User.Nick)
 
 	return nil
 }

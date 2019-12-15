@@ -143,7 +143,7 @@ func Preview(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.FileDownloadCreateService
+	var service explorer.SingleFileService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.PreviewContent(ctx, c)
 		// 是否需要重定向
@@ -164,7 +164,7 @@ func CreateDownloadSession(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.FileDownloadCreateService
+	var service explorer.SingleFileService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.CreateDownloadSession(ctx, c)
 		c.JSON(200, res)
@@ -185,6 +185,21 @@ func Download(c *gin.Context) {
 		if res.Code != 0 {
 			c.JSON(200, res)
 		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// PutContent 更新文件内容
+func PutContent(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SingleFileService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.PutContent(ctx, c)
+		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
@@ -251,6 +266,5 @@ func FileUploadStream(c *gin.Context) {
 
 	c.JSON(200, serializer.Response{
 		Code: 0,
-		Msg:  "Pong",
 	})
 }

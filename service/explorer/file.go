@@ -6,14 +6,17 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"path"
+	"strconv"
 	"time"
 )
 
-// FileDownloadCreateService 文件下载会话创建服务，path为文件完整路径
-type FileDownloadCreateService struct {
+// SingleFileService 对单文件进行操作的五福，path为文件完整路径
+type SingleFileService struct {
 	Path string `uri:"path" binding:"required,min=1,max=65535"`
 }
 
@@ -93,7 +96,7 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 }
 
 // CreateDownloadSession 创建下载会话，获取下载URL
-func (service *FileDownloadCreateService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -152,7 +155,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 }
 
 // PreviewContent 预览文件，需要登录会话
-func (service *FileDownloadCreateService) PreviewContent(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -167,6 +170,64 @@ func (service *FileDownloadCreateService) PreviewContent(ctx context.Context, c 
 	defer rs.Close()
 
 	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, rs)
+
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
+// PutContent 更新文件内容
+func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 取得文件大小
+	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
+	if err != nil {
+
+		return serializer.ParamErr("无法解析文件尺寸", err)
+	}
+
+	fileData := local.FileStream{
+		MIMEType:    c.Request.Header.Get("Content-Type"),
+		File:        c.Request.Body,
+		Size:        fileSize,
+		Name:        path.Base(service.Path),
+		VirtualPath: path.Dir(service.Path),
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 取得现有文件
+	exist, originFile := fs.IsFileExist(service.Path)
+	if !exist {
+		return serializer.Err(404, "文件不存在", nil)
+	}
+
+	// 给文件系统分配钩子
+	fs.Use("BeforeUpload", filesystem.HookValidateFile)
+	fs.Use("BeforeUpload", filesystem.HookResetPolicy)
+	fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
+	fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
+	fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
+	fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
+	fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
+	fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
+	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+
+	// 执行上传
+	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
+	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, *originFile)
+	err = fs.Upload(uploadCtx, fileData)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
+	}
 
 	return serializer.Response{
 		Code: 0,
