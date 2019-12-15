@@ -36,6 +36,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 }
 
 // GenerateThumbnail 尝试为本地策略文件生成缩略图并获取图像原始大小
+// TODO 失败时，如果之前还有图像信息，则清除
 func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 判断是否可以生成缩略图
 	if !IsInExtensionList(HandledExtension, file.Name) {

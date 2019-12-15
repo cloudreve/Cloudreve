@@ -75,7 +75,7 @@ func HookValidateFile(ctx context.Context, fs *FileSystem) error {
 
 }
 
-// HookResetPolicy 重设存储策略为已有文件
+// HookResetPolicy 重设存储策略为上下文已有文件
 func HookResetPolicy(ctx context.Context, fs *FileSystem) error {
 	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {
@@ -170,13 +170,12 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 		return err
 	}
 
-	// 尝试清空原有缩略图
+	// 尝试清空原有缩略图并重新生成
 	go func() {
 		if originFile.PicInfo != "" {
 			_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
 			fs.GenerateThumbnail(ctx, &originFile)
 		}
-
 	}()
 
 	return nil

@@ -5,10 +5,12 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 	"os"
 	"testing"
 )
@@ -271,6 +273,207 @@ func TestHookValidateCapacity(t *testing.T) {
 	}
 	{
 		err := HookValidateCapacity(ctx, fs)
+		asserts.Error(err)
+	}
+}
+
+func TestHookResetPolicy(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{ID: 1},
+	}}
+
+	// 成功
+	{
+		file := model.File{PolicyID: 2}
+		cache.Deletes([]string{"2"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(2, "local"))
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
+		err := HookResetPolicy(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 上下文文件不存在
+	{
+		cache.Deletes([]string{"2"}, "policy_")
+		ctx := context.Background()
+		err := HookResetPolicy(ctx, fs)
+		asserts.Error(err)
+	}
+}
+
+func TestHookChangeCapacity(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 容量增加 失败
+	{
+		fs := &FileSystem{User: &model.User{
+			Model: gorm.Model{ID: 1},
+		}}
+
+		newFile := local.FileStream{Size: 10}
+		oldFile := model.File{Size: 9}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
+		err := HookChangeCapacity(ctx, fs)
+		asserts.Equal(ErrInsufficientCapacity, err)
+	}
+
+	// 容量增加 成功
+	{
+		fs := &FileSystem{User: &model.User{
+			Model: gorm.Model{ID: 1},
+			Group: model.Group{MaxStorage: 1},
+		}}
+
+		newFile := local.FileStream{Size: 10}
+		oldFile := model.File{Size: 9}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		err := HookChangeCapacity(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(uint64(1), fs.User.Storage)
+	}
+
+	// 容量减少
+	{
+		fs := &FileSystem{User: &model.User{
+			Model:   gorm.Model{ID: 1},
+			Storage: 1,
+		}}
+
+		newFile := local.FileStream{Size: 9}
+		oldFile := model.File{Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
+		err := HookChangeCapacity(ctx, fs)
+		asserts.NoError(err)
+		asserts.Equal(uint64(0), fs.User.Storage)
+	}
+}
+
+func TestHookCleanFileContent(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{ID: 1},
+	}}
+
+	ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "123/123")
+	handlerMock := FileHeaderMock{}
+	handlerMock.On("Put", testMock.Anything, testMock.Anything, "123/123").Return(errors.New("error"))
+	fs.Handler = handlerMock
+	err := HookCleanFileContent(ctx, fs)
+	asserts.Error(err)
+	handlerMock.AssertExpectations(t)
+}
+
+func TestHookClearFileSize(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{ID: 1},
+	}}
+
+	// 成功
+	{
+		ctx := context.WithValue(
+			context.Background(),
+			fsctx.FileModelCtx,
+			model.File{Model: gorm.Model{ID: 1}},
+		)
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs(0, sqlmock.AnyArg(), 1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := HookClearFileSize(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 上下文对象不存在
+	{
+		ctx := context.Background()
+		err := HookClearFileSize(ctx, fs)
+		asserts.Error(err)
+	}
+
+}
+
+func TestGenericAfterUpdate(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{ID: 1},
+	}}
+
+	// 成功 是图像文件
+	{
+		originFile := model.File{
+			Model:   gorm.Model{ID: 1},
+			PicInfo: "1,1",
+		}
+		newFile := local.FileStream{Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
+
+		handlerMock := FileHeaderMock{}
+		handlerMock.On("Delete", testMock.Anything, []string{"._thumb"}).Return([]string{}, nil)
+		fs.Handler = handlerMock
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs(10, sqlmock.AnyArg(), 1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+
+		err := GenericAfterUpdate(ctx, fs)
+
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 新文件上下文不存在
+	{
+		originFile := model.File{
+			Model:   gorm.Model{ID: 1},
+			PicInfo: "1,1",
+		}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
+		err := GenericAfterUpdate(ctx, fs)
+		asserts.Error(err)
+	}
+
+	// 原始文件上下文不存在
+	{
+		newFile := local.FileStream{Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, newFile)
+		err := GenericAfterUpdate(ctx, fs)
+		asserts.Error(err)
+	}
+
+	// 无法更新数据库容量
+	// 成功 是图像文件
+	{
+		originFile := model.File{
+			Model:   gorm.Model{ID: 1},
+			PicInfo: "1,1",
+		}
+		newFile := local.FileStream{Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
+
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WithArgs(10, sqlmock.AnyArg(), 1).
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+
+		err := GenericAfterUpdate(ctx, fs)
+
+		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 	}
 }

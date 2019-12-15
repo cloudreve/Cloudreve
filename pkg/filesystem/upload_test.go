@@ -82,6 +82,35 @@ func TestFileSystem_Upload(t *testing.T) {
 	err := fs.Upload(ctx, file)
 	asserts.NoError(err)
 
+	// 正常，上下文已指定源文件
+	testHandller = new(FileHeaderMock)
+	testHandller.On("Put", testMock.Anything, testMock.Anything, "123/123.txt").Return(nil)
+	fs = &FileSystem{
+		Handler: testHandller,
+		User: &model.User{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Policy: model.Policy{
+				AutoRename:  false,
+				DirNameRule: "{path}",
+			},
+		},
+	}
+	ctx, cancel = context.WithCancel(context.Background())
+	c, _ = gin.CreateTestContext(httptest.NewRecorder())
+	c.Request, _ = http.NewRequest("POST", "/", nil)
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, model.File{SourceName: "123/123.txt"})
+	cancel()
+	file = local.FileStream{
+		Size:        5,
+		VirtualPath: "/",
+		Name:        "1.txt",
+	}
+	err = fs.Upload(ctx, file)
+	asserts.NoError(err)
+
 	// BeforeUpload 返回错误
 	fs.Use("BeforeUpload", func(ctx context.Context, fs *FileSystem) error {
 		return errors.New("error")

@@ -322,3 +322,37 @@ func TestGetFilesByParentIDs(t *testing.T) {
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Len(files, 3)
 }
+
+func TestFile_Updates(t *testing.T) {
+	asserts := assert.New(t)
+	file := File{Model: gorm.Model{ID: 1}}
+	// rename
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs("newName", sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := file.Rename("newName")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// UpdatePicInfo
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs(10, sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := file.UpdateSize(10)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// UpdatePicInfo
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs("1,1", sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := file.UpdatePicInfo("1,1")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+}
