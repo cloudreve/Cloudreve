@@ -3,6 +3,7 @@ package cache
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestNewMemoStore(t *testing.T) {
@@ -22,7 +23,7 @@ func TestMemoStore_Set(t *testing.T) {
 
 	val, ok := store.Store.Load("KEY")
 	asserts.True(ok)
-	asserts.Equal("vAL", val)
+	asserts.Equal("vAL", val.(itemWithTTL).value)
 }
 
 func TestMemoStore_Get(t *testing.T) {
@@ -56,6 +57,15 @@ func TestMemoStore_Get(t *testing.T) {
 		res, ok := val.(testStruct)
 		asserts.True(ok)
 		asserts.Equal(test, res)
+	}
+
+	// 过期
+	{
+		_ = store.Set("string", "string_val", 1)
+		time.Sleep(time.Duration(2) * time.Second)
+		val, ok := store.Get("string")
+		asserts.Nil(val)
+		asserts.False(ok)
 	}
 
 }

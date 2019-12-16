@@ -1,10 +1,49 @@
 package cache
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 // MemoStore 内存存储驱动
 type MemoStore struct {
 	Store *sync.Map
+}
+
+// item 存储的对象
+type itemWithTTL struct {
+	expires int64
+	value   interface{}
+}
+
+func newItem(value interface{}, expires int) itemWithTTL {
+	expires64 := int64(expires)
+	if expires > 0 {
+		expires64 = time.Now().Unix() + expires64
+	}
+	return itemWithTTL{
+		value:   value,
+		expires: expires64,
+	}
+}
+
+// getValue 从itemWithTTL中取值
+func getValue(item interface{}, ok bool) (interface{}, bool) {
+	if !ok {
+		return nil, ok
+	}
+
+	var itemObj itemWithTTL
+	if itemObj, ok = item.(itemWithTTL); !ok {
+		return nil, false
+	}
+
+	if itemObj.expires > 0 && itemObj.expires < time.Now().Unix() {
+		return nil, false
+	}
+
+	return itemObj.value, ok
+
 }
 
 // NewMemoStore 新建内存存储
@@ -16,13 +55,13 @@ func NewMemoStore() *MemoStore {
 
 // Set 存储值
 func (store *MemoStore) Set(key string, value interface{}, ttl int) error {
-	store.Store.Store(key, value)
+	store.Store.Store(key, newItem(value, ttl))
 	return nil
 }
 
 // Get 取值
 func (store *MemoStore) Get(key string) (interface{}, bool) {
-	return store.Store.Load(key)
+	return getValue(store.Store.Load(key))
 }
 
 // Gets 批量取值
