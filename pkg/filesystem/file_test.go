@@ -403,17 +403,16 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 			WithArgs(1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 1))
+		// 相关设置
+		mock.ExpectQuery("SELECT(.+)").WithArgs("download_timeout").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "20"))
 		// 查找上传策略
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
 					AddRow(35, "local", true),
 			)
-		// 相关设置
 		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://cloudreve.org"))
-		mock.ExpectQuery("SELECT(.+)").WithArgs("download_timeout").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "20"))
-
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.NotEmpty(downloadURL)
@@ -432,7 +431,7 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}))
 
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Empty(downloadURL)
@@ -457,7 +456,7 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 					AddRow(35, "unknown", true),
 			)
 
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt")
+		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Empty(downloadURL)

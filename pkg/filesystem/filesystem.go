@@ -24,16 +24,20 @@ type FileHeader interface {
 type Handler interface {
 	// 上传文件
 	Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error
+
 	// 删除一个或多个文件
 	Delete(ctx context.Context, files []string) ([]string, error)
+
 	// 获取文件
 	Get(ctx context.Context, path string) (response.RSCloser, error)
+
 	// 获取缩略图
 	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
-	// 获取外链地址，url
-	Source(ctx context.Context, path string, url url.URL, expires int64) (string, error)
-	//获取下载地址
-	GetDownloadURL(ctx context.Context, path string, url url.URL, expires int64) (string, error)
+
+	// 获取外链/下载地址，
+	// url - 站点本身地址,
+	// isDownload - 是否直接下载
+	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool) (string, error)
 }
 
 // FileSystem 管理文件的文件系统

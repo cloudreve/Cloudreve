@@ -135,7 +135,7 @@ func TestHandler_Source(t *testing.T) {
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
 		baseURL, err := url.Parse("https://cloudreve.org")
 		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false)
 		asserts.NoError(err)
 		asserts.NotEmpty(sourceURL)
 		asserts.Contains(sourceURL, "sign=")
@@ -146,7 +146,7 @@ func TestHandler_Source(t *testing.T) {
 	{
 		baseURL, err := url.Parse("https://cloudreve.org")
 		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false)
 		asserts.Error(err)
 		asserts.Empty(sourceURL)
 	}
@@ -169,7 +169,7 @@ func TestHandler_GetDownloadURL(t *testing.T) {
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
 		baseURL, err := url.Parse("https://cloudreve.org")
 		asserts.NoError(err)
-		downloadURL, err := handler.GetDownloadURL(ctx, "", *baseURL, 10)
+		downloadURL, err := handler.Source(ctx, "", *baseURL, 10, true)
 		asserts.NoError(err)
 		asserts.Contains(downloadURL, "sign=")
 		asserts.Contains(downloadURL, "https://cloudreve.org")
@@ -179,7 +179,7 @@ func TestHandler_GetDownloadURL(t *testing.T) {
 	{
 		baseURL, err := url.Parse("https://cloudreve.org")
 		asserts.NoError(err)
-		downloadURL, err := handler.GetDownloadURL(ctx, "", *baseURL, 10)
+		downloadURL, err := handler.Source(ctx, "", *baseURL, 10, true)
 		asserts.Error(err)
 		asserts.Empty(downloadURL)
 	}

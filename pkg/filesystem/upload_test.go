@@ -42,12 +42,8 @@ func (m FileHeaderMock) Thumb(ctx context.Context, files string) (*response.Cont
 	return args.Get(0).(*response.ContentResponse), args.Error(1)
 }
 
-func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
-	args := m.Called(ctx, path, url, expires)
-	return args.Get(0).(string), args.Error(1)
-}
-func (m FileHeaderMock) GetDownloadURL(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
-	args := m.Called(ctx, path, url, expires)
+func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, expires int64, isDownload bool) (string, error) {
+	args := m.Called(ctx, path, url, expires, isDownload)
 	return args.Get(0).(string), args.Error(1)
 }
 

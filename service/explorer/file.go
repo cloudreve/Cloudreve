@@ -104,7 +104,7 @@ func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *
 	}
 
 	// 获取下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, service.Path)
+	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "download_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

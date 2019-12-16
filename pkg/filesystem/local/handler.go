@@ -111,47 +111,52 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-func (handler Handler) Source(ctx context.Context, path string, url url.URL, expires int64) (string, error) {
+func (handler Handler) Source(
+	ctx context.Context,
+	path string,
+	baseURL url.URL,
+	ttl int64,
+	isDownload bool,
+) (string, error) {
 	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {
 		return "", errors.New("无法获取文件记录上下文")
 	}
 
-	// 签名生成文件记录
-	signedURI, err := auth.SignURI(
-		fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
-		0,
+	var expires int64
+	if ttl > 0 {
+		expires = time.Now().Unix() + ttl
+	}
+
+	var (
+		signedURI *url.URL
+		err       error
 	)
+	if isDownload {
+		// 创建下载会话，将文件信息写入缓存
+		downloadSessionID := util.RandStringRunes(16)
+		err = cache.Set("download_"+downloadSessionID, file, int(ttl))
+		if err != nil {
+			return "", serializer.NewError(serializer.CodeCacheOperation, "无法创建下載会话", err)
+		}
+
+		// 签名生成文件记录
+		signedURI, err = auth.SignURI(
+			fmt.Sprintf("/api/v3/file/download/%s", downloadSessionID),
+			expires,
+		)
+	} else {
+		// 签名生成文件记录
+		signedURI, err = auth.SignURI(
+			fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
+			expires,
+		)
+	}
+
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
 	}
 
-	finalURL := url.ResolveReference(signedURI).String()
-	return finalURL, nil
-}
-
-func (handler Handler) GetDownloadURL(ctx context.Context, path string, url url.URL, ttl int64) (string, error) {
-	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
-	if !ok {
-		return "", errors.New("无法获取文件记录上下文")
-	}
-
-	// 创建下载会话，将文件信息写入缓存
-	downloadSessionID := util.RandStringRunes(16)
-	err := cache.Set("download_"+downloadSessionID, file, int(ttl))
-	if err != nil {
-		return "", serializer.NewError(serializer.CodeCacheOperation, "无法创建下載会话", err)
-	}
-
-	// 签名生成文件记录
-	signedURI, err := auth.SignURI(
-		fmt.Sprintf("/api/v3/file/download/%s", downloadSessionID),
-		time.Now().Unix()+ttl,
-	)
-	if err != nil {
-		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
-	}
-
-	finalURL := url.ResolveReference(signedURI).String()
+	finalURL := baseURL.ResolveReference(signedURI).String()
 	return finalURL, nil
 }

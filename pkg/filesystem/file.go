@@ -175,37 +175,36 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 	return policyGroup
 }
 
-// GetDownloadURL 创建文件下载链接
-func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string) (string, error) {
+// GetDownloadURL 创建文件下载链接, timeout 为数据库中存储过期时间的字段
+func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout string) (string, error) {
+	var fileTarget *model.File
 	// 找到文件
 	if len(fs.FileTarget) == 0 {
 		exist, file := fs.IsFileExist(path)
 		if !exist {
 			return "", ErrObjectNotExist
 		}
-		fs.FileTarget = []model.File{*file}
-	}
-
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
-
-	// 将当前存储策略重设为文件使用的
-	fs.Policy = fs.FileTarget[0].GetPolicy()
-	err := fs.dispatchHandler()
-	if err != nil {
-		return "", err
+		fileTarget = file
+	} else {
+		fileTarget = &fs.FileTarget[0]
 	}
 
 	// 生成下載地址
-	siteURL := model.GetSiteURL()
-	ttl, err := strconv.ParseInt(model.GetSettingByName("download_timeout"), 10, 64)
+	ttl, err := strconv.ParseInt(model.GetSettingByName(timeout), 10, 64)
 	if err != nil {
-		return "", serializer.NewError(serializer.CodeInternalSetting, "无法获取下载地址有效期", err)
+		return "",
+			serializer.NewError(
+				serializer.CodeInternalSetting,
+				"无法获取下载地址有效期",
+				err,
+			)
 	}
-	source, err := fs.Handler.GetDownloadURL(
+
+	source, err := fs.signURL(
 		ctx,
-		fs.FileTarget[0].SourceName,
-		*siteURL,
+		fileTarget,
 		ttl,
+		true,
 	)
 	if err != nil {
 		return "", err
@@ -222,18 +221,8 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 		return "", ErrObjectNotExist.WithError(err)
 	}
 
-	fs.FileTarget = []model.File{fileObject[0]}
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fileObject[0])
-
-	// 将当前存储策略重设为文件使用的
-	fs.Policy = fileObject[0].GetPolicy()
-	err = fs.dispatchHandler()
-	if err != nil {
-		return "", err
-	}
-
 	// 检查存储策略是否可以获得外链
-	if !fs.Policy.IsOriginLinkEnable {
+	if !fileObject[0].GetPolicy().IsOriginLinkEnable {
 		return "", serializer.NewError(
 			serializer.CodePolicyNotAllowed,
 			"当前存储策略无法获得外链",
@@ -241,9 +230,29 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 		)
 	}
 
+	source, err := fs.signURL(ctx, &fileObject[0], 0, false)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
+	}
+
+	return source, nil
+}
+
+func (fs *FileSystem) signURL(ctx context.Context, file *model.File, ttl int64, isDownload bool) (string, error) {
+	fs.FileTarget = []model.File{*file}
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, *file)
+
+	// 将当前存储策略重设为文件使用的
+	fs.Policy = file.GetPolicy()
+	err := fs.dispatchHandler()
+	if err != nil {
+		return "", err
+	}
+
+	// 签名最终URL
 	// 生成外链地址
 	siteURL := model.GetSiteURL()
-	source, err := fs.Handler.Source(ctx, fileObject[0].SourceName, *siteURL, 0)
+	source, err := fs.Handler.Source(ctx, fs.FileTarget[0].SourceName, *siteURL, ttl, isDownload)
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
 	}
