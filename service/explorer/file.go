@@ -10,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -95,6 +96,32 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	}
 }
 
+// CreateDocPreviewSession 创建DOC文件预览会话，返回预览地址
+func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 获取文件临时下载地址
+	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "doc_preview_timeout")
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	// 生成最终的预览器地址
+	viewerBase, _ := url.Parse("https://view.officeapps.live.com/op/view.aspx")
+	params := viewerBase.Query()
+	params.Set("src", downloadURL)
+	viewerBase.RawQuery = params.Encode()
+
+	return serializer.Response{
+		Code: 0,
+		Data: viewerBase.String(),
+	}
+}
+
 // CreateDownloadSession 创建下载会话，获取下载URL
 func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
@@ -139,7 +166,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	}
 
 	// 设置文件名
-	c.Header("Content-Disposition", "attachment; filename=\""+fs.FileTarget[0].Name+"\"")
+	c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
 
 	if fs.User.Group.OptionsSerialized.OneTimeDownloadEnabled {
 		// 清理资源，删除临时文件
@@ -147,7 +174,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	}
 
 	// 发送文件
-	http.ServeContent(c.Writer, c.Request, "", fs.FileTarget[0].UpdatedAt, rs)
+	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, rs)
 
 	return serializer.Response{
 		Code: 0,

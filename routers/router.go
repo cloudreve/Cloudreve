@@ -110,6 +110,8 @@ func InitRouter() *gin.Engine {
 				file.PUT("download/*path", controllers.CreateDownloadSession)
 				// 预览文件
 				file.GET("preview/*path", controllers.Preview)
+				// 取得Office文档预览地址
+				file.GET("doc/*path", controllers.GetDocPreview)
 				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链

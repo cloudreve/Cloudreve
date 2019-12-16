@@ -158,6 +158,21 @@ func Preview(c *gin.Context) {
 	}
 }
 
+// GetDocPreview 获取DOC文件预览地址
+func GetDocPreview(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SingleFileService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.CreateDocPreviewSession(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // CreateDownloadSession 创建文件下载会话
 func CreateDownloadSession(c *gin.Context) {
 	// 创建上下文
