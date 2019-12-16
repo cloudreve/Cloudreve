@@ -145,7 +145,7 @@ func TestDirResolve(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		d := Dir(filepath.FromSlash(tc.dir))
+		d := AdapterFS(filepath.FromSlash(tc.dir))
 		if got := filepath.ToSlash(d.resolve(tc.name)); got != tc.want {
 			t.Errorf("dir=%q, name=%q: got %q, want %q", tc.dir, tc.name, got, tc.want)
 		}
@@ -487,7 +487,7 @@ func testFS(t *testing.T, fs FileSystem) {
 					}
 
 					if fileName == "/" {
-						// For a Dir FileSystem, the virtual file system root maps to a
+						// For a AdapterFS FileSystem, the virtual file system root maps to a
 						// real file system name like "/tmp/webdav-test012345", which does
 						// not end with "/". We skip such cases.
 					} else if statName := stat.Name(); path.Base(fileName) != statName {
@@ -523,7 +523,7 @@ func TestDir(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(td)
-	testFS(t, Dir(td))
+	testFS(t, AdapterFS(td))
 }
 
 func TestMemFS(t *testing.T) {

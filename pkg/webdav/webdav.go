@@ -8,11 +8,13 @@ package webdav // import "golang.org/x/net/webdav"
 import (
 	"errors"
 	"fmt"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -29,17 +31,18 @@ type Handler struct {
 	Logger func(*http.Request, error)
 }
 
-func (h *Handler) stripPrefix(p string) (string, int, error) {
+func (h *Handler) stripPrefix(p string, uid uint) (string, int, error) {
 	if h.Prefix == "" {
 		return p, http.StatusOK, nil
 	}
-	if r := strings.TrimPrefix(p, h.Prefix); len(r) < len(p) {
+	prefix := h.Prefix + strconv.FormatUint(uint64(uid),10)
+	if r := strings.TrimPrefix(p, prefix); len(r) < len(p) {
 		return r, http.StatusOK, nil
 	}
 	return p, http.StatusNotFound, errPrefixMismatch
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) {
 	status, err := http.StatusBadRequest, errUnsupportedMethod
 	if h.FileSystem == nil {
 		status, err = http.StatusInternalServerError, errNoFileSystem
@@ -48,25 +51,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		switch r.Method {
 		case "OPTIONS":
-			status, err = h.handleOptions(w, r)
+			status, err = h.handleOptions(w, r, fs)
 		case "GET", "HEAD", "POST":
-			status, err = h.handleGetHeadPost(w, r)
+			status, err = h.handleGetHeadPost(w, r,fs)
 		case "DELETE":
-			status, err = h.handleDelete(w, r)
+			status, err = h.handleDelete(w, r,fs)
 		case "PUT":
-			status, err = h.handlePut(w, r)
+			status, err = h.handlePut(w, r,fs)
 		case "MKCOL":
-			status, err = h.handleMkcol(w, r)
+			status, err = h.handleMkcol(w, r,fs)
 		case "COPY", "MOVE":
-			status, err = h.handleCopyMove(w, r)
+			status, err = h.handleCopyMove(w, r,fs)
 		case "LOCK":
-			status, err = h.handleLock(w, r)
+			status, err = h.handleLock(w, r,fs)
 		case "UNLOCK":
-			status, err = h.handleUnlock(w, r)
+			status, err = h.handleUnlock(w, r,fs)
 		case "PROPFIND":
-			status, err = h.handlePropfind(w, r)
+			status, err = h.handlePropfind(w, r,fs)
 		case "PROPPATCH":
-			status, err = h.handleProppatch(w, r)
+			status, err = h.handleProppatch(w, r,fs)
 		}
 	}
 
@@ -96,7 +99,7 @@ func (h *Handler) lock(now time.Time, root string) (token string, status int, er
 	return token, 0, nil
 }
 
-func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func(), status int, err error) {
+func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.FileSystem) (release func(), status int, err error) {
 	hdr := r.Header.Get("If")
 	if hdr == "" {
 		// An empty If header means that the client hasn't previously created locks.
@@ -148,7 +151,7 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func()
 			if u.Host != r.Host {
 				continue
 			}
-			lsrc, status, err = h.stripPrefix(u.Path)
+			lsrc, status, err = h.stripPrefix(u.Path,fs.User.ID)
 			if err != nil {
 				return nil, status, err
 			}
@@ -169,8 +172,8 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string) (release func()
 	return nil, http.StatusPreconditionFailed, ErrLocked
 }
 
-func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -191,8 +194,8 @@ func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request) (status 
 	return 0, nil
 }
 
-func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -220,12 +223,12 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request) (sta
 	return 0, nil
 }
 
-func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "")
+	release, status, err := h.confirmLocks(r, reqPath, "",fs)
 	if err != nil {
 		return status, err
 	}
@@ -250,12 +253,12 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) (status i
 	return http.StatusNoContent, nil
 }
 
-func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "")
+	release, status, err := h.confirmLocks(r, reqPath, "",fs)
 	if err != nil {
 		return status, err
 	}
@@ -289,12 +292,12 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request) (status int,
 	return http.StatusCreated, nil
 }
 
-func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "")
+	release, status, err := h.confirmLocks(r, reqPath, "", fs)
 	if err != nil {
 		return status, err
 	}
@@ -314,7 +317,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request) (status in
 	return http.StatusCreated, nil
 }
 
-func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status int, err error) {
+func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	hdr := r.Header.Get("Destination")
 	if hdr == "" {
 		return http.StatusBadRequest, errInvalidDestination
@@ -327,12 +330,12 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 		return http.StatusBadGateway, errInvalidDestination
 	}
 
-	src, status, err := h.stripPrefix(r.URL.Path)
+	src, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
 
-	dst, status, err := h.stripPrefix(u.Path)
+	dst, status, err := h.stripPrefix(u.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -352,7 +355,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 		// even though a COPY doesn't modify the source, if a concurrent
 		// operation modifies the source. However, the litmus test explicitly
 		// checks that COPYing a locked-by-another source is OK.
-		release, status, err := h.confirmLocks(r, "", dst)
+		release, status, err := h.confirmLocks(r, "", dst, fs)
 		if err != nil {
 			return status, err
 		}
@@ -372,7 +375,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 		return copyFiles(ctx, h.FileSystem, src, dst, r.Header.Get("Overwrite") != "F", depth, 0)
 	}
 
-	release, status, err := h.confirmLocks(r, src, dst)
+	release, status, err := h.confirmLocks(r, src, dst,fs)
 	if err != nil {
 		return status, err
 	}
@@ -389,7 +392,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) (status
 	return moveFiles(ctx, h.FileSystem, src, dst, r.Header.Get("Overwrite") == "T")
 }
 
-func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus int, retErr error) {
+func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (retStatus int, retErr error) {
 	duration, err := parseTimeout(r.Header.Get("Timeout"))
 	if err != nil {
 		return http.StatusBadRequest, err
@@ -433,7 +436,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 				return http.StatusBadRequest, errInvalidDepth
 			}
 		}
-		reqPath, status, err := h.stripPrefix(r.URL.Path)
+		reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 		if err != nil {
 			return status, err
 		}
@@ -483,7 +486,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request) (retStatus 
 	return 0, nil
 }
 
-func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request) (status int, err error) {
+func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	// http://www.webdav.org/specs/rfc4918.html#HEADER_Lock-Token says that the
 	// Lock-Token value is a Coded-URL. We strip its angle brackets.
 	t := r.Header.Get("Lock-Token")
@@ -506,8 +509,8 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request) (status i
 	}
 }
 
-func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -574,12 +577,12 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request) (status
 	return 0, nil
 }
 
-func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path)
+func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "")
+	release, status, err := h.confirmLocks(r, reqPath, "",fs)
 	if err != nil {
 		return status, err
 	}

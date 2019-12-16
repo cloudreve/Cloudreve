@@ -5,23 +5,29 @@ import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 )
+
+// initWebDAV 初始化WebDAV相关路由
+func initWebDAV(group *gin.RouterGroup){
+	dav := group.Group(":uid")
+	{
+		dav.Any("*path", controllers.ServeWebDAV)
+	}
+}
 
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
 	r := gin.Default()
-	pprof.Register(r)
-
+	v3 := r.Group("/api/v3")
 	/*
 		中间件
 	*/
-	r.Use(middleware.Session(conf.SystemConfig.SessionSecret))
+	v3.Use(middleware.Session(conf.SystemConfig.SessionSecret))
 
 	// CORS TODO: 根据配置文件来
 	if conf.CORSConfig.AllowOrigins[0] != "UNSET" || conf.CORSConfig.AllowAllOrigins {
-		r.Use(cors.New(cors.Config{
+		v3.Use(cors.New(cors.Config{
 			AllowOrigins:     conf.CORSConfig.AllowOrigins,
 			AllowAllOrigins:  conf.CORSConfig.AllowAllOrigins,
 			AllowMethods:     conf.CORSConfig.AllowHeaders,
@@ -33,15 +39,14 @@ func InitRouter() *gin.Engine {
 
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {
-		r.Use(middleware.MockHelper())
+		v3.Use(middleware.MockHelper())
 	}
 
-	r.Use(middleware.CurrentUser())
+	v3.Use(middleware.CurrentUser())
 
 	/*
 		路由
 	*/
-	v3 := r.Group("/api/v3")
 	{
 		// 全局设置相关
 		site := v3.Group("site")
@@ -145,5 +150,8 @@ func InitRouter() *gin.Engine {
 		}
 
 	}
+
+	// 初始化WebDAV相关路由
+	initWebDAV(v3.Group("dav"))
 	return r
 }
