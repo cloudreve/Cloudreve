@@ -6,6 +6,8 @@ package webdav
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"io"
 	"net/http"
 	"os"
@@ -275,7 +277,13 @@ func copyFiles(ctx context.Context, fs FileSystem, src, dst string, overwrite bo
 // Allowed values for depth are 0, 1 or infiniteDepth. For each visited node,
 // walkFS calls walkFn. If a visited file system node is a directory and
 // walkFn returns filepath.SkipDir, walkFS will skip traversal of this node.
-func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.FileInfo, walkFn filepath.WalkFunc) error {
+func walkFS(
+	ctx context.Context,
+	fs *filesystem.FileSystem,
+	depth int,
+	name string,
+	info FileInfo,
+	walkFn func(reqPath string, info FileInfo, err error) error) error {
 	// This implementation is based on Walk's code in the standard path/filepath package.
 	err := walkFn(name, info, nil)
 	if err != nil {
@@ -291,30 +299,25 @@ func walkFS(ctx context.Context, fs FileSystem, depth int, name string, info os.
 		depth = 0
 	}
 
-	// Read directory names.
-	f, err := fs.OpenFile(ctx, name, os.O_RDONLY, 0)
-	if err != nil {
-		return walkFn(name, info, err)
-	}
-	fileInfos, err := f.Readdir(0)
-	f.Close()
-	if err != nil {
-		return walkFn(name, info, err)
-	}
+	dirs, _ := info.(*model.Folder).GetChildFolder()
+	files, _ := info.(*model.Folder).GetChildFiles()
 
-	for _, fileInfo := range fileInfos {
-		filename := path.Join(name, fileInfo.Name())
-		fileInfo, err := fs.Stat(ctx, filename)
+	for _, fileInfo := range files {
+		filename := path.Join(name, fileInfo.Name)
+		err = walkFS(ctx, fs, depth, filename, &fileInfo, walkFn)
 		if err != nil {
-			if err := walkFn(filename, fileInfo, err); err != nil && err != filepath.SkipDir {
+			if !fileInfo.IsDir() || err != filepath.SkipDir {
 				return err
 			}
-		} else {
-			err = walkFS(ctx, fs, depth, filename, fileInfo, walkFn)
-			if err != nil {
-				if !fileInfo.IsDir() || err != filepath.SkipDir {
-					return err
-				}
+		}
+	}
+
+	for _, fileInfo := range dirs {
+		filename := path.Join(name, fileInfo.Name)
+		err = walkFS(ctx, fs, depth, filename, &fileInfo, walkFn)
+		if err != nil {
+			if !fileInfo.IsDir() || err != filepath.SkipDir {
+				return err
 			}
 		}
 	}

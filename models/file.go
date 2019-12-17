@@ -5,6 +5,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"path"
+	"time"
 )
 
 // File 文件
@@ -165,4 +166,23 @@ func (file *File) UpdatePicInfo(value string) error {
 // UpdatePicInfo 更新文件的图像信息
 func (file *File) UpdateSize(value uint64) error {
 	return DB.Model(&file).Update("size", value).Error
+}
+
+/*
+	实现 FileInfo.FileInfo 接口
+	TODO 测试
+*/
+
+func (file *File) GetName() string {
+	return file.Name
+}
+
+func (file *File) GetSize() uint64 {
+	return file.Size
+}
+func (file *File) ModTime() time.Time {
+	return file.UpdatedAt
+}
+func (file *File) IsDir() bool {
+	return false
 }

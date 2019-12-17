@@ -5,6 +5,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"path"
+	"time"
 )
 
 // Folder 目录
@@ -259,4 +260,23 @@ func (folder *Folder) Rename(new string) error {
 		return err
 	}
 	return nil
+}
+
+/*
+	实现 FileInfo.FileInfo 接口
+	TODO 测试
+*/
+
+func (folder *Folder) GetName() string {
+	return folder.Name
+}
+
+func (folder *Folder) GetSize() uint64 {
+	return 0
+}
+func (folder *Folder) ModTime() time.Time {
+	return folder.UpdatedAt
+}
+func (folder *Folder) IsDir() bool {
+	return true
 }

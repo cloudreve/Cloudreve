@@ -161,6 +161,9 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 	if !ok {
 		return ErrObjectNotExist
 	}
+
+	fs.SetTargetFile(&[]model.File{originFile})
+
 	newFile, ok := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 	if !ok {
 		return ErrObjectNotExist
@@ -205,6 +208,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	if err != nil {
 		return ErrInsertFileRecord
 	}
+	fs.SetTargetFile(&[]model.File{*file})
 
 	// 异步尝试生成缩略图
 	go fs.GenerateThumbnail(ctx, file)

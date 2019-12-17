@@ -6,13 +6,14 @@
 package webdav // import "golang.org/x/net/webdav"
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"io"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ type Handler struct {
 	// FileSystem is the virtual file system.
 	FileSystem FileSystem
 	// LockSystem is the lock management system.
-	LockSystem LockSystem
+	LockSystem map[uint]LockSystem
 	// Logger is an optional error logger. If non-nil, it will be called
 	// for all HTTP requests.
 	Logger func(*http.Request, error)
@@ -35,11 +36,23 @@ func (h *Handler) stripPrefix(p string, uid uint) (string, int, error) {
 	if h.Prefix == "" {
 		return p, http.StatusOK, nil
 	}
-	prefix := h.Prefix + strconv.FormatUint(uint64(uid),10)
+	prefix := h.Prefix + strconv.FormatUint(uint64(uid), 10)
 	if r := strings.TrimPrefix(p, prefix); len(r) < len(p) {
 		return r, http.StatusOK, nil
 	}
 	return p, http.StatusNotFound, errPrefixMismatch
+}
+
+// isPathExist 路径是否存在
+func isPathExist(ctx context.Context, fs *filesystem.FileSystem, path string) (bool, FileInfo) {
+	// 尝试目录
+	if ok, folder := fs.IsPathExist(path); ok {
+		return ok, folder
+	}
+	if ok, file := fs.IsFileExist(path); ok {
+		return ok, file
+	}
+	return false, nil
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) {
@@ -49,27 +62,31 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, fs *filesyst
 	} else if h.LockSystem == nil {
 		status, err = http.StatusInternalServerError, errNoLockSystem
 	} else {
+		// 检查并新建LockSystem
+		if _, ok := h.LockSystem[fs.User.ID]; !ok {
+			h.LockSystem[fs.User.ID] = NewMemLS()
+		}
 		switch r.Method {
 		case "OPTIONS":
 			status, err = h.handleOptions(w, r, fs)
 		case "GET", "HEAD", "POST":
-			status, err = h.handleGetHeadPost(w, r,fs)
+			status, err = h.handleGetHeadPost(w, r, fs)
 		case "DELETE":
-			status, err = h.handleDelete(w, r,fs)
+			status, err = h.handleDelete(w, r, fs)
 		case "PUT":
-			status, err = h.handlePut(w, r,fs)
+			status, err = h.handlePut(w, r, fs)
 		case "MKCOL":
-			status, err = h.handleMkcol(w, r,fs)
+			status, err = h.handleMkcol(w, r, fs)
 		case "COPY", "MOVE":
-			status, err = h.handleCopyMove(w, r,fs)
+			status, err = h.handleCopyMove(w, r, fs)
 		case "LOCK":
-			status, err = h.handleLock(w, r,fs)
+			status, err = h.handleLock(w, r, fs)
 		case "UNLOCK":
-			status, err = h.handleUnlock(w, r,fs)
+			status, err = h.handleUnlock(w, r, fs)
 		case "PROPFIND":
-			status, err = h.handlePropfind(w, r,fs)
+			status, err = h.handlePropfind(w, r, fs)
 		case "PROPPATCH":
-			status, err = h.handleProppatch(w, r,fs)
+			status, err = h.handleProppatch(w, r, fs)
 		}
 	}
 
@@ -84,8 +101,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, fs *filesyst
 	}
 }
 
-func (h *Handler) lock(now time.Time, root string) (token string, status int, err error) {
-	token, err = h.LockSystem.Create(now, LockDetails{
+// OK
+func (h *Handler) lock(now time.Time, root string, fs *filesystem.FileSystem) (token string, status int, err error) {
+	token, err = h.LockSystem[fs.User.ID].Create(now, LockDetails{
 		Root:      root,
 		Duration:  infiniteTimeout,
 		ZeroDepth: true,
@@ -99,6 +117,7 @@ func (h *Handler) lock(now time.Time, root string) (token string, status int, er
 	return token, 0, nil
 }
 
+// ok
 func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.FileSystem) (release func(), status int, err error) {
 	hdr := r.Header.Get("If")
 	if hdr == "" {
@@ -109,16 +128,16 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 		// locks are unlocked at the end of the HTTP request.
 		now, srcToken, dstToken := time.Now(), "", ""
 		if src != "" {
-			srcToken, status, err = h.lock(now, src)
+			srcToken, status, err = h.lock(now, src, fs)
 			if err != nil {
 				return nil, status, err
 			}
 		}
 		if dst != "" {
-			dstToken, status, err = h.lock(now, dst)
+			dstToken, status, err = h.lock(now, dst, fs)
 			if err != nil {
 				if srcToken != "" {
-					h.LockSystem.Unlock(now, srcToken)
+					h.LockSystem[fs.User.ID].Unlock(now, srcToken)
 				}
 				return nil, status, err
 			}
@@ -126,10 +145,10 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 
 		return func() {
 			if dstToken != "" {
-				h.LockSystem.Unlock(now, dstToken)
+				h.LockSystem[fs.User.ID].Unlock(now, dstToken)
 			}
 			if srcToken != "" {
-				h.LockSystem.Unlock(now, srcToken)
+				h.LockSystem[fs.User.ID].Unlock(now, srcToken)
 			}
 		}, 0, nil
 	}
@@ -151,12 +170,17 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 			if u.Host != r.Host {
 				continue
 			}
-			lsrc, status, err = h.stripPrefix(u.Path,fs.User.ID)
+			lsrc, status, err = h.stripPrefix(u.Path, fs.User.ID)
 			if err != nil {
 				return nil, status, err
 			}
 		}
-		release, err = h.LockSystem.Confirm(time.Now(), lsrc, dst, l.conditions...)
+		release, err = h.LockSystem[fs.User.ID].Confirm(
+			time.Now(),
+			lsrc,
+			dst,
+			l.conditions...,
+		)
 		if err == ErrConfirmationFailed {
 			continue
 		}
@@ -172,8 +196,9 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 	return nil, http.StatusPreconditionFailed, ErrLocked
 }
 
+//OK
 func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -194,41 +219,41 @@ func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request, fs *file
 	return 0, nil
 }
 
+// OK
 func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	// TODO: check locks for read-only access??
+
 	ctx := r.Context()
-	f, err := h.FileSystem.OpenFile(ctx, reqPath, os.O_RDONLY, 0)
+	rs, err := fs.GetContent(ctx, reqPath)
 	if err != nil {
-		return http.StatusNotFound, err
+		if err == filesystem.ErrObjectNotExist {
+			return http.StatusNotFound, err
+		}
+		return http.StatusInternalServerError, err
 	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
-		return http.StatusNotFound, err
-	}
-	if fi.IsDir() {
-		return http.StatusMethodNotAllowed, nil
-	}
-	etag, err := findETag(ctx, h.FileSystem, h.LockSystem, reqPath, fi)
+	defer rs.Close()
+
+	etag, err := findETag(ctx, fs, h.LockSystem[fs.User.ID], reqPath, &fs.FileTarget[0])
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
 	w.Header().Set("ETag", etag)
-	// Let ServeContent determine the Content-Type header.
-	http.ServeContent(w, r, reqPath, fi.ModTime(), f)
+
+	// 获取文件内容
+	http.ServeContent(w, r, reqPath, fs.FileTarget[0].UpdatedAt, rs)
 	return 0, nil
 }
 
+// OK
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "",fs)
+	release, status, err := h.confirmLocks(r, reqPath, "", fs)
 	if err != nil {
 		return status, err
 	}
@@ -236,55 +261,89 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *files
 
 	ctx := r.Context()
 
-	// TODO: return MultiStatus where appropriate.
-
-	// "godoc os RemoveAll" says that "If the path does not exist, RemoveAll
-	// returns nil (no error)." WebDAV semantics are that it should return a
-	// "404 Not Found". We therefore have to Stat before we RemoveAll.
-	if _, err := h.FileSystem.Stat(ctx, reqPath); err != nil {
-		if os.IsNotExist(err) {
-			return http.StatusNotFound, err
+	// 尝试作为文件删除
+	if ok, file := fs.IsFileExist(reqPath); ok {
+		if err := fs.Delete(ctx, []uint{}, []uint{file.ID}); err != nil {
+			return http.StatusMethodNotAllowed, err
 		}
-		return http.StatusMethodNotAllowed, err
+		return http.StatusNoContent, nil
 	}
-	if err := h.FileSystem.RemoveAll(ctx, reqPath); err != nil {
-		return http.StatusMethodNotAllowed, err
+
+	// 尝试作为目录删除
+	if ok, folder := fs.IsPathExist(reqPath); ok {
+		if err := fs.Delete(ctx, []uint{folder.ID}, []uint{}); err != nil {
+			return http.StatusMethodNotAllowed, err
+		}
+		return http.StatusNoContent, nil
 	}
-	return http.StatusNoContent, nil
+
+	return http.StatusNotFound, nil
 }
 
+// OK
 func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "",fs)
+	release, status, err := h.confirmLocks(r, reqPath, "", fs)
 	if err != nil {
 		return status, err
 	}
 	defer release()
 	// TODO(rost): Support the If-Match, If-None-Match headers? See bradfitz'
 	// comments in http.checkEtag.
-	ctx := r.Context()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx = context.WithValue(ctx, fsctx.HTTPCtx, r.Context())
 
-	f, err := h.FileSystem.OpenFile(ctx, reqPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	fileSize, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
-		return http.StatusNotFound, err
+		return http.StatusMethodNotAllowed, err
 	}
-	_, copyErr := io.Copy(f, r.Body)
-	fi, statErr := f.Stat()
-	closeErr := f.Close()
-	// TODO(rost): Returning 405 Method Not Allowed might not be appropriate.
-	if copyErr != nil {
-		return http.StatusMethodNotAllowed, copyErr
+	fileName := path.Base(reqPath)
+	filePath := path.Dir(reqPath)
+	fileData := local.FileStream{
+		MIMEType:    r.Header.Get("Content-Type"),
+		File:        r.Body,
+		Size:        fileSize,
+		Name:        fileName,
+		VirtualPath: filePath,
 	}
-	if statErr != nil {
-		return http.StatusMethodNotAllowed, statErr
+
+	// 判断文件是否已存在
+	exist, originFile := fs.IsFileExist(reqPath)
+	if exist {
+		// 已存在，为更新操作
+		fs.Use("BeforeUpload", filesystem.HookValidateFile)
+		fs.Use("BeforeUpload", filesystem.HookResetPolicy)
+		fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
+		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
+		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
+		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+		fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
+		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
+		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
+		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, *originFile)
+	} else {
+		// 给文件系统分配钩子
+		fs.Use("BeforeUpload", filesystem.HookValidateFile)
+		fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
+		fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
+		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
+		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
+		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 	}
-	if closeErr != nil {
-		return http.StatusMethodNotAllowed, closeErr
+
+	// 执行上传
+	err = fs.Upload(ctx, fileData)
+	if err != nil {
+		return http.StatusMethodNotAllowed, err
 	}
-	etag, err := findETag(ctx, h.FileSystem, h.LockSystem, reqPath, fi)
+
+	etag, err := findETag(ctx, fs, h.LockSystem[fs.User.ID], reqPath, &fs.FileTarget[0])
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -292,6 +351,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	return http.StatusCreated, nil
 }
 
+// OK
 func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
@@ -308,11 +368,8 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesy
 	if r.ContentLength > 0 {
 		return http.StatusUnsupportedMediaType, nil
 	}
-	if err := h.FileSystem.Mkdir(ctx, reqPath, 0777); err != nil {
-		if os.IsNotExist(err) {
-			return http.StatusConflict, err
-		}
-		return http.StatusMethodNotAllowed, err
+	if err := fs.CreateDirectory(ctx, reqPath); err != nil {
+		return http.StatusConflict, err
 	}
 	return http.StatusCreated, nil
 }
@@ -330,7 +387,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 		return http.StatusBadGateway, errInvalidDestination
 	}
 
-	src, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	src, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
@@ -375,7 +432,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 		return copyFiles(ctx, h.FileSystem, src, dst, r.Header.Get("Overwrite") != "F", depth, 0)
 	}
 
-	release, status, err := h.confirmLocks(r, src, dst,fs)
+	release, status, err := h.confirmLocks(r, src, dst, fs)
 	if err != nil {
 		return status, err
 	}
@@ -392,6 +449,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 	return moveFiles(ctx, h.FileSystem, src, dst, r.Header.Get("Overwrite") == "T")
 }
 
+// OK
 func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (retStatus int, retErr error) {
 	duration, err := parseTimeout(r.Header.Get("Timeout"))
 	if err != nil {
@@ -402,7 +460,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 		return status, err
 	}
 
-	ctx := r.Context()
+	//ctx := r.Context()
 	token, ld, now, created := "", LockDetails{}, time.Now(), false
 	if li == (lockInfo{}) {
 		// An empty lockInfo means to refresh the lock.
@@ -416,7 +474,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 		if token == "" {
 			return http.StatusBadRequest, errInvalidLockToken
 		}
-		ld, err = h.LockSystem.Refresh(now, token, duration)
+		ld, err = h.LockSystem[fs.User.ID].Refresh(now, token, duration)
 		if err != nil {
 			if err == ErrNoSuchLock {
 				return http.StatusPreconditionFailed, err
@@ -436,7 +494,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 				return http.StatusBadRequest, errInvalidDepth
 			}
 		}
-		reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+		reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 		if err != nil {
 			return status, err
 		}
@@ -446,7 +504,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 			OwnerXML:  li.Owner.InnerXML,
 			ZeroDepth: depth == 0,
 		}
-		token, err = h.LockSystem.Create(now, ld)
+		token, err = h.LockSystem[fs.User.ID].Create(now, ld)
 		if err != nil {
 			if err == ErrLocked {
 				return StatusLocked, err
@@ -455,20 +513,20 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 		}
 		defer func() {
 			if retErr != nil {
-				h.LockSystem.Unlock(now, token)
+				h.LockSystem[fs.User.ID].Unlock(now, token)
 			}
 		}()
 
 		// Create the resource if it didn't previously exist.
-		if _, err := h.FileSystem.Stat(ctx, reqPath); err != nil {
-			f, err := h.FileSystem.OpenFile(ctx, reqPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-			if err != nil {
-				// TODO: detect missing intermediate dirs and return http.StatusConflict?
-				return http.StatusInternalServerError, err
-			}
-			f.Close()
-			created = true
-		}
+		//if _, err := h.FileSystem.Stat(ctx, reqPath); err != nil {
+		//	f, err := h.FileSystem.OpenFile(ctx, reqPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+		//	if err != nil {
+		//		// TODO: detect missing intermediate dirs and return http.StatusConflict?
+		//		return http.StatusInternalServerError, err
+		//	}
+		//	f.Close()
+		//	created = true
+		//}
 
 		// http://www.webdav.org/specs/rfc4918.html#HEADER_Lock-Token says that the
 		// Lock-Token value is a Coded-URL. We add angle brackets.
@@ -486,6 +544,7 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 	return 0, nil
 }
 
+// OK
 func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	// http://www.webdav.org/specs/rfc4918.html#HEADER_Lock-Token says that the
 	// Lock-Token value is a Coded-URL. We strip its angle brackets.
@@ -495,7 +554,7 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *files
 	}
 	t = t[1 : len(t)-1]
 
-	switch err = h.LockSystem.Unlock(time.Now(), t); err {
+	switch err = h.LockSystem[fs.User.ID].Unlock(time.Now(), t); err {
 	case nil:
 		return http.StatusNoContent, err
 	case ErrForbidden:
@@ -509,19 +568,21 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *files
 	}
 }
 
+// OK
 func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
+	if reqPath == "" {
+		reqPath = "/"
+	}
 	if err != nil {
 		return status, err
 	}
 	ctx := r.Context()
-	fi, err := h.FileSystem.Stat(ctx, reqPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return http.StatusNotFound, err
-		}
-		return http.StatusMethodNotAllowed, err
+	ok, fi := isPathExist(ctx, fs, reqPath)
+	if !ok {
+		return http.StatusNotFound, err
 	}
+
 	depth := infiniteDepth
 	if hdr := r.Header.Get("Depth"); hdr != "" {
 		depth = parseDepth(hdr)
@@ -536,13 +597,13 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 
 	mw := multistatusWriter{w: w}
 
-	walkFn := func(reqPath string, info os.FileInfo, err error) error {
+	walkFn := func(reqPath string, info FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		var pstats []Propstat
 		if pf.Propname != nil {
-			pnames, err := propnames(ctx, h.FileSystem, h.LockSystem, reqPath)
+			pnames, err := propnames(ctx, fs, h.LockSystem[fs.User.ID], info)
 			if err != nil {
 				return err
 			}
@@ -552,21 +613,21 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 			}
 			pstats = append(pstats, pstat)
 		} else if pf.Allprop != nil {
-			pstats, err = allprop(ctx, h.FileSystem, h.LockSystem, reqPath, pf.Prop)
+			pstats, err = allprop(ctx, fs, h.LockSystem[fs.User.ID], info, pf.Prop)
 		} else {
-			pstats, err = props(ctx, h.FileSystem, h.LockSystem, reqPath, pf.Prop)
+			pstats, err = props(ctx, fs, h.LockSystem[fs.User.ID], info, pf.Prop)
 		}
 		if err != nil {
 			return err
 		}
-		href := path.Join(h.Prefix, reqPath)
+		href := path.Join(h.Prefix, strconv.FormatUint(uint64(fs.User.ID), 10), reqPath)
 		if href != "/" && info.IsDir() {
 			href += "/"
 		}
 		return mw.write(makePropstatResponse(href, pstats))
 	}
 
-	walkErr := walkFS(ctx, h.FileSystem, depth, reqPath, fi, walkFn)
+	walkErr := walkFS(ctx, fs, depth, reqPath, fi, walkFn)
 	closeErr := mw.close()
 	if walkErr != nil {
 		return http.StatusInternalServerError, walkErr
@@ -578,11 +639,11 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 }
 
 func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
-	reqPath, status, err := h.stripPrefix(r.URL.Path,fs.User.ID)
+	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
 	}
-	release, status, err := h.confirmLocks(r, reqPath, "",fs)
+	release, status, err := h.confirmLocks(r, reqPath, "", fs)
 	if err != nil {
 		return status, err
 	}
@@ -590,17 +651,14 @@ func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request, fs *fi
 
 	ctx := r.Context()
 
-	if _, err := h.FileSystem.Stat(ctx, reqPath); err != nil {
-		if os.IsNotExist(err) {
-			return http.StatusNotFound, err
-		}
-		return http.StatusMethodNotAllowed, err
+	if exist, _ := isPathExist(ctx, fs, reqPath); !exist {
+		return http.StatusNotFound, nil
 	}
 	patches, status, err := readProppatch(r.Body)
 	if err != nil {
 		return status, err
 	}
-	pstats, err := patch(ctx, h.FileSystem, h.LockSystem, reqPath, patches)
+	pstats, err := patch(ctx, fs, h.LockSystem[fs.User.ID], reqPath, patches)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

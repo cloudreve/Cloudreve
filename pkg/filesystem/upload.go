@@ -78,9 +78,15 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 
 // CancelUpload 监测客户端取消上传
 func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHeader) {
-	ginCtx := ctx.Value(fsctx.GinCtx).(*gin.Context)
+	var reqContext context.Context
+	if ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context); ok {
+		reqContext = ginCtx.Request.Context()
+	} else {
+		reqContext = ctx.Value(fsctx.HTTPCtx).(context.Context)
+	}
+
 	select {
-	case <-ginCtx.Request.Context().Done():
+	case <-reqContext.Done():
 		select {
 		case <-ctx.Done():
 			// 客户端正常关闭，不执行操作

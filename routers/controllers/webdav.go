@@ -10,22 +10,22 @@ import (
 
 var handler *webdav.Handler
 
-func init(){
-	handler =  &webdav.Handler{
+func init() {
+	handler = &webdav.Handler{
 		Prefix:     "/dav/",
 		FileSystem: webdav.AdapterFS(""),
-		LockSystem: webdav.NewMemLS(),
+		LockSystem: make(map[uint]webdav.LockSystem),
 	}
 }
 
-func ServeWebDAV(c *gin.Context){
+func ServeWebDAV(c *gin.Context) {
 	// 测试用user
-	user,_ := model.GetUserByID(1)
-	c.Set("user",&user)
-	fs,err := filesystem.NewFileSystemFromContext(c)
-	if err != nil{
-		util.Log().Panic("%s",err)
+	user, _ := model.GetUserByID(1)
+	c.Set("user", &user)
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		util.Log().Panic("%s", err)
 	}
 
-	handler.ServeHTTP(c.Writer,c.Request,fs)
+	handler.ServeHTTP(c.Writer, c.Request, fs)
 }

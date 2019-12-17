@@ -13,4 +13,6 @@ const (
 	PathCtx
 	// FileModelCtx 文件数据库模型
 	FileModelCtx
+	// HTTPCtx HTTP请求的上下文
+	HTTPCtx
 )

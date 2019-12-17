@@ -9,10 +9,22 @@ import (
 )
 
 // initWebDAV 初始化WebDAV相关路由
-func initWebDAV(group *gin.RouterGroup){
-	dav := group.Group(":uid")
+func initWebDAV(group *gin.RouterGroup) {
 	{
-		dav.Any("*path", controllers.ServeWebDAV)
+		group.Any("", func(context *gin.Context) {
+			context.Status(403)
+			context.Abort()
+		})
+
+		group.Any(":uid/*path", controllers.ServeWebDAV)
+		group.Any(":uid", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", ":uid/*path", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", ":uid", controllers.ServeWebDAV)
+		group.Handle("MKCOL", ":uid/*path", controllers.ServeWebDAV)
+		group.Handle("LOCK", ":uid/*path", controllers.ServeWebDAV)
+		group.Handle("UNLOCK", ":uid/*path", controllers.ServeWebDAV)
+		group.Handle("PROPPATCH", ":uid/*path", controllers.ServeWebDAV)
+
 	}
 }
 
@@ -152,6 +164,6 @@ func InitRouter() *gin.Engine {
 	}
 
 	// 初始化WebDAV相关路由
-	initWebDAV(v3.Group("dav"))
+	initWebDAV(r.Group("dav"))
 	return r
 }
