@@ -12,6 +12,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"net/http"
 	"net/url"
 	"path"
@@ -38,7 +39,7 @@ func (h *Handler) stripPrefix(p string, uid uint) (string, int, error) {
 	}
 	prefix := h.Prefix + strconv.FormatUint(uint64(uid), 10)
 	if r := strings.TrimPrefix(p, prefix); len(r) < len(p) {
-		return r, http.StatusOK, nil
+		return util.RemoveSlash(r), http.StatusOK, nil
 	}
 	return p, http.StatusNotFound, errPrefixMismatch
 }
@@ -406,6 +407,12 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 
 	ctx := r.Context()
 
+	isExist, target := isPathExist(ctx, fs, src)
+
+	if !isExist {
+		return http.StatusNotFound, nil
+	}
+
 	if r.Method == "COPY" {
 		// Section 7.5.1 says that a COPY only needs to lock the destination,
 		// not both destination and source. Strictly speaking, this is racy,
@@ -429,7 +436,7 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 				return http.StatusBadRequest, errInvalidDepth
 			}
 		}
-		return copyFiles(ctx, h.FileSystem, src, dst, r.Header.Get("Overwrite") != "F", depth, 0)
+		return copyFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") != "F", depth, 0)
 	}
 
 	release, status, err := h.confirmLocks(r, src, dst, fs)

@@ -15,6 +15,15 @@ func FillSlash(path string) string {
 	return path + "/"
 }
 
+// RemoveSlash 移除路径最后的`/`
+// TODO 测试
+func RemoveSlash(path string) string {
+	if len(path) > 1 {
+		return strings.TrimSuffix(path, "/")
+	}
+	return path
+}
+
 // SplitPath 分割路径为列表
 func SplitPath(path string) []string {
 	if len(path) == 0 || path[0] != '/' {
