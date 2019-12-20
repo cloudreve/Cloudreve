@@ -100,7 +100,7 @@ func (fs *FileSystem) Copy(ctx context.Context, dirs, files []uint, src, dst str
 	return nil
 }
 
-// Move 移动文件和目录
+// Move 移动文件和目录, 将id列表dirs和files从src移动至dst
 func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst string) error {
 	// 获取目的目录
 	isDstExist, dstFolder := fs.IsPathExist(dst)

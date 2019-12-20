@@ -21,6 +21,7 @@ type FileInfo interface {
 	GetName() string
 	ModTime() time.Time
 	IsDir() bool
+	GetPosition() string
 }
 
 // Proppatch describes a property update instruction as defined in RFC 4918.
