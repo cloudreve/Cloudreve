@@ -16,7 +16,6 @@ func FillSlash(path string) string {
 }
 
 // RemoveSlash 移除路径最后的`/`
-// TODO 测试
 func RemoveSlash(path string) string {
 	if len(path) > 1 {
 		return strings.TrimSuffix(path, "/")
