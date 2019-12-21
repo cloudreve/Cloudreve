@@ -35,7 +35,7 @@ func getValue(item interface{}, ok bool) (interface{}, bool) {
 
 	var itemObj itemWithTTL
 	if itemObj, ok = item.(itemWithTTL); !ok {
-		return nil, false
+		return item, true
 	}
 
 	if itemObj.expires > 0 && itemObj.expires < time.Now().Unix() {
@@ -70,7 +70,7 @@ func (store *MemoStore) Gets(keys []string, prefix string) (map[string]interface
 	var notFound = make([]string, 0, len(keys))
 
 	for _, key := range keys {
-		if value, ok := store.Store.Load(prefix + key); ok {
+		if value, ok := getValue(store.Store.Load(prefix + key)); ok {
 			res[key] = value
 		} else {
 			notFound = append(notFound, key)

@@ -163,14 +163,13 @@ func (file *File) UpdatePicInfo(value string) error {
 	return DB.Model(&file).Update("pic_info", value).Error
 }
 
-// UpdatePicInfo 更新文件的图像信息
+// UpdateSize 更新文件的大小信息
 func (file *File) UpdateSize(value uint64) error {
 	return DB.Model(&file).Update("size", value).Error
 }
 
 /*
 	实现 FileInfo.FileInfo 接口
-	TODO 测试
 */
 
 func (file *File) GetName() string {
