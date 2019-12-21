@@ -169,7 +169,7 @@ func (file *File) UpdateSize(value uint64) error {
 }
 
 /*
-	实现 FileInfo.FileInfo 接口
+	实现 webdav.FileInfo 接口
 */
 
 func (file *File) GetName() string {

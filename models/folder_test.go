@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestFolder_Create(t *testing.T) {
@@ -505,4 +506,27 @@ func TestFolder_MoveOrCopyFolderTo_Move(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 	}
+}
+
+func TestFolder_FileInfoInterface(t *testing.T) {
+	asserts := assert.New(t)
+	folder := Folder{
+		Model: gorm.Model{
+			UpdatedAt: time.Date(2019, 12, 21, 12, 40, 0, 0, time.UTC),
+		},
+		Name:     "test_name",
+		ParentID: 0,
+		OwnerID:  0,
+		Position: "/test",
+	}
+
+	name := folder.GetName()
+	asserts.Equal("test_name", name)
+
+	size := folder.GetSize()
+	asserts.Equal(uint64(0), size)
+
+	asserts.Equal(time.Date(2019, 12, 21, 12, 40, 0, 0, time.UTC), folder.ModTime())
+	asserts.True(folder.IsDir())
+	asserts.Equal("/test", folder.GetPosition())
 }

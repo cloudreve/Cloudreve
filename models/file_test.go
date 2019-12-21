@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func TestFile_Create(t *testing.T) {
@@ -355,4 +356,32 @@ func TestFile_Updates(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 	}
+}
+
+func TestFile_FileInfoInterface(t *testing.T) {
+	asserts := assert.New(t)
+	file := File{
+		Model: gorm.Model{
+			UpdatedAt: time.Date(2019, 12, 21, 12, 40, 0, 0, time.UTC),
+		},
+		Name:       "test_name",
+		SourceName: "",
+		UserID:     0,
+		Size:       10,
+		PicInfo:    "",
+		FolderID:   0,
+		PolicyID:   0,
+		Policy:     Policy{},
+		Position:   "/test",
+	}
+
+	name := file.GetName()
+	asserts.Equal("test_name", name)
+
+	size := file.GetSize()
+	asserts.Equal(uint64(10), size)
+
+	asserts.Equal(time.Date(2019, 12, 21, 12, 40, 0, 0, time.UTC), file.ModTime())
+	asserts.False(file.IsDir())
+	asserts.Equal("/test", file.GetPosition())
 }
