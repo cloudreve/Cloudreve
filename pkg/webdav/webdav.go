@@ -35,8 +35,11 @@ func (h *Handler) stripPrefix(p string, uid uint) (string, int, error) {
 	if h.Prefix == "" {
 		return p, http.StatusOK, nil
 	}
-	prefix := h.Prefix + strconv.FormatUint(uint64(uid), 10)
+	prefix := h.Prefix
 	if r := strings.TrimPrefix(p, prefix); len(r) < len(p) {
+		if len(r) == 0 {
+			r = "/"
+		}
 		return util.RemoveSlash(r), http.StatusOK, nil
 	}
 	return p, http.StatusNotFound, errPrefixMismatch
@@ -164,9 +167,9 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 			if err != nil {
 				continue
 			}
-			if u.Host != r.Host {
-				continue
-			}
+			//if u.Host != r.Host {
+			//	continue
+			//}
 			lsrc, status, err = h.stripPrefix(u.Path, fs.User.ID)
 			if err != nil {
 				return nil, status, err
@@ -381,9 +384,9 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 	if err != nil {
 		return http.StatusBadRequest, errInvalidDestination
 	}
-	if u.Host != "" && u.Host != r.Host {
-		return http.StatusBadGateway, errInvalidDestination
-	}
+	//if u.Host != "" && u.Host != r.Host {
+	//	return http.StatusBadGateway, errInvalidDestination
+	//}
 
 	src, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
@@ -436,7 +439,9 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 		return copyFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") != "F", depth, 0)
 	}
 
-	release, status, err := h.confirmLocks(r, src, dst, fs)
+	// windows下，某些情况下（网盘根目录下）Office保存文件时附带的锁token只包含源文件，
+	// 此处暂时去除了对dst锁的检查
+	release, status, err := h.confirmLocks(r, src, "", fs)
 	if err != nil {
 		return status, err
 	}
@@ -575,9 +580,6 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *files
 // OK
 func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
-	if reqPath == "" {
-		reqPath = "/"
-	}
 	if err != nil {
 		return status, err
 	}

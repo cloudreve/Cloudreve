@@ -11,21 +11,18 @@ import (
 // initWebDAV 初始化WebDAV相关路由
 func initWebDAV(group *gin.RouterGroup) {
 	{
-		group.Any("", func(context *gin.Context) {
-			context.Status(403)
-			context.Abort()
-		})
+		group.Use(middleware.WebDAVAuth())
 
-		group.Any(":uid/*path", controllers.ServeWebDAV)
-		group.Any(":uid", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", ":uid", controllers.ServeWebDAV)
-		group.Handle("MKCOL", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("LOCK", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("UNLOCK", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("PROPPATCH", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("COPY", ":uid/*path", controllers.ServeWebDAV)
-		group.Handle("MOVE", ":uid/*path", controllers.ServeWebDAV)
+		group.Any("/*path", controllers.ServeWebDAV)
+		group.Any("", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", "/*path", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", "", controllers.ServeWebDAV)
+		group.Handle("MKCOL", "/*path", controllers.ServeWebDAV)
+		group.Handle("LOCK", "/*path", controllers.ServeWebDAV)
+		group.Handle("UNLOCK", "/*path", controllers.ServeWebDAV)
+		group.Handle("PROPPATCH", "/*path", controllers.ServeWebDAV)
+		group.Handle("COPY", "/*path", controllers.ServeWebDAV)
+		group.Handle("MOVE", "/*path", controllers.ServeWebDAV)
 
 	}
 }

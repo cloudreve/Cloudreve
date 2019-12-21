@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // SignRequired 验证请求签名
@@ -47,5 +48,49 @@ func AuthRequired() gin.HandlerFunc {
 
 		c.JSON(200, serializer.CheckLogin())
 		c.Abort()
+	}
+}
+
+// WebDAVAuth 验证WebDAV登录及权限
+func WebDAVAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// OPTIONS 请求不需要鉴权，否则Windows10下无法保存文档
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
+		username, password, ok := c.Request.BasicAuth()
+		if !ok {
+			c.Writer.Header()["WWW-Authenticate"] = []string{`Basic realm="cloudreve"`}
+			c.Status(http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
+		expectedUser, err := model.GetUserByEmail(username)
+		if err != nil {
+			c.Status(http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
+		// 密码正确？
+		ok, _ = expectedUser.CheckPassword(password)
+		if !ok {
+			c.Status(http.StatusUnauthorized)
+			c.Abort()
+			return
+		}
+
+		// 用户组已启用WebDAV？
+		if !expectedUser.Group.WebDAVEnabled {
+			c.Status(http.StatusForbidden)
+			c.Abort()
+			return
+		}
+
+		c.Set("user", &expectedUser)
+		c.Next()
 	}
 }
