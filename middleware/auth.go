@@ -52,6 +52,7 @@ func AuthRequired() gin.HandlerFunc {
 }
 
 // WebDAVAuth 验证WebDAV登录及权限
+// TODO 测试
 func WebDAVAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// OPTIONS 请求不需要鉴权，否则Windows10下无法保存文档

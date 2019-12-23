@@ -604,6 +604,7 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 	mw := multistatusWriter{w: w}
 
 	walkFn := func(reqPath string, info FileInfo, err error) error {
+
 		if err != nil {
 			return err
 		}
@@ -626,7 +627,7 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 		if err != nil {
 			return err
 		}
-		href := path.Join(h.Prefix, strconv.FormatUint(uint64(fs.User.ID), 10), reqPath)
+		href := path.Join(h.Prefix, reqPath)
 		if href != "/" && info.IsDir() {
 			href += "/"
 		}
