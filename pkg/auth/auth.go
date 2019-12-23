@@ -2,7 +2,11 @@ package auth
 
 import (
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
+	"io/ioutil"
+	"net/http"
 	"net/url"
 )
 
@@ -20,6 +24,26 @@ type Auth interface {
 	Sign(body string, expires int64) string
 	// 对给定Body和Sign进行检查
 	Check(body string, sign string) error
+}
+
+// SignRequest 对PUT\POST等复杂HTTP请求签名，如果请求Header中
+// 包含 X-Policy， 则此请求会被认定为上传请求，只会对URI部分和
+// Policy部分进行签名。其他请求则会对URI和Body部分进行签名。
+func SignRequest(r *http.Request, expires int64) *http.Request {
+	var rawSignString string
+	if policy, ok := r.Header["X-Policy"]; ok {
+		rawSignString = serializer.NewRequestSignString(r.URL.Path, policy[0], "")
+	} else {
+		body, _ := ioutil.ReadAll(r.Body)
+		rawSignString = serializer.NewRequestSignString(r.URL.Path, "", string(body))
+	}
+
+	// 生成签名
+	sign := General.Sign(rawSignString, expires)
+
+	// 将签名加到请求Header中
+	r.Header["Authorization"] = []string{"Bearer " + sign}
+	return r
 }
 
 // SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
@@ -52,9 +76,18 @@ func CheckURI(url *url.URL) error {
 }
 
 // Init 初始化通用鉴权器
-// TODO slave模式下从配置文件获取
+// TODO 测试
 func Init() {
+	var secretKey string
+	if conf.SystemConfig.Mode == "master" {
+		secretKey = model.GetSettingByName("secret_key")
+	} else {
+		secretKey = conf.SystemConfig.SlaveSecret
+		if secretKey == "" {
+			util.Log().Panic("未指定 SlaveSecret，请前往配置文件中指定")
+		}
+	}
 	General = HMACAuth{
-		SecretKey: []byte(model.GetSettingByName("secret_key")),
+		SecretKey: []byte(secretKey),
 	}
 }

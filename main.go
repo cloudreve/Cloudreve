@@ -12,20 +12,21 @@ import (
 
 func init() {
 	conf.Init("conf/conf.ini")
-	cache.Init()
-	model.Init()
-
 	// Debug 关闭时，切换为生产模式
 	if !conf.SystemConfig.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	cache.Init()
+	if conf.SystemConfig.Mode == "master" {
+		model.Init()
+		authn.Init()
+	}
 	auth.Init()
-	authn.Init()
 }
 
 func main() {
 	api := routers.InitRouter()
 
-	api.Run(":5000")
+	api.Run(conf.SystemConfig.Listen)
 
 }

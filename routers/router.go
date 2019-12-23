@@ -3,42 +3,45 @@ package routers
 import (
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-// initWebDAV 初始化WebDAV相关路由
-func initWebDAV(group *gin.RouterGroup) {
-	{
-		group.Use(middleware.WebDAVAuth())
-
-		group.Any("/*path", controllers.ServeWebDAV)
-		group.Any("", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", "/*path", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", "", controllers.ServeWebDAV)
-		group.Handle("MKCOL", "/*path", controllers.ServeWebDAV)
-		group.Handle("LOCK", "/*path", controllers.ServeWebDAV)
-		group.Handle("UNLOCK", "/*path", controllers.ServeWebDAV)
-		group.Handle("PROPPATCH", "/*path", controllers.ServeWebDAV)
-		group.Handle("COPY", "/*path", controllers.ServeWebDAV)
-		group.Handle("MOVE", "/*path", controllers.ServeWebDAV)
-
-	}
-}
-
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
-	r := gin.Default()
-	v3 := r.Group("/api/v3")
-	/*
-		中间件
-	*/
-	v3.Use(middleware.Session(conf.SystemConfig.SessionSecret))
+	if conf.SystemConfig.Mode == "master" {
+		util.Log().Info("当前运行模式：Master")
+		return InitMasterRouter()
+	}
+	util.Log().Info("当前运行模式：Slave")
+	return InitSlaveRouter()
 
-	// CORS TODO: 根据配置文件来
+}
+
+// InitSlaveRouter 初始化从机模式路由
+func InitSlaveRouter() *gin.Engine {
+	r := gin.Default()
+	v3 := r.Group("/api/v3/slave")
+	// 跨域相关
+	InitCORS(v3)
+	// 鉴权中间件
+	v3.Use(middleware.SignRequired())
+
+	/*
+		路由
+	*/
+	{
+		v3.POST("upload", controllers.SlaveUpload)
+	}
+	return r
+}
+
+// InitCORS 初始化跨域配置
+func InitCORS(group *gin.RouterGroup) {
 	if conf.CORSConfig.AllowOrigins[0] != "UNSET" || conf.CORSConfig.AllowAllOrigins {
-		v3.Use(cors.New(cors.Config{
+		group.Use(cors.New(cors.Config{
 			AllowOrigins:     conf.CORSConfig.AllowOrigins,
 			AllowAllOrigins:  conf.CORSConfig.AllowAllOrigins,
 			AllowMethods:     conf.CORSConfig.AllowHeaders,
@@ -46,13 +49,29 @@ func InitRouter() *gin.Engine {
 			AllowCredentials: conf.CORSConfig.AllowCredentials,
 			ExposeHeaders:    conf.CORSConfig.ExposeHeaders,
 		}))
+		return
 	}
 
+	// slave模式下未启动跨域的警告
+	if conf.SystemConfig.Mode == "slave" {
+		util.Log().Warning("当前作为存储端（Slave）运行，但未启用跨域配置，可能会导致 Master 端无法正常上传文件")
+	}
+}
+
+// InitMasterRouter 初始化主机模式路由
+func InitMasterRouter() *gin.Engine {
+	r := gin.Default()
+	v3 := r.Group("/api/v3")
+	/*
+		中间件
+	*/
+	v3.Use(middleware.Session(conf.SystemConfig.SessionSecret))
+	// 跨域相关
+	InitCORS(v3)
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {
 		v3.Use(middleware.MockHelper())
 	}
-
 	v3.Use(middleware.CurrentUser())
 
 	/*
@@ -165,4 +184,23 @@ func InitRouter() *gin.Engine {
 	// 初始化WebDAV相关路由
 	initWebDAV(r.Group("dav"))
 	return r
+}
+
+// initWebDAV 初始化WebDAV相关路由
+func initWebDAV(group *gin.RouterGroup) {
+	{
+		group.Use(middleware.WebDAVAuth())
+
+		group.Any("/*path", controllers.ServeWebDAV)
+		group.Any("", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", "/*path", controllers.ServeWebDAV)
+		group.Handle("PROPFIND", "", controllers.ServeWebDAV)
+		group.Handle("MKCOL", "/*path", controllers.ServeWebDAV)
+		group.Handle("LOCK", "/*path", controllers.ServeWebDAV)
+		group.Handle("UNLOCK", "/*path", controllers.ServeWebDAV)
+		group.Handle("PROPPATCH", "/*path", controllers.ServeWebDAV)
+		group.Handle("COPY", "/*path", controllers.ServeWebDAV)
+		group.Handle("MOVE", "/*path", controllers.ServeWebDAV)
+
+	}
 }

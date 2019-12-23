@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
+	github.com/cloudflare/cfssl v0.0.0-20190726000631-633726f6bcb7
 	github.com/duo-labs/webauthn v0.0.0-20191119193225-4bf9a0f776d4
 	github.com/fatih/color v1.7.0
 	github.com/garyburd/redigo v1.6.0

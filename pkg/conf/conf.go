@@ -18,8 +18,11 @@ type database struct {
 
 // system 系统通用配置
 type system struct {
+	Mode          string `validate:"eq=master|eq=slave"`
+	Listen        string `validate:"required"`
 	Debug         bool
 	SessionSecret string
+	SlaveSecret   string `validate:"omitempty,gte=64"`
 }
 
 // captcha 验证码配置
@@ -84,7 +87,7 @@ func Init(path string) {
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)
 		if err != nil {
-			util.Log().Warning("配置文件 %s 分区解析失败: %s", sectionName, err)
+			util.Log().Panic("配置文件 %s 分区解析失败: %s", sectionName, err)
 		}
 	}
 

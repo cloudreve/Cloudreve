@@ -17,7 +17,7 @@ import (
 func TestListDirectoryRoute(t *testing.T) {
 	switchToMemDB()
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 	w := httptest.NewRecorder()
 
 	// 成功
@@ -41,7 +41,7 @@ func TestListDirectoryRoute(t *testing.T) {
 func TestLocalFileUpload(t *testing.T) {
 	switchToMemDB()
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 	w := httptest.NewRecorder()
 	middleware.SessionMock = map[string]interface{}{"user_id": 1}
 
@@ -111,7 +111,7 @@ func TestLocalFileUpload(t *testing.T) {
 
 func TestObjectDelete(t *testing.T) {
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 	w := httptest.NewRecorder()
 	middleware.SessionMock = map[string]interface{}{"user_id": 1}
 

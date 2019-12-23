@@ -11,7 +11,7 @@ import (
 
 func TestPing(t *testing.T) {
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/v3/site/ping", nil)
@@ -23,7 +23,7 @@ func TestPing(t *testing.T) {
 
 func TestCaptcha(t *testing.T) {
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 	w := httptest.NewRecorder()
 
 	req, _ := http.NewRequest(
@@ -43,7 +43,7 @@ func TestCaptcha(t *testing.T) {
 //	defer mutex.Unlock()
 //	switchToMockDB()
 //	asserts := assert.New(t)
-//	router := InitRouter()
+//	router := InitMasterRouter()
 //	w := httptest.NewRecorder()
 //
 //	// 创建测试用验证码
@@ -153,7 +153,7 @@ func TestCaptcha(t *testing.T) {
 //	defer mutex.Unlock()
 //	switchToMockDB()
 //	asserts := assert.New(t)
-//	router := InitRouter()
+//	router := InitMasterRouter()
 //	w := httptest.NewRecorder()
 //
 //	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(sqlmock.NewRows([]string{"email", "nick", "password", "options"}).
@@ -211,7 +211,7 @@ func TestCaptcha(t *testing.T) {
 func TestSiteConfigRoute(t *testing.T) {
 	switchToMemDB()
 	asserts := assert.New(t)
-	router := InitRouter()
+	router := InitMasterRouter()
 	w := httptest.NewRecorder()
 
 	req, _ := http.NewRequest(

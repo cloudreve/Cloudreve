@@ -16,7 +16,9 @@ var DatabaseConfig = &database{
 
 // SystemConfig 系统公用配置
 var SystemConfig = &system{
-	Debug: false,
+	Debug:  false,
+	Mode:   "master",
+	Listen: ":5000",
 }
 
 // CaptchaConfig 验证码配置
