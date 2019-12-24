@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -83,4 +84,10 @@ func TestInit(t *testing.T) {
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "12312312312312"))
 	Init()
 	asserts.NoError(mock.ExpectationsWereMet())
+
+	// slave模式
+	conf.SystemConfig.Mode = "slave"
+	asserts.Panics(func() {
+		Init()
+	})
 }

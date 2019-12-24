@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -55,18 +56,68 @@ func TestSignRequest(t *testing.T) {
 
 	// 非上传请求
 	{
-		req, err := http.NewRequest("POST", "http://127.0.0.1/api/v3/upload", strings.NewReader("I am body."))
+		req, err := http.NewRequest("POST", "http://127.0.0.1/api/v3/slave/upload", strings.NewReader("I am body."))
 		asserts.NoError(err)
-		req = SignRequest(req, 10)
+		req = SignRequest(req, 0)
 		asserts.NotEmpty(req.Header["Authorization"])
 	}
 
 	// 上传请求
 	{
-		req, err := http.NewRequest("POST", "http://127.0.0.1/api/v3/upload", strings.NewReader("I am body."))
+		req, err := http.NewRequest(
+			"POST",
+			"http://127.0.0.1/api/v3/slave/upload",
+			strings.NewReader("I am body."),
+		)
 		asserts.NoError(err)
 		req.Header["X-Policy"] = []string{"I am Policy"}
 		req = SignRequest(req, 10)
 		asserts.NotEmpty(req.Header["Authorization"])
+	}
+}
+
+func TestCheckRequest(t *testing.T) {
+	asserts := assert.New(t)
+	General = HMACAuth{SecretKey: []byte(util.RandStringRunes(256))}
+
+	// 非上传请求 验证成功
+	{
+		req, err := http.NewRequest(
+			"POST",
+			"http://127.0.0.1/api/v3/upload",
+			strings.NewReader("I am body."),
+		)
+		asserts.NoError(err)
+		req = SignRequest(req, 0)
+		err = CheckRequest(req)
+		asserts.NoError(err)
+	}
+
+	// 上传请求 验证成功
+	{
+		req, err := http.NewRequest(
+			"POST",
+			"http://127.0.0.1/api/v3/upload",
+			strings.NewReader("I am body."),
+		)
+		asserts.NoError(err)
+		req.Header["X-Policy"] = []string{"I am Policy"}
+		req = SignRequest(req, 0)
+		err = CheckRequest(req)
+		asserts.NoError(err)
+	}
+
+	// 非上传请求 失败
+	{
+		req, err := http.NewRequest(
+			"POST",
+			"http://127.0.0.1/api/v3/upload",
+			strings.NewReader("I am body."),
+		)
+		asserts.NoError(err)
+		req = SignRequest(req, 0)
+		req.Body = ioutil.NopCloser(strings.NewReader("2333"))
+		err = CheckRequest(req)
+		asserts.Error(err)
 	}
 }

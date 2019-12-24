@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -8,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 var (
@@ -30,20 +32,40 @@ type Auth interface {
 // 包含 X-Policy， 则此请求会被认定为上传请求，只会对URI部分和
 // Policy部分进行签名。其他请求则会对URI和Body部分进行签名。
 func SignRequest(r *http.Request, expires int64) *http.Request {
-	var rawSignString string
-	if policy, ok := r.Header["X-Policy"]; ok {
-		rawSignString = serializer.NewRequestSignString(r.URL.Path, policy[0], "")
-	} else {
-		body, _ := ioutil.ReadAll(r.Body)
-		rawSignString = serializer.NewRequestSignString(r.URL.Path, "", string(body))
-	}
-
 	// 生成签名
-	sign := General.Sign(rawSignString, expires)
+	sign := General.Sign(getSignContent(r), expires)
 
 	// 将签名加到请求Header中
 	r.Header["Authorization"] = []string{"Bearer " + sign}
 	return r
+}
+
+// CheckRequest 对复杂请求进行签名验证
+func CheckRequest(r *http.Request) error {
+	var (
+		sign []string
+		ok   bool
+	)
+	if sign, ok = r.Header["Authorization"]; !ok || len(sign) == 0 {
+		return ErrAuthFailed
+	}
+	sign[0] = strings.TrimPrefix(sign[0], "Bearer ")
+
+	return General.Check(getSignContent(r), sign[0])
+}
+
+// getSignContent 根据请求Header中是否包含X-Policy判断是否为上传请求，
+// 返回待签名/验证的字符串
+func getSignContent(r *http.Request) (rawSignString string) {
+	if policy, ok := r.Header["X-Policy"]; ok {
+		rawSignString = serializer.NewRequestSignString(r.URL.Path, policy[0], "")
+	} else {
+		body, _ := ioutil.ReadAll(r.Body)
+		_ = r.Body.Close()
+		r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		rawSignString = serializer.NewRequestSignString(r.URL.Path, "", string(body))
+	}
+	return rawSignString
 }
 
 // SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
@@ -76,7 +98,6 @@ func CheckURI(url *url.URL) error {
 }
 
 // Init 初始化通用鉴权器
-// TODO 测试
 func Init() {
 	var secretKey string
 	if conf.SystemConfig.Mode == "master" {

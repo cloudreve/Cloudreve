@@ -12,7 +12,16 @@ import (
 // SignRequired 验证请求签名
 func SignRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		err := auth.CheckURI(c.Request.URL)
+		var err error
+		switch c.Request.Method {
+		case "PUT", "POST":
+			err = auth.CheckRequest(c.Request)
+			// TODO 生产环境去掉下一行
+			err = nil
+		default:
+			err = auth.CheckURI(c.Request.URL)
+		}
+
 		if err != nil {
 			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, err.Error(), err))
 			c.Abort()

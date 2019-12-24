@@ -89,6 +89,10 @@ func TestSignRequired(t *testing.T) {
 	// 鉴权失败
 	SignRequiredFunc(c)
 	asserts.NotNil(c)
+
+	c.Request, _ = http.NewRequest("PUT", "/test", nil)
+	SignRequiredFunc(c)
+	asserts.NotNil(c)
 }
 
 func TestWebDAVAuth(t *testing.T) {
