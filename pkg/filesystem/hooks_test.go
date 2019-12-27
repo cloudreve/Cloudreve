@@ -6,8 +6,10 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
@@ -476,4 +478,65 @@ func TestGenericAfterUpdate(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 	}
+}
+
+func TestHookSlaveUploadValidate(t *testing.T) {
+	asserts := assert.New(t)
+	conf.SystemConfig.Mode = "slave"
+	fs, err := NewAnonymousFileSystem()
+	conf.SystemConfig.Mode = "master"
+	asserts.NoError(err)
+
+	// 正常
+	{
+		policy := serializer.UploadPolicy{
+			SavePath:         "",
+			MaxSize:          10,
+			AllowedExtension: nil,
+		}
+		file := local.FileStream{Name: "1.txt", Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
+		asserts.NoError(HookSlaveUploadValidate(ctx, fs))
+	}
+
+	// 尺寸太大
+	{
+		policy := serializer.UploadPolicy{
+			SavePath:         "",
+			MaxSize:          10,
+			AllowedExtension: nil,
+		}
+		file := local.FileStream{Name: "1.txt", Size: 11}
+		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
+		asserts.Equal(ErrFileSizeTooBig, HookSlaveUploadValidate(ctx, fs))
+	}
+
+	// 文件名非法
+	{
+		policy := serializer.UploadPolicy{
+			SavePath:         "",
+			MaxSize:          10,
+			AllowedExtension: nil,
+		}
+		file := local.FileStream{Name: "/1.txt", Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
+		asserts.Equal(ErrIllegalObjectName, HookSlaveUploadValidate(ctx, fs))
+	}
+
+	// 扩展名非法
+	{
+		policy := serializer.UploadPolicy{
+			SavePath:         "",
+			MaxSize:          10,
+			AllowedExtension: []string{"jpg"},
+		}
+		file := local.FileStream{Name: "1.txt", Size: 10}
+		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
+		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
+		asserts.Equal(ErrFileExtensionNotAllowed, HookSlaveUploadValidate(ctx, fs))
+	}
+
 }

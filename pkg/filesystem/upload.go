@@ -24,14 +24,15 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		return err
 	}
 
-	// 生成文件名和路径, 如果是更新操作就从原始文件获取
+	// 生成文件名和路径,
 	var savePath string
-	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
-	if ok {
+	// 如果是更新操作就从上下文中获取
+	if originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
 		savePath = originFile.SourceName
 	} else {
 		savePath = fs.GenerateSavePath(ctx, file)
 	}
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
@@ -43,7 +44,6 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	}
 
 	// 上传完成后的钩子
-	ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 	err = fs.Trigger(ctx, fs.AfterUpload)
 
 	if err != nil {
@@ -57,21 +57,42 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		return err
 	}
 
-	util.Log().Info("新文件PUT:%s , 大小:%d, 上传者:%s", file.GetFileName(), file.GetSize(), fs.User.Nick)
+	util.Log().Info(
+		"新文件PUT:%s , 大小:%d, 上传者:%s",
+		file.GetFileName(),
+		file.GetSize(),
+		fs.User.Nick,
+	)
 
 	return nil
 }
 
 // GenerateSavePath 生成要存放文件的路径
+// TODO 完善测试
 func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) string {
+	if fs.User.Model.ID != 0 {
+		return filepath.Join(
+			fs.User.Policy.GeneratePath(
+				fs.User.Model.ID,
+				file.GetVirtualPath(),
+			),
+			fs.User.Policy.GenerateFileName(
+				fs.User.Model.ID,
+				file.GetFileName(),
+			),
+		)
+	}
+
+	// 匿名文件系统使用空上传策略生成路径
+	nilPolicy := model.Policy{}
 	return filepath.Join(
-		fs.User.Policy.GeneratePath(
-			fs.User.Model.ID,
-			file.GetVirtualPath(),
+		nilPolicy.GeneratePath(
+			0,
+			"",
 		),
-		fs.User.Policy.GenerateFileName(
-			fs.User.Model.ID,
-			file.GetFileName(),
+		nilPolicy.GenerateFileName(
+			0,
+			"",
 		),
 	)
 }

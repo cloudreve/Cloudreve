@@ -6,6 +6,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io/ioutil"
 	"strings"
@@ -50,6 +51,30 @@ func HookIsFileExist(ctx context.Context, fs *FileSystem) error {
 		return nil
 	}
 	return ErrObjectNotExist
+}
+
+// HookSlaveUploadValidate Slave模式下对文件上传的一系列验证
+// TODO 测试
+func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem) error {
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
+
+	// 验证单文件尺寸
+	if file.GetSize() > policy.MaxSize {
+		return ErrFileSizeTooBig
+	}
+
+	// 验证文件名
+	if !fs.ValidateLegalName(ctx, file.GetFileName()) {
+		return ErrIllegalObjectName
+	}
+
+	// 验证扩展名
+	if len(policy.AllowedExtension) > 0 && !IsInExtensionList(policy.AllowedExtension, file.GetFileName()) {
+		return ErrFileExtensionNotAllowed
+	}
+
+	return nil
 }
 
 // HookValidateFile 一系列对文件检验的集合

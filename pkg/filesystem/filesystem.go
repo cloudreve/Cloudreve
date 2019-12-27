@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/gin-gonic/gin"
@@ -90,12 +91,15 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 		User: &model.User{},
 	}
 
-	anonymousGroup, err := model.GetGroupByID(3)
-	if err != nil {
-		return nil, err
+	// 如果是主机模式下，则为匿名文件系统分配游客用户组
+	if conf.SystemConfig.Mode == "master" {
+		anonymousGroup, err := model.GetGroupByID(3)
+		if err != nil {
+			return nil, err
+		}
+		fs.User.Group = anonymousGroup
 	}
 
-	fs.User.Group = anonymousGroup
 	return fs, nil
 }
 
