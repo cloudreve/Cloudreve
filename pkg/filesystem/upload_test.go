@@ -7,6 +7,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -138,4 +139,23 @@ func TestFileSystem_Upload(t *testing.T) {
 	asserts.Error(err)
 	testHandller2.AssertExpectations(t)
 
+}
+
+func TestFileSystem_GenerateSavePath_Anonymous(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{User: &model.User{}}
+	ctx := context.WithValue(
+		context.Background(),
+		fsctx.UploadPolicyCtx,
+		serializer.UploadPolicy{
+			SavePath:   "{randomkey16}",
+			AutoRename: false,
+		},
+	)
+
+	savePath := fs.GenerateSavePath(ctx, local.FileStream{
+		Name: "test.test",
+	})
+	asserts.Len(savePath, 26)
+	asserts.Contains(savePath, "test.test")
 }

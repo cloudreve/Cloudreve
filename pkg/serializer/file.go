@@ -8,6 +8,8 @@ import (
 // UploadPolicy slave模式下传递的上传策略
 type UploadPolicy struct {
 	SavePath         string   `json:"save_path"`
+	FileName         string   `json:"file_name"`
+	AutoRename       bool     `json:"auto_rename"`
 	MaxSize          uint64   `json:"max_size"`
 	AllowedExtension []string `json:"allowed_extension"`
 	CallbackURL      string   `json:"callback_url"`

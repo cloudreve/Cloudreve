@@ -54,7 +54,6 @@ func HookIsFileExist(ctx context.Context, fs *FileSystem) error {
 }
 
 // HookSlaveUploadValidate Slave模式下对文件上传的一系列验证
-// TODO 测试
 func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
@@ -205,6 +204,22 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 			fs.GenerateThumbnail(ctx, &originFile)
 		}
 	}()
+
+	return nil
+}
+
+// SlaveAfterUpload Slave模式下上传完成钩子
+// TODO 测试
+func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
+	fileHeader := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	// 构造一个model.File，用于生成缩略图
+	file := model.File{
+		Name:       fileHeader.GetFileName(),
+		SourceName: ctx.Value(fsctx.SavePathCtx).(string),
+	}
+	fs.GenerateThumbnail(ctx, &file)
+
+	// TODO 发送回调请求
 
 	return nil
 }

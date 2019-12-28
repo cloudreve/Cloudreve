@@ -72,7 +72,11 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	}
 
 	// 更新文件的图像信息
-	err = file.UpdatePicInfo(fmt.Sprintf("%d,%d", w, h))
+	if file.Model.ID > 0 {
+		err = file.UpdatePicInfo(fmt.Sprintf("%d,%d", w, h))
+	} else {
+		file.PicInfo = fmt.Sprintf("%d,%d", w, h)
+	}
 
 	// 失败时删除缩略图文件
 	if err != nil {

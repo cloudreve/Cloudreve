@@ -4,6 +4,7 @@ import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
@@ -83,16 +84,24 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 		)
 	}
 
-	// 匿名文件系统使用空上传策略生成路径
-	nilPolicy := model.Policy{}
+	// 匿名文件系统尝试根据上下文中的上传策略生成路径
+	var anonymousPolicy model.Policy
+	if policy, ok := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy); ok {
+		anonymousPolicy = model.Policy{
+			Type:         "remote",
+			AutoRename:   policy.AutoRename,
+			DirNameRule:  policy.SavePath,
+			FileNameRule: policy.FileName,
+		}
+	}
 	return filepath.Join(
-		nilPolicy.GeneratePath(
+		anonymousPolicy.GeneratePath(
 			0,
 			"",
 		),
-		nilPolicy.GenerateFileName(
+		anonymousPolicy.GenerateFileName(
 			0,
-			"",
+			file.GetFileName(),
 		),
 	)
 }

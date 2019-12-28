@@ -129,7 +129,7 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	case "qiniu":
 		// 七牛会将$(fname)自动替换为原始文件名
 		replaceTable["{originname}"] = "$(fname)"
-	case "local":
+	case "local", "remote":
 		replaceTable["{originname}"] = origin
 	case "oss":
 		// OSS会将${filename}自动替换为原始文件名

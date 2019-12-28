@@ -95,6 +95,26 @@ func TestFileSystem_GenerateThumbnail(t *testing.T) {
 		mock.ExpectCommit()
 
 		file := &model.File{
+			Model:      gorm.Model{ID: 1},
+			Name:       "123.jpg",
+			SourceName: "TestFileSystem_GenerateThumbnail.jpeg",
+		}
+
+		fs.GenerateThumbnail(ctx, file)
+		asserts.NoError(mock.ExpectationsWereMet())
+		testHandler.AssertExpectations(t)
+		asserts.True(util.Exists("TestFileSystem_GenerateThumbnail.jpeg" + conf.ThumbConfig.FileSuffix))
+
+	}
+
+	// 成功,不进行数据库更新
+	{
+		src := CreateTestImage()
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "TestFileSystem_GenerateThumbnail.jpeg").Return(src, nil)
+		fs.Handler = testHandler
+
+		file := &model.File{
 			Name:       "123.jpg",
 			SourceName: "TestFileSystem_GenerateThumbnail.jpeg",
 		}
@@ -119,6 +139,7 @@ func TestFileSystem_GenerateThumbnail(t *testing.T) {
 		mock.ExpectRollback()
 
 		file := &model.File{
+			Model:      gorm.Model{ID: 1},
 			Name:       "123.jpg",
 			SourceName: "TestFileSystem_GenerateThumbnail.jpeg",
 		}
@@ -132,6 +153,7 @@ func TestFileSystem_GenerateThumbnail(t *testing.T) {
 	// 不能生成缩略图
 	{
 		file := &model.File{
+			Model:      gorm.Model{ID: 1},
 			Name:       "123.123",
 			SourceName: "TestFileSystem_GenerateThumbnail.jpeg",
 		}

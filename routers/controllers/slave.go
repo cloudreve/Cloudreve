@@ -24,19 +24,22 @@ func SlaveUpload(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return
 	}
+	fs.Handler = local.Handler{}
 
 	// 从请求中取得上传策略
 	uploadPolicyRaw := c.GetHeader("X-Policy")
 	if uploadPolicyRaw == "" {
 		c.JSON(200, serializer.ParamErr("未指定上传策略", nil))
+		return
 	}
 
 	// 解析上传策略
 	uploadPolicy, err := serializer.DecodeUploadPolicy(uploadPolicyRaw)
 	if err != nil {
 		c.JSON(200, serializer.ParamErr("上传策略格式有误", err))
+		return
 	}
-	ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, uploadPolicy)
+	ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, *uploadPolicy)
 
 	// 取得文件大小
 	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
@@ -62,6 +65,7 @@ func SlaveUpload(c *gin.Context) {
 	// 给文件系统分配钩子
 	fs.Use("BeforeUpload", filesystem.HookSlaveUploadValidate)
 	fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
+	fs.Use("AfterUpload", filesystem.SlaveAfterUpload)
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 
 	// 执行上传
