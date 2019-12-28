@@ -15,10 +15,11 @@
 # Development enviroment
 .idea/*
 uploads/*
+temp
 
 # Version control
 version.lock
 
 # Config file
 *.ini
-/conf/conf.ini
+conf/conf.ini

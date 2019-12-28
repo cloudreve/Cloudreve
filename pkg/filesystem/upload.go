@@ -3,11 +3,13 @@ package filesystem
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
+	"strconv"
 )
 
 /* ================
@@ -134,4 +136,53 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 		}
 
 	}
+}
+
+// GetUploadToken 生成新的上传凭证
+func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint64) (*serializer.UploadCredential, error) {
+	// 获取相关有效期设置
+	ttls := model.GetSettingByNames([]string{"upload_credential_timeout", "upload_session_timeout"})
+
+	var (
+		err                error
+		credentialTTL      int64 = 3600
+		callBackSessionTTL int64 = 86400
+	)
+	// 获取上传凭证的有效期
+	if ttlStr, ok := ttls["upload_credential_timeout"]; ok {
+		credentialTTL, err = strconv.ParseInt(ttlStr, 10, 64)
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeInternalSetting, "上传凭证有效期设置无效", err)
+		}
+	}
+
+	// 获取回调会话的有效期
+	if ttlStr, ok := ttls["upload_session_timeout"]; ok {
+		callBackSessionTTL, err = strconv.ParseInt(ttlStr, 10, 64)
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeInternalSetting, "上传会话有效期设置无效", err)
+		}
+	}
+
+	// 获取上传凭证
+	callbackKey := util.RandStringRunes(32)
+	credential, err := fs.Handler.Token(ctx, credentialTTL, callbackKey)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeEncryptError, "无法获取上传凭证", err)
+	}
+
+	// 创建回调会话
+	err = cache.Set(
+		"callback_"+callbackKey,
+		serializer.UploadSession{
+			UID:         fs.User.ID,
+			VirtualPath: path,
+		},
+		int(callBackSessionTTL),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &credential, nil
 }

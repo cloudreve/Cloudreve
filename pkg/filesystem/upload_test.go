@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
@@ -46,6 +47,11 @@ func (m FileHeaderMock) Thumb(ctx context.Context, files string) (*response.Cont
 func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, expires int64, isDownload bool) (string, error) {
 	args := m.Called(ctx, path, url, expires, isDownload)
 	return args.Get(0).(string), args.Error(1)
+}
+
+func (m FileHeaderMock) Token(ctx context.Context, expires int64, key string) (serializer.UploadCredential, error) {
+	args := m.Called(ctx, expires, key)
+	return args.Get(0).(serializer.UploadCredential), args.Error(1)
 }
 
 func TestFileSystem_Upload(t *testing.T) {
@@ -158,4 +164,61 @@ func TestFileSystem_GenerateSavePath_Anonymous(t *testing.T) {
 	})
 	asserts.Len(savePath, 26)
 	asserts.Contains(savePath, "test.test")
+}
+
+func TestFileSystem_GetUploadToken(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{User: &model.User{Model: gorm.Model{ID: 1}}}
+	ctx := context.Background()
+
+	// 成功
+	{
+		cache.SetSettings(map[string]string{
+			"upload_credential_timeout": "10",
+			"upload_session_timeout":    "10",
+		}, "setting_")
+		testHandller := new(FileHeaderMock)
+		testHandller.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{Token: "test"}, nil)
+		fs.Handler = testHandller
+		res, err := fs.GetUploadToken(ctx, "/", 10)
+		testHandller.AssertExpectations(t)
+		asserts.NoError(err)
+		asserts.Equal("test", res.Token)
+	}
+
+	// 无法获取上传凭证
+	{
+		cache.SetSettings(map[string]string{
+			"upload_credential_timeout": "10",
+			"upload_session_timeout":    "10",
+		}, "setting_")
+		testHandller := new(FileHeaderMock)
+		testHandller.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{}, errors.New("error"))
+		fs.Handler = testHandller
+		_, err := fs.GetUploadToken(ctx, "/", 10)
+		testHandller.AssertExpectations(t)
+		asserts.Error(err)
+	}
+
+	// 上传有效期错误
+	{
+		cache.SetSettings(map[string]string{
+			"upload_credential_timeout": "？10",
+			"upload_session_timeout":    "10",
+		}, "setting_")
+
+		_, err := fs.GetUploadToken(ctx, "/", 10)
+		asserts.Error(err)
+	}
+
+	// 上传会话有效期错误
+	{
+		cache.SetSettings(map[string]string{
+			"upload_credential_timeout": "10",
+			"upload_session_timeout":    "？10",
+		}, "setting_")
+
+		_, err := fs.GetUploadToken(ctx, "/", 10)
+		asserts.Error(err)
+	}
 }
