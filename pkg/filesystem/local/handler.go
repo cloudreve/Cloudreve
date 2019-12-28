@@ -160,3 +160,9 @@ func (handler Handler) Source(
 	finalURL := baseURL.ResolveReference(signedURI).String()
 	return finalURL, nil
 }
+
+// Token 获取上传策略和认证Token，本地策略直接返回空值
+// TODO 测试
+func (handler Handler) Token(ctx context.Context, ttl int64, key string) (serializer.UploadCredential, error) {
+	return serializer.UploadCredential{}, nil
+}

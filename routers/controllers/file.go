@@ -283,3 +283,18 @@ func FileUploadStream(c *gin.Context) {
 		Code: 0,
 	})
 }
+
+// GetUploadCredential 获取上传凭证
+func GetUploadCredential(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.UploadCredentialService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Get(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

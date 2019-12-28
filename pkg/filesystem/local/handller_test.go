@@ -184,3 +184,11 @@ func TestHandler_GetDownloadURL(t *testing.T) {
 		asserts.Empty(downloadURL)
 	}
 }
+
+func TestHandler_Token(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{}
+	ctx := context.Background()
+	_, err := handler.Token(ctx, 10, "123")
+	asserts.NoError(err)
+}

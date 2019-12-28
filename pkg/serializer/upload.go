@@ -2,6 +2,7 @@ package serializer
 
 import (
 	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 )
 
@@ -13,11 +14,25 @@ type UploadPolicy struct {
 	MaxSize          uint64   `json:"max_size"`
 	AllowedExtension []string `json:"allowed_extension"`
 	CallbackURL      string   `json:"callback_url"`
-	CallbackKey      string   `json:"callback_key"`
+}
+
+// UploadCredential 返回给客户端的上传凭证
+type UploadCredential struct {
+	Token  string `json:"token"`
+	Policy string `json:"policy"`
+}
+
+// UploadSession 上传会话
+type UploadSession struct {
+	UID         uint
+	VirtualPath string
+}
+
+func init() {
+	gob.Register(UploadSession{})
 }
 
 // DecodeUploadPolicy 反序列化Header中携带的上传策略
-// TODO 测试
 func DecodeUploadPolicy(raw string) (*UploadPolicy, error) {
 	var res UploadPolicy
 
@@ -32,4 +47,17 @@ func DecodeUploadPolicy(raw string) (*UploadPolicy, error) {
 	}
 
 	return &res, err
+}
+
+// EncodeUploadPolicy 序列化Header中携带的上传策略
+// TODO 测试
+func (policy *UploadPolicy) EncodeUploadPolicy() (string, error) {
+	jsonRes, err := json.Marshal(policy)
+	if err != nil {
+		return "", err
+	}
+
+	res := base64.StdEncoding.EncodeToString(jsonRes)
+	return res, nil
+
 }

@@ -33,10 +33,10 @@ func TestDecodeUploadPolicy(t *testing.T) {
 			&UploadPolicy{},
 		},
 		{
-			"eyJjYWxsYmFja19rZXkiOiJ0ZXN0In0=",
+			"eyJjYWxsYmFja191cmwiOiJ0ZXN0In0=",
 			false,
 			false,
-			&UploadPolicy{CallbackKey: "test"},
+			&UploadPolicy{CallbackURL: "test"},
 		},
 	}
 
@@ -52,4 +52,12 @@ func TestDecodeUploadPolicy(t *testing.T) {
 			asserts.Equal(testCase.expectRes, res)
 		}
 	}
+}
+
+func TestUploadPolicy_EncodeUploadPolicy(t *testing.T) {
+	asserts := assert.New(t)
+	testPolicy := UploadPolicy{}
+	res, err := testPolicy.EncodeUploadPolicy()
+	asserts.NoError(err)
+	asserts.NotEmpty(res)
 }

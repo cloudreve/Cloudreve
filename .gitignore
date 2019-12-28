@@ -21,4 +21,4 @@ version.lock
 
 # Config file
 *.ini
-/conf/conf.ini
+conf/conf.ini

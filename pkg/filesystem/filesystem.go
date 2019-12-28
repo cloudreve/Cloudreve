@@ -5,7 +5,9 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/url"
@@ -39,6 +41,9 @@ type Handler interface {
 	// url - 站点本身地址,
 	// isDownload - 是否直接下载
 	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool) (string, error)
+
+	// Token 获取有效期为ttl的上传凭证和签名，同时回调会话有效期为sessionTTL
+	Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error)
 }
 
 // FileSystem 管理文件的文件系统
@@ -121,6 +126,11 @@ func (fs *FileSystem) dispatchHandler() error {
 	switch policyType {
 	case "local":
 		fs.Handler = local.Handler{
+			Policy: currentPolicy,
+		}
+		return nil
+	case "remote":
+		fs.Handler = remote.Handler{
 			Policy: currentPolicy,
 		}
 		return nil

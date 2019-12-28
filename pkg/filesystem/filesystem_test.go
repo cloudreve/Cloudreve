@@ -4,6 +4,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
@@ -19,9 +20,17 @@ func TestNewFileSystem(t *testing.T) {
 		},
 	}
 
+	// 本地 成功
 	fs, err := NewFileSystem(&user)
 	asserts.NoError(err)
 	asserts.NotNil(fs.Handler)
+	asserts.IsType(local.Handler{}, fs.Handler)
+	// 远程
+	user.Policy.Type = "remote"
+	fs, err = NewFileSystem(&user)
+	asserts.NoError(err)
+	asserts.NotNil(fs.Handler)
+	asserts.IsType(remote.Handler{}, fs.Handler)
 
 	user.Policy.Type = "unknown"
 	fs, err = NewFileSystem(&user)
