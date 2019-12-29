@@ -142,12 +142,14 @@ func (handler Handler) Source(
 
 		// 签名生成文件记录
 		signedURI, err = auth.SignURI(
+			auth.General,
 			fmt.Sprintf("/api/v3/file/download/%s", downloadSessionID),
 			expires,
 		)
 	} else {
 		// 签名生成文件记录
 		signedURI, err = auth.SignURI(
+			auth.General,
 			fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
 			expires,
 		)

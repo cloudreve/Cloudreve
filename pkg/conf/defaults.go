@@ -41,7 +41,7 @@ var CORSConfig = &cors{
 	AllowOrigins:     []string{"UNSET"},
 	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
 	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
-	AllowCredentials: true,
+	AllowCredentials: false,
 	ExposeHeaders:    nil,
 }
 

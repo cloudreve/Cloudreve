@@ -16,7 +16,7 @@ func TestSignURI(t *testing.T) {
 
 	// 成功
 	{
-		sign, err := SignURI("/api/v3/something?id=1", 0)
+		sign, err := SignURI(General, "/api/v3/something?id=1", 0)
 		asserts.NoError(err)
 		queries := sign.Query()
 		asserts.Equal("1", queries.Get("id"))
@@ -25,7 +25,7 @@ func TestSignURI(t *testing.T) {
 
 	// URI解码失败
 	{
-		sign, err := SignURI("://dg.;'f]gh./'", 0)
+		sign, err := SignURI(General, "://dg.;'f]gh./'", 0)
 		asserts.Error(err)
 		asserts.Nil(sign)
 	}
@@ -37,16 +37,16 @@ func TestCheckURI(t *testing.T) {
 
 	// 成功
 	{
-		sign, err := SignURI("/api/ok?if=sdf&fd=go", time.Now().Unix()+10)
+		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", time.Now().Unix()+10)
 		asserts.NoError(err)
-		asserts.NoError(CheckURI(sign))
+		asserts.NoError(CheckURI(General, sign))
 	}
 
 	// 过期
 	{
-		sign, err := SignURI("/api/ok?if=sdf&fd=go", time.Now().Unix()-1)
+		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", time.Now().Unix()-1)
 		asserts.NoError(err)
-		asserts.Error(CheckURI(sign))
+		asserts.Error(CheckURI(General, sign))
 	}
 }
 
@@ -58,7 +58,7 @@ func TestSignRequest(t *testing.T) {
 	{
 		req, err := http.NewRequest("POST", "http://127.0.0.1/api/v3/slave/upload", strings.NewReader("I am body."))
 		asserts.NoError(err)
-		req = SignRequest(req, 0)
+		req = SignRequest(General, req, 0)
 		asserts.NotEmpty(req.Header["Authorization"])
 	}
 
@@ -71,7 +71,7 @@ func TestSignRequest(t *testing.T) {
 		)
 		asserts.NoError(err)
 		req.Header["X-Policy"] = []string{"I am Policy"}
-		req = SignRequest(req, 10)
+		req = SignRequest(General, req, 10)
 		asserts.NotEmpty(req.Header["Authorization"])
 	}
 }
@@ -88,8 +88,8 @@ func TestCheckRequest(t *testing.T) {
 			strings.NewReader("I am body."),
 		)
 		asserts.NoError(err)
-		req = SignRequest(req, 0)
-		err = CheckRequest(req)
+		req = SignRequest(General, req, 0)
+		err = CheckRequest(General, req)
 		asserts.NoError(err)
 	}
 
@@ -102,8 +102,8 @@ func TestCheckRequest(t *testing.T) {
 		)
 		asserts.NoError(err)
 		req.Header["X-Policy"] = []string{"I am Policy"}
-		req = SignRequest(req, 0)
-		err = CheckRequest(req)
+		req = SignRequest(General, req, 0)
+		err = CheckRequest(General, req)
 		asserts.NoError(err)
 	}
 
@@ -115,9 +115,9 @@ func TestCheckRequest(t *testing.T) {
 			strings.NewReader("I am body."),
 		)
 		asserts.NoError(err)
-		req = SignRequest(req, 0)
+		req = SignRequest(General, req, 0)
 		req.Body = ioutil.NopCloser(strings.NewReader("2333"))
-		err = CheckRequest(req)
+		err = CheckRequest(General, req)
 		asserts.Error(err)
 	}
 }

@@ -79,7 +79,8 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 	uploadRequest.Header = map[string][]string{
 		"X-Policy": {policyEncoded},
 	}
-	auth.SignRequest(uploadRequest, time.Now().Unix()+TTL)
+	remoteAuth := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
+	auth.SignRequest(remoteAuth, uploadRequest, time.Now().Unix()+TTL)
 
 	if credential, ok := uploadRequest.Header["Authorization"]; ok && len(credential) == 1 {
 		return serializer.UploadCredential{

@@ -66,6 +66,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 		ttl = 30
 	}
 	signedURI, err := auth.SignURI(
+		auth.General,
 		fmt.Sprintf("/api/v3/file/archive/%s/archive.zip", zipID),
 		time.Now().Unix()+int64(ttl),
 	)

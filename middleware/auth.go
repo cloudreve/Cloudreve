@@ -15,11 +15,11 @@ func SignRequired() gin.HandlerFunc {
 		var err error
 		switch c.Request.Method {
 		case "PUT", "POST":
-			err = auth.CheckRequest(c.Request)
+			err = auth.CheckRequest(auth.General, c.Request)
 			// TODO 生产环境去掉下一行
-			err = nil
+			//err = nil
 		default:
-			err = auth.CheckURI(c.Request.URL)
+			err = auth.CheckURI(auth.General, c.Request.URL)
 		}
 
 		if err != nil {

@@ -31,9 +31,9 @@ type Auth interface {
 // SignRequest 对PUT\POST等复杂HTTP请求签名，如果请求Header中
 // 包含 X-Policy， 则此请求会被认定为上传请求，只会对URI部分和
 // Policy部分进行签名。其他请求则会对URI和Body部分进行签名。
-func SignRequest(r *http.Request, expires int64) *http.Request {
+func SignRequest(instance Auth, r *http.Request, expires int64) *http.Request {
 	// 生成签名
-	sign := General.Sign(getSignContent(r), expires)
+	sign := instance.Sign(getSignContent(r), expires)
 
 	// 将签名加到请求Header中
 	r.Header["Authorization"] = []string{"Bearer " + sign}
@@ -41,7 +41,7 @@ func SignRequest(r *http.Request, expires int64) *http.Request {
 }
 
 // CheckRequest 对复杂请求进行签名验证
-func CheckRequest(r *http.Request) error {
+func CheckRequest(instance Auth, r *http.Request) error {
 	var (
 		sign []string
 		ok   bool
@@ -51,7 +51,7 @@ func CheckRequest(r *http.Request) error {
 	}
 	sign[0] = strings.TrimPrefix(sign[0], "Bearer ")
 
-	return General.Check(getSignContent(r), sign[0])
+	return instance.Check(getSignContent(r), sign[0])
 }
 
 // getSignContent 根据请求Header中是否包含X-Policy判断是否为上传请求，
@@ -69,14 +69,14 @@ func getSignContent(r *http.Request) (rawSignString string) {
 }
 
 // SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
-func SignURI(uri string, expires int64) (*url.URL, error) {
+func SignURI(instance Auth, uri string, expires int64) (*url.URL, error) {
 	base, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
 	}
 
 	// 生成签名
-	sign := General.Sign(base.Path, expires)
+	sign := instance.Sign(base.Path, expires)
 
 	// 将签名加到URI中
 	queries := base.Query()
@@ -87,14 +87,14 @@ func SignURI(uri string, expires int64) (*url.URL, error) {
 }
 
 // CheckURI 对URI进行鉴权
-func CheckURI(url *url.URL) error {
+func CheckURI(instance Auth, url *url.URL) error {
 	//获取待验证的签名正文
 	queries := url.Query()
 	sign := queries.Get("sign")
 	queries.Del("sign")
 	url.RawQuery = queries.Encode()
 
-	return General.Check(url.Path, sign)
+	return instance.Check(url.Path, sign)
 }
 
 // Init 初始化通用鉴权器
