@@ -111,6 +111,7 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 	}
 
 	// 生成最终的预览器地址
+	// TODO 从配置文件中读取
 	viewerBase, _ := url.Parse("https://view.officeapps.live.com/op/view.aspx")
 	params := viewerBase.Query()
 	params.Set("src", downloadURL)

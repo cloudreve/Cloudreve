@@ -56,7 +56,6 @@ type thumb struct {
 
 // 跨域配置
 type cors struct {
-	AllowAllOrigins  bool
 	AllowOrigins     []string
 	AllowMethods     []string
 	AllowHeaders     []string

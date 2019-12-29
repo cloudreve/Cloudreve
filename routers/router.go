@@ -23,9 +23,9 @@ func InitRouter() *gin.Engine {
 // InitSlaveRouter 初始化从机模式路由
 func InitSlaveRouter() *gin.Engine {
 	r := gin.Default()
-	v3 := r.Group("/api/v3/slave")
 	// 跨域相关
-	InitCORS(v3)
+	InitCORS(r)
+	v3 := r.Group("/api/v3/slave")
 	// 鉴权中间件
 	v3.Use(middleware.SignRequired())
 
@@ -39,12 +39,11 @@ func InitSlaveRouter() *gin.Engine {
 }
 
 // InitCORS 初始化跨域配置
-func InitCORS(group *gin.RouterGroup) {
-	if conf.CORSConfig.AllowOrigins[0] != "UNSET" || conf.CORSConfig.AllowAllOrigins {
-		group.Use(cors.New(cors.Config{
+func InitCORS(router *gin.Engine) {
+	if conf.CORSConfig.AllowOrigins[0] != "UNSET" {
+		router.Use(cors.New(cors.Config{
 			AllowOrigins:     conf.CORSConfig.AllowOrigins,
-			AllowAllOrigins:  conf.CORSConfig.AllowAllOrigins,
-			AllowMethods:     conf.CORSConfig.AllowHeaders,
+			AllowMethods:     conf.CORSConfig.AllowMethods,
 			AllowHeaders:     conf.CORSConfig.AllowHeaders,
 			AllowCredentials: conf.CORSConfig.AllowCredentials,
 			ExposeHeaders:    conf.CORSConfig.ExposeHeaders,
@@ -67,7 +66,7 @@ func InitMasterRouter() *gin.Engine {
 	*/
 	v3.Use(middleware.Session(conf.SystemConfig.SessionSecret))
 	// 跨域相关
-	InitCORS(v3)
+	InitCORS(r)
 	// 测试模式加入Mock助手中间件
 	if gin.Mode() == gin.TestMode {
 		v3.Use(middleware.MockHelper())

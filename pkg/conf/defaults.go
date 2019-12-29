@@ -38,7 +38,6 @@ var CaptchaConfig = &captcha{
 
 // CORSConfig 跨域配置
 var CORSConfig = &cors{
-	AllowAllOrigins:  false,
 	AllowOrigins:     []string{"UNSET"},
 	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
 	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
