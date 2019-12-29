@@ -6,6 +6,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io/ioutil"
@@ -212,6 +213,8 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 // TODO 测试
 func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	fileHeader := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
+
 	// 构造一个model.File，用于生成缩略图
 	file := model.File{
 		Name:       fileHeader.GetFileName(),
@@ -219,9 +222,13 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 	fs.GenerateThumbnail(ctx, &file)
 
-	// TODO 发送回调请求
-
-	return nil
+	// 发送回调请求
+	callbackBody := serializer.UploadCallback{
+		Name:       file.Name,
+		SourceName: file.SourceName,
+		PicInfo:    file.PicInfo,
+	}
+	return request.RemoteCallback(policy.CallbackURL, callbackBody)
 }
 
 // GenericAfterUpload 文件上传完成后，包含数据库操作

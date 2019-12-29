@@ -22,7 +22,13 @@ type system struct {
 	Listen        string `validate:"required"`
 	Debug         bool
 	SessionSecret string
-	SlaveSecret   string `validate:"omitempty,gte=64"`
+}
+
+// slave 作为slave存储端配置
+type slave struct {
+	Secret          string `validate:"omitempty,gte=64"`
+	CallbackTimeout int    `validate:"omitempty,gte=1"`
+	SignatureTTL    int    `validate:"omitempty,gte=1"`
 }
 
 // captcha 验证码配置
@@ -82,6 +88,7 @@ func Init(path string) {
 		"Redis":     RedisConfig,
 		"Thumbnail": ThumbConfig,
 		"CORS":      CORSConfig,
+		"Slave":     SlaveConfig,
 	}
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)

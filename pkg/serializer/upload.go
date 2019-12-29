@@ -28,6 +28,13 @@ type UploadSession struct {
 	VirtualPath string
 }
 
+// UploadCallback 远程存储策略上传回调正文
+type UploadCallback struct {
+	Name       string `json:"name"`
+	SourceName string `json:"source_name"`
+	PicInfo    string `json:"pic_info"`
+}
+
 func init() {
 	gob.Register(UploadSession{})
 }

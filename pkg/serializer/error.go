@@ -70,6 +70,8 @@ const (
 	CodeInternalSetting = 50005
 	// CodeCacheOperation 缓存操作失败
 	CodeCacheOperation = 50006
+	// CodeCallbackError 回调失败
+	CodeCallbackError = 50007
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
 	// CodeNotSet 未定错误，后续尝试从error中获取
@@ -94,13 +96,13 @@ func ParamErr(msg string, err error) Response {
 
 // Err 通用错误处理
 func Err(errCode int, msg string, err error) Response {
-	// 如果错误code未定，则尝试从AppError中获取
-	if errCode == CodeNotSet {
-		if appError, ok := err.(AppError); ok {
-			errCode = appError.Code
-			err = appError.RawError
-		}
+	// 底层错误是AppError，则尝试从AppError中获取详细信息
+	if appError, ok := err.(AppError); ok {
+		errCode = appError.Code
+		err = appError.RawError
+		msg = appError.Msg
 	}
+
 	res := Response{
 		Code: errCode,
 		Msg:  msg,

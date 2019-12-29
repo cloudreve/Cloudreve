@@ -103,7 +103,7 @@ func Init() {
 	if conf.SystemConfig.Mode == "master" {
 		secretKey = model.GetSettingByName("secret_key")
 	} else {
-		secretKey = conf.SystemConfig.SlaveSecret
+		secretKey = conf.SlaveConfig.Secret
 		if secretKey == "" {
 			util.Log().Panic("未指定 SlaveSecret，请前往配置文件中指定")
 		}

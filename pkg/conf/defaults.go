@@ -40,13 +40,20 @@ var CaptchaConfig = &captcha{
 var CORSConfig = &cors{
 	AllowOrigins:     []string{"UNSET"},
 	AllowMethods:     []string{"PUT", "POST", "GET", "OPTIONS"},
-	AllowHeaders:     []string{"Cookie", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
+	AllowHeaders:     []string{"Cookie", "X-Policy", "Authorization", "Content-Length", "Content-Type", "X-Path", "X-FileName"},
 	AllowCredentials: false,
 	ExposeHeaders:    nil,
 }
 
+// ThumbConfig 缩略图配置
 var ThumbConfig = &thumb{
 	MaxWidth:   400,
 	MaxHeight:  300,
 	FileSuffix: "._thumb",
+}
+
+// SlaveConfig 从机配置
+var SlaveConfig = &slave{
+	CallbackTimeout: 20,
+	SignatureTTL:    60,
 }
