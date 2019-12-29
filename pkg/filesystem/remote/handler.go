@@ -38,7 +38,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, nil
+	return nil, errors.New("未实现")
 }
 
 // Source 获取外链URL

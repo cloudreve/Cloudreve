@@ -39,6 +39,7 @@ func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Con
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 查找打包的临时文件
 	zipPath, exist := cache.Get("archive_" + service.ID)
@@ -74,6 +75,7 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	if err != nil {
 		return serializer.Err(serializer.CodeGroupNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 查找文件
 	err = fs.SetTargetFileByIDs([]uint{service.ID})
@@ -103,6 +105,7 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "doc_preview_timeout")
@@ -130,6 +133,7 @@ func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 获取下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "download_timeout")
@@ -150,6 +154,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 查找打包的临时文件
 	file, exist := cache.Get("download_" + service.ID)
@@ -189,6 +194,7 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 获取文件流
 	rs, err := fs.GetDownloadContent(ctx, service.Path)
@@ -230,6 +236,7 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 取得现有文件
 	exist, originFile := fs.IsFileExist(service.Path)

@@ -11,7 +11,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/url"
+	"sync"
 )
+
+// FSPool 文件系统资源池
+var FSPool = sync.Pool{
+	New: func() interface{} {
+		return &FileSystem{}
+	},
+}
 
 // FileHeader 上传来的文件数据处理器
 type FileHeader interface {
@@ -77,12 +85,35 @@ type FileSystem struct {
 	Handler Handler
 }
 
+// getEmptyFS 从pool中获取新的FileSystem
+func getEmptyFS() *FileSystem {
+	fs := FSPool.Get().(*FileSystem)
+	return fs
+}
+
+// Recycle 回收FileSystem资源
+func (fs *FileSystem) Recycle() {
+	fs.reset()
+	FSPool.Put(fs)
+}
+
+// reset 重设文件系统，以便回收使用
+func (fs *FileSystem) reset() {
+	fs.User = nil
+	fs.CleanTargets()
+	fs.Policy = nil
+	fs.BeforeUpload = fs.BeforeUpload[:0]
+	fs.AfterUpload = fs.AfterUpload[:0]
+	fs.AfterValidateFailed = fs.AfterValidateFailed[:0]
+	fs.AfterUploadCanceled = fs.AfterUploadCanceled[:0]
+	fs.BeforeFileDownload = fs.BeforeFileDownload[:0]
+	fs.Handler = nil
+}
+
 // NewFileSystem 初始化一个文件系统
 func NewFileSystem(user *model.User) (*FileSystem, error) {
-	fs := &FileSystem{
-		User: user,
-	}
-
+	fs := getEmptyFS()
+	fs.User = user
 	// 分配存储策略适配器
 	err := fs.dispatchHandler()
 
@@ -92,9 +123,8 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 
 // NewAnonymousFileSystem 初始化匿名文件系统
 func NewAnonymousFileSystem() (*FileSystem, error) {
-	fs := &FileSystem{
-		User: &model.User{},
-	}
+	fs := getEmptyFS()
+	fs.User = &model.User{}
 
 	// 如果是主机模式下，则为匿名文件系统分配游客用户组
 	if conf.SystemConfig.Mode == "master" {
@@ -182,6 +212,6 @@ func (fs *FileSystem) SetTargetFileByIDs(ids []uint) error {
 
 // CleanTargets 清空目标
 func (fs *FileSystem) CleanTargets() {
-	fs.FileTarget = []model.File{}
-	fs.DirTarget = []model.Folder{}
+	fs.FileTarget = fs.FileTarget[:0]
+	fs.DirTarget = fs.DirTarget[:0]
 }

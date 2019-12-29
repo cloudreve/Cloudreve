@@ -19,6 +19,7 @@ func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Respon
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -43,9 +44,12 @@ func (service *DirectoryService) CreateDirectory(c *gin.Context) serializer.Resp
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
+
 	// 上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	// 创建目录
 	err = fs.CreateDirectory(ctx, service.Path)
 	if err != nil {

@@ -42,6 +42,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 检查用户组权限
 	if !fs.User.Group.OptionsSerialized.ArchiveDownloadEnabled {
@@ -91,6 +92,7 @@ func (service *ItemService) Delete(ctx context.Context, c *gin.Context) serializ
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 删除对象
 	err = fs.Delete(ctx, service.Dirs, service.Items)
@@ -111,6 +113,7 @@ func (service *ItemMoveService) Move(ctx context.Context, c *gin.Context) serial
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 移动对象
 	err = fs.Move(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
@@ -136,6 +139,7 @@ func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serial
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 复制对象
 	err = fs.Copy(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
@@ -161,6 +165,7 @@ func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) se
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
 	// 重命名对象
 	err = fs.Rename(ctx, service.Src.Dirs, service.Src.Items, service.NewName)

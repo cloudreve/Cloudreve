@@ -24,6 +24,7 @@ func SlaveUpload(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return
 	}
+	defer fs.Recycle()
 	fs.Handler = local.Handler{}
 
 	// 从请求中取得上传策略
