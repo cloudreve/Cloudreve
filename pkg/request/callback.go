@@ -19,7 +19,7 @@ func RemoteCallback(url string, body serializer.UploadCallback) error {
 		return serializer.NewError(serializer.CodeCallbackError, "无法编码回调正文", err)
 	}
 
-	resp := generalClient.Request(
+	resp := GeneralClient.Request(
 		"POST",
 		url,
 		bytes.NewReader(callbackBody),

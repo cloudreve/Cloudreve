@@ -33,7 +33,7 @@ func TestRemoteCallback(t *testing.T) {
 				Body:       ioutil.NopCloser(bytes.NewReader(mockResp)),
 			},
 		})
-		generalClient = clientMock
+		GeneralClient = clientMock
 		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
@@ -58,7 +58,7 @@ func TestRemoteCallback(t *testing.T) {
 				Body:       ioutil.NopCloser(bytes.NewReader(mockResp)),
 			},
 		})
-		generalClient = clientMock
+		GeneralClient = clientMock
 		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
@@ -82,7 +82,7 @@ func TestRemoteCallback(t *testing.T) {
 				Body:       ioutil.NopCloser(strings.NewReader("mockResp")),
 			},
 		})
-		generalClient = clientMock
+		GeneralClient = clientMock
 		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
@@ -106,7 +106,7 @@ func TestRemoteCallback(t *testing.T) {
 				Body:       ioutil.NopCloser(strings.NewReader("mockResp")),
 			},
 		})
-		generalClient = clientMock
+		GeneralClient = clientMock
 		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
@@ -126,7 +126,7 @@ func TestRemoteCallback(t *testing.T) {
 		).Return(Response{
 			Err: errors.New("error"),
 		})
-		generalClient = clientMock
+		GeneralClient = clientMock
 		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})

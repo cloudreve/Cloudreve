@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var generalClient Client = HTTPClient{}
+var GeneralClient Client = HTTPClient{}
 
 // Response 请求的响应或错误信息
 type Response struct {

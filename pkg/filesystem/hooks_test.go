@@ -9,11 +9,16 @@ import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -539,4 +544,52 @@ func TestHookSlaveUploadValidate(t *testing.T) {
 		asserts.Equal(ErrFileExtensionNotAllowed, HookSlaveUploadValidate(ctx, fs))
 	}
 
+}
+
+type ClientMock struct {
+	testMock.Mock
+}
+
+func (m ClientMock) Request(method, target string, body io.Reader, opts ...request.Option) request.Response {
+	args := m.Called(method, target, body, opts)
+	return args.Get(0).(request.Response)
+}
+
+func TestSlaveAfterUpload(t *testing.T) {
+	asserts := assert.New(t)
+	conf.SystemConfig.Mode = "slave"
+	fs, err := NewAnonymousFileSystem()
+	conf.SystemConfig.Mode = "master"
+	asserts.NoError(err)
+
+	// 成功
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test/callbakc",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
+			},
+		})
+		request.GeneralClient = clientMock
+		ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+			Size:        10,
+			VirtualPath: "/my",
+			Name:        "test.txt",
+		})
+		ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, serializer.UploadPolicy{
+			CallbackURL: "http://test/callbakc",
+		})
+		ctx = context.WithValue(ctx, fsctx.SavePathCtx, "/not_exist")
+		err := SlaveAfterUpload(ctx, fs)
+		clientMock.AssertExpectations(t)
+		asserts.NoError(err)
+	}
 }
