@@ -208,7 +208,6 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 }
 
 // SlaveAfterUpload Slave模式下上传完成钩子
-// TODO 测试
 func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	fileHeader := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
@@ -225,6 +224,7 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 		Name:       file.Name,
 		SourceName: file.SourceName,
 		PicInfo:    file.PicInfo,
+		Size:       fileHeader.GetSize(),
 	}
 	return request.RemoteCallback(policy.CallbackURL, callbackBody)
 }

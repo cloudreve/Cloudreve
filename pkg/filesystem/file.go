@@ -43,6 +43,12 @@ func (fs *FileSystem) withSpeedLimit(rs response.RSCloser) response.RSCloser {
 
 // AddFile 新增文件记录
 func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model.File, error) {
+	// 添加文件记录前的钩子
+	err := fs.Trigger(ctx, "BeforeAddFile")
+	if err != nil {
+		return nil, err
+	}
+
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
 	filePath := ctx.Value(fsctx.SavePathCtx).(string)
 
@@ -54,10 +60,13 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 		FolderID:   parent.ID,
 		PolicyID:   fs.User.Policy.ID,
 	}
-	_, err := newFile.Create()
+	_, err = newFile.Create()
 
 	if err != nil {
-		return nil, err
+		if err := fs.Trigger(ctx, "AfterValidateFailed"); err != nil {
+			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", err)
+		}
+		return nil, ErrFileExisted.WithError(err)
 	}
 
 	return &newFile, nil

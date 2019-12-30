@@ -34,6 +34,7 @@ type RemoteUploadCallback struct {
 	Name       string `json:"name"`
 	SourceName string `json:"source_name"`
 	PicInfo    string `json:"pic_info"`
+	Size       uint64 `json:"size"`
 }
 
 func init() {

@@ -44,10 +44,7 @@ func (fs *FileSystem) ValidateFileSize(ctx context.Context, size uint64) bool {
 
 // ValidateCapacity 验证并扣除用户容量
 func (fs *FileSystem) ValidateCapacity(ctx context.Context, size uint64) bool {
-	if fs.User.IncreaseStorage(size) {
-		return true
-	}
-	return false
+	return fs.User.IncreaseStorage(size)
 }
 
 // ValidateExtension 验证文件扩展名
