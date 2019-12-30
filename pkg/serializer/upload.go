@@ -25,11 +25,12 @@ type UploadCredential struct {
 // UploadSession 上传会话
 type UploadSession struct {
 	UID         uint
+	PolicyID    uint
 	VirtualPath string
 }
 
-// UploadCallback 远程存储策略上传回调正文
-type UploadCallback struct {
+// RemoteUploadCallback 远程存储策略上传回调正文
+type RemoteUploadCallback struct {
 	Name       string `json:"name"`
 	SourceName string `json:"source_name"`
 	PicInfo    string `json:"pic_info"`

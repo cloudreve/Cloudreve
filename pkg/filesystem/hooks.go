@@ -18,28 +18,26 @@ type Hook func(ctx context.Context, fs *FileSystem) error
 
 // Use 注入钩子
 func (fs *FileSystem) Use(name string, hook Hook) {
-	switch name {
-	case "BeforeUpload":
-		fs.BeforeUpload = append(fs.BeforeUpload, hook)
-	case "AfterUpload":
-		fs.AfterUpload = append(fs.AfterUpload, hook)
-	case "AfterValidateFailed":
-		fs.AfterValidateFailed = append(fs.AfterValidateFailed, hook)
-	case "AfterUploadCanceled":
-		fs.AfterUploadCanceled = append(fs.AfterUploadCanceled, hook)
-	case "BeforeFileDownload":
-		fs.BeforeFileDownload = append(fs.BeforeFileDownload, hook)
+	if fs.Hooks == nil {
+		fs.Hooks = make(map[string][]Hook)
 	}
+	if _, ok := fs.Hooks[name]; ok {
+		fs.Hooks[name] = append(fs.Hooks[name], hook)
+		return
+	}
+	fs.Hooks[name] = []Hook{hook}
 }
 
 // Trigger 触发钩子,遇到第一个错误时
 // 返回错误，后续钩子不会继续执行
-func (fs *FileSystem) Trigger(ctx context.Context, hooks []Hook) error {
-	for _, hook := range hooks {
-		err := hook(ctx, fs)
-		if err != nil {
-			util.Log().Warning("钩子执行失败：%s", err)
-			return err
+func (fs *FileSystem) Trigger(ctx context.Context, name string) error {
+	if hooks, ok := fs.Hooks[name]; ok {
+		for _, hook := range hooks {
+			err := hook(ctx, fs)
+			if err != nil {
+				util.Log().Warning("钩子执行失败：%s", err)
+				return err
+			}
 		}
 	}
 	return nil
@@ -223,7 +221,7 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	fs.GenerateThumbnail(ctx, &file)
 
 	// 发送回调请求
-	callbackBody := serializer.UploadCallback{
+	callbackBody := serializer.RemoteUploadCallback{
 		Name:       file.Name,
 		SourceName: file.SourceName,
 		PicInfo:    file.PicInfo,

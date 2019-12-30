@@ -57,7 +57,7 @@ func (handler Handler) Source(
 func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/upload/" + key)
+	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 生成上传策略

@@ -183,11 +183,11 @@ func TestFileSystem_Use(t *testing.T) {
 
 	// 添加一个
 	fs.Use("BeforeUpload", hook)
-	asserts.Len(fs.BeforeUpload, 1)
+	asserts.Len(fs.Hooks["BeforeUpload"], 1)
 
 	// 添加一个
 	fs.Use("BeforeUpload", hook)
-	asserts.Len(fs.BeforeUpload, 2)
+	asserts.Len(fs.Hooks["BeforeUpload"], 2)
 
 	// 不存在
 	fs.Use("BeforeUpload2333", hook)
@@ -219,14 +219,14 @@ func TestFileSystem_Trigger(t *testing.T) {
 
 	// 一个
 	fs.Use("BeforeUpload", hook)
-	err := fs.Trigger(ctx, fs.BeforeUpload)
+	err := fs.Trigger(ctx, "BeforeUpload")
 	asserts.NoError(err)
 	asserts.Equal(uint64(1), fs.User.Storage)
 
 	// 多个
 	fs.Use("BeforeUpload", hook)
 	fs.Use("BeforeUpload", hook)
-	err = fs.Trigger(ctx, fs.BeforeUpload)
+	err = fs.Trigger(ctx, "BeforeUpload")
 	asserts.NoError(err)
 	asserts.Equal(uint64(4), fs.User.Storage)
 }

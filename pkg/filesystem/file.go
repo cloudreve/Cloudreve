@@ -94,7 +94,7 @@ func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (resp
 // GetContent 获取文件内容，path为虚拟路径
 func (fs *FileSystem) GetContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 触发`下载前`钩子
-	err := fs.Trigger(ctx, fs.BeforeFileDownload)
+	err := fs.Trigger(ctx, "BeforeFileDownload")
 	if err != nil {
 		util.Log().Debug("BeforeFileDownload 钩子执行失败，%s", err)
 		return nil, err

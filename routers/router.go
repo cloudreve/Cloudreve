@@ -114,6 +114,17 @@ func InitMasterRouter() *gin.Engine {
 			}
 		}
 
+		// 回调接口
+		callback := v3.Group("callback")
+		{
+			// 远程上传回调
+			callback.POST(
+				"remote/:key",
+				middleware.RemoteCallbackAuth(),
+				controllers.RemoteCallback,
+			)
+		}
+
 		// 需要登录保护的
 		auth := v3.Group("")
 		auth.Use(middleware.AuthRequired())

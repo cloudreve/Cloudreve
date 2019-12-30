@@ -22,7 +22,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 
 	// 上传前的钩子
-	err = fs.Trigger(ctx, fs.BeforeUpload)
+	err = fs.Trigger(ctx, "BeforeUpload")
 	if err != nil {
 		return err
 	}
@@ -47,11 +47,11 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	}
 
 	// 上传完成后的钩子
-	err = fs.Trigger(ctx, fs.AfterUpload)
+	err = fs.Trigger(ctx, "AfterUpload")
 
 	if err != nil {
 		// 上传完成后续处理失败
-		followUpErr := fs.Trigger(ctx, fs.AfterValidateFailed)
+		followUpErr := fs.Trigger(ctx, "AfterValidateFailed")
 		// 失败后再失败...
 		if followUpErr != nil {
 			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", followUpErr)
@@ -125,11 +125,11 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 		default:
 			// 客户端取消上传，删除临时文件
 			util.Log().Debug("客户端取消上传")
-			if fs.AfterUploadCanceled == nil {
+			if fs.Hooks["AfterUploadCanceled"] == nil {
 				return
 			}
 			ctx = context.WithValue(ctx, fsctx.SavePathCtx, path)
-			err := fs.Trigger(ctx, fs.AfterUploadCanceled)
+			err := fs.Trigger(ctx, "AfterUploadCanceled")
 			if err != nil {
 				util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
 			}
@@ -176,6 +176,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 		"callback_"+callbackKey,
 		serializer.UploadSession{
 			UID:         fs.User.ID,
+			PolicyID:    fs.User.GetPolicyID(),
 			VirtualPath: path,
 		},
 		int(callBackSessionTTL),

@@ -120,7 +120,7 @@ func TestFileSystem_Upload(t *testing.T) {
 	})
 	err = fs.Upload(ctx, file)
 	asserts.Error(err)
-	fs.BeforeUpload = nil
+	fs.Hooks["BeforeUpload"] = nil
 	testHandller.AssertExpectations(t)
 
 	// 上传文件失败

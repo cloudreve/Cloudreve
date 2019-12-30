@@ -136,11 +136,11 @@ func TestNewAnonymousFileSystem(t *testing.T) {
 
 func TestFileSystem_Recycle(t *testing.T) {
 	fs := &FileSystem{
-		User:        &model.User{},
-		Policy:      &model.Policy{},
-		FileTarget:  []model.File{model.File{}},
-		DirTarget:   []model.Folder{model.Folder{}},
-		AfterUpload: []Hook{GenericAfterUpdate},
+		User:       &model.User{},
+		Policy:     &model.Policy{},
+		FileTarget: []model.File{model.File{}},
+		DirTarget:  []model.Folder{model.Folder{}},
+		Hooks:      map[string][]Hook{"AfterUpload": []Hook{GenericAfterUpdate}},
 	}
 	fs.Recycle()
 	newFS := getEmptyFS()

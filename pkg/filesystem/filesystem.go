@@ -68,16 +68,7 @@ type FileSystem struct {
 	/*
 	   钩子函数
 	*/
-	// 上传文件前
-	BeforeUpload []Hook
-	// 上传文件后
-	AfterUpload []Hook
-	// 文件保存成功，插入数据库验证失败后
-	AfterValidateFailed []Hook
-	// 用户取消上传后
-	AfterUploadCanceled []Hook
-	// 文件下载前
-	BeforeFileDownload []Hook
+	Hooks map[string][]Hook
 
 	/*
 	   文件系统处理适配器
@@ -102,11 +93,7 @@ func (fs *FileSystem) reset() {
 	fs.User = nil
 	fs.CleanTargets()
 	fs.Policy = nil
-	fs.BeforeUpload = fs.BeforeUpload[:0]
-	fs.AfterUpload = fs.AfterUpload[:0]
-	fs.AfterValidateFailed = fs.AfterValidateFailed[:0]
-	fs.AfterUploadCanceled = fs.AfterUploadCanceled[:0]
-	fs.BeforeFileDownload = fs.BeforeFileDownload[:0]
+	fs.Hooks = nil
 	fs.Handler = nil
 }
 
