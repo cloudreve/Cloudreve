@@ -60,9 +60,12 @@ func getSignContent(r *http.Request) (rawSignString string) {
 	if policy, ok := r.Header["X-Policy"]; ok {
 		rawSignString = serializer.NewRequestSignString(r.URL.Path, policy[0], "")
 	} else {
-		body, _ := ioutil.ReadAll(r.Body)
-		_ = r.Body.Close()
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		var body = []byte{}
+		if r.Body != nil {
+			body, _ = ioutil.ReadAll(r.Body)
+			_ = r.Body.Close()
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		}
 		rawSignString = serializer.NewRequestSignString(r.URL.Path, "", string(body))
 	}
 	return rawSignString

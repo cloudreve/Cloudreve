@@ -177,7 +177,9 @@ func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 // AfterFind 找到用户后的钩子
 func (user *User) AfterFind() (err error) {
 	// 解析用户设置到OptionsSerialized
-	err = json.Unmarshal([]byte(user.Options), &user.OptionsSerialized)
+	if user.Options != "" {
+		err = json.Unmarshal([]byte(user.Options), &user.OptionsSerialized)
+	}
 
 	// 预加载存储策略
 	user.Policy, _ = GetPolicyByID(user.GetPolicyID())
