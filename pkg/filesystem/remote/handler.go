@@ -52,6 +52,7 @@ func (handler Handler) Source(
 	baseURL url.URL,
 	ttl int64,
 	isDownload bool,
+	speed int,
 ) (string, error) {
 	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {
@@ -80,7 +81,7 @@ func (handler Handler) Source(
 	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
 	signedURI, err = auth.SignURI(
 		authInstance,
-		fmt.Sprintf("%s/%s", controller, sourcePath),
+		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, file.Name),
 		expires,
 	)
 

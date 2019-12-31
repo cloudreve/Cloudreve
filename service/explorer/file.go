@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	"encoding/base64"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
@@ -9,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 	"net/http"
 	"net/url"
 	"path"
@@ -30,6 +32,13 @@ type FileAnonymousGetService struct {
 // DownloadService 文件下載服务
 type DownloadService struct {
 	ID string `uri:"id" binding:"required"`
+}
+
+// SlaveDownloadService 从机文件下載服务
+type SlaveDownloadService struct {
+	PathEncoded string `uri:"path" binding:"required"`
+	Name        string `uri:"name" binding:"required"`
+	Speed       int    `uri:"speed" binding:"min=0"`
 }
 
 // DownloadArchived 下載已打包的多文件
@@ -166,10 +175,10 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	// 开始处理下载
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	rs, err := fs.GetDownloadContent(ctx, "")
-	defer rs.Close()
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
+	defer rs.Close()
 
 	// 设置文件名
 	c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
@@ -273,6 +282,56 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
 	}
+
+	return serializer.Response{
+		Code: 0,
+	}
+}
+
+// ServeFile 通过签名URL的文件下载从机文件
+func (service *SlaveDownloadService) ServeFile(ctx context.Context, c *gin.Context, isDownload bool) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 解码文件路径
+	fileSource, err := base64.RawURLEncoding.DecodeString(service.PathEncoded)
+	if err != nil {
+		return serializer.ParamErr("无法解析的文件地址", err)
+	}
+
+	// 根据URL里的信息创建一个文件对象和用户对象
+	file := model.File{
+		Name:       service.Name,
+		SourceName: string(fileSource),
+		Policy: model.Policy{
+			Model: gorm.Model{ID: 1},
+			Type:  "local",
+		},
+	}
+	fs.User = &model.User{
+		Group: model.Group{SpeedLimit: service.Speed},
+	}
+	fs.FileTarget = []model.File{file}
+
+	// 开始处理下载
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
+	rs, err := fs.GetDownloadContent(ctx, "")
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+	defer rs.Close()
+
+	// 设置下载文件名
+	if isDownload {
+		c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
+	}
+
+	// 发送文件
+	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, time.Now(), rs)
 
 	return serializer.Response{
 		Code: 0,

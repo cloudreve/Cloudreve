@@ -48,7 +48,7 @@ type Handler interface {
 	// 获取外链/下载地址，
 	// url - 站点本身地址,
 	// isDownload - 是否直接下载
-	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool) (string, error)
+	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error)
 
 	// Token 获取有效期为ttl的上传凭证和签名，同时回调会话有效期为sessionTTL
 	Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error)

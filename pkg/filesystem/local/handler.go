@@ -117,6 +117,7 @@ func (handler Handler) Source(
 	baseURL url.URL,
 	ttl int64,
 	isDownload bool,
+	speed int,
 ) (string, error) {
 	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {

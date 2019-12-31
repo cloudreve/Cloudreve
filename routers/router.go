@@ -33,7 +33,12 @@ func InitSlaveRouter() *gin.Engine {
 		路由
 	*/
 	{
+		// 上传
 		v3.POST("upload", controllers.SlaveUpload)
+		// 下载
+		v3.GET("download/:speed/:path/:name", controllers.SlaveDownload)
+		// 预览 / 外链
+		v3.GET("source/:speed/:path/:name", controllers.SlavePreview)
 	}
 	return r
 }
