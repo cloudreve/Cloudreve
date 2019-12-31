@@ -196,14 +196,24 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	}
 	defer fs.Recycle()
 
-	// 获取文件流
-	rs, err := fs.GetDownloadContent(ctx, service.Path)
+	// 获取文件预览响应
+	resp, err := fs.Preview(ctx, service.Path)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
-	defer rs.Close()
 
-	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, rs)
+	// 重定向到文件源
+	if resp.Redirect {
+		return serializer.Response{
+			Code: -301,
+			Data: resp.URL,
+		}
+	}
+
+	// 直接返回文件内容
+	defer resp.Content.Close()
+
+	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, resp.Content)
 
 	return serializer.Response{
 		Code: 0,

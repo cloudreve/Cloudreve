@@ -87,6 +87,48 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 	return fs.withSpeedLimit(rs), nil
 }
 
+// Preview 预览文件
+// TODO 测试
+func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.ContentResponse, error) {
+	err := fs.resetFileIfNotExist(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// 是否直接返回文件内容
+	if fs.Policy.IsDirectlyPreview() {
+		resp, err := fs.GetDownloadContent(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+		return &response.ContentResponse{
+			Redirect: false,
+			Content:  resp,
+		}, nil
+	}
+	// 否则重定向到签名的预览URL
+	ttl, err := strconv.ParseInt(model.GetSettingByName("preview_timeout"), 10, 64)
+	if err != nil {
+		return nil,
+			serializer.NewError(
+				serializer.CodeInternalSetting,
+				"无法获取预览地址有效期设定",
+				err,
+			)
+	}
+
+	previewURL, err := fs.signURL(ctx, &fs.FileTarget[0], ttl, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      previewURL,
+	}, nil
+
+}
+
 // GetDownloadContent 获取用于下载的文件流
 func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 获取原始文件流
@@ -109,22 +151,11 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (response.RSC
 		return nil, err
 	}
 
-	// 找到文件
-	if len(fs.FileTarget) == 0 {
-		exist, file := fs.IsFileExist(path)
-		if !exist {
-			return nil, ErrObjectNotExist
-		}
-		fs.FileTarget = []model.File{*file}
-	}
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
-
-	// 将当前存储策略重设为文件使用的
-	fs.Policy = fs.FileTarget[0].GetPolicy()
-	err = fs.dispatchHandler()
+	err = fs.resetFileIfNotExist(ctx, path)
 	if err != nil {
 		return nil, err
 	}
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
 
 	// 获取文件流
 	rs, err := fs.Handler.Get(ctx, fs.FileTarget[0].SourceName)
@@ -186,17 +217,11 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 
 // GetDownloadURL 创建文件下载链接, timeout 为数据库中存储过期时间的字段
 func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout string) (string, error) {
-	var fileTarget *model.File
-	// 找到文件
-	if len(fs.FileTarget) == 0 {
-		exist, file := fs.IsFileExist(path)
-		if !exist {
-			return "", ErrObjectNotExist
-		}
-		fileTarget = file
-	} else {
-		fileTarget = &fs.FileTarget[0]
+	err := fs.resetFileIfNotExist(ctx, path)
+	if err != nil {
+		return "", err
 	}
+	fileTarget := &fs.FileTarget[0]
 
 	// 生成下載地址
 	ttl, err := strconv.ParseInt(model.GetSettingByName(timeout), 10, 64)
@@ -251,9 +276,7 @@ func (fs *FileSystem) signURL(ctx context.Context, file *model.File, ttl int64, 
 	fs.FileTarget = []model.File{*file}
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, *file)
 
-	// 将当前存储策略重设为文件使用的
-	fs.Policy = file.GetPolicy()
-	err := fs.dispatchHandler()
+	err := fs.resetPolicyToFirstFile(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -267,4 +290,32 @@ func (fs *FileSystem) signURL(ctx context.Context, file *model.File, ttl int64, 
 	}
 
 	return source, nil
+}
+
+// resetFileIfNotExist 重设当前目标文件为 path，如果当前目标为空
+func (fs *FileSystem) resetFileIfNotExist(ctx context.Context, path string) error {
+	// 找到文件
+	if len(fs.FileTarget) == 0 {
+		exist, file := fs.IsFileExist(path)
+		if !exist {
+			return ErrObjectNotExist
+		}
+		fs.FileTarget = []model.File{*file}
+	}
+
+	// 将当前存储策略重设为文件使用的
+	return fs.resetPolicyToFirstFile(ctx)
+}
+
+// resetPolicyToFirstFile 将当前存储策略重设为第一个目标文件文件使用的
+func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
+	if len(fs.FileTarget) == 0 {
+		return ErrObjectNotExist
+	}
+	fs.Policy = fs.FileTarget[0].GetPolicy()
+	err := fs.dispatchHandler()
+	if err != nil {
+		return err
+	}
+	return nil
 }

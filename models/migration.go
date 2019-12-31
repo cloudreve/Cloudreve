@@ -102,6 +102,7 @@ solid #e9e9e9;"bgcolor="#fff"><tbody><tr style="font-family: 'Helvetica Neue',He
 		{Name: "oss_timeout", Value: `3600`, Type: "timeout"},
 		{Name: "archive_timeout", Value: `30`, Type: "timeout"},
 		{Name: "download_timeout", Value: `30`, Type: "timeout"},
+		{Name: "preview_timeout", Value: `60`, Type: "timeout"},
 		{Name: "doc_preview_timeout", Value: `60`, Type: "timeout"},
 		{Name: "upload_credential_timeout", Value: `1800`, Type: "timeout"},
 		{Name: "upload_session_timeout", Value: `86400`, Type: "timeout"},

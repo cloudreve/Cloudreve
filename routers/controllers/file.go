@@ -151,7 +151,9 @@ func Preview(c *gin.Context) {
 		// 是否需要重定向
 		if res.Code == -301 {
 			c.Redirect(301, res.Data.(string))
+			return
 		}
+		// 是否有错误发生
 		if res.Code != 0 {
 			c.JSON(200, res)
 		}

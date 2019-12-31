@@ -3,9 +3,12 @@ package remote
 // TODO 测试
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"io"
@@ -42,6 +45,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
+// TODO 测试
 func (handler Handler) Source(
 	ctx context.Context,
 	path string,
@@ -49,11 +53,47 @@ func (handler Handler) Source(
 	ttl int64,
 	isDownload bool,
 ) (string, error) {
-	return "", errors.New("暂未实现")
+	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
+	if !ok {
+		return "", errors.New("无法获取文件记录上下文")
+	}
+
+	serverURL, err := url.Parse(handler.Policy.Server)
+	if err != nil {
+		return "", errors.New("无法解析远程服务端地址")
+	}
+
+	var (
+		expires    int64
+		signedURI  *url.URL
+		controller = "/api/v3/slave/download"
+	)
+	if !isDownload {
+		controller = "/api/v3/slave/source"
+	}
+	if ttl > 0 {
+		expires = time.Now().Unix() + ttl
+	}
+
+	// 签名下载地址
+	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(file.SourceName))
+	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
+	signedURI, err = auth.SignURI(
+		authInstance,
+		fmt.Sprintf("%s/%s", controller, sourcePath),
+		expires,
+	)
+
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
+	}
+
+	finalURL := serverURL.ResolveReference(signedURI).String()
+	return finalURL, nil
+
 }
 
 // Token 获取上传策略和认证Token
-// TODO 测试
 func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
