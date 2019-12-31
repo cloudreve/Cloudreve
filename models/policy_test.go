@@ -133,3 +133,11 @@ func TestPolicy_GenerateFileName(t *testing.T) {
 	testPolicy.FileNameRule = "{uid}123{originname}"
 	asserts.Equal("1123{filename}{.suffix}", testPolicy.GenerateFileName(1, ""))
 }
+
+func TestPolicy_IsDirectlyPreview(t *testing.T) {
+	asserts := assert.New(t)
+	policy := Policy{Type: "local"}
+	asserts.True(policy.IsDirectlyPreview())
+	policy.Type = "remote"
+	asserts.False(policy.IsDirectlyPreview())
+}

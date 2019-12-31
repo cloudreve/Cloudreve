@@ -68,7 +68,6 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 }
 
 // IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
-// TODO 测试
 func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
 }

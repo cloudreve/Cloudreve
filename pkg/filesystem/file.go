@@ -88,7 +88,6 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 }
 
 // Preview 预览文件
-// TODO 测试
 func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.ContentResponse, error) {
 	err := fs.resetFileIfNotExist(ctx, path)
 	if err != nil {
@@ -106,6 +105,7 @@ func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.Conte
 			Content:  resp,
 		}, nil
 	}
+
 	// 否则重定向到签名的预览URL
 	ttl, err := strconv.ParseInt(model.GetSettingByName("preview_timeout"), 10, 64)
 	if err != nil {
@@ -116,12 +116,10 @@ func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.Conte
 				err,
 			)
 	}
-
 	previewURL, err := fs.signURL(ctx, &fs.FileTarget[0], ttl, false)
 	if err != nil {
 		return nil, err
 	}
-
 	return &response.ContentResponse{
 		Redirect: true,
 		URL:      previewURL,

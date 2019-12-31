@@ -403,14 +403,14 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 			WithArgs(1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 1))
-		// 相关设置
-		mock.ExpectQuery("SELECT(.+)").WithArgs("download_timeout").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "20"))
 		// 查找上传策略
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
 					AddRow(35, "local", true),
 			)
+		// 相关设置
+		mock.ExpectQuery("SELECT(.+)").WithArgs("download_timeout").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "20"))
 		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://cloudreve.org"))
 		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
@@ -488,5 +488,107 @@ func TestFileSystem_GetPhysicalFileContent(t *testing.T) {
 		asserts.NoError(err)
 		asserts.NoError(rs.Close())
 		asserts.NotNil(rs)
+	}
+}
+
+func TestFileSystem_Preview(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+
+	// 文件不存在
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		resp, err := fs.Preview(ctx, "/1.txt")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Nil(resp)
+	}
+
+	// 直接返回文件内容,找不到文件
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		fs.FileTarget = []model.File{
+			{
+				PolicyID: 1,
+				Policy: model.Policy{
+					Model: gorm.Model{ID: 1},
+					Type:  "local",
+				},
+			},
+		}
+		resp, err := fs.Preview(ctx, "/1.txt")
+		asserts.Error(err)
+		asserts.Nil(resp)
+	}
+
+	// 直接返回文件内容
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		fs.FileTarget = []model.File{
+			{
+				SourceName: "tests/file1.txt",
+				PolicyID:   1,
+				Policy: model.Policy{
+					Model: gorm.Model{ID: 1},
+					Type:  "local",
+				},
+			},
+		}
+		resp, err := fs.Preview(ctx, "/1.txt")
+		asserts.NoError(err)
+		asserts.NotNil(resp)
+		asserts.False(resp.Redirect)
+		asserts.NoError(resp.Content.Close())
+	}
+
+	// 需要重定向，无法解析有效期设置
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		fs.FileTarget = []model.File{
+			{
+				SourceName: "tests/file1.txt",
+				PolicyID:   1,
+				Policy: model.Policy{
+					Model: gorm.Model{ID: 1},
+					Type:  "remote",
+				},
+			},
+		}
+		asserts.NoError(cache.Set("setting_preview_timeout", "test", 0))
+		resp, err := fs.Preview(ctx, "/1.txt")
+		asserts.Error(err)
+		asserts.Nil(resp)
+		asserts.Equal(serializer.CodeInternalSetting, err.(serializer.AppError).Code)
+	}
+
+	// 需要重定向，成功
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		fs.FileTarget = []model.File{
+			{
+				SourceName: "tests/file1.txt",
+				PolicyID:   1,
+				Policy: model.Policy{
+					Model: gorm.Model{ID: 1},
+					Type:  "remote",
+				},
+			},
+		}
+		asserts.NoError(cache.Set("setting_preview_timeout", "233", 0))
+		resp, err := fs.Preview(ctx, "/1.txt")
+		asserts.NoError(err)
+		asserts.NotNil(resp)
+		asserts.True(resp.Redirect)
 	}
 }
