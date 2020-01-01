@@ -69,10 +69,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 		util.Log().Warning("无法创建文件，%s", err)
 		return err
 	}
-	defer func() {
-		err := out.Close()
-		fmt.Print(err)
-	}()
+	defer out.Close()
 
 	// 写入文件内容
 	_, err = io.Copy(out, file)

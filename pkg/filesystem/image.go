@@ -52,6 +52,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	if err != nil {
 		return
 	}
+	defer source.Close()
 
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
