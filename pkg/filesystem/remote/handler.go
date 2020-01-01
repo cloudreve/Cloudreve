@@ -22,7 +22,7 @@ import (
 
 // Handler 远程存储策略适配器
 type Handler struct {
-	client request.HTTPClient
+	Client request.Client
 	Policy *model.Policy
 }
 
@@ -69,7 +69,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 	// 发送删除请求
 	bodyReader := strings.NewReader(string(reqBodyEncoded))
 	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
-	resp, err := handler.client.Request(
+	resp, err := handler.Client.Request(
 		"POST",
 		handler.getAPI("delete"),
 		bodyReader,
@@ -87,9 +87,11 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 	}
 	if reqResp.Code != 0 {
 		var failedResp serializer.RemoteDeleteRequest
-		err = json.Unmarshal([]byte(reqResp.Data.(string)), &failedResp)
-		if err == nil {
-			return failedResp.Files, errors.New(reqResp.Error)
+		if failed, ok := reqResp.Data.(string); ok {
+			err = json.Unmarshal([]byte(failed), &failedResp)
+			if err == nil {
+				return failedResp.Files, errors.New(reqResp.Error)
+			}
 		}
 		return files, errors.New("未知的返回结果格式")
 	}

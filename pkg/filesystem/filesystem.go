@@ -7,6 +7,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"io"
@@ -152,6 +153,7 @@ func (fs *FileSystem) dispatchHandler() error {
 	case "remote":
 		fs.Handler = remote.Handler{
 			Policy: currentPolicy,
+			Client: request.HTTPClient{},
 		}
 		return nil
 	default:
