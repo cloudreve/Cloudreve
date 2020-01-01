@@ -1,8 +1,10 @@
 package request
 
 import (
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -103,4 +105,18 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	}
 
 	return Response{Err: nil, Response: resp}
+}
+
+// GetResponse 检查响应并获取响应正文
+// todo 测试
+func (resp Response) GetResponse(expectStatus int) (string, error) {
+	if resp.Err != nil {
+		return "", resp.Err
+	}
+	respBody, err := ioutil.ReadAll(resp.Response.Body)
+	if resp.Response.StatusCode != expectStatus {
+		return string(respBody),
+			fmt.Errorf("服务器返回非正常HTTP状态%d", resp.Response.StatusCode)
+	}
+	return string(respBody), err
 }

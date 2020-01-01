@@ -120,6 +120,9 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 			return nil, err
 		}
 		fs.User.Group = anonymousGroup
+	} else {
+		// 从机模式下，分配本地策略处理器
+		fs.Handler = local.Handler{}
 	}
 
 	return fs, nil

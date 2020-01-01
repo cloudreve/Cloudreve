@@ -3,6 +3,8 @@ package explorer
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
@@ -39,6 +41,11 @@ type SlaveDownloadService struct {
 	PathEncoded string `uri:"path" binding:"required"`
 	Name        string `uri:"name" binding:"required"`
 	Speed       int    `uri:"speed" binding:"min=0"`
+}
+
+// SlaveFilesService 从机多文件相关服务
+type SlaveFilesService struct {
+	Files []string `json:"files" binding:"required,gt=0"`
 }
 
 // DownloadArchived 下載已打包的多文件
@@ -255,7 +262,6 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
-	defer fs.Recycle()
 
 	// 取得现有文件
 	exist, originFile := fs.IsFileExist(service.Path)
@@ -288,7 +294,7 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	}
 }
 
-// ServeFile 通过签名URL的文件下载从机文件
+// ServeFile 通过签名的URL下载从机文件
 func (service *SlaveDownloadService) ServeFile(ctx context.Context, c *gin.Context, isDownload bool) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewAnonymousFileSystem()
@@ -336,4 +342,29 @@ func (service *SlaveDownloadService) ServeFile(ctx context.Context, c *gin.Conte
 	return serializer.Response{
 		Code: 0,
 	}
+}
+
+// Delete 通过签名的URL删除从机文件
+func (service *SlaveFilesService) Delete(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 删除文件
+	failed, err := fs.Handler.Delete(ctx, service.Files)
+	if err != nil {
+		// 将Data字段写为字符串方便主控端解析
+		data, _ := json.Marshal(serializer.RemoteDeleteRequest{Files: failed})
+
+		return serializer.Response{
+			Code:  serializer.CodeNotFullySuccess,
+			Data:  string(data),
+			Msg:   fmt.Sprintf("有 %d 个文件未能成功删除", len(failed)),
+			Error: err.Error(),
+		}
+	}
+	return serializer.Response{Code: 0}
 }

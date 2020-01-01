@@ -59,7 +59,6 @@ func DecodeUploadPolicy(raw string) (*UploadPolicy, error) {
 }
 
 // EncodeUploadPolicy 序列化Header中携带的上传策略
-// TODO 测试
 func (policy *UploadPolicy) EncodeUploadPolicy() (string, error) {
 	jsonRes, err := json.Marshal(policy)
 	if err != nil {

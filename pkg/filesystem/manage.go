@@ -131,6 +131,7 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst str
 func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 	// 已删除的总容量,map用于去重
 	var deletedStorage = make(map[uint]uint64)
+	var totalStorage = make(map[uint]uint64)
 	// 已删除的文件ID
 	var deletedFileIDs = make([]uint, 0, len(fs.FileTarget))
 	// 删除失败的文件的父目录ID
@@ -166,15 +167,18 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 	// 按照存储策略分组删除对象
 	failed := fs.deleteGroupedFile(ctx, policyGroup)
 
+	// 整理删除结果
 	for i := 0; i < len(fs.FileTarget); i++ {
-		if util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
-			// TODO 删除失败时不删除文件记录及父目录
-		} else {
+		if !util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
+			// 已成功删除的文件
 			deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
+			deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
 		}
-		deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
+		// 全部文件
+		totalStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
 		allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
 	}
+	// TODO 用户自主选择是否强制删除
 
 	// 删除文件记录
 	err = model.DeleteFileByIDs(allFileIDs)
@@ -184,7 +188,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 
 	// 归还容量
 	var total uint64
-	for _, value := range deletedStorage {
+	for _, value := range totalStorage {
 		total += value
 	}
 	fs.User.DeductionStorage(total)

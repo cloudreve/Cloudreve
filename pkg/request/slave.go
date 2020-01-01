@@ -8,7 +8,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"io/ioutil"
 	"time"
 )
 
@@ -36,20 +35,14 @@ func RemoteCallback(url string, body serializer.RemoteUploadCallback) error {
 	}
 
 	// 检查返回HTTP状态码
-	if resp.Response.StatusCode != 200 {
-		util.Log().Debug("服务端返回非正常状态码：%d", resp.Response.StatusCode)
-		return serializer.NewError(serializer.CodeCallbackError, "服务端返回非正常状态码", nil)
-	}
-
-	// 检查返回API状态码
-	var response serializer.Response
-	rawResp, err := ioutil.ReadAll(resp.Response.Body)
+	rawResp, err := resp.GetResponse(200)
 	if err != nil {
-		return serializer.NewError(serializer.CodeCallbackError, "无法读取响应正文", err)
+		return serializer.NewError(serializer.CodeCallbackError, "服务器返回异常响应", err)
 	}
 
 	// 解析回调服务端响应
-	err = json.Unmarshal(rawResp, &response)
+	var response serializer.Response
+	err = json.Unmarshal([]byte(rawResp), &response)
 	if err != nil {
 		util.Log().Debug("无法解析回调服务端响应：%s", string(rawResp))
 		return serializer.NewError(serializer.CodeCallbackError, "无法解析服务端返回的响应", err)

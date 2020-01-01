@@ -39,6 +39,8 @@ func InitSlaveRouter() *gin.Engine {
 		v3.GET("download/:speed/:path/:name", controllers.SlaveDownload)
 		// 预览 / 外链
 		v3.GET("source/:speed/:path/:name", controllers.SlavePreview)
+		// 删除文件
+		v3.POST("delete", controllers.SlaveDelete)
 	}
 	return r
 }

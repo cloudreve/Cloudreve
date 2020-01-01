@@ -4,22 +4,42 @@ package remote
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
 // Handler 远程存储策略适配器
 type Handler struct {
+	client request.HTTPClient
 	Policy *model.Policy
+}
+
+// getAPI 获取接口请求地址
+func (handler Handler) getAPI(scope string) string {
+	serverURL, err := url.Parse(handler.Policy.Server)
+	if err != nil {
+		return ""
+	}
+	var controller *url.URL
+
+	switch scope {
+	case "delete":
+		controller, _ = url.Parse("/api/v3/slave/delete")
+	}
+
+	return serverURL.ResolveReference(controller).String()
 }
 
 // Get 获取文件内容
@@ -35,7 +55,45 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
+// TODO 测试
 func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
+	// 封装接口请求正文
+	reqBody := serializer.RemoteDeleteRequest{
+		Files: files,
+	}
+	reqBodyEncoded, err := json.Marshal(reqBody)
+	if err != nil {
+		return files, err
+	}
+
+	// 发送删除请求
+	bodyReader := strings.NewReader(string(reqBodyEncoded))
+	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
+	resp, err := handler.client.Request(
+		"POST",
+		handler.getAPI("delete"),
+		bodyReader,
+		request.WithCredential(authInstance, 60),
+	).GetResponse(200)
+	if err != nil {
+		return files, err
+	}
+
+	// 处理删除结果
+	var reqResp serializer.Response
+	err = json.Unmarshal([]byte(resp), &reqResp)
+	if err != nil {
+		return files, err
+	}
+	if reqResp.Code != 0 {
+		var failedResp serializer.RemoteDeleteRequest
+		err = json.Unmarshal([]byte(reqResp.Data.(string)), &failedResp)
+		if err == nil {
+			return failedResp.Files, errors.New(reqResp.Error)
+		}
+		return files, errors.New("未知的返回结果格式")
+	}
+
 	return []string{}, nil
 }
 

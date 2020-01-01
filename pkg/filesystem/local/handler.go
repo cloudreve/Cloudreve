@@ -69,7 +69,10 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 		util.Log().Warning("无法创建文件，%s", err)
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		err := out.Close()
+		fmt.Print(err)
+	}()
 
 	// 写入文件内容
 	_, err = io.Copy(out, file)
@@ -138,7 +141,7 @@ func (handler Handler) Source(
 		downloadSessionID := util.RandStringRunes(16)
 		err = cache.Set("download_"+downloadSessionID, file, int(ttl))
 		if err != nil {
-			return "", serializer.NewError(serializer.CodeCacheOperation, "无法创建下載会话", err)
+			return "", serializer.NewError(serializer.CodeCacheOperation, "无法创建下载会话", err)
 		}
 
 		// 签名生成文件记录
@@ -165,7 +168,6 @@ func (handler Handler) Source(
 }
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
-// TODO 测试
 func (handler Handler) Token(ctx context.Context, ttl int64, key string) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, nil
 }

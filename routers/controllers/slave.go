@@ -25,7 +25,6 @@ func SlaveUpload(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return
 	}
-	defer fs.Recycle()
 	fs.Handler = local.Handler{}
 
 	// 从请求中取得上传策略
@@ -111,6 +110,21 @@ func SlavePreview(c *gin.Context) {
 		if res.Code != 0 {
 			c.JSON(200, res)
 		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveDelete 从机删除
+func SlaveDelete(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SlaveFilesService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(ctx, c)
+		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

@@ -116,6 +116,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 	} else {
 		reqContext = ctx.Value(fsctx.HTTPCtx).(context.Context)
 	}
+	defer fs.Recycle()
 
 	select {
 	case <-reqContext.Done():

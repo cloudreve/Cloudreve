@@ -265,7 +265,6 @@ func FileUploadStream(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return
 	}
-	defer fs.Recycle()
 
 	// 给文件系统分配钩子
 	fs.Use("BeforeUpload", filesystem.HookValidateFile)
