@@ -9,7 +9,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/juju/ratelimit"
 	"io"
-	"strconv"
 )
 
 /* ============
@@ -107,16 +106,8 @@ func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.Conte
 	}
 
 	// 否则重定向到签名的预览URL
-	ttl, err := strconv.ParseInt(model.GetSettingByName("preview_timeout"), 10, 64)
-	if err != nil {
-		return nil,
-			serializer.NewError(
-				serializer.CodeInternalSetting,
-				"无法获取预览地址有效期设定",
-				err,
-			)
-	}
-	previewURL, err := fs.signURL(ctx, &fs.FileTarget[0], ttl, false)
+	ttl := model.GetIntSetting("preview_timeout", 60)
+	previewURL, err := fs.signURL(ctx, &fs.FileTarget[0], int64(ttl), false)
 	if err != nil {
 		return nil, err
 	}
@@ -222,20 +213,11 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout s
 	fileTarget := &fs.FileTarget[0]
 
 	// 生成下載地址
-	ttl, err := strconv.ParseInt(model.GetSettingByName(timeout), 10, 64)
-	if err != nil {
-		return "",
-			serializer.NewError(
-				serializer.CodeInternalSetting,
-				"无法获取下载地址有效期",
-				err,
-			)
-	}
-
+	ttl := model.GetIntSetting(timeout, 60)
 	source, err := fs.signURL(
 		ctx,
 		fileTarget,
-		ttl,
+		int64(ttl),
 		true,
 	)
 	if err != nil {

@@ -221,6 +221,8 @@ func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request, fs *file
 
 // OK
 func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
@@ -249,6 +251,8 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 
 // OK
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
@@ -353,6 +357,8 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 
 // OK
 func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
@@ -376,6 +382,8 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesy
 
 // OK
 func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	hdr := r.Header.Get("Destination")
 	if hdr == "" {
 		return http.StatusBadRequest, errInvalidDestination
@@ -460,6 +468,8 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 
 // OK
 func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (retStatus int, retErr error) {
+	defer fs.Recycle()
+
 	duration, err := parseTimeout(r.Header.Get("Timeout"))
 	if err != nil {
 		return http.StatusBadRequest, err
@@ -555,6 +565,8 @@ func (h *Handler) handleLock(w http.ResponseWriter, r *http.Request, fs *filesys
 
 // OK
 func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	// http://www.webdav.org/specs/rfc4918.html#HEADER_Lock-Token says that the
 	// Lock-Token value is a Coded-URL. We strip its angle brackets.
 	t := r.Header.Get("Lock-Token")
@@ -579,6 +591,8 @@ func (h *Handler) handleUnlock(w http.ResponseWriter, r *http.Request, fs *files
 
 // OK
 func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err
@@ -646,6 +660,8 @@ func (h *Handler) handlePropfind(w http.ResponseWriter, r *http.Request, fs *fil
 }
 
 func (h *Handler) handleProppatch(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
+	defer fs.Recycle()
+
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
 		return status, err

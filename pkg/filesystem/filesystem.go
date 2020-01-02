@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
@@ -152,8 +153,9 @@ func (fs *FileSystem) dispatchHandler() error {
 		return nil
 	case "remote":
 		fs.Handler = remote.Handler{
-			Policy: currentPolicy,
-			Client: request.HTTPClient{},
+			Policy:       currentPolicy,
+			Client:       request.HTTPClient{},
+			AuthInstance: auth.HMACAuth{[]byte(currentPolicy.SecretKey)},
 		}
 		return nil
 	default:

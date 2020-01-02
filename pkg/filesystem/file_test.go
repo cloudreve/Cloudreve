@@ -548,28 +548,6 @@ func TestFileSystem_Preview(t *testing.T) {
 		asserts.NoError(resp.Content.Close())
 	}
 
-	// 需要重定向，无法解析有效期设置
-	{
-		fs := FileSystem{
-			User: &model.User{},
-		}
-		fs.FileTarget = []model.File{
-			{
-				SourceName: "tests/file1.txt",
-				PolicyID:   1,
-				Policy: model.Policy{
-					Model: gorm.Model{ID: 1},
-					Type:  "remote",
-				},
-			},
-		}
-		asserts.NoError(cache.Set("setting_preview_timeout", "test", 0))
-		resp, err := fs.Preview(ctx, "/1.txt")
-		asserts.Error(err)
-		asserts.Nil(resp)
-		asserts.Equal(serializer.CodeInternalSetting, err.(serializer.AppError).Code)
-	}
-
 	// 需要重定向，成功
 	{
 		fs := FileSystem{

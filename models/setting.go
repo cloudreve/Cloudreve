@@ -4,6 +4,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"net/url"
+	"strconv"
 )
 
 // Setting 系统设置模型
@@ -71,4 +72,14 @@ func GetSiteURL() *url.URL {
 		base, _ = url.Parse("https://cloudreve.org")
 	}
 	return base
+}
+
+// GetIntSetting 获取整形设置值，如果转换失败则返回默认值defaultVal
+// TODO 测试
+func GetIntSetting(key string, defaultVal int) int {
+	res, err := strconv.Atoi(GetSettingByName(key))
+	if err != nil {
+		return defaultVal
+	}
+	return res
 }

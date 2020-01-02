@@ -22,8 +22,9 @@ import (
 
 // Handler 远程存储策略适配器
 type Handler struct {
-	Client request.Client
-	Policy *model.Policy
+	Client       request.Client
+	Policy       *model.Policy
+	AuthInstance auth.Auth
 }
 
 // getAPI 获取接口请求地址
@@ -55,7 +56,6 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
-// TODO 测试
 func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 封装接口请求正文
 	reqBody := serializer.RemoteDeleteRequest{
@@ -68,12 +68,12 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 
 	// 发送删除请求
 	bodyReader := strings.NewReader(string(reqBodyEncoded))
-	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
+	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 	resp, err := handler.Client.Request(
 		"POST",
 		handler.getAPI("delete"),
 		bodyReader,
-		request.WithCredential(authInstance, 60),
+		request.WithCredential(handler.AuthInstance, int64(signTTL)),
 	).GetResponse(200)
 	if err != nil {
 		return files, err
@@ -105,7 +105,6 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-// TODO 测试
 func (handler Handler) Source(
 	ctx context.Context,
 	path string,
@@ -138,9 +137,8 @@ func (handler Handler) Source(
 
 	// 签名下载地址
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(file.SourceName))
-	authInstance := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
 	signedURI, err = auth.SignURI(
-		authInstance,
+		handler.AuthInstance,
 		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, file.Name),
 		expires,
 	)
@@ -180,8 +178,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 	uploadRequest.Header = map[string][]string{
 		"X-Policy": {policyEncoded},
 	}
-	remoteAuth := auth.HMACAuth{SecretKey: []byte(handler.Policy.SecretKey)}
-	auth.SignRequest(remoteAuth, uploadRequest, time.Now().Unix()+TTL)
+	auth.SignRequest(handler.AuthInstance, uploadRequest, time.Now().Unix()+TTL)
 
 	if credential, ok := uploadRequest.Header["Authorization"]; ok && len(credential) == 1 {
 		return serializer.UploadCredential{

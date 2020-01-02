@@ -199,26 +199,4 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		testHandller.AssertExpectations(t)
 		asserts.Error(err)
 	}
-
-	// 上传有效期错误
-	{
-		cache.SetSettings(map[string]string{
-			"upload_credential_timeout": "？10",
-			"upload_session_timeout":    "10",
-		}, "setting_")
-
-		_, err := fs.GetUploadToken(ctx, "/", 10)
-		asserts.Error(err)
-	}
-
-	// 上传会话有效期错误
-	{
-		cache.SetSettings(map[string]string{
-			"upload_credential_timeout": "10",
-			"upload_session_timeout":    "？10",
-		}, "setting_")
-
-		_, err := fs.GetUploadToken(ctx, "/", 10)
-		asserts.Error(err)
-	}
 }

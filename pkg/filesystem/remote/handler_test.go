@@ -30,6 +30,7 @@ func TestHandler_Token(t *testing.T) {
 				FileType: []string{"txt"},
 			},
 		},
+		AuthInstance: auth.HMACAuth{},
 	}
 	ctx := context.Background()
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
@@ -56,7 +57,9 @@ func TestHandler_Source(t *testing.T) {
 
 	// 无法获取上下文
 	{
-		handler := Handler{}
+		handler := Handler{
+			AuthInstance: auth.HMACAuth{},
+		}
 		ctx := context.Background()
 		res, err := handler.Source(ctx, "", url.URL{}, 0, true, 0)
 		asserts.Error(err)
@@ -66,7 +69,8 @@ func TestHandler_Source(t *testing.T) {
 	// 成功
 	{
 		handler := Handler{
-			Policy: &model.Policy{Server: "/"},
+			Policy:       &model.Policy{Server: "/"},
+			AuthInstance: auth.HMACAuth{},
 		}
 		file := model.File{
 			SourceName: "1.txt",
@@ -80,7 +84,8 @@ func TestHandler_Source(t *testing.T) {
 	// 成功 预览
 	{
 		handler := Handler{
-			Policy: &model.Policy{Server: "/"},
+			Policy:       &model.Policy{Server: "/"},
+			AuthInstance: auth.HMACAuth{},
 		}
 		file := model.File{
 			SourceName: "1.txt",
@@ -108,8 +113,10 @@ func TestHandler_Delete(t *testing.T) {
 			SecretKey: "test",
 			Server:    "http://test.com",
 		},
+		AuthInstance: auth.HMACAuth{},
 	}
 	ctx := context.Background()
+	cache.Set("setting_slave_api_timeout", "60", 0)
 
 	// 成功
 	{

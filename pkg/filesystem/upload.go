@@ -9,7 +9,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"path/filepath"
-	"strconv"
 )
 
 /* ================
@@ -142,32 +141,14 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 // GetUploadToken 生成新的上传凭证
 func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint64) (*serializer.UploadCredential, error) {
 	// 获取相关有效期设置
-	ttls := model.GetSettingByNames([]string{"upload_credential_timeout", "upload_session_timeout"})
+	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
-	var (
-		err                error
-		credentialTTL      int64 = 3600
-		callBackSessionTTL int64 = 86400
-	)
-	// 获取上传凭证的有效期
-	if ttlStr, ok := ttls["upload_credential_timeout"]; ok {
-		credentialTTL, err = strconv.ParseInt(ttlStr, 10, 64)
-		if err != nil {
-			return nil, serializer.NewError(serializer.CodeInternalSetting, "上传凭证有效期设置无效", err)
-		}
-	}
-
-	// 获取回调会话的有效期
-	if ttlStr, ok := ttls["upload_session_timeout"]; ok {
-		callBackSessionTTL, err = strconv.ParseInt(ttlStr, 10, 64)
-		if err != nil {
-			return nil, serializer.NewError(serializer.CodeInternalSetting, "上传会话有效期设置无效", err)
-		}
-	}
+	var err error
 
 	// 获取上传凭证
 	callbackKey := util.RandStringRunes(32)
-	credential, err := fs.Handler.Token(ctx, credentialTTL, callbackKey)
+	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), callbackKey)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeEncryptError, "无法获取上传凭证", err)
 	}
@@ -180,7 +161,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 			PolicyID:    fs.User.GetPolicyID(),
 			VirtualPath: path,
 		},
-		int(callBackSessionTTL),
+		callBackSessionTTL,
 	)
 	if err != nil {
 		return nil, err
