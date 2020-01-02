@@ -1,8 +1,10 @@
 package request
 
 import (
+	"errors"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -119,4 +121,30 @@ func (resp Response) GetResponse(expectStatus int) (string, error) {
 			fmt.Errorf("服务器返回非正常HTTP状态%d", resp.Response.StatusCode)
 	}
 	return string(respBody), err
+}
+
+type nopRSCloser struct {
+	body io.ReadCloser
+}
+
+// GetRSCloser 返回带有空seeker的body reader
+func (resp Response) GetRSCloser() (response.RSCloser, error) {
+	return nopRSCloser{
+		body: resp.Response.Body,
+	}, resp.Err
+}
+
+// Read 实现 nopRSCloser reader
+func (instance nopRSCloser) Read(p []byte) (n int, err error) {
+	return instance.body.Read(p)
+}
+
+// 实现 nopRSCloser closer
+func (instance nopRSCloser) Close() error {
+	return instance.body.Close()
+}
+
+// 实现 nopRSCloser seeker
+func (instance nopRSCloser) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("未实现")
 }

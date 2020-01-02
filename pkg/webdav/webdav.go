@@ -229,14 +229,14 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 	}
 
 	ctx := r.Context()
-	rs, err := fs.GetContent(ctx, reqPath)
+
+	rs, err := fs.Preview(ctx, reqPath)
 	if err != nil {
 		if err == filesystem.ErrObjectNotExist {
 			return http.StatusNotFound, err
 		}
 		return http.StatusInternalServerError, err
 	}
-	defer rs.Close()
 
 	etag, err := findETag(ctx, fs, h.LockSystem[fs.User.ID], reqPath, &fs.FileTarget[0])
 	if err != nil {
@@ -244,8 +244,15 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 	}
 	w.Header().Set("ETag", etag)
 
-	// 获取文件内容
-	http.ServeContent(w, r, reqPath, fs.FileTarget[0].UpdatedAt, rs)
+	if !rs.Redirect {
+		defer rs.Content.Close()
+		// 获取文件内容
+		http.ServeContent(w, r, reqPath, fs.FileTarget[0].UpdatedAt, rs.Content)
+		return 0, nil
+	}
+
+	http.Redirect(w, r, rs.URL, 301)
+
 	return 0, nil
 }
 

@@ -58,12 +58,13 @@ func TestHandler_Source(t *testing.T) {
 	// 无法获取上下文
 	{
 		handler := Handler{
+			Policy:       &model.Policy{Server: "/"},
 			AuthInstance: auth.HMACAuth{},
 		}
 		ctx := context.Background()
 		res, err := handler.Source(ctx, "", url.URL{}, 0, true, 0)
-		asserts.Error(err)
-		asserts.Empty(res)
+		asserts.NoError(err)
+		asserts.NotEmpty(res)
 	}
 
 	// 成功

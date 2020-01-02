@@ -54,6 +54,7 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	defer zipWriter.Close()
 
 	ctx, _ = context.WithCancel(context.Background())
+	// ctx = context.WithValue(ctx, fsctx.UserCtx, *fs.User)
 	// 压缩各个目录及文件
 	for i := 0; i < len(folders); i++ {
 		fs.doCompress(ctx, nil, &folders[i], zipWriter, true)

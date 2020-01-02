@@ -45,9 +45,32 @@ func (handler Handler) getAPI(scope string) string {
 }
 
 // Get 获取文件内容
+// TODO 测试
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
+	// 尝试获取速度限制 TODO 是否需要在这里限制？
+	speedLimit := 0
+	if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
+		speedLimit = user.Group.SpeedLimit
+	}
 
-	return nil, nil
+	// 获取文件源地址
+	downloadURL, err := handler.Source(ctx, path, url.URL{}, 0, true, speedLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件数据流
+	resp, err := handler.Client.Request(
+		"GET",
+		downloadURL,
+		nil,
+	).GetRSCloser()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 // Put 将文件流保存到指定目录
@@ -125,9 +148,10 @@ func (handler Handler) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
-	if !ok {
-		return "", errors.New("无法获取文件记录上下文")
+	// 尝试从上下文获取文件名
+	fileName := "file"
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		fileName = file.Name
 	}
 
 	serverURL, err := url.Parse(handler.Policy.Server)
@@ -144,10 +168,10 @@ func (handler Handler) Source(
 	}
 
 	// 签名下载地址
-	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(file.SourceName))
+	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	signedURI, err = auth.SignURI(
 		handler.AuthInstance,
-		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, file.Name),
+		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, fileName),
 		ttl,
 	)
 

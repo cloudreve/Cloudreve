@@ -17,4 +17,6 @@ const (
 	HTTPCtx
 	// UploadPolicyCtx 上传策略，一般为slave模式下使用
 	UploadPolicyCtx
+	// UserCtx 用户
+	UserCtx
 )
