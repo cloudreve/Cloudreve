@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // Handler 远程存储策略适配器
@@ -106,7 +105,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	thumbURL := handler.getAPI("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("slave_api_timeout", 60)
-	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, time.Now().Unix()+int64(ttl))
+	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
 	if err != nil {
 		return nil, err
 	}
@@ -137,15 +136,11 @@ func (handler Handler) Source(
 	}
 
 	var (
-		expires    int64
 		signedURI  *url.URL
 		controller = "/api/v3/slave/download"
 	)
 	if !isDownload {
 		controller = "/api/v3/slave/source"
-	}
-	if ttl > 0 {
-		expires = time.Now().Unix() + ttl
 	}
 
 	// 签名下载地址
@@ -153,7 +148,7 @@ func (handler Handler) Source(
 	signedURI, err = auth.SignURI(
 		handler.AuthInstance,
 		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, file.Name),
-		expires,
+		ttl,
 	)
 
 	if err != nil {
@@ -191,7 +186,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 	uploadRequest.Header = map[string][]string{
 		"X-Policy": {policyEncoded},
 	}
-	auth.SignRequest(handler.AuthInstance, uploadRequest, time.Now().Unix()+TTL)
+	auth.SignRequest(handler.AuthInstance, uploadRequest, TTL)
 
 	if credential, ok := uploadRequest.Header["Authorization"]; ok && len(credential) == 1 {
 		return serializer.UploadCredential{

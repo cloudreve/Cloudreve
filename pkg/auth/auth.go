@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 var (
@@ -32,6 +33,11 @@ type Auth interface {
 // 包含 X-Policy， 则此请求会被认定为上传请求，只会对URI部分和
 // Policy部分进行签名。其他请求则会对URI和Body部分进行签名。
 func SignRequest(instance Auth, r *http.Request, expires int64) *http.Request {
+	// 处理有效期
+	if expires > 0 {
+		expires += time.Now().Unix()
+	}
+
 	// 生成签名
 	sign := instance.Sign(getSignContent(r), expires)
 
@@ -73,6 +79,11 @@ func getSignContent(r *http.Request) (rawSignString string) {
 
 // SignURI 对URI进行签名,签名只针对Path部分，query部分不做验证
 func SignURI(instance Auth, uri string, expires int64) (*url.URL, error) {
+	// 处理有效期
+	if expires != 0 {
+		expires += time.Now().Unix()
+	}
+
 	base, err := url.Parse(uri)
 	if err != nil {
 		return nil, err

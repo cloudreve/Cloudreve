@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // Handler 本地策略适配器
@@ -124,11 +123,6 @@ func (handler Handler) Source(
 		return "", errors.New("无法获取文件记录上下文")
 	}
 
-	var expires int64
-	if ttl > 0 {
-		expires = time.Now().Unix() + ttl
-	}
-
 	var (
 		signedURI *url.URL
 		err       error
@@ -145,14 +139,14 @@ func (handler Handler) Source(
 		signedURI, err = auth.SignURI(
 			auth.General,
 			fmt.Sprintf("/api/v3/file/download/%s", downloadSessionID),
-			expires,
+			ttl,
 		)
 	} else {
 		// 签名生成文件记录
 		signedURI, err = auth.SignURI(
 			auth.General,
 			fmt.Sprintf("/api/v3/file/get/%d/%s", file.ID, file.Name),
-			expires,
+			ttl,
 		)
 	}
 

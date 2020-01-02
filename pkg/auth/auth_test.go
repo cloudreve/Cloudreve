@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestSignURI(t *testing.T) {
@@ -37,14 +36,14 @@ func TestCheckURI(t *testing.T) {
 
 	// 成功
 	{
-		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", time.Now().Unix()+10)
+		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", 10)
 		asserts.NoError(err)
 		asserts.NoError(CheckURI(General, sign))
 	}
 
 	// 过期
 	{
-		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", time.Now().Unix()-1)
+		sign, err := SignURI(General, "/api/ok?if=sdf&fd=go", -1)
 		asserts.NoError(err)
 		asserts.Error(CheckURI(General, sign))
 	}

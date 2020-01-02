@@ -95,7 +95,7 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	// 签名请求
 	if options.sign != nil {
-		auth.SignRequest(options.sign, req, time.Now().Unix()+options.signTTL)
+		auth.SignRequest(options.sign, req, options.signTTL)
 	}
 
 	// 发送请求
