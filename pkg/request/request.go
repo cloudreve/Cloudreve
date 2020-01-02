@@ -1,6 +1,7 @@
 package request
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/auth"
@@ -38,6 +39,7 @@ type options struct {
 	header  http.Header
 	sign    auth.Auth
 	signTTL int64
+	ctx     context.Context
 }
 
 type optionFunc func(*options)
@@ -57,6 +59,14 @@ func newDefaultOption() *options {
 func WithTimeout(t time.Duration) Option {
 	return optionFunc(func(o *options) {
 		o.timeout = t
+	})
+}
+
+// WithContext 设置请求上下文
+// TODO 测试
+func WithContext(c context.Context) Option {
+	return optionFunc(func(o *options) {
+		o.ctx = c
 	})
 }
 
@@ -87,7 +97,15 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	client := &http.Client{Timeout: options.timeout}
 
 	// 创建请求
-	req, err := http.NewRequest(method, target, body)
+	var (
+		req *http.Request
+		err error
+	)
+	if options.ctx != nil {
+		req, err = http.NewRequestWithContext(options.ctx, method, target, body)
+	} else {
+		req, err = http.NewRequest(method, target, body)
+	}
 	if err != nil {
 		return Response{Err: err}
 	}

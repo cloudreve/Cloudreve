@@ -3,10 +3,14 @@ package filesystem
 import (
 	"archive/zip"
 	"context"
+	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/gin-gonic/gin"
 	"io"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -27,6 +31,11 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID)
 	if err != nil && len(files) != 0 {
 		return "", ErrDBListObjects
+	}
+
+	ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context)
+	if !ok {
+		return "", errors.New("无法获取请求上下文")
 	}
 
 	// 将顶级待处理对象的路径设为根路径
@@ -53,17 +62,41 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	ctx, _ = context.WithCancel(context.Background())
-	// ctx = context.WithValue(ctx, fsctx.UserCtx, *fs.User)
+	ctx = context.WithValue(ginCtx.Request.Context(), fsctx.UserCtx, *fs.User)
+
 	// 压缩各个目录及文件
 	for i := 0; i < len(folders); i++ {
-		fs.doCompress(ctx, nil, &folders[i], zipWriter, true)
+		select {
+		case <-ginCtx.Request.Context().Done():
+			// 取消压缩请求
+			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
+			return "", ErrClientCanceled
+		default:
+			fs.doCompress(ctx, nil, &folders[i], zipWriter, true)
+		}
+
 	}
 	for i := 0; i < len(files); i++ {
-		fs.doCompress(ctx, &files[i], nil, zipWriter, true)
+		select {
+		case <-ginCtx.Request.Context().Done():
+			// 取消压缩请求
+			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
+			return "", ErrClientCanceled
+		default:
+			fs.doCompress(ctx, &files[i], nil, zipWriter, true)
+		}
 	}
 
 	return zipFilePath, nil
+}
+
+// cancelCompress 取消压缩进程
+// TODO 测试
+func (fs *FileSystem) cancelCompress(ctx context.Context, zipWriter *zip.Writer, file *os.File, path string) {
+	util.Log().Debug("客户端取消压缩请求")
+	zipWriter.Close()
+	file.Close()
+	_ = os.Remove(path)
 }
 
 func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *model.Folder, zipWriter *zip.Writer, isArchive bool) {

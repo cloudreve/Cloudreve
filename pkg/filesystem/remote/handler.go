@@ -64,6 +64,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 		"GET",
 		downloadURL,
 		nil,
+		request.WithContext(ctx),
 	).GetRSCloser()
 
 	if err != nil {
