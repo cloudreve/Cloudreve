@@ -43,6 +43,11 @@ type SlaveDownloadService struct {
 	Speed       int    `uri:"speed" binding:"min=0"`
 }
 
+// SlaveFileService 从机单文件文件相关服务
+type SlaveFileService struct {
+	PathEncoded string `uri:"path" binding:"required"`
+}
+
 // SlaveFilesService 从机多文件相关服务
 type SlaveFilesService struct {
 	Files []string `json:"files" binding:"required,gt=0"`
@@ -367,4 +372,21 @@ func (service *SlaveFilesService) Delete(ctx context.Context, c *gin.Context) se
 		}
 	}
 	return serializer.Response{Code: 0}
+}
+
+// Thumb 通过签名URL获取从机文件缩略图
+func (service *SlaveFileService) Thumb(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 解码文件路径
+	fileSource, err := base64.RawURLEncoding.DecodeString(service.PathEncoded)
+	if err != nil {
+		return serializer.ParamErr("无法解析的文件地址", err)
+	}
+
 }

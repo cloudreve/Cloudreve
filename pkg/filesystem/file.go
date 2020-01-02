@@ -287,6 +287,21 @@ func (fs *FileSystem) resetFileIfNotExist(ctx context.Context, path string) erro
 	return fs.resetPolicyToFirstFile(ctx)
 }
 
+// resetFileIfNotExist 重设当前目标文件为 id，如果当前目标为空
+func (fs *FileSystem) resetFileIDIfNotExist(ctx context.Context, id uint) error {
+	// 找到文件
+	if len(fs.FileTarget) == 0 {
+		file, err := model.GetFilesByIDs([]uint{id}, fs.User.ID)
+		if err != nil || len(file) == 0 {
+			return ErrObjectNotExist
+		}
+		fs.FileTarget = []model.File{file[0]}
+	}
+
+	// 将当前存储策略重设为文件使用的
+	return fs.resetPolicyToFirstFile(ctx)
+}
+
 // resetPolicyToFirstFile 将当前存储策略重设为第一个目标文件文件使用的
 func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 	if len(fs.FileTarget) == 0 {

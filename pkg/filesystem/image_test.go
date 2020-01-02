@@ -31,15 +31,15 @@ func CreateTestImage() *os.File {
 
 func TestFileSystem_GetThumb(t *testing.T) {
 	asserts := assert.New(t)
-	fs := FileSystem{
-		User: &model.User{
-			Model: gorm.Model{ID: 1},
-		},
-	}
 	ctx := context.Background()
 
 	// 正常
 	{
+		fs := FileSystem{
+			User: &model.User{
+				Model: gorm.Model{ID: 1},
+			},
+		}
 		testHandler := new(FileHeaderMock)
 		testHandler.On("Thumb", testMock.Anything, "123.jpg").Return(&response.ContentResponse{URL: "123"}, nil)
 		fs.Handler = testHandler
@@ -47,8 +47,14 @@ func TestFileSystem_GetThumb(t *testing.T) {
 			WithArgs(10, 1).
 			WillReturnRows(
 				sqlmock.NewRows(
-					[]string{"id", "pic_info", "source_name"}).
-					AddRow(10, "10,10", "123.jpg"),
+					[]string{"id", "pic_info", "source_name", "policy_id"}).
+					AddRow(10, "10,10", "123.jpg", 154),
+			)
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "type"}).
+					AddRow(154, "mock"),
 			)
 
 		res, err := fs.GetThumb(ctx, 10)
@@ -60,7 +66,11 @@ func TestFileSystem_GetThumb(t *testing.T) {
 
 	// 文件不存在
 	{
-
+		fs := FileSystem{
+			User: &model.User{
+				Model: gorm.Model{ID: 1},
+			},
+		}
 		mock.ExpectQuery("SELECT(.+)").
 			WithArgs(10, 1).
 			WillReturnRows(

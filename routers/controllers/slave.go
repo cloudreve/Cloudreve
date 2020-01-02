@@ -115,6 +115,23 @@ func SlavePreview(c *gin.Context) {
 	}
 }
 
+// SlaveThumb 从机文件缩略图
+func SlaveThumb(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SlaveFileService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Thumb(ctx, c)
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // SlaveDelete 从机删除
 func SlaveDelete(c *gin.Context) {
 	// 创建上下文

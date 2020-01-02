@@ -21,15 +21,14 @@ var HandledExtension = []string{"jpg", "jpeg", "png", "gif"}
 // GetThumb 获取文件的缩略图
 func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentResponse, error) {
 	// 根据 ID 查找文件
-	file, err := model.GetFilesByIDs([]uint{id}, fs.User.ID)
-	if err != nil || len(file) == 0 || file[0].PicInfo == "" {
+	err := fs.resetFileIDIfNotExist(ctx, id)
+	if err != nil || fs.FileTarget[0].PicInfo == "" {
 		return &response.ContentResponse{
 			Redirect: false,
 		}, ErrObjectNotExist
 	}
 
-	fs.FileTarget = []model.File{file[0]}
-	res, err := fs.Handler.Thumb(ctx, file[0].SourceName)
+	res, err := fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
 
 	// TODO 出错时重新生成缩略图
 	return res, err

@@ -38,6 +38,8 @@ func (handler Handler) getAPI(scope string) string {
 	switch scope {
 	case "delete":
 		controller, _ = url.Parse("/api/v3/slave/delete")
+	case "thumb":
+		controller, _ = url.Parse("/api/v3/slave/thumb")
 	}
 
 	return serverURL.ResolveReference(controller).String()
@@ -101,7 +103,18 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
+	thumbURL := handler.getAPI("thumb") + "/" + sourcePath
+	ttl := model.GetIntSetting("slave_api_timeout", 60)
+	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      signedThumbURL.String(),
+	}, nil
 }
 
 // Source 获取外链URL

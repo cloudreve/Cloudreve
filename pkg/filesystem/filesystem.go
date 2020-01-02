@@ -146,6 +146,8 @@ func (fs *FileSystem) dispatchHandler() error {
 
 	// 根据存储策略类型分配适配器
 	switch policyType {
+	case "mock":
+		return nil
 	case "local":
 		fs.Handler = local.Handler{
 			Policy: currentPolicy,

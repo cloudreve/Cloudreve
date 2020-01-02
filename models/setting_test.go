@@ -166,3 +166,21 @@ func TestGetSiteURL(t *testing.T) {
 		asserts.Equal("https://cloudreve.org", siteURL.String())
 	}
 }
+
+func TestGetIntSetting(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 正常
+	{
+		cache.Set("setting_TestGetIntSetting", "10", 0)
+		res := GetIntSetting("TestGetIntSetting", 20)
+		asserts.Equal(10, res)
+	}
+
+	// 使用默认值
+	{
+		res := GetIntSetting("TestGetIntSetting_2", 20)
+		asserts.Equal(20, res)
+	}
+
+}
