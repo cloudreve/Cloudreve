@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -230,13 +231,13 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout s
 // GetSource 获取可直接访问文件的外链地址
 func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error) {
 	// 查找文件记录
-	fileObject, err := model.GetFilesByIDs([]uint{fileID}, fs.User.ID)
-	if err != nil || len(fileObject) == 0 {
+	err := fs.resetFileIDIfNotExist(ctx, fileID)
+	if err != nil {
 		return "", ErrObjectNotExist.WithError(err)
 	}
 
 	// 检查存储策略是否可以获得外链
-	if !fileObject[0].GetPolicy().IsOriginLinkEnable {
+	if !fs.Policy.IsOriginLinkEnable {
 		return "", serializer.NewError(
 			serializer.CodePolicyNotAllowed,
 			"当前存储策略无法获得外链",
@@ -244,7 +245,7 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 		)
 	}
 
-	source, err := fs.signURL(ctx, &fileObject[0], 0, false)
+	source, err := fs.signURL(ctx, &fs.FileTarget[0], 0, false)
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
 	}
@@ -307,6 +308,12 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 	if len(fs.FileTarget) == 0 {
 		return ErrObjectNotExist
 	}
+
+	// 从机模式不进行操作
+	if conf.SystemConfig.Mode == "slave" {
+		return nil
+	}
+
 	fs.Policy = fs.FileTarget[0].GetPolicy()
 	err := fs.dispatchHandler()
 	if err != nil {

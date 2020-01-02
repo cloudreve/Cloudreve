@@ -11,7 +11,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -130,12 +129,9 @@ func Thumb(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, resp.URL)
 		return
 	}
-	http.ServeContent(c.Writer, c.Request, "thumb.png", fs.FileTarget[0].UpdatedAt, resp.Content)
 
-	// 检查是否需要关闭文件
-	if fc, ok := resp.Content.(io.Closer); ok {
-		defer fc.Close()
-	}
+	defer resp.Content.Close()
+	http.ServeContent(c.Writer, c.Request, "thumb.png", fs.FileTarget[0].UpdatedAt, resp.Content)
 
 }
 

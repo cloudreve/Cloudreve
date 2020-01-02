@@ -388,5 +388,16 @@ func (service *SlaveFileService) Thumb(ctx context.Context, c *gin.Context) seri
 	if err != nil {
 		return serializer.ParamErr("无法解析的文件地址", err)
 	}
+	fs.FileTarget = []model.File{{SourceName: string(fileSource), PicInfo: "1,1"}}
 
+	// 获取缩略图
+	resp, err := fs.GetThumb(ctx, 0)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err)
+	}
+
+	defer resp.Content.Close()
+	http.ServeContent(c.Writer, c.Request, "thumb.png", time.Now(), resp.Content)
+
+	return serializer.Response{Code: 0}
 }

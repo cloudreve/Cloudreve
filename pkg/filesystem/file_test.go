@@ -277,13 +277,13 @@ func TestFileSystem_deleteGroupedFile(t *testing.T) {
 func TestFileSystem_GetSource(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()
-	fs := FileSystem{
-		User: &model.User{Model: gorm.Model{ID: 1}},
-	}
 	auth.General = auth.HMACAuth{SecretKey: []byte("123")}
 
 	// 正常
 	{
+		fs := FileSystem{
+			User: &model.User{Model: gorm.Model{ID: 1}},
+		}
 		// 清空缓存
 		err := cache.Deletes([]string{"siteURL"}, "setting_")
 		asserts.NoError(err)
@@ -312,6 +312,9 @@ func TestFileSystem_GetSource(t *testing.T) {
 
 	// 文件不存在
 	{
+		fs := FileSystem{
+			User: &model.User{Model: gorm.Model{ID: 1}},
+		}
 		// 清空缓存
 		err := cache.Deletes([]string{"siteURL"}, "setting_")
 		asserts.NoError(err)
@@ -332,6 +335,9 @@ func TestFileSystem_GetSource(t *testing.T) {
 
 	// 未知上传策略
 	{
+		fs := FileSystem{
+			User: &model.User{Model: gorm.Model{ID: 1}},
+		}
 		// 清空缓存
 		err := cache.Deletes([]string{"siteURL"}, "setting_")
 		asserts.NoError(err)
@@ -358,6 +364,9 @@ func TestFileSystem_GetSource(t *testing.T) {
 
 	// 不允许获取外链
 	{
+		fs := FileSystem{
+			User: &model.User{Model: gorm.Model{ID: 1}},
+		}
 		// 清空缓存
 		err := cache.Deletes([]string{"siteURL"}, "setting_")
 		asserts.NoError(err)

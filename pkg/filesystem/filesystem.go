@@ -144,7 +144,6 @@ func (fs *FileSystem) dispatchHandler() error {
 		currentPolicy = fs.Policy
 	}
 
-	// 根据存储策略类型分配适配器
 	switch policyType {
 	case "mock":
 		return nil

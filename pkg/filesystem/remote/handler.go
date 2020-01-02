@@ -106,7 +106,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	thumbURL := handler.getAPI("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("slave_api_timeout", 60)
-	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
+	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, time.Now().Unix()+int64(ttl))
 	if err != nil {
 		return nil, err
 	}
