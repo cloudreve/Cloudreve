@@ -550,9 +550,9 @@ type ClientMock struct {
 	testMock.Mock
 }
 
-func (m ClientMock) Request(method, target string, body io.Reader, opts ...request.Option) request.Response {
+func (m ClientMock) Request(method, target string, body io.Reader, opts ...request.Option) *request.Response {
 	args := m.Called(method, target, body, opts)
-	return args.Get(0).(request.Response)
+	return args.Get(0).(*request.Response)
 }
 
 func TestSlaveAfterUpload(t *testing.T) {
@@ -571,7 +571,7 @@ func TestSlaveAfterUpload(t *testing.T) {
 			"http://test/callbakc",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(request.Response{
+		).Return(&request.Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,

@@ -56,4 +56,27 @@ func TestFileSystem_Compress(t *testing.T) {
 		asserts.Contains(zipFile, "archive_")
 		asserts.Contains(zipFile, "tests")
 	}
+
+	// 上下文取消
+	{
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		// 查找压缩父目录
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "parent"))
+		// 查找顶级待压缩文件
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(1, 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "name", "source_name", "policy_id"}).
+					AddRow(1, "1.txt", "tests/file1.txt", 1),
+			)
+		asserts.NoError(cache.Set("setting_temp_path", "tests", -1))
+
+		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1})
+		asserts.Error(err)
+		asserts.Empty(zipFile)
+	}
 }

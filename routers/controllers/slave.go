@@ -81,7 +81,7 @@ func SlaveUpload(c *gin.Context) {
 	})
 }
 
-// SlaveDownload 从机文件下载
+// SlaveDownload 从机文件下载,此请求返回的HTTP状态码不全为200
 func SlaveDownload(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -91,10 +91,10 @@ func SlaveDownload(c *gin.Context) {
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.ServeFile(ctx, c, true)
 		if res.Code != 0 {
-			c.JSON(200, res)
+			c.JSON(400, res)
 		}
 	} else {
-		c.JSON(200, ErrorResponse(err))
+		c.JSON(400, ErrorResponse(err))
 	}
 }
 

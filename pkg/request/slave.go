@@ -35,7 +35,7 @@ func RemoteCallback(url string, body serializer.RemoteUploadCallback) error {
 	}
 
 	// 检查返回HTTP状态码
-	rawResp, err := resp.GetResponse(200)
+	rawResp, err := resp.CheckHTTPResponse(200).GetResponse()
 	if err != nil {
 		return serializer.NewError(serializer.CodeCallbackError, "服务器返回异常响应", err)
 	}

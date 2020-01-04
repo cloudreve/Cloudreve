@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// GeneralClient 通用 HTTP Client
 var GeneralClient Client = HTTPClient{}
 
 // Response 请求的响应或错误信息
@@ -22,7 +23,7 @@ type Response struct {
 
 // Client 请求客户端
 type Client interface {
-	Request(method, target string, body io.Reader, opts ...Option) Response
+	Request(method, target string, body io.Reader, opts ...Option) *Response
 }
 
 // HTTPClient 实现 Client 接口
@@ -63,7 +64,6 @@ func WithTimeout(t time.Duration) Option {
 }
 
 // WithContext 设置请求上下文
-// TODO 测试
 func WithContext(c context.Context) Option {
 	return optionFunc(func(o *options) {
 		o.ctx = c
@@ -86,7 +86,7 @@ func WithHeader(header http.Header) Option {
 }
 
 // Request 发送HTTP请求
-func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) Response {
+func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
 	options := newDefaultOption()
 	for _, o := range opts {
@@ -107,7 +107,7 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 		req, err = http.NewRequest(method, target, body)
 	}
 	if err != nil {
-		return Response{Err: err}
+		return &Response{Err: err}
 	}
 
 	// 添加请求header
@@ -121,24 +121,32 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
-		return Response{Err: err}
+		return &Response{Err: err}
 	}
 
-	return Response{Err: nil, Response: resp}
+	return &Response{Err: nil, Response: resp}
 }
 
 // GetResponse 检查响应并获取响应正文
-// todo 测试
-func (resp Response) GetResponse(expectStatus int) (string, error) {
+func (resp *Response) GetResponse() (string, error) {
 	if resp.Err != nil {
 		return "", resp.Err
 	}
 	respBody, err := ioutil.ReadAll(resp.Response.Body)
-	if resp.Response.StatusCode != expectStatus {
-		return string(respBody),
-			fmt.Errorf("服务器返回非正常HTTP状态%d", resp.Response.StatusCode)
-	}
 	return string(respBody), err
+}
+
+// CheckHTTPResponse 检查请求响应HTTP状态码
+func (resp *Response) CheckHTTPResponse(status int) *Response {
+	if resp.Err != nil {
+		return resp
+	}
+
+	// 检查HTTP状态码
+	if resp.Response.StatusCode != status {
+		resp.Err = fmt.Errorf("服务器返回非正常HTTP状态%d", resp.Response.StatusCode)
+	}
+	return resp
 }
 
 type nopRSCloser struct {
@@ -146,7 +154,11 @@ type nopRSCloser struct {
 }
 
 // GetRSCloser 返回带有空seeker的body reader
-func (resp Response) GetRSCloser() (response.RSCloser, error) {
+func (resp *Response) GetRSCloser() (response.RSCloser, error) {
+	if resp.Err != nil {
+		return nil, resp.Err
+	}
+
 	return nopRSCloser{
 		body: resp.Response.Body,
 	}, resp.Err

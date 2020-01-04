@@ -102,9 +102,9 @@ type ClientMock struct {
 	testMock.Mock
 }
 
-func (m ClientMock) Request(method, target string, body io.Reader, opts ...request.Option) request.Response {
+func (m ClientMock) Request(method, target string, body io.Reader, opts ...request.Option) *request.Response {
 	args := m.Called(method, target, body, opts)
-	return args.Get(0).(request.Response)
+	return args.Get(0).(*request.Response)
 }
 
 func TestHandler_Delete(t *testing.T) {
@@ -128,7 +128,7 @@ func TestHandler_Delete(t *testing.T) {
 			"http://test.com/api/v3/slave/delete",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(request.Response{
+		).Return(&request.Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
@@ -152,7 +152,7 @@ func TestHandler_Delete(t *testing.T) {
 			"http://test.com/api/v3/slave/delete",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(request.Response{
+		).Return(&request.Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
@@ -175,7 +175,7 @@ func TestHandler_Delete(t *testing.T) {
 			"http://test.com/api/v3/slave/delete",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(request.Response{
+		).Return(&request.Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
@@ -187,5 +187,65 @@ func TestHandler_Delete(t *testing.T) {
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
 		asserts.Len(failed, 1)
+	}
+}
+
+func TestHandler_Get(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{
+		Policy: &model.Policy{
+			SecretKey: "test",
+			Server:    "http://test.com",
+		},
+		AuthInstance: auth.HMACAuth{},
+	}
+	ctx := context.Background()
+
+	// 成功
+	{
+		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			nil,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
+			},
+		})
+		handler.Client = clientMock
+		resp, err := handler.Get(ctx, "/test.txt")
+		clientMock.AssertExpectations(t)
+		asserts.NotNil(resp)
+		asserts.NoError(err)
+	}
+
+	// 请求失败
+	{
+		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			nil,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 404,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
+			},
+		})
+		handler.Client = clientMock
+		resp, err := handler.Get(ctx, "/test.txt")
+		clientMock.AssertExpectations(t)
+		asserts.Nil(resp)
+		asserts.Error(err)
 	}
 }

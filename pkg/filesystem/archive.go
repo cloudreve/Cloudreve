@@ -3,7 +3,6 @@ package filesystem
 import (
 	"archive/zip"
 	"context"
-	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
@@ -27,15 +26,18 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	if err != nil && len(folders) != 0 {
 		return "", ErrDBListObjects
 	}
+
 	// 查找待压缩文件
 	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID)
 	if err != nil && len(files) != 0 {
 		return "", ErrDBListObjects
 	}
 
+	// 尝试获取请求上下文，以便于后续检查用户取消任务
+	reqContext := ctx
 	ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context)
-	if !ok {
-		return "", errors.New("无法获取请求上下文")
+	if ok {
+		reqContext = ginCtx.Request.Context()
 	}
 
 	// 将顶级待处理对象的路径设为根路径
@@ -62,12 +64,12 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	ctx = context.WithValue(ginCtx.Request.Context(), fsctx.UserCtx, *fs.User)
+	ctx = reqContext
 
 	// 压缩各个目录及文件
 	for i := 0; i < len(folders); i++ {
 		select {
-		case <-ginCtx.Request.Context().Done():
+		case <-reqContext.Done():
 			// 取消压缩请求
 			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
 			return "", ErrClientCanceled
@@ -78,7 +80,7 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	}
 	for i := 0; i < len(files); i++ {
 		select {
-		case <-ginCtx.Request.Context().Done():
+		case <-reqContext.Done():
 			// 取消压缩请求
 			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
 			return "", ErrClientCanceled

@@ -26,8 +26,8 @@ type Handler struct {
 	AuthInstance auth.Auth
 }
 
-// getAPI 获取接口请求地址
-func (handler Handler) getAPI(scope string) string {
+// getAPIUrl 获取接口请求地址
+func (handler Handler) getAPIUrl(scope string) string {
 	serverURL, err := url.Parse(handler.Policy.Server)
 	if err != nil {
 		return ""
@@ -45,7 +45,6 @@ func (handler Handler) getAPI(scope string) string {
 }
 
 // Get 获取文件内容
-// TODO 测试
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 尝试获取速度限制 TODO 是否需要在这里限制？
 	speedLimit := 0
@@ -65,7 +64,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 		downloadURL,
 		nil,
 		request.WithContext(ctx),
-	).GetRSCloser()
+	).CheckHTTPResponse(200).GetRSCloser()
 
 	if err != nil {
 		return nil, err
@@ -96,10 +95,10 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 	resp, err := handler.Client.Request(
 		"POST",
-		handler.getAPI("delete"),
+		handler.getAPIUrl("delete"),
 		bodyReader,
 		request.WithCredential(handler.AuthInstance, int64(signTTL)),
-	).GetResponse(200)
+	).CheckHTTPResponse(200).GetResponse()
 	if err != nil {
 		return files, err
 	}
@@ -127,7 +126,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
-	thumbURL := handler.getAPI("thumb") + "/" + sourcePath
+	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("slave_api_timeout", 60)
 	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
 	if err != nil {

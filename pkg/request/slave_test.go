@@ -51,7 +51,7 @@ func TestRemoteCallback(t *testing.T) {
 			"http://test/test/url",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(Response{
+		).Return(&Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
@@ -75,7 +75,7 @@ func TestRemoteCallback(t *testing.T) {
 			"http://test/test/url",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(Response{
+		).Return(&Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
@@ -99,7 +99,7 @@ func TestRemoteCallback(t *testing.T) {
 			"http://test/test/url",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(Response{
+		).Return(&Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 404,
@@ -123,7 +123,7 @@ func TestRemoteCallback(t *testing.T) {
 			"http://test/test/url",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(Response{
+		).Return(&Response{
 			Err: errors.New("error"),
 		})
 		GeneralClient = clientMock
