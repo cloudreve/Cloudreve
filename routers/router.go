@@ -166,6 +166,8 @@ func InitMasterRouter() *gin.Engine {
 				file.PUT("download/*path", controllers.CreateDownloadSession)
 				// 预览文件
 				file.GET("preview/*path", controllers.Preview)
+				// 获取文本文件内容
+				file.GET("content/*path", controllers.PreviewText)
 				// 取得Office文档预览地址
 				file.GET("doc/*path", controllers.GetDocPreview)
 				// 获取缩略图

@@ -510,7 +510,7 @@ func TestFileSystem_Preview(t *testing.T) {
 			User: &model.User{},
 		}
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
-		resp, err := fs.Preview(ctx, "/1.txt")
+		resp, err := fs.Preview(ctx, "/1.txt", false)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Nil(resp)
@@ -530,7 +530,7 @@ func TestFileSystem_Preview(t *testing.T) {
 				},
 			},
 		}
-		resp, err := fs.Preview(ctx, "/1.txt")
+		resp, err := fs.Preview(ctx, "/1.txt", false)
 		asserts.Error(err)
 		asserts.Nil(resp)
 	}
@@ -550,7 +550,7 @@ func TestFileSystem_Preview(t *testing.T) {
 				},
 			},
 		}
-		resp, err := fs.Preview(ctx, "/1.txt")
+		resp, err := fs.Preview(ctx, "/1.txt", false)
 		asserts.NoError(err)
 		asserts.NotNil(resp)
 		asserts.False(resp.Redirect)
@@ -573,9 +573,31 @@ func TestFileSystem_Preview(t *testing.T) {
 			},
 		}
 		asserts.NoError(cache.Set("setting_preview_timeout", "233", 0))
-		resp, err := fs.Preview(ctx, "/1.txt")
+		resp, err := fs.Preview(ctx, "/1.txt", false)
 		asserts.NoError(err)
 		asserts.NotNil(resp)
 		asserts.True(resp.Redirect)
+	}
+
+	// 文本文件，大小超出限制
+	{
+		fs := FileSystem{
+			User: &model.User{},
+		}
+		fs.FileTarget = []model.File{
+			{
+				SourceName: "tests/file1.txt",
+				PolicyID:   1,
+				Policy: model.Policy{
+					Model: gorm.Model{ID: 1},
+					Type:  "remote",
+				},
+				Size: 11,
+			},
+		}
+		asserts.NoError(cache.Set("setting_maxEditSize", "10", 0))
+		resp, err := fs.Preview(ctx, "/1.txt", true)
+		asserts.Equal(ErrFileSizeTooBig, err)
+		asserts.Nil(resp)
 	}
 }

@@ -230,7 +230,7 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 
 	ctx := r.Context()
 
-	rs, err := fs.Preview(ctx, reqPath)
+	rs, err := fs.Preview(ctx, reqPath, false)
 	if err != nil {
 		if err == filesystem.ErrObjectNotExist {
 			return http.StatusNotFound, err

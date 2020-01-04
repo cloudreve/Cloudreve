@@ -156,14 +156,20 @@ func TestResponse_GetRSCloser(t *testing.T) {
 	// 正常
 	{
 		resp := Response{
-			Response: &http.Response{Body: ioutil.NopCloser(strings.NewReader("123"))},
+			Response: &http.Response{ContentLength: 3, Body: ioutil.NopCloser(strings.NewReader("123"))},
 		}
 		res, err := resp.GetRSCloser()
 		asserts.NoError(err)
 		content, err := ioutil.ReadAll(res)
 		asserts.NoError(err)
 		asserts.Equal("123", string(content))
-		_, err = res.Seek(0, 0)
+		offset, err := res.Seek(0, 0)
+		asserts.NoError(err)
+		asserts.Equal(int64(0), offset)
+		offset, err = res.Seek(0, 2)
+		asserts.NoError(err)
+		asserts.Equal(int64(3), offset)
+		_, err = res.Seek(1, 2)
 		asserts.Error(err)
 		asserts.NoError(res.Close())
 	}

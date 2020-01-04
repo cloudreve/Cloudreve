@@ -93,7 +93,6 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 }
 
 // cancelCompress 取消压缩进程
-// TODO 测试
 func (fs *FileSystem) cancelCompress(ctx context.Context, zipWriter *zip.Writer, file *os.File, path string) {
 	util.Log().Debug("客户端取消压缩请求")
 	zipWriter.Close()

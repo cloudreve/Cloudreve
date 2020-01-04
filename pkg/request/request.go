@@ -151,6 +151,7 @@ func (resp *Response) CheckHTTPResponse(status int) *Response {
 
 type nopRSCloser struct {
 	body io.ReadCloser
+	size int64
 }
 
 // GetRSCloser 返回带有空seeker的body reader
@@ -161,6 +162,7 @@ func (resp *Response) GetRSCloser() (response.RSCloser, error) {
 
 	return nopRSCloser{
 		body: resp.Response.Body,
+		size: resp.Response.ContentLength,
 	}, resp.Err
 }
 
@@ -174,7 +176,16 @@ func (instance nopRSCloser) Close() error {
 	return instance.body.Close()
 }
 
-// 实现 nopRSCloser seeker
+// 实现 nopRSCloser seeker, 只实现seek开头/结尾以便http.ServeContent用于确定正文大小
 func (instance nopRSCloser) Seek(offset int64, whence int) (int64, error) {
+	if offset == 0 {
+		switch whence {
+		case io.SeekStart:
+			return 0, nil
+		case io.SeekEnd:
+			return instance.size, nil
+		}
+	}
 	return 0, errors.New("未实现")
+
 }

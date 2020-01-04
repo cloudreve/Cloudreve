@@ -208,8 +208,9 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	}
 }
 
-// PreviewContent 预览文件，需要登录会话
-func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context) serializer.Response {
+// PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
+// 强制经由服务端中转
+func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -218,7 +219,7 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	defer fs.Recycle()
 
 	// 获取文件预览响应
-	resp, err := fs.Preview(ctx, service.Path)
+	resp, err := fs.Preview(ctx, service.Path, isText)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

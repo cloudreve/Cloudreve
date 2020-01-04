@@ -143,12 +143,30 @@ func Preview(c *gin.Context) {
 
 	var service explorer.SingleFileService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.PreviewContent(ctx, c)
+		res := service.PreviewContent(ctx, c, false)
 		// 是否需要重定向
 		if res.Code == -301 {
 			c.Redirect(301, res.Data.(string))
 			return
 		}
+		// 是否有错误发生
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// PreviewText 预览文本文件
+func PreviewText(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SingleFileService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.PreviewContent(ctx, c, true)
 		// 是否有错误发生
 		if res.Code != 0 {
 			c.JSON(200, res)

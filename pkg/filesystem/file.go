@@ -88,14 +88,23 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 }
 
 // Preview 预览文件
-func (fs *FileSystem) Preview(ctx context.Context, path string) (*response.ContentResponse, error) {
+//   path   -   文件虚拟路径
+//   isText -   是否为文本文件，文本文件会忽略重定向，直接由
+//              服务端拉取中转给用户，故会对文件大小进行限制
+func (fs *FileSystem) Preview(ctx context.Context, path string, isText bool) (*response.ContentResponse, error) {
 	err := fs.resetFileIfNotExist(ctx, path)
 	if err != nil {
 		return nil, err
 	}
 
+	// 如果是文本文件预览，需要检查大小限制
+	sizeLimit := model.GetIntSetting("maxEditSize", 2<<20)
+	if fs.FileTarget[0].Size > uint64(sizeLimit) {
+		return nil, ErrFileSizeTooBig
+	}
+
 	// 是否直接返回文件内容
-	if fs.Policy.IsDirectlyPreview() {
+	if isText || fs.Policy.IsDirectlyPreview() {
 		resp, err := fs.GetDownloadContent(ctx, path)
 		if err != nil {
 			return nil, err

@@ -26,7 +26,7 @@ func TestRemoteCallback(t *testing.T) {
 			"http://test/test/url",
 			testMock.Anything,
 			testMock.Anything,
-		).Return(Response{
+		).Return(&Response{
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
