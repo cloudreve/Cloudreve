@@ -35,12 +35,12 @@ func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 	var controller *url.URL
 
 	switch scope {
+	case "upload":
+		controller, _ = url.Parse("/api/v3/slave/upload")
 	case "delete":
 		controller, _ = url.Parse("/api/v3/slave/delete")
 	case "thumb":
 		controller, _ = url.Parse("/api/v3/slave/thumb")
-	case "remote_callback":
-		controller, _ = url.Parse("/api/v3/callback/remote")
 	default:
 		controller = serverURL
 	}
@@ -53,6 +53,7 @@ func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 }
 
 // Get 获取文件内容
+// TODO 测试
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 尝试获取速度限制 TODO 是否需要在这里限制？
 	speedLimit := 0
@@ -73,17 +74,53 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 		nil,
 		request.WithContext(ctx),
 	).CheckHTTPResponse(200).GetRSCloser()
-
 	if err != nil {
 		return nil, err
 	}
 
+	resp.SetFirstFakeChunk()
 	return resp, nil
 }
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return errors.New("远程策略不支持此上传方式")
+	defer file.Close()
+
+	// 凭证有效期
+	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+
+	// 生成上传策略
+	policy := serializer.UploadPolicy{
+		SavePath:   path.Dir(dst),
+		FileName:   path.Base(dst),
+		AutoRename: false,
+		MaxSize:    size,
+	}
+	credential, err := handler.getUploadCredential(ctx, policy, int64(credentialTTL))
+	if err != nil {
+		return err
+	}
+
+	// 上传文件
+	resp, err := handler.Client.Request(
+		"POST",
+		handler.getAPIUrl("upload"),
+		file,
+		request.WithHeader(map[string][]string{
+			"Authorization": {credential.Token},
+			"X-Policy":      {credential.Policy},
+			"X-FileName":    {path.Base(dst)},
+		}),
+		request.WithContentLength(int64(size)),
+	).CheckHTTPResponse(200).DecodeResponse()
+	if err != nil {
+		return err
+	}
+	if resp.Code != 0 {
+		return errors.New(resp.Msg)
+	}
+
+	return nil
 }
 
 // Delete 删除一个或多个文件，
@@ -195,7 +232,9 @@ func (handler Handler) Source(
 // Token 获取上传策略和认证Token
 func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
-	apiURL := handler.getAPIUrl("remote_callback", key)
+	siteURL := model.GetSiteURL()
+	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + key)
+	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 生成上传策略
 	policy := serializer.UploadPolicy{
@@ -204,7 +243,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 		AutoRename:       handler.Policy.AutoRename,
 		MaxSize:          handler.Policy.MaxSize,
 		AllowedExtension: handler.Policy.OptionsSerialized.FileType,
-		CallbackURL:      apiURL,
+		CallbackURL:      apiURL.String(),
 	}
 	return handler.getUploadCredential(ctx, policy, TTL)
 }

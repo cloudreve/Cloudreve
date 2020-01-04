@@ -2,10 +2,12 @@ package request
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/auth"
-	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -36,11 +38,12 @@ type Option interface {
 }
 
 type options struct {
-	timeout time.Duration
-	header  http.Header
-	sign    auth.Auth
-	signTTL int64
-	ctx     context.Context
+	timeout       time.Duration
+	header        http.Header
+	sign          auth.Auth
+	signTTL       int64
+	ctx           context.Context
+	contentLength int64
 }
 
 type optionFunc func(*options)
@@ -51,8 +54,9 @@ func (f optionFunc) apply(o *options) {
 
 func newDefaultOption() *options {
 	return &options{
-		header:  http.Header{},
-		timeout: time.Duration(30) * time.Second,
+		header:        http.Header{},
+		timeout:       time.Duration(30) * time.Second,
+		contentLength: -1,
 	}
 }
 
@@ -85,6 +89,14 @@ func WithHeader(header http.Header) Option {
 	})
 }
 
+// WithContentLength 设置请求大小
+// TODO 测试
+func WithContentLength(s int64) Option {
+	return optionFunc(func(o *options) {
+		o.contentLength = s
+	})
+}
+
 // Request 发送HTTP请求
 func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
@@ -95,6 +107,11 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	// 创建请求客户端
 	client := &http.Client{Timeout: options.timeout}
+
+	// size为0时将body设为nil
+	if options.contentLength == 0 {
+		body = nil
+	}
 
 	// 创建请求
 	var (
@@ -110,8 +127,11 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 		return &Response{Err: err}
 	}
 
-	// 添加请求header
+	// 添加请求相关设置
 	req.Header = options.header
+	if options.contentLength != -1 {
+		req.ContentLength = options.contentLength
+	}
 
 	// 签名请求
 	if options.sign != nil {
@@ -149,35 +169,78 @@ func (resp *Response) CheckHTTPResponse(status int) *Response {
 	return resp
 }
 
-type nopRSCloser struct {
-	body io.ReadCloser
-	size int64
-}
-
-// GetRSCloser 返回带有空seeker的body reader
-func (resp *Response) GetRSCloser() (response.RSCloser, error) {
+// DecodeResponse 尝试解析为serializer.Response，并对状态码进行检查
+// TODO 测试
+func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 	if resp.Err != nil {
 		return nil, resp.Err
 	}
 
-	return nopRSCloser{
-		body: resp.Response.Body,
-		size: resp.Response.ContentLength,
+	respString, err := resp.GetResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	var res serializer.Response
+	err = json.Unmarshal([]byte(respString), &res)
+	if err != nil {
+		util.Log().Debug("无法解析回调服务端响应：%s", string(respString))
+		return nil, err
+	}
+	return &res, nil
+}
+
+// NopRSCloser 实现不完整seeker
+type NopRSCloser struct {
+	body   io.ReadCloser
+	size   int64
+	status *rscStatus
+}
+
+type rscStatus struct {
+	// http.ServeContent 会读取一小块以决定内容类型，
+	// 但是响应body无法实现seek，所以此项为真时第一个read会返回假数据
+	IgnoreFirst bool
+}
+
+// GetRSCloser 返回带有空seeker的RSCloser，供http.ServeContent使用
+func (resp *Response) GetRSCloser() (*NopRSCloser, error) {
+	if resp.Err != nil {
+		return nil, resp.Err
+	}
+
+	return &NopRSCloser{
+		body:   resp.Response.Body,
+		size:   resp.Response.ContentLength,
+		status: &rscStatus{},
 	}, resp.Err
 }
 
-// Read 实现 nopRSCloser reader
-func (instance nopRSCloser) Read(p []byte) (n int, err error) {
+// SetFirstFakeChunk 开启第一次read返回空数据
+// TODO 测试
+func (instance NopRSCloser) SetFirstFakeChunk() {
+	instance.status.IgnoreFirst = true
+}
+
+// Read 实现 NopRSCloser reader
+func (instance NopRSCloser) Read(p []byte) (n int, err error) {
+	if instance.status.IgnoreFirst {
+		return 0, io.EOF
+	}
 	return instance.body.Read(p)
 }
 
-// 实现 nopRSCloser closer
-func (instance nopRSCloser) Close() error {
+// Close 实现 NopRSCloser closer
+func (instance NopRSCloser) Close() error {
 	return instance.body.Close()
 }
 
-// 实现 nopRSCloser seeker, 只实现seek开头/结尾以便http.ServeContent用于确定正文大小
-func (instance nopRSCloser) Seek(offset int64, whence int) (int64, error) {
+// Seek 实现 NopRSCloser seeker, 只实现seek开头/结尾以便http.ServeContent用于确定正文大小
+func (instance NopRSCloser) Seek(offset int64, whence int) (int64, error) {
+	// 进行第一次Seek操作后，取消忽略选项
+	if instance.status.IgnoreFirst {
+		instance.status.IgnoreFirst = false
+	}
 	if offset == 0 {
 		switch whence {
 		case io.SeekStart:

@@ -219,6 +219,10 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 	fs.GenerateThumbnail(ctx, &file)
 
+	if policy.CallbackURL == "" {
+		return nil
+	}
+
 	// 发送回调请求
 	callbackBody := serializer.RemoteUploadCallback{
 		Name:       file.Name,
