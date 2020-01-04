@@ -8,7 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
-	"path/filepath"
+	"path"
 )
 
 /* ================
@@ -73,7 +73,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 // TODO 完善测试
 func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) string {
 	if fs.User.Model.ID != 0 {
-		return filepath.Join(
+		return path.Join(
 			fs.User.Policy.GeneratePath(
 				fs.User.Model.ID,
 				file.GetVirtualPath(),
@@ -95,7 +95,7 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 			FileNameRule: policy.FileName,
 		}
 	}
-	return filepath.Join(
+	return path.Join(
 		anonymousPolicy.GeneratePath(
 			0,
 			"",

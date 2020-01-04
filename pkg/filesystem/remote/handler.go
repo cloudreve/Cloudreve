@@ -1,6 +1,5 @@
 package remote
 
-// TODO 测试
 import (
 	"context"
 	"encoding/base64"
@@ -16,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -27,7 +27,7 @@ type Handler struct {
 }
 
 // getAPIUrl 获取接口请求地址
-func (handler Handler) getAPIUrl(scope string) string {
+func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 	serverURL, err := url.Parse(handler.Policy.Server)
 	if err != nil {
 		return ""
@@ -39,6 +39,14 @@ func (handler Handler) getAPIUrl(scope string) string {
 		controller, _ = url.Parse("/api/v3/slave/delete")
 	case "thumb":
 		controller, _ = url.Parse("/api/v3/slave/thumb")
+	case "remote_callback":
+		controller, _ = url.Parse("/api/v3/callback/remote")
+	default:
+		controller = serverURL
+	}
+
+	for _, r := range routes {
+		controller.Path = path.Join(controller.Path, r)
 	}
 
 	return serverURL.ResolveReference(controller).String()
@@ -187,9 +195,7 @@ func (handler Handler) Source(
 // Token 获取上传策略和认证Token
 func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
-	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + key)
-	apiURL := siteURL.ResolveReference(apiBaseURI)
+	apiURL := handler.getAPIUrl("remote_callback", key)
 
 	// 生成上传策略
 	policy := serializer.UploadPolicy{
@@ -198,8 +204,12 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 		AutoRename:       handler.Policy.AutoRename,
 		MaxSize:          handler.Policy.MaxSize,
 		AllowedExtension: handler.Policy.OptionsSerialized.FileType,
-		CallbackURL:      apiURL.String(),
+		CallbackURL:      apiURL,
 	}
+	return handler.getUploadCredential(ctx, policy, TTL)
+}
+
+func (handler Handler) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
 	policyEncoded, err := policy.EncodeUploadPolicy()
 	if err != nil {
 		return serializer.UploadCredential{}, err
@@ -219,5 +229,4 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 		}, nil
 	}
 	return serializer.UploadCredential{}, errors.New("无法签名上传策略")
-
 }

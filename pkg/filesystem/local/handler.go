@@ -51,6 +51,7 @@ func closeReader(ctx context.Context, closer io.Closer) {
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
+	dst = filepath.FromSlash(dst)
 
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
@@ -82,7 +83,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 	var retErr error
 
 	for _, value := range files {
-		err := os.Remove(value)
+		err := os.Remove(filepath.FromSlash(value))
 		if err != nil {
 			util.Log().Warning("无法删除文件，%s", err)
 			retErr = err
