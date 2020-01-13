@@ -43,7 +43,7 @@ func TestHandler_Token(t *testing.T) {
 		asserts.NoError(err)
 		policy, err := serializer.DecodeUploadPolicy(credential.Policy)
 		asserts.NoError(err)
-		asserts.Equal("http://test.com/api/v3/callback/remote/123", policy.CallbackURL)
+		asserts.Equal("http://test.cloudreve.org/api/v3/callback/remote/123", policy.CallbackURL)
 		asserts.Equal(uint64(10), policy.MaxSize)
 		asserts.Equal(true, policy.AutoRename)
 		asserts.Equal("dir", policy.SavePath)
