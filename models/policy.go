@@ -67,11 +67,6 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 	return policy, result.Error
 }
 
-// IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
-func (policy *Policy) IsDirectlyPreview() bool {
-	return policy.Type == "local"
-}
-
 // AfterFind 找到存储策略后的钩子
 func (policy *Policy) AfterFind() (err error) {
 	// 解析存储策略设置到OptionsSerialized
@@ -146,4 +141,9 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 
 	fileRule = util.Replace(replaceTable, fileRule)
 	return fileRule
+}
+
+// IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
+func (policy *Policy) IsDirectlyPreview() bool {
+	return policy.Type == "local"
 }

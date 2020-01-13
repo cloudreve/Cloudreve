@@ -101,6 +101,11 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 		return err
 	}
 
+	// 对文件名进行URLEncode
+	fileName, err := url.QueryUnescape(path.Base(dst))
+	if err != nil {
+		return err
+	}
 	// 上传文件
 	resp, err := handler.Client.Request(
 		"POST",
@@ -109,7 +114,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 		request.WithHeader(map[string][]string{
 			"Authorization": {credential.Token},
 			"X-Policy":      {credential.Policy},
-			"X-FileName":    {path.Base(dst)},
+			"X-FileName":    {fileName},
 		}),
 		request.WithContentLength(int64(size)),
 	).CheckHTTPResponse(200).DecodeResponse()
