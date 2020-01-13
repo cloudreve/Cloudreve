@@ -90,7 +90,6 @@ func WithHeader(header http.Header) Option {
 }
 
 // WithContentLength 设置请求大小
-// TODO 测试
 func WithContentLength(s int64) Option {
 	return optionFunc(func(o *options) {
 		o.contentLength = s
@@ -170,7 +169,6 @@ func (resp *Response) CheckHTTPResponse(status int) *Response {
 }
 
 // DecodeResponse 尝试解析为serializer.Response，并对状态码进行检查
-// TODO 测试
 func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 	if resp.Err != nil {
 		return nil, resp.Err

@@ -251,3 +251,104 @@ func TestHandler_Get(t *testing.T) {
 		asserts.Error(err)
 	}
 }
+
+func TestHandler_Put(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{
+		Policy: &model.Policy{
+			Type:      "remote",
+			SecretKey: "test",
+			Server:    "http://test.com",
+		},
+		AuthInstance: auth.HMACAuth{},
+	}
+	ctx := context.Background()
+	asserts.NoError(cache.Set("setting_upload_credential_timeout", "3600", 0))
+
+	// 成功
+	{
+		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/upload",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
+			},
+		})
+		handler.Client = clientMock
+		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
+		clientMock.AssertExpectations(t)
+		asserts.NoError(err)
+	}
+
+	// 请求失败
+	{
+		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/upload",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 404,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
+			},
+		})
+		handler.Client = clientMock
+		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+	}
+
+	// 返回错误
+	{
+		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/upload",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":1}`)),
+			},
+		})
+		handler.Client = clientMock
+		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+	}
+
+}
+
+func TestHandler_Thumb(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Handler{
+		Policy: &model.Policy{
+			Type:      "remote",
+			SecretKey: "test",
+			Server:    "http://test.com",
+		},
+		AuthInstance: auth.HMACAuth{},
+	}
+	ctx := context.Background()
+	asserts.NoError(cache.Set("setting_slave_api_timeout", "60", 0))
+	resp, err := handler.Thumb(ctx, "/1.txt")
+	asserts.NoError(err)
+	asserts.True(resp.Redirect)
+}

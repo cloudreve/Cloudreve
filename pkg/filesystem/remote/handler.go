@@ -35,8 +35,6 @@ func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 	var controller *url.URL
 
 	switch scope {
-	case "upload":
-		controller, _ = url.Parse("/api/v3/slave/upload")
 	case "delete":
 		controller, _ = url.Parse("/api/v3/slave/delete")
 	case "thumb":
@@ -53,7 +51,6 @@ func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 }
 
 // Get 获取文件内容
-// TODO 测试
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 尝试获取速度限制 TODO 是否需要在这里限制？
 	speedLimit := 0
@@ -109,7 +106,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 	// 上传文件
 	resp, err := handler.Client.Request(
 		"POST",
-		handler.getAPIUrl("upload"),
+		handler.Policy.GetUploadURL(),
 		file,
 		request.WithHeader(map[string][]string{
 			"Authorization": {credential.Token},

@@ -37,12 +37,11 @@ func TestWithHeader(t *testing.T) {
 	asserts.Equal(http.Header{"Origin": []string{"123"}}, options.header)
 }
 
-func TestWithCredential(t *testing.T) {
+func TestWithContentLength(t *testing.T) {
 	asserts := assert.New(t)
 	options := newDefaultOption()
-	WithCredential(auth.HMACAuth{SecretKey: []byte("123")}, 10).apply(options)
-	asserts.Equal(auth.HMACAuth{SecretKey: []byte("123")}, options.sign)
-	asserts.EqualValues(10, options.signTTL)
+	WithContentLength(10).apply(options)
+	asserts.EqualValues(10, options.contentLength)
 }
 
 func TestWithContext(t *testing.T) {
@@ -174,4 +173,41 @@ func TestResponse_GetRSCloser(t *testing.T) {
 		asserts.NoError(res.Close())
 	}
 
+}
+
+func TestResponse_DecodeResponse(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 直接返回错误
+	{
+		resp := Response{Err: errors.New("error")}
+		response, err := resp.DecodeResponse()
+		asserts.Error(err)
+		asserts.Nil(response)
+	}
+
+	// 无法解析响应
+	{
+		resp := Response{
+			Response: &http.Response{
+				Body: ioutil.NopCloser(strings.NewReader("test")),
+			},
+		}
+		response, err := resp.DecodeResponse()
+		asserts.Error(err)
+		asserts.Nil(response)
+	}
+
+	// 成功
+	{
+		resp := Response{
+			Response: &http.Response{
+				Body: ioutil.NopCloser(strings.NewReader("{\"code\":0}")),
+			},
+		}
+		response, err := resp.DecodeResponse()
+		asserts.NoError(err)
+		asserts.NotNil(response)
+		asserts.Equal(0, response.Code)
+	}
 }
