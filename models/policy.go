@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
+	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -146,4 +147,23 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 // IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
 func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
+}
+
+// GetUploadURL 获取文件上传服务API地址
+func (policy *Policy) GetUploadURL() string {
+	server, err := url.Parse(policy.Server)
+	if err != nil {
+		return policy.Server
+	}
+
+	var controller *url.URL
+	switch policy.Type {
+	case "local":
+		controller, _ = url.Parse("/api/v3/file/upload")
+	case "remote":
+		controller, _ = url.Parse("/api/v3/slave/upload")
+	default:
+		controller, _ = url.Parse("")
+	}
+	return server.ResolveReference(controller).String()
 }

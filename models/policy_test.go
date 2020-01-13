@@ -141,3 +141,26 @@ func TestPolicy_IsDirectlyPreview(t *testing.T) {
 	policy.Type = "remote"
 	asserts.False(policy.IsDirectlyPreview())
 }
+
+func TestPolicy_GetUploadURL(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 本地
+	{
+		policy := Policy{Type: "local", Server: "http://127.0.0.1"}
+		asserts.Equal("http://127.0.0.1/api/v3/file/upload", policy.GetUploadURL())
+	}
+
+	// 远程
+	{
+		policy := Policy{Type: "remote", Server: "http://127.0.0.1"}
+		asserts.Equal("http://127.0.0.1/api/v3/slave/upload", policy.GetUploadURL())
+	}
+
+	// 未知
+	{
+		policy := Policy{Type: "unknown", Server: "http://127.0.0.1"}
+		asserts.Equal("http://127.0.0.1", policy.GetUploadURL())
+	}
+
+}

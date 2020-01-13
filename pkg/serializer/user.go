@@ -64,7 +64,7 @@ func BuildUser(user model.User) User {
 			SaveType:       user.Policy.Type,
 			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/(1024*1024)),
 			AllowedType:    user.Policy.OptionsSerialized.FileType,
-			UploadURL:      user.Policy.Server,
+			UploadURL:      user.Policy.GetUploadURL(),
 			AllowGetSource: user.Policy.IsOriginLinkEnable,
 		},
 		Group: group{
