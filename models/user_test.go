@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -171,6 +172,7 @@ func TestUser_GetPolicyID(t *testing.T) {
 func TestUser_GetRemainingCapacity(t *testing.T) {
 	asserts := assert.New(t)
 	newUser := NewUser()
+	cache.Set("pack_size_0", uint64(0), 0)
 
 	newUser.Group.MaxStorage = 100
 	asserts.Equal(uint64(100), newUser.GetRemainingCapacity())
@@ -186,6 +188,11 @@ func TestUser_GetRemainingCapacity(t *testing.T) {
 	newUser.Group.MaxStorage = 100
 	newUser.Storage = 200
 	asserts.Equal(uint64(0), newUser.GetRemainingCapacity())
+
+	cache.Set("pack_size_0", uint64(10), 0)
+	newUser.Group.MaxStorage = 100
+	newUser.Storage = 101
+	asserts.Equal(uint64(9), newUser.GetRemainingCapacity())
 }
 
 func TestUser_DeductionCapacity(t *testing.T) {
@@ -204,6 +211,7 @@ func TestUser_DeductionCapacity(t *testing.T) {
 
 	newUser, err := GetUserByID(1)
 	newUser.Group.MaxStorage = 100
+	cache.Set("pack_size_1", uint64(0), 0)
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -218,6 +226,10 @@ func TestUser_DeductionCapacity(t *testing.T) {
 
 	asserts.Equal(false, newUser.IncreaseStorage(1))
 	asserts.Equal(uint64(100), newUser.Storage)
+
+	cache.Set("pack_size_1", uint64(1), 0)
+	asserts.Equal(true, newUser.IncreaseStorage(1))
+	asserts.Equal(uint64(101), newUser.Storage)
 
 	asserts.True(newUser.IncreaseStorage(0))
 }

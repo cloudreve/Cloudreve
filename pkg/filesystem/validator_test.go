@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -42,6 +43,7 @@ func TestFileSystem_ValidateLegalName(t *testing.T) {
 func TestFileSystem_ValidateCapacity(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()
+	cache.Set("pack_size_0", uint64(0), 0)
 	fs := FileSystem{
 		User: &model.User{
 			Storage: 10,
@@ -57,6 +59,11 @@ func TestFileSystem_ValidateCapacity(t *testing.T) {
 	fs.User.Storage = 5
 	asserts.False(fs.ValidateCapacity(ctx, 10))
 	asserts.Equal(uint64(5), fs.User.Storage)
+
+	fs.User.Storage = 5
+	cache.Set("pack_size_0", uint64(15), 0)
+	asserts.True(fs.ValidateCapacity(ctx, 10))
+	asserts.Equal(uint64(15), fs.User.Storage)
 }
 
 func TestFileSystem_ValidateFileSize(t *testing.T) {

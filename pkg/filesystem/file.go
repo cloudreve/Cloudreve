@@ -99,7 +99,7 @@ func (fs *FileSystem) Preview(ctx context.Context, path string, isText bool) (*r
 
 	// 如果是文本文件预览，需要检查大小限制
 	sizeLimit := model.GetIntSetting("maxEditSize", 2<<20)
-	if fs.FileTarget[0].Size > uint64(sizeLimit) {
+	if isText && fs.FileTarget[0].Size > uint64(sizeLimit) {
 		return nil, ErrFileSizeTooBig
 	}
 

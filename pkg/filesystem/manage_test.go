@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
@@ -275,6 +276,7 @@ func TestFileSystem_ListDeleteDirs(t *testing.T) {
 func TestFileSystem_Delete(t *testing.T) {
 	conf.DatabaseConfig.Type = "mysql"
 	asserts := assert.New(t)
+	cache.Set("pack_size_1", uint64(0), 0)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
 			ID: 1,
@@ -381,6 +383,7 @@ func TestFileSystem_Delete(t *testing.T) {
 
 func TestFileSystem_Copy(t *testing.T) {
 	asserts := assert.New(t)
+	cache.Set("pack_size_1", uint64(0), 0)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
 			ID: 1,
@@ -431,6 +434,7 @@ func TestFileSystem_Copy(t *testing.T) {
 
 func TestFileSystem_Move(t *testing.T) {
 	asserts := assert.New(t)
+	cache.Set("pack_size_1", uint64(0), 0)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
 			ID: 1,

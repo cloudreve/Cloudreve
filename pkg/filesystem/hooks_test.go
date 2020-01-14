@@ -28,6 +28,7 @@ func TestGenericBeforeUpload(t *testing.T) {
 		Size: 5,
 		Name: "1.txt",
 	}
+	cache.Set("pack_size_0", uint64(0), 0)
 	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
 	fs := FileSystem{
 		User: &model.User{
@@ -266,6 +267,7 @@ func TestHookIsFileExist(t *testing.T) {
 
 func TestHookValidateCapacity(t *testing.T) {
 	asserts := assert.New(t)
+	cache.Set("pack_size_1", uint64(0), 0)
 	fs := &FileSystem{User: &model.User{
 		Model:   gorm.Model{ID: 1},
 		Storage: 0,
@@ -313,6 +315,7 @@ func TestHookResetPolicy(t *testing.T) {
 
 func TestHookChangeCapacity(t *testing.T) {
 	asserts := assert.New(t)
+	cache.Set("pack_size_1", uint64(0), 0)
 
 	// 容量增加 失败
 	{

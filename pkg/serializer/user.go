@@ -87,13 +87,14 @@ func BuildUserResponse(user model.User) Response {
 
 // BuildUserStorageResponse 序列化用户存储概况响应
 func BuildUserStorageResponse(user model.User) Response {
+	total := user.Group.MaxStorage + user.GetAvailablePackSize()
 	storageResp := storage{
 		Used:  user.Storage,
-		Free:  user.Group.MaxStorage - user.Storage,
-		Total: user.Group.MaxStorage,
+		Free:  total - user.Storage,
+		Total: total,
 	}
 
-	if user.Group.MaxStorage < user.Storage {
+	if total < user.Storage {
 		storageResp.Free = 0
 	}
 

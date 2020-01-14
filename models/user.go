@@ -105,10 +105,11 @@ func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 
 // GetRemainingCapacity 获取剩余配额
 func (user *User) GetRemainingCapacity() uint64 {
-	if user.Group.MaxStorage <= user.Storage {
+	total := user.Group.MaxStorage + user.GetAvailablePackSize()
+	if total <= user.Storage {
 		return 0
 	}
-	return user.Group.MaxStorage - user.Storage
+	return total - user.Storage
 }
 
 // GetPolicyID 获取用户当前的存储策略ID
