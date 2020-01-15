@@ -191,7 +191,6 @@ func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 // NopRSCloser 实现不完整seeker
 type NopRSCloser struct {
 	body   io.ReadCloser
-	size   int64
 	status *rscStatus
 }
 
@@ -199,6 +198,8 @@ type rscStatus struct {
 	// http.ServeContent 会读取一小块以决定内容类型，
 	// 但是响应body无法实现seek，所以此项为真时第一个read会返回假数据
 	IgnoreFirst bool
+
+	Size int64
 }
 
 // GetRSCloser 返回带有空seeker的RSCloser，供http.ServeContent使用
@@ -208,9 +209,10 @@ func (resp *Response) GetRSCloser() (*NopRSCloser, error) {
 	}
 
 	return &NopRSCloser{
-		body:   resp.Response.Body,
-		size:   resp.Response.ContentLength,
-		status: &rscStatus{},
+		body: resp.Response.Body,
+		status: &rscStatus{
+			Size: resp.Response.ContentLength,
+		},
 	}, resp.Err
 }
 
@@ -220,11 +222,13 @@ func (instance NopRSCloser) SetFirstFakeChunk() {
 	instance.status.IgnoreFirst = true
 }
 
+// SetContentLength 设置数据流大小
+func (instance NopRSCloser) SetContentLength(size int64) {
+	instance.status.Size = size
+}
+
 // Read 实现 NopRSCloser reader
 func (instance NopRSCloser) Read(p []byte) (n int, err error) {
-	if instance.status.IgnoreFirst {
-		return 0, io.EOF
-	}
 	return instance.body.Read(p)
 }
 
@@ -244,7 +248,7 @@ func (instance NopRSCloser) Seek(offset int64, whence int) (int64, error) {
 		case io.SeekStart:
 			return 0, nil
 		case io.SeekEnd:
-			return instance.size, nil
+			return instance.status.Size, nil
 		}
 	}
 	return 0, errors.New("未实现")

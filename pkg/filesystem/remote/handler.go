@@ -76,6 +76,12 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 	}
 
 	resp.SetFirstFakeChunk()
+
+	// 尝试获取文件大小
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		resp.SetContentLength(int64(file.Size))
+	}
+
 	return resp, nil
 }
 

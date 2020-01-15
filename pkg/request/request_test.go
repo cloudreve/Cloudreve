@@ -211,3 +211,15 @@ func TestResponse_DecodeResponse(t *testing.T) {
 		asserts.Equal(0, response.Code)
 	}
 }
+
+func TestNopRSCloser_SetFirstFakeChunk(t *testing.T) {
+	asserts := assert.New(t)
+	rsc := NopRSCloser{
+		status: &rscStatus{},
+	}
+	rsc.SetFirstFakeChunk()
+	asserts.True(rsc.status.IgnoreFirst)
+
+	rsc.SetContentLength(20)
+	asserts.EqualValues(20, rsc.status.Size)
+}

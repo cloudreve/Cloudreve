@@ -112,7 +112,10 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 		}
 
 		// 获取文件内容
-		fileToZip, err := fs.Handler.Get(ctx, file.SourceName)
+		fileToZip, err := fs.Handler.Get(
+			context.WithValue(ctx, fsctx.FileModelCtx, *file),
+			file.SourceName,
+		)
 		if err != nil {
 			util.Log().Debug("Open%s，%s", file.Name, err)
 			return

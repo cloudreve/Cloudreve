@@ -7,10 +7,12 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
 	"io"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -22,43 +24,118 @@ type Handler struct {
 
 // Get 获取文件
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	return nil, errors.New("未实现")
+	// 给文件名加上随机参数以强制拉取
+	path = fmt.Sprintf("%s?v=%d", path, time.Now().UnixNano())
+
+	// 获取文件源地址
+	downloadURL, err := handler.Source(
+		ctx,
+		path,
+		url.URL{},
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		false,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件数据流
+	client := request.HTTPClient{}
+	resp, err := client.Request(
+		"GET",
+		downloadURL,
+		nil,
+		request.WithContext(ctx),
+		request.WithHeader(
+			http.Header{"Cache-Control": {"no-cache", "no-store", "must-revalidate"}},
+		),
+	).CheckHTTPResponse(200).GetRSCloser()
+	if err != nil {
+		return nil, err
+	}
+
+	resp.SetFirstFakeChunk()
+
+	// 尝试自主获取文件大小
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		resp.SetContentLength(int64(file.Size))
+	}
+
+	return resp, nil
 }
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return errors.New("未实现")
-	//// 凭证生成
-	//putPolicy := storage.PutPolicy{
-	//	Scope: "cloudrevetest",
-	//}
-	//mac := auth.New("YNzTBBpDUq4EEiFV0-vyJCZCJ0LvUEI0_WvxtEXE", "Clm9d9M2CH7pZ8vm049ZlGZStQxrRQVRTjU_T5_0")
-	//upToken := putPolicy.UploadToken(mac)
-	//
-	//cfg := storage.Config{}
-	//// 空间对应的机房
-	//cfg.Zone = &storage.ZoneHuadong
-	//formUploader := storage.NewFormUploader(&cfg)
-	//ret := storage.PutRet{}
-	//putExtra := storage.PutExtra{
-	//	Params: map[string]string{},
-	//}
-	//
-	//defer file.Close()
-	//
-	//err := formUploader.Put(ctx, &ret, upToken, dst, file, int64(size), &putExtra)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	return err
-	//}
-	//fmt.Println(ret.Key, ret.Hash)
-	//return nil
+	defer file.Close()
+
+	// 凭证有效期
+	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+
+	// 生成上传策略
+	putPolicy := storage.PutPolicy{
+		// 指定为覆盖策略
+		Scope:        fmt.Sprintf("%s:%s", handler.Policy.BucketName, dst),
+		SaveKey:      dst,
+		ForceSaveKey: true,
+		FsizeLimit:   int64(size),
+	}
+	// 是否开启了MIMEType限制
+	if handler.Policy.OptionsSerialized.MimeType != "" {
+		putPolicy.MimeLimit = handler.Policy.OptionsSerialized.MimeType
+	}
+
+	// 生成上传凭证
+	token, err := handler.getUploadCredential(ctx, putPolicy, int64(credentialTTL))
+	if err != nil {
+		return err
+	}
+
+	// 创建上传表单
+	cfg := storage.Config{}
+	formUploader := storage.NewFormUploader(&cfg)
+	ret := storage.PutRet{}
+	putExtra := storage.PutExtra{
+		Params: map[string]string{},
+	}
+
+	// 开始上传
+	err = formUploader.Put(ctx, &ret, token.Token, dst, file, int64(size), &putExtra)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete 删除一个或多个文件，
-// 返回未删除的文件，及遇到的最后一个错误
+// 返回未删除的文件
 func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
-	return []string{}, errors.New("未实现")
+	// TODO 大于一千个文件需要分批发送
+	deleteOps := make([]string, 0, len(files))
+	for _, key := range files {
+		deleteOps = append(deleteOps, storage.URIDelete(handler.Policy.BucketName, key))
+	}
+
+	mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
+	cfg := storage.Config{
+		UseHTTPS: true,
+	}
+	bucketManager := storage.NewBucketManager(mac, &cfg)
+	rets, err := bucketManager.Batch(deleteOps)
+
+	// 处理删除结果
+	if err != nil {
+		failed := make([]string, 0, len(rets))
+		for k, ret := range rets {
+			if ret.Code != 200 {
+				failed = append(failed, files[k])
+			}
+		}
+		return failed, errors.New("删除失败")
+	}
+
+	return []string{}, nil
 }
 
 // Thumb 获取文件缩略图

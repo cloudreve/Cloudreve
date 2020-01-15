@@ -126,18 +126,23 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	}
 
 	// 部分存储策略可以使用{origin}代表原始文件名
-	switch policy.Type {
-	case "qiniu":
-		// 七牛会将$(fname)自动替换为原始文件名
-		replaceTable["{originname}"] = "$(fname)"
-	case "local", "remote":
+	if origin == "" {
+		// 如果上游未传回原始文件名，则使用占位符，让云存储端替换
+		switch policy.Type {
+		case "qiniu":
+			// 七牛会将$(fname)自动替换为原始文件名
+			replaceTable["{originname}"] = "$(fname)"
+		case "local", "remote":
+			replaceTable["{originname}"] = origin
+		case "oss":
+			// OSS会将${filename}自动替换为原始文件名
+			replaceTable["{originname}"] = "${filename}"
+		case "upyun":
+			// Upyun会将{filename}{.suffix}自动替换为原始文件名
+			replaceTable["{originname}"] = "{filename}{.suffix}"
+		}
+	} else {
 		replaceTable["{originname}"] = origin
-	case "oss":
-		// OSS会将${filename}自动替换为原始文件名
-		replaceTable["{originname}"] = "${filename}"
-	case "upyun":
-		// Upyun会将{filename}{.suffix}自动替换为原始文件名
-		replaceTable["{originname}"] = "{filename}{.suffix}"
 	}
 
 	fileRule = util.Replace(replaceTable, fileRule)

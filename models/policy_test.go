@@ -123,7 +123,7 @@ func TestPolicy_GenerateFileName(t *testing.T) {
 
 	testPolicy.Type = "qiniu"
 	testPolicy.FileNameRule = "{uid}123{originname}"
-	asserts.Equal("1123$(fname)", testPolicy.GenerateFileName(1, "123.txt"))
+	asserts.Equal("1123123.txt", testPolicy.GenerateFileName(1, "123.txt"))
 
 	testPolicy.Type = "oss"
 	testPolicy.FileNameRule = "{uid}123{originname}"
@@ -132,6 +132,7 @@ func TestPolicy_GenerateFileName(t *testing.T) {
 	testPolicy.Type = "upyun"
 	testPolicy.FileNameRule = "{uid}123{originname}"
 	asserts.Equal("1123{filename}{.suffix}", testPolicy.GenerateFileName(1, ""))
+
 }
 
 func TestPolicy_IsDirectlyPreview(t *testing.T) {
