@@ -7,6 +7,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"path"
+	"strings"
 )
 
 /* =================
@@ -321,6 +322,9 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	fullPath = path.Clean(fullPath)
 	base := path.Dir(fullPath)
 	dir := path.Base(fullPath)
+
+	// 去掉结尾空格
+	dir = strings.TrimRight(dir, " ")
 
 	// 检查目录名是否合法
 	if !fs.ValidateLegalName(ctx, dir) {

@@ -19,4 +19,6 @@ const (
 	UploadPolicyCtx
 	// UserCtx 用户
 	UserCtx
+	// ThumbSizeCtx 缩略图尺寸
+	ThumbSizeCtx
 )

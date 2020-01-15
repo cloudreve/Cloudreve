@@ -174,7 +174,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
-	ttl := model.GetIntSetting("slave_api_timeout", 60)
+	ttl := model.GetIntSetting("preview_timeout", 60)
 	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
 	if err != nil {
 		return nil, err

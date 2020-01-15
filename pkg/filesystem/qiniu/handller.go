@@ -3,6 +3,7 @@ package qiniu
 import (
 	"context"
 	"errors"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
@@ -11,6 +12,7 @@ import (
 	"github.com/qiniu/api.v7/v7/storage"
 	"io"
 	"net/url"
+	"time"
 )
 
 // Handler 本地策略适配器
@@ -61,7 +63,23 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	var (
+		thumbSize = [2]uint{400, 300}
+		ok        = false
+	)
+	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
+		return nil, errors.New("无法获取缩略图尺寸设置")
+	}
+
+	path = fmt.Sprintf("%s?imageView2/1/w/%d/h/%d", path, thumbSize[0], thumbSize[1])
+	return &response.ContentResponse{
+		Redirect: true,
+		URL: handler.signSourceURL(
+			ctx,
+			path,
+			int64(model.GetIntSetting("preview_timeout", 60)),
+		),
+	}, nil
 }
 
 // Source 获取外链URL
@@ -73,7 +91,31 @@ func (handler Handler) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	return "", errors.New("未实现")
+	// 尝试从上下文获取文件名
+	fileName := ""
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		fileName = file.Name
+	}
+
+	// 加入下载相关设置
+	if isDownload {
+		path = path + "?attname=" + url.PathEscape(fileName)
+	}
+
+	// 取得原始文件地址
+	return handler.signSourceURL(ctx, path, ttl), nil
+}
+
+func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64) string {
+	var sourceURL string
+	if handler.Policy.IsPrivate {
+		mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
+		deadline := time.Now().Add(time.Second * time.Duration(ttl)).Unix()
+		sourceURL = storage.MakePrivateURL(mac, handler.Policy.BaseURL, path, deadline)
+	} else {
+		sourceURL = storage.MakePublicURL(handler.Policy.BaseURL, path)
+	}
+	return sourceURL
 }
 
 // Token 获取上传策略和认证Token

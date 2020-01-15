@@ -347,7 +347,7 @@ func TestHandler_Thumb(t *testing.T) {
 		AuthInstance: auth.HMACAuth{},
 	}
 	ctx := context.Background()
-	asserts.NoError(cache.Set("setting_slave_api_timeout", "60", 0))
+	asserts.NoError(cache.Set("preview_timeout", "60", 0))
 	resp, err := handler.Thumb(ctx, "/1.txt")
 	asserts.NoError(err)
 	asserts.True(resp.Redirect)

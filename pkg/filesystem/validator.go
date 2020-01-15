@@ -34,6 +34,11 @@ func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
 		return false
 	}
 
+	// 结尾不能是空格
+	if strings.HasSuffix(name, " ") {
+		return false
+	}
+
 	return true
 }
 
