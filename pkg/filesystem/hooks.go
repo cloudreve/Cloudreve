@@ -224,7 +224,7 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem) error {
 	}
 
 	// 发送回调请求
-	callbackBody := serializer.RemoteUploadCallback{
+	callbackBody := serializer.UploadCallback{
 		Name:       file.Name,
 		SourceName: file.SourceName,
 		PicInfo:    file.PicInfo,

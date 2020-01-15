@@ -29,12 +29,17 @@ type UploadSession struct {
 	VirtualPath string
 }
 
-// RemoteUploadCallback 远程存储策略上传回调正文
-type RemoteUploadCallback struct {
+// UploadCallback 上传回调正文
+type UploadCallback struct {
 	Name       string `json:"name"`
 	SourceName string `json:"source_name"`
 	PicInfo    string `json:"pic_info"`
 	Size       uint64 `json:"size"`
+}
+
+// QiniuCallbackFailed 七牛存储策略上传回调失败响应
+type QiniuCallbackFailed struct {
+	Error string `json:"error"`
 }
 
 func init() {

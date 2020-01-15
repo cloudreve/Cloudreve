@@ -149,6 +149,11 @@ func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
 }
 
+// IsPathGenerateNeeded 返回此策略是否需要在生成上传凭证时生成存储路径
+func (policy *Policy) IsPathGenerateNeeded() bool {
+	return policy.Type != "remote"
+}
+
 // GetUploadURL 获取文件上传服务API地址
 func (policy *Policy) GetUploadURL() string {
 	server, err := url.Parse(policy.Server)

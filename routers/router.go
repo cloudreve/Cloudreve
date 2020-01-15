@@ -126,11 +126,17 @@ func InitMasterRouter() *gin.Engine {
 		// 回调接口
 		callback := v3.Group("callback")
 		{
-			// 远程上传回调
+			// 远程策略上传回调
 			callback.POST(
 				"remote/:key",
 				middleware.RemoteCallbackAuth(),
 				controllers.RemoteCallback,
+			)
+			// 七牛策略上传回调
+			callback.POST(
+				"qiniu/:key",
+				middleware.QiniuCallbackAuth(),
+				controllers.QiniuCallback,
 			)
 		}
 

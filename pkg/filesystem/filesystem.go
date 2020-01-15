@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/qiniu"
 	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/request"
@@ -157,6 +158,11 @@ func (fs *FileSystem) dispatchHandler() error {
 			Policy:       currentPolicy,
 			Client:       request.HTTPClient{},
 			AuthInstance: auth.HMACAuth{[]byte(currentPolicy.SecretKey)},
+		}
+		return nil
+	case "qiniu":
+		fs.Handler = qiniu.Handler{
+			Policy: currentPolicy,
 		}
 		return nil
 	default:

@@ -10,13 +10,43 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RemoteUploadCallbackService 远程存储上传回调请求服务
-type RemoteUploadCallbackService struct {
-	Data serializer.RemoteUploadCallback `json:"data" binding:"required"`
+// CallbackProcessService 上传请求回调正文接口
+type CallbackProcessService interface {
+	GetBody() serializer.UploadCallback
 }
 
-// Process 处理远程策略上传结果回调
-func (service *RemoteUploadCallbackService) Process(c *gin.Context) serializer.Response {
+// RemoteUploadCallbackService 远程存储上传回调请求服务
+type RemoteUploadCallbackService struct {
+	Data serializer.UploadCallback `json:"data" binding:"required"`
+}
+
+// GetBody 返回回调正文
+func (service RemoteUploadCallbackService) GetBody() serializer.UploadCallback {
+	return service.Data
+}
+
+// QiniuUploadCallbackService 七牛存储上传回调请求服务
+type QiniuUploadCallbackService struct {
+	Name       string `json:"name"`
+	SourceName string `json:"source_name"`
+	PicInfo    string `json:"pic_info"`
+	Size       uint64 `json:"size"`
+}
+
+// GetBody 返回回调正文
+func (service QiniuUploadCallbackService) GetBody() serializer.UploadCallback {
+	return serializer.UploadCallback{
+		Name:       service.Name,
+		SourceName: service.SourceName,
+		PicInfo:    service.PicInfo,
+		Size:       service.Size,
+	}
+}
+
+// ProcessCallback 处理上传结果回调
+func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.Response {
+	// 获取回调正文
+	callbackBody := service.GetBody()
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -39,14 +69,14 @@ func (service *RemoteUploadCallbackService) Process(c *gin.Context) serializer.R
 
 	// 创建文件头
 	fileHeader := local.FileStream{
-		Size:        service.Data.Size,
+		Size:        callbackBody.Size,
 		VirtualPath: callbackSession.VirtualPath,
-		Name:        service.Data.Name,
+		Name:        callbackBody.Name,
 	}
 
 	// 生成上下文
 	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fileHeader)
-	ctx = context.WithValue(ctx, fsctx.SavePathCtx, service.Data.SourceName)
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, callbackBody.SourceName)
 
 	// 添加钩子
 	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
@@ -60,8 +90,8 @@ func (service *RemoteUploadCallbackService) Process(c *gin.Context) serializer.R
 	}
 
 	// 如果是图片，则更新图片信息
-	if service.Data.PicInfo != "" {
-		if err := file.UpdatePicInfo(service.Data.PicInfo); err != nil {
+	if callbackBody.PicInfo != "" {
+		if err := file.UpdatePicInfo(callbackBody.PicInfo); err != nil {
 			util.Log().Debug("无法更新回调文件的图片信息：%s", err)
 		}
 	}

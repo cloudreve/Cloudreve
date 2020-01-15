@@ -5,6 +5,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/filesystem/local"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -145,6 +146,11 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
 	var err error
+
+	// 是否需要预先生成存储路径
+	if fs.User.Policy.IsPathGenerateNeeded() {
+		ctx = context.WithValue(ctx, fsctx.SavePathCtx, fs.GenerateSavePath(ctx, local.FileStream{}))
+	}
 
 	// 获取上传凭证
 	callbackKey := util.RandStringRunes(32)

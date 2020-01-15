@@ -1,15 +1,13 @@
-package qiniu
+package template
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/qiniu/api.v7/v7/auth"
-	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
 	"io"
 	"net/url"
@@ -80,37 +78,5 @@ func (handler Handler) Source(
 
 // Token 获取上传策略和认证Token
 func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
-	// 生成回调地址
-	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/qiniu/" + key)
-	apiURL := siteURL.ResolveReference(apiBaseURI)
-
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
-	// 创建上传策略
-	putPolicy := storage.PutPolicy{
-		Scope:            handler.Policy.BucketName,
-		Expires:          uint64(TTL),
-		CallbackURL:      apiURL.String(),
-		CallbackBody:     `{"name":"$(fname)","source_name":"$(key)","size":$(fsize),"pic_info":"$(imageInfo.width),$(imageInfo.height)"}`,
-		CallbackBodyType: "application/json",
-		SaveKey:          savePath,
-		ForceSaveKey:     true,
-		FsizeLimit:       int64(handler.Policy.MaxSize),
-	}
-	// 是否开启了MIMEType限制
-	if handler.Policy.OptionsSerialized.MimeType != "" {
-		putPolicy.MimeLimit = handler.Policy.OptionsSerialized.MimeType
-	}
-
-	mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
-	upToken := putPolicy.UploadToken(mac)
-
-	return serializer.UploadCredential{
-		Token: upToken,
-	}, nil
+	return serializer.UploadCredential{}, errors.New("未实现")
 }

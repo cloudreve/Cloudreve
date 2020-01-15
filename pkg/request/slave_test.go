@@ -34,7 +34,7 @@ func TestRemoteCallback(t *testing.T) {
 			},
 		})
 		GeneralClient = clientMock
-		resp := RemoteCallback("http://test/test/url", serializer.RemoteUploadCallback{
+		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
 		asserts.NoError(resp)
@@ -59,7 +59,7 @@ func TestRemoteCallback(t *testing.T) {
 			},
 		})
 		GeneralClient = clientMock
-		resp := RemoteCallback("http://test/test/url", serializer.RemoteUploadCallback{
+		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
 		asserts.EqualValues(401, resp.(serializer.AppError).Code)
@@ -83,7 +83,7 @@ func TestRemoteCallback(t *testing.T) {
 			},
 		})
 		GeneralClient = clientMock
-		resp := RemoteCallback("http://test/test/url", serializer.RemoteUploadCallback{
+		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
 		asserts.Error(resp)
@@ -107,7 +107,7 @@ func TestRemoteCallback(t *testing.T) {
 			},
 		})
 		GeneralClient = clientMock
-		resp := RemoteCallback("http://test/test/url", serializer.RemoteUploadCallback{
+		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
 		asserts.Error(resp)
@@ -127,7 +127,7 @@ func TestRemoteCallback(t *testing.T) {
 			Err: errors.New("error"),
 		})
 		GeneralClient = clientMock
-		resp := RemoteCallback("http://test/test/url", serializer.RemoteUploadCallback{
+		resp := RemoteCallback("http://test/test/url", serializer.UploadCallback{
 			SourceName: "source",
 		})
 		asserts.Error(resp)

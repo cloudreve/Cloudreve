@@ -11,9 +11,9 @@ import (
 )
 
 // RemoteCallback 发送远程存储策略上传回调请求
-func RemoteCallback(url string, body serializer.RemoteUploadCallback) error {
+func RemoteCallback(url string, body serializer.UploadCallback) error {
 	callbackBody, err := json.Marshal(struct {
-		Data serializer.RemoteUploadCallback `json:"data"`
+		Data serializer.UploadCallback `json:"data"`
 	}{
 		Data: body,
 	})
