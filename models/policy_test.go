@@ -164,3 +164,11 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 	}
 
 }
+
+func TestPolicy_IsPathGenerateNeeded(t *testing.T) {
+	asserts := assert.New(t)
+	policy := Policy{Type: "qiniu"}
+	asserts.True(policy.IsPathGenerateNeeded())
+	policy.Type = "remote"
+	asserts.False(policy.IsPathGenerateNeeded())
+}

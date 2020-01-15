@@ -10,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -339,6 +340,87 @@ func TestRemoteCallbackAuth(t *testing.T) {
 		c, _ := gin.CreateTestContext(rec)
 		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/remote", nil)
 		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+}
+
+func TestQiniuCallbackAuth(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	AuthFunc := QiniuCallbackAuth()
+
+	// Callback Key 相关验证失败
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testQiniuBackRemote"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/remote/testQiniuBackRemote", nil)
+		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_testCallBackQiniu",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackQiniu"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/qiniu/testCallBackQiniu", nil)
+		mac := qbox.NewMac("123", "123")
+		token, err := mac.SignRequest(c.Request)
+		asserts.NoError(err)
+		c.Request.Header["Authorization"] = []string{"QBox " + token}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.False(c.IsAborted())
+	}
+
+	// 验证失败
+	{
+		cache.Set(
+			"callback_testCallBackQiniu",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackQiniu"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/qiniu/testCallBackQiniu", nil)
+		mac := qbox.NewMac("123", "123")
+		token, err := mac.SignRequest(c.Request)
+		asserts.NoError(err)
+		c.Request.Header["Authorization"] = []string{"QBox " + token + " "}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.True(c.IsAborted())
 	}
 }
