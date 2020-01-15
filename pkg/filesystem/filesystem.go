@@ -36,16 +36,18 @@ type FileHeader interface {
 
 // Handler 存储策略适配器
 type Handler interface {
-	// 上传文件
+	// 上传文件, dst为文件存储路径，size 为文件大小。上下文关闭
+	// 时，应取消上传并清理临时文件
 	Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error
 
-	// 删除一个或多个文件
+	// 删除一个或多个给定路径的文件，返回删除失败的文件路径列表及错误
 	Delete(ctx context.Context, files []string) ([]string, error)
 
-	// 获取文件
+	// 获取文件内容
 	Get(ctx context.Context, path string) (response.RSCloser, error)
 
-	// 获取缩略图
+	// 获取缩略图，可直接在ContentResponse中返回文件数据流，也可指
+	// 定为重定向
 	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
 
 	// 获取外链/下载地址，
