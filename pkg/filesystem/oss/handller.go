@@ -92,7 +92,55 @@ func (handler Handler) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	return "", errors.New("未实现")
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return "", err
+	}
+
+	// 尝试从上下文获取文件名
+	fileName := ""
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		fileName = file.Name
+	}
+
+	// 添加各项设置
+	var signOptions = make([]oss.Option, 0, 2)
+	if isDownload {
+		signOptions = append(signOptions, oss.ResponseContentDisposition("attachment; filename=\""+url.PathEscape(fileName)+"\""))
+	}
+	if speed > 0 {
+		// OSS对速度值有范围限制
+		if speed < 819200 {
+			speed = 819200
+		}
+		if speed > 838860800 {
+			speed = 838860800
+		}
+		signOptions = append(signOptions, oss.TrafficLimitParam(int64(speed)))
+	}
+
+	return handler.signSourceURL(ctx, path, ttl, signOptions)
+}
+
+func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
+	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
+	if err != nil {
+		return "", err
+	}
+
+	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
+	finalURL, err := url.Parse(signedURL)
+	if err != nil {
+		return "", err
+	}
+	cdnURL, err := url.Parse(handler.Policy.BaseURL)
+	if err != nil {
+		return "", err
+	}
+	finalURL.Host = cdnURL.Host
+	finalURL.Scheme = cdnURL.Scheme
+
+	return finalURL.String(), nil
 }
 
 // Token 获取上传策略和认证Token
