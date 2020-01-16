@@ -268,11 +268,22 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 
 	// 取得现有文件
 	exist, originFile := fs.IsFileExist(service.Path)
 	if !exist {
 		return serializer.Err(404, "文件不存在", nil)
+	}
+
+	// 检查此文件是否有软链接
+	fileList, err := model.RemoveFilesWithSoftLinks([]model.File{*originFile})
+	if err == nil && len(fileList) == 0 {
+		// 如果包含软连接，应重新生成新文件副本，并更新source_name
+		originFile.SourceName = fs.GenerateSavePath(uploadCtx, fileData)
+		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
+		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
+		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
 	}
 
 	// 给文件系统分配钩子
@@ -288,7 +299,6 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
-	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, *originFile)
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {

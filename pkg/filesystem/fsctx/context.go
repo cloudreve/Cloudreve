@@ -21,4 +21,6 @@ const (
 	UserCtx
 	// ThumbSizeCtx 缩略图尺寸
 	ThumbSizeCtx
+	// OriginSourceNameCtx 原始原文件名
+	OriginSourceNameCtx
 )

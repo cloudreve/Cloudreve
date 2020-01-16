@@ -168,6 +168,11 @@ func (file *File) UpdateSize(value uint64) error {
 	return DB.Model(&file).Update("size", value).Error
 }
 
+// UpdateSourceName 更新文件的源文件名
+func (file *File) UpdateSourceName(value string) error {
+	return DB.Model(&file).Update("source_name", value).Error
+}
+
 /*
 	实现 webdav.FileInfo 接口
 */

@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/oss"
 	"github.com/HFO4/cloudreve/pkg/filesystem/qiniu"
 	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
@@ -164,6 +165,11 @@ func (fs *FileSystem) dispatchHandler() error {
 		return nil
 	case "qiniu":
 		fs.Handler = qiniu.Handler{
+			Policy: currentPolicy,
+		}
+		return nil
+	case "oss":
+		fs.Handler = oss.Handler{
 			Policy: currentPolicy,
 		}
 		return nil
