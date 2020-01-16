@@ -36,6 +36,9 @@ func QiniuCallback(c *gin.Context) {
 func OSSCallback(c *gin.Context) {
 	var callbackBody callback.UploadCallbackService
 	if err := c.ShouldBindJSON(&callbackBody); err == nil {
+		if callbackBody.PicInfo == "," {
+			callbackBody.PicInfo = ""
+		}
 		res := callback.ProcessCallback(callbackBody, c)
 		c.JSON(200, res)
 	} else {

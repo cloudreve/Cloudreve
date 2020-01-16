@@ -11,7 +11,9 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
 	"net/url"
@@ -39,32 +41,77 @@ type Handler struct {
 	bucket *oss.Bucket
 }
 
+type key int
+
+const (
+	// VersionID 文件版本标识
+	VersionID key = iota
+)
+
 // InitOSSClient 初始化OSS鉴权客户端
 func (handler *Handler) InitOSSClient() error {
 	if handler.Policy == nil {
 		return errors.New("存储策略为空")
 	}
 
-	// 初始化客户端
-	client, err := oss.New(handler.Policy.Server, handler.Policy.AccessKey, handler.Policy.SecretKey)
-	if err != nil {
-		return err
-	}
-	handler.client = client
+	if handler.client == nil {
+		// 初始化客户端
+		client, err := oss.New(handler.Policy.Server, handler.Policy.AccessKey, handler.Policy.SecretKey)
+		if err != nil {
+			return err
+		}
+		handler.client = client
 
-	// 初始化存储桶
-	bucket, err := client.Bucket(handler.Policy.BucketName)
-	if err != nil {
-		return err
+		// 初始化存储桶
+		bucket, err := client.Bucket(handler.Policy.BucketName)
+		if err != nil {
+			return err
+		}
+		handler.bucket = bucket
+
 	}
-	handler.bucket = bucket
 
 	return nil
 }
 
 // Get 获取文件
 func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	return nil, errors.New("未实现")
+	// 通过VersionID禁止缓存
+	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
+
+	// 获取文件源地址
+	downloadURL, err := handler.Source(
+		ctx,
+		path,
+		url.URL{},
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		false,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件数据流
+	client := request.HTTPClient{}
+	resp, err := client.Request(
+		"GET",
+		downloadURL,
+		nil,
+		request.WithContext(ctx),
+	).CheckHTTPResponse(200).GetRSCloser()
+	if err != nil {
+		return nil, err
+	}
+
+	resp.SetFirstFakeChunk()
+
+	// 尝试自主获取文件大小
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		resp.SetContentLength(int64(file.Size))
+	}
+
+	return resp, nil
 }
 
 // Put 将文件流保存到指定目录
@@ -73,14 +120,60 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 }
 
 // Delete 删除一个或多个文件，
-// 返回未删除的文件，及遇到的最后一个错误
+// 返回未删除的文件
 func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
-	return []string{}, errors.New("未实现")
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return files, err
+	}
+
+	// 删除文件
+	delRes, err := handler.bucket.DeleteObjects(files)
+
+	if err != nil {
+		return files, err
+	}
+
+	// 统计未删除的文件
+	failed := util.SliceDifference(files, delRes.DeletedObjects)
+	if len(failed) > 0 {
+		return failed, errors.New("删除失败")
+	}
+
+	return []string{}, nil
 }
 
 // Thumb 获取文件缩略图
 func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return nil, err
+	}
+
+	var (
+		thumbSize = [2]uint{400, 300}
+		ok        = false
+	)
+	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
+		return nil, errors.New("无法获取缩略图尺寸设置")
+	}
+
+	thumbParam := fmt.Sprintf("image/resize,m_lfit,h_%d,w_%d", thumbSize[1], thumbSize[0])
+	thumbOption := []oss.Option{oss.Process(thumbParam)}
+	thumbURL, err := handler.signSourceURL(
+		ctx,
+		path,
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		thumbOption,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      thumbURL,
+	}, nil
 }
 
 // Source 获取外链URL
@@ -123,6 +216,10 @@ func (handler Handler) Source(
 }
 
 func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
+	// 是否带有 Version ID
+	if versionID, ok := ctx.Value(VersionID).(int64); ok {
+
+	}
 	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
 	if err != nil {
 		return "", err
