@@ -165,7 +165,6 @@ func RemoteCallbackAuth() gin.HandlerFunc {
 }
 
 // QiniuCallbackAuth 七牛回调签名验证
-// TODO 测试
 func QiniuCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 验证key并查找用户
@@ -190,6 +189,23 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		c.Next()
+	}
+}
+
+// OSSCallbackAuth 阿里云OSS回调签名验证
+func OSSCallbackAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 验证key并查找用户
+		resp, _ := uploadCallbackCheck(c)
+		if resp.Code != 0 {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.Abort()
+			return
+		}
+
+		// TODO 验证OSS给出的签名
 
 		c.Next()
 	}

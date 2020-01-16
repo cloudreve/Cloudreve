@@ -111,7 +111,7 @@ func (policy *Policy) GeneratePath(uid uint, origin string) string {
 func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	// 未开启自动重命名时，直接返回原始文件名
 	if !policy.AutoRename {
-		return origin
+		return policy.getOriginNameRule(origin)
 	}
 
 	fileRule := policy.FileNameRule
@@ -125,28 +125,31 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 		"{date}":        time.Now().Format("20060102"),
 	}
 
+	replaceTable["{originname}"] = policy.getOriginNameRule(origin)
+
+	fileRule = util.Replace(replaceTable, fileRule)
+	return fileRule
+}
+
+func (policy Policy) getOriginNameRule(origin string) string {
 	// 部分存储策略可以使用{origin}代表原始文件名
 	if origin == "" {
 		// 如果上游未传回原始文件名，则使用占位符，让云存储端替换
 		switch policy.Type {
 		case "qiniu":
 			// 七牛会将$(fname)自动替换为原始文件名
-			replaceTable["{originname}"] = "$(fname)"
+			return "$(fname)"
 		case "local", "remote":
-			replaceTable["{originname}"] = origin
+			return origin
 		case "oss":
 			// OSS会将${filename}自动替换为原始文件名
-			replaceTable["{originname}"] = "${filename}"
+			return "${filename}"
 		case "upyun":
 			// Upyun会将{filename}{.suffix}自动替换为原始文件名
-			replaceTable["{originname}"] = "{filename}{.suffix}"
+			return "{filename}{.suffix}"
 		}
-	} else {
-		replaceTable["{originname}"] = origin
 	}
-
-	fileRule = util.Replace(replaceTable, fileRule)
-	return fileRule
+	return origin
 }
 
 // IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
@@ -172,6 +175,8 @@ func (policy *Policy) GetUploadURL() string {
 		controller, _ = url.Parse("/api/v3/file/upload")
 	case "remote":
 		controller, _ = url.Parse("/api/v3/slave/upload")
+	case "oss":
+		return policy.BaseURL
 	default:
 		controller, _ = url.Parse("")
 	}

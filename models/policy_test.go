@@ -91,47 +91,62 @@ func TestPolicy_GeneratePath(t *testing.T) {
 
 func TestPolicy_GenerateFileName(t *testing.T) {
 	asserts := assert.New(t)
-	testPolicy := Policy{
-		AutoRename: true,
+	// 重命名关闭
+	{
+		testPolicy := Policy{
+			AutoRename: false,
+		}
+		testPolicy.FileNameRule = "{randomkey16}"
+		asserts.Equal("123.txt", testPolicy.GenerateFileName(1, "123.txt"))
+
+		testPolicy.Type = "oss"
+		asserts.Equal("${filename}", testPolicy.GenerateFileName(1, ""))
 	}
 
-	testPolicy.FileNameRule = "{randomkey16}"
-	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 16)
+	// 重命名开启
+	{
+		testPolicy := Policy{
+			AutoRename: true,
+		}
 
-	testPolicy.FileNameRule = "{randomkey8}"
-	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 8)
+		testPolicy.FileNameRule = "{randomkey16}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 16)
 
-	testPolicy.FileNameRule = "{timestamp}"
-	asserts.Equal(testPolicy.GenerateFileName(1, "123.txt"), strconv.FormatInt(time.Now().Unix(), 10))
+		testPolicy.FileNameRule = "{randomkey8}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 8)
 
-	testPolicy.FileNameRule = "{uid}"
-	asserts.Equal(testPolicy.GenerateFileName(1, "123.txt"), strconv.Itoa(int(1)))
+		testPolicy.FileNameRule = "{timestamp}"
+		asserts.Equal(testPolicy.GenerateFileName(1, "123.txt"), strconv.FormatInt(time.Now().Unix(), 10))
 
-	testPolicy.FileNameRule = "{datetime}"
-	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 14)
+		testPolicy.FileNameRule = "{uid}"
+		asserts.Equal(testPolicy.GenerateFileName(1, "123.txt"), strconv.Itoa(int(1)))
 
-	testPolicy.FileNameRule = "{date}"
-	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 8)
+		testPolicy.FileNameRule = "{datetime}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 14)
 
-	testPolicy.FileNameRule = "123{date}ss{datetime}"
-	asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 27)
+		testPolicy.FileNameRule = "{date}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 8)
 
-	// 支持{originname}的策略
-	testPolicy.Type = "local"
-	testPolicy.FileNameRule = "123{originname}"
-	asserts.Equal("123123.txt", testPolicy.GenerateFileName(1, "123.txt"))
+		testPolicy.FileNameRule = "123{date}ss{datetime}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 27)
 
-	testPolicy.Type = "qiniu"
-	testPolicy.FileNameRule = "{uid}123{originname}"
-	asserts.Equal("1123123.txt", testPolicy.GenerateFileName(1, "123.txt"))
+		// 支持{originname}的策略
+		testPolicy.Type = "local"
+		testPolicy.FileNameRule = "123{originname}"
+		asserts.Equal("123123.txt", testPolicy.GenerateFileName(1, "123.txt"))
 
-	testPolicy.Type = "oss"
-	testPolicy.FileNameRule = "{uid}123{originname}"
-	asserts.Equal("1123${filename}", testPolicy.GenerateFileName(1, ""))
+		testPolicy.Type = "qiniu"
+		testPolicy.FileNameRule = "{uid}123{originname}"
+		asserts.Equal("1123123.txt", testPolicy.GenerateFileName(1, "123.txt"))
 
-	testPolicy.Type = "upyun"
-	testPolicy.FileNameRule = "{uid}123{originname}"
-	asserts.Equal("1123{filename}{.suffix}", testPolicy.GenerateFileName(1, ""))
+		testPolicy.Type = "oss"
+		testPolicy.FileNameRule = "{uid}123{originname}"
+		asserts.Equal("1123${filename}", testPolicy.GenerateFileName(1, ""))
+
+		testPolicy.Type = "upyun"
+		testPolicy.FileNameRule = "{uid}123{originname}"
+		asserts.Equal("1123{filename}{.suffix}", testPolicy.GenerateFileName(1, ""))
+	}
 
 }
 

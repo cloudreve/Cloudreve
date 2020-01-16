@@ -414,6 +414,35 @@ func TestHookClearFileSize(t *testing.T) {
 
 }
 
+func TestHookUpdateSourceName(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{ID: 1},
+	}}
+
+	// 成功
+	{
+		originFile := model.File{
+			Model:      gorm.Model{ID: 1},
+			SourceName: "new.txt",
+		}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WithArgs("new.txt", sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := HookUpdateSourceName(ctx, fs)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 上下文错误
+	{
+		ctx := context.Background()
+		err := HookUpdateSourceName(ctx, fs)
+		asserts.Error(err)
+	}
+}
+
 func TestGenericAfterUpdate(t *testing.T) {
 	asserts := assert.New(t)
 	fs := &FileSystem{User: &model.User{

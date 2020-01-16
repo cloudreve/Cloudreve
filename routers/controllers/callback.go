@@ -19,7 +19,7 @@ func RemoteCallback(c *gin.Context) {
 
 // QiniuCallback 七牛上传回调
 func QiniuCallback(c *gin.Context) {
-	var callbackBody callback.QiniuUploadCallbackService
+	var callbackBody callback.UploadCallbackService
 	if err := c.ShouldBindJSON(&callbackBody); err == nil {
 		res := callback.ProcessCallback(callbackBody, c)
 		if res.Code != 0 {
@@ -29,5 +29,16 @@ func QiniuCallback(c *gin.Context) {
 		}
 	} else {
 		c.JSON(401, ErrorResponse(err))
+	}
+}
+
+// OSSCallback 阿里云OSS上传回调
+func OSSCallback(c *gin.Context) {
+	var callbackBody callback.UploadCallbackService
+	if err := c.ShouldBindJSON(&callbackBody); err == nil {
+		res := callback.ProcessCallback(callbackBody, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
 	}
 }

@@ -11,7 +11,7 @@ import (
 // UploadCredentialService 获取上传凭证服务
 type UploadCredentialService struct {
 	Path string `form:"path" binding:"required"`
-	Size uint64 `form:"size" binding:"required,min=0"`
+	Size uint64 `form:"size" binding:"min=0"`
 }
 
 // Get 获取新的上传凭证

@@ -25,8 +25,8 @@ func (service RemoteUploadCallbackService) GetBody() serializer.UploadCallback {
 	return service.Data
 }
 
-// QiniuUploadCallbackService 七牛存储上传回调请求服务
-type QiniuUploadCallbackService struct {
+// UploadCallbackService 云存储上传回调请求服务
+type UploadCallbackService struct {
 	Name       string `json:"name"`
 	SourceName string `json:"source_name"`
 	PicInfo    string `json:"pic_info"`
@@ -34,7 +34,7 @@ type QiniuUploadCallbackService struct {
 }
 
 // GetBody 返回回调正文
-func (service QiniuUploadCallbackService) GetBody() serializer.UploadCallback {
+func (service UploadCallbackService) GetBody() serializer.UploadCallback {
 	return serializer.UploadCallback{
 		Name:       service.Name,
 		SourceName: service.SourceName,

@@ -138,6 +138,12 @@ func InitMasterRouter() *gin.Engine {
 				middleware.QiniuCallbackAuth(),
 				controllers.QiniuCallback,
 			)
+			// 阿里云OSS策略上传回调
+			callback.POST(
+				"oss/:key",
+				middleware.OSSCallbackAuth(),
+				controllers.OSSCallback,
+			)
 		}
 
 		// 需要登录保护的
