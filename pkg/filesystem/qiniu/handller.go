@@ -17,13 +17,13 @@ import (
 	"time"
 )
 
-// Handler 本地策略适配器
-type Handler struct {
+// Driver 本地策略适配器
+type Driver struct {
 	Policy *model.Policy
 }
 
 // Get 获取文件
-func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 给文件名加上随机参数以强制拉取
 	path = fmt.Sprintf("%s?v=%d", path, time.Now().UnixNano())
 
@@ -66,7 +66,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 }
 
 // Put 将文件流保存到指定目录
-func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
 
 	// 凭证有效期
@@ -110,7 +110,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件
-func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
+func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// TODO 大于一千个文件需要分批发送
 	deleteOps := make([]string, 0, len(files))
 	for _, key := range files {
@@ -139,7 +139,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	var (
 		thumbSize = [2]uint{400, 300}
 		ok        = false
@@ -160,7 +160,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-func (handler Handler) Source(
+func (handler Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -183,7 +183,7 @@ func (handler Handler) Source(
 	return handler.signSourceURL(ctx, path, ttl), nil
 }
 
-func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64) string {
+func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64) string {
 	var sourceURL string
 	if handler.Policy.IsPrivate {
 		mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
@@ -196,7 +196,7 @@ func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64
 }
 
 // Token 获取上传策略和认证Token
-func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/qiniu/" + key)
@@ -227,7 +227,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 }
 
 // getUploadCredential 签名上传策略
-func (handler Handler) getUploadCredential(ctx context.Context, policy storage.PutPolicy, TTL int64) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy storage.PutPolicy, TTL int64) (serializer.UploadCredential, error) {
 	policy.Expires = uint64(TTL)
 	mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
 	upToken := policy.UploadToken(mac)

@@ -25,7 +25,7 @@ func SlaveUpload(c *gin.Context) {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
 		return
 	}
-	fs.Handler = local.Handler{}
+	fs.Handler = local.Driver{}
 
 	// 从请求中取得上传策略
 	uploadPolicyRaw := c.GetHeader("X-Policy")

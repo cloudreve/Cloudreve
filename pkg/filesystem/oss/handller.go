@@ -34,11 +34,12 @@ type CallbackPolicy struct {
 	CallbackBodyType string `json:"callbackBodyType"`
 }
 
-// Handler 阿里云OSS策略适配器
-type Handler struct {
-	Policy *model.Policy
-	client *oss.Client
-	bucket *oss.Bucket
+// Driver 阿里云OSS策略适配器
+type Driver struct {
+	Policy     *model.Policy
+	client     *oss.Client
+	bucket     *oss.Bucket
+	HTTPClient request.Client
 }
 
 type key int
@@ -49,7 +50,7 @@ const (
 )
 
 // InitOSSClient 初始化OSS鉴权客户端
-func (handler *Handler) InitOSSClient() error {
+func (handler *Driver) InitOSSClient() error {
 	if handler.Policy == nil {
 		return errors.New("存储策略为空")
 	}
@@ -75,7 +76,7 @@ func (handler *Handler) InitOSSClient() error {
 }
 
 // Get 获取文件
-func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 通过VersionID禁止缓存
 	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
 
@@ -93,8 +94,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 	}
 
 	// 获取文件数据流
-	client := request.HTTPClient{}
-	resp, err := client.Request(
+	resp, err := handler.HTTPClient.Request(
 		"GET",
 		downloadURL,
 		nil,
@@ -115,7 +115,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 }
 
 // Put 将文件流保存到指定目录
-func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
 
 	// 初始化客户端
@@ -141,7 +141,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件
-func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
+func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 初始化客户端
 	if err := handler.InitOSSClient(); err != nil {
 		return files, err
@@ -164,7 +164,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	// 初始化客户端
 	if err := handler.InitOSSClient(); err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-func (handler Handler) Source(
+func (handler Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -235,7 +235,7 @@ func (handler Handler) Source(
 	return handler.signSourceURL(ctx, path, ttl, signOptions)
 }
 
-func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
+func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
 	// 是否带有 Version ID
 	if _, ok := ctx.Value(VersionID).(int64); ok {
 
@@ -261,7 +261,7 @@ func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64
 }
 
 // Token 获取上传策略和认证Token
-func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 读取上下文中生成的存储路径
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
 	if !ok {
@@ -293,7 +293,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, TTL)
 }
 
-func (handler Handler) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64) (serializer.UploadCredential, error) {
 	// 读取上下文中生成的存储路径
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
 	if !ok {

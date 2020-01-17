@@ -35,7 +35,7 @@ type FileHeader interface {
 	GetVirtualPath() string
 }
 
-// Handler 存储策略适配器
+// Driver 存储策略适配器
 type Handler interface {
 	// 上传文件, dst为文件存储路径，size 为文件大小。上下文关闭
 	// 时，应取消上传并清理临时文件
@@ -128,7 +128,7 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 		fs.User.Group = anonymousGroup
 	} else {
 		// 从机模式下，分配本地策略处理器
-		fs.Handler = local.Handler{}
+		fs.Handler = local.Driver{}
 	}
 
 	return fs, nil
@@ -153,25 +153,26 @@ func (fs *FileSystem) dispatchHandler() error {
 	case "mock":
 		return nil
 	case "local":
-		fs.Handler = local.Handler{
+		fs.Handler = local.Driver{
 			Policy: currentPolicy,
 		}
 		return nil
 	case "remote":
-		fs.Handler = remote.Handler{
+		fs.Handler = remote.Driver{
 			Policy:       currentPolicy,
 			Client:       request.HTTPClient{},
 			AuthInstance: auth.HMACAuth{[]byte(currentPolicy.SecretKey)},
 		}
 		return nil
 	case "qiniu":
-		fs.Handler = qiniu.Handler{
+		fs.Handler = qiniu.Driver{
 			Policy: currentPolicy,
 		}
 		return nil
 	case "oss":
-		fs.Handler = oss.Handler{
-			Policy: currentPolicy,
+		fs.Handler = oss.Driver{
+			Policy:     currentPolicy,
+			HTTPClient: request.HTTPClient{},
 		}
 		return nil
 	default:

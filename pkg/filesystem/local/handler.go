@@ -18,13 +18,13 @@ import (
 	"path/filepath"
 )
 
-// Handler 本地策略适配器
-type Handler struct {
+// Driver 本地策略适配器
+type Driver struct {
 	Policy *model.Policy
 }
 
 // Get 获取文件内容
-func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 打开文件
 	file, err := os.Open(path)
 	if err != nil {
@@ -49,7 +49,7 @@ func closeReader(ctx context.Context, closer io.Closer) {
 }
 
 // Put 将文件流保存到指定目录
-func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
 	dst = filepath.FromSlash(dst)
 
@@ -78,7 +78,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
-func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
+func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	deleteFailed := make([]string, 0, len(files))
 	var retErr error
 
@@ -98,7 +98,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	file, err := handler.Get(ctx, path+conf.ThumbConfig.FileSuffix)
 	if err != nil {
 		return nil, err
@@ -111,7 +111,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-func (handler Handler) Source(
+func (handler Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -160,6 +160,6 @@ func (handler Handler) Source(
 }
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
-func (handler Handler) Token(ctx context.Context, ttl int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, key string) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, nil
 }

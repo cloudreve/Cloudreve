@@ -19,7 +19,7 @@ import (
 
 func TestHandler_Put(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 
 	testCases := []struct {
@@ -52,7 +52,7 @@ func TestHandler_Put(t *testing.T) {
 
 func TestHandler_Delete(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 
 	file, err := os.Create("test.file")
@@ -76,7 +76,7 @@ func TestHandler_Delete(t *testing.T) {
 
 func TestHandler_Get(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -98,7 +98,7 @@ func TestHandler_Get(t *testing.T) {
 
 func TestHandler_Thumb(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 	file, err := os.Create("TestHandler_Thumb" + conf.ThumbConfig.FileSuffix)
 	asserts.NoError(err)
@@ -120,7 +120,7 @@ func TestHandler_Thumb(t *testing.T) {
 
 func TestHandler_Source(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
@@ -154,7 +154,7 @@ func TestHandler_Source(t *testing.T) {
 
 func TestHandler_GetDownloadURL(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
@@ -187,7 +187,7 @@ func TestHandler_GetDownloadURL(t *testing.T) {
 
 func TestHandler_Token(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{}
+	handler := Driver{}
 	ctx := context.Background()
 	_, err := handler.Token(ctx, 10, "123")
 	asserts.NoError(err)

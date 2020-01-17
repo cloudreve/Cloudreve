@@ -173,6 +173,12 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 		asserts.Equal("http://127.0.0.1/api/v3/slave/upload", policy.GetUploadURL())
 	}
 
+	// OSS
+	{
+		policy := Policy{Type: "oss", BaseURL: "base", Server: "http://127.0.0.1"}
+		asserts.Equal("base", policy.GetUploadURL())
+	}
+
 	// 未知
 	{
 		policy := Policy{Type: "unknown", Server: "http://127.0.0.1"}

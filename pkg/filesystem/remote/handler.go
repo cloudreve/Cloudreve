@@ -19,15 +19,15 @@ import (
 	"strings"
 )
 
-// Handler 远程存储策略适配器
-type Handler struct {
+// Driver 远程存储策略适配器
+type Driver struct {
 	Client       request.Client
 	Policy       *model.Policy
 	AuthInstance auth.Auth
 }
 
 // getAPIUrl 获取接口请求地址
-func (handler Handler) getAPIUrl(scope string, routes ...string) string {
+func (handler Driver) getAPIUrl(scope string, routes ...string) string {
 	serverURL, err := url.Parse(handler.Policy.Server)
 	if err != nil {
 		return ""
@@ -51,7 +51,7 @@ func (handler Handler) getAPIUrl(scope string, routes ...string) string {
 }
 
 // Get 获取文件内容
-func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 尝试获取速度限制 TODO 是否需要在这里限制？
 	speedLimit := 0
 	if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
@@ -86,7 +86,7 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 }
 
 // Put 将文件流保存到指定目录
-func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
 
 	// 凭证有效期
@@ -133,7 +133,7 @@ func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, 
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
-func (handler Handler) Delete(ctx context.Context, files []string) ([]string, error) {
+func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 封装接口请求正文
 	reqBody := serializer.RemoteDeleteRequest{
 		Files: files,
@@ -177,7 +177,7 @@ func (handler Handler) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler Handler) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("preview_timeout", 60)
@@ -193,7 +193,7 @@ func (handler Handler) Thumb(ctx context.Context, path string) (*response.Conten
 }
 
 // Source 获取外链URL
-func (handler Handler) Source(
+func (handler Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -238,7 +238,7 @@ func (handler Handler) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + key)
@@ -256,7 +256,7 @@ func (handler Handler) Token(ctx context.Context, TTL int64, key string) (serial
 	return handler.getUploadCredential(ctx, policy, TTL)
 }
 
-func (handler Handler) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
 	policyEncoded, err := policy.EncodeUploadPolicy()
 	if err != nil {
 		return serializer.UploadCredential{}, err

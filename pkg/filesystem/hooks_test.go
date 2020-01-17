@@ -74,7 +74,7 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 	fs := FileSystem{
 		User:    &model.User{Storage: 5},
-		Handler: local.Handler{},
+		Handler: local.Driver{},
 	}
 
 	// 成功

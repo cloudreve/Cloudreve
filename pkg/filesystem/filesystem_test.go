@@ -24,13 +24,13 @@ func TestNewFileSystem(t *testing.T) {
 	fs, err := NewFileSystem(&user)
 	asserts.NoError(err)
 	asserts.NotNil(fs.Handler)
-	asserts.IsType(local.Handler{}, fs.Handler)
+	asserts.IsType(local.Driver{}, fs.Handler)
 	// 远程
 	user.Policy.Type = "remote"
 	fs, err = NewFileSystem(&user)
 	asserts.NoError(err)
 	asserts.NotNil(fs.Handler)
-	asserts.IsType(remote.Handler{}, fs.Handler)
+	asserts.IsType(remote.Driver{}, fs.Handler)
 
 	user.Policy.Type = "unknown"
 	fs, err = NewFileSystem(&user)
@@ -66,7 +66,7 @@ func TestDispatchHandler(t *testing.T) {
 	// 未指定，使用用户默认
 	err := fs.dispatchHandler()
 	asserts.NoError(err)
-	asserts.IsType(local.Handler{}, fs.Handler)
+	asserts.IsType(local.Driver{}, fs.Handler)
 
 	// 已指定，发生错误
 	fs.Policy = &model.Policy{Type: "unknown"}

@@ -20,7 +20,7 @@ import (
 
 func TestHandler_Token(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{
+	handler := Driver{
 		Policy: &model.Policy{
 			MaxSize:      10,
 			AutoRename:   true,
@@ -59,7 +59,7 @@ func TestHandler_Source(t *testing.T) {
 
 	// 无法获取上下文
 	{
-		handler := Handler{
+		handler := Driver{
 			Policy:       &model.Policy{Server: "/"},
 			AuthInstance: auth.HMACAuth{},
 		}
@@ -71,7 +71,7 @@ func TestHandler_Source(t *testing.T) {
 
 	// 成功
 	{
-		handler := Handler{
+		handler := Driver{
 			Policy:       &model.Policy{Server: "/"},
 			AuthInstance: auth.HMACAuth{},
 		}
@@ -86,7 +86,7 @@ func TestHandler_Source(t *testing.T) {
 
 	// 成功 预览
 	{
-		handler := Handler{
+		handler := Driver{
 			Policy:       &model.Policy{Server: "/"},
 			AuthInstance: auth.HMACAuth{},
 		}
@@ -111,7 +111,7 @@ func (m ClientMock) Request(method, target string, body io.Reader, opts ...reque
 
 func TestHandler_Delete(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{
+	handler := Driver{
 		Policy: &model.Policy{
 			SecretKey: "test",
 			Server:    "http://test.com",
@@ -194,7 +194,7 @@ func TestHandler_Delete(t *testing.T) {
 
 func TestHandler_Get(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{
+	handler := Driver{
 		Policy: &model.Policy{
 			SecretKey: "test",
 			Server:    "http://test.com",
@@ -254,7 +254,7 @@ func TestHandler_Get(t *testing.T) {
 
 func TestHandler_Put(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{
+	handler := Driver{
 		Policy: &model.Policy{
 			Type:      "remote",
 			SecretKey: "test",
@@ -338,7 +338,7 @@ func TestHandler_Put(t *testing.T) {
 
 func TestHandler_Thumb(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Handler{
+	handler := Driver{
 		Policy: &model.Policy{
 			Type:      "remote",
 			SecretKey: "test",
