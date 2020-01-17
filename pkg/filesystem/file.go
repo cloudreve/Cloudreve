@@ -46,7 +46,10 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 	// 添加文件记录前的钩子
 	err := fs.Trigger(ctx, "BeforeAddFile")
 	if err != nil {
-		return nil, err
+		if err := fs.Trigger(ctx, "BeforeAddFileFailed"); err != nil {
+			util.Log().Debug("BeforeAddFileFailed 钩子执行失败，%s", err)
+		}
+		return nil, ErrFileExisted.WithError(err)
 	}
 
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)

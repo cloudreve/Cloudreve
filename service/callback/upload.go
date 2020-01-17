@@ -82,6 +82,8 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
 	fs.Use("BeforeAddFile", filesystem.HookValidateCapacity)
 	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
+	fs.Use("BeforeAddFileFailed", filesystem.HookDeleteTempFile)
 
 	// 向数据库中添加文件
 	file, err := fs.AddFile(ctx, parentFolder)
