@@ -162,6 +162,11 @@ func (policy *Policy) IsPathGenerateNeeded() bool {
 	return policy.Type != "remote"
 }
 
+// IsThumbGenerateNeeded 返回此策略是否需要在上传后生成缩略图
+func (policy *Policy) IsThumbGenerateNeeded() bool {
+	return policy.Type == "local"
+}
+
 // GetUploadURL 获取文件上传服务API地址
 func (policy *Policy) GetUploadURL() string {
 	server, err := url.Parse(policy.Server)

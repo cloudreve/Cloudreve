@@ -116,7 +116,27 @@ func (handler Handler) Get(ctx context.Context, path string) (response.RSCloser,
 
 // Put 将文件流保存到指定目录
 func (handler Handler) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return errors.New("未实现")
+	defer file.Close()
+
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return err
+	}
+
+	// 凭证有效期
+	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+
+	options := []oss.Option{
+		oss.Expires(time.Now().Add(time.Duration(credentialTTL) * time.Second)),
+	}
+
+	// 上传文件
+	err := handler.bucket.PutObject(dst, file, options...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete 删除一个或多个文件，
@@ -217,7 +237,7 @@ func (handler Handler) Source(
 
 func (handler Handler) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
 	// 是否带有 Version ID
-	if versionID, ok := ctx.Value(VersionID).(int64); ok {
+	if _, ok := ctx.Value(VersionID).(int64); ok {
 
 	}
 	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)

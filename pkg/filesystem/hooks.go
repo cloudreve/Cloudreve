@@ -139,12 +139,9 @@ func HookChangeCapacity(ctx context.Context, fs *FileSystem) error {
 func HookDeleteTempFile(ctx context.Context, fs *FileSystem) error {
 	filePath := ctx.Value(fsctx.SavePathCtx).(string)
 	// 删除临时文件
-	// TODO 其他策略。Exists？
-	if util.Exists(filePath) {
-		_, err := fs.Handler.Delete(ctx, []string{filePath})
-		if err != nil {
-			return err
-		}
+	_, err := fs.Handler.Delete(ctx, []string{filePath})
+	if err != nil {
+		util.Log().Warning("无法清理上传临时文件，%s", err)
 	}
 
 	return nil
@@ -207,12 +204,14 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 	}
 
 	// 尝试清空原有缩略图并重新生成
-	go func() {
-		if originFile.PicInfo != "" {
-			_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
-			fs.GenerateThumbnail(ctx, &originFile)
-		}
-	}()
+	if originFile.GetPolicy().IsThumbGenerateNeeded() {
+		go func() {
+			if originFile.PicInfo != "" {
+				_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
+				fs.GenerateThumbnail(ctx, &originFile)
+			}
+		}()
+	}
 
 	return nil
 }
@@ -270,7 +269,9 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	fs.SetTargetFile(&[]model.File{*file})
 
 	// 异步尝试生成缩略图
-	go fs.GenerateThumbnail(ctx, file)
+	if fs.User.Policy.IsThumbGenerateNeeded() {
+		go fs.GenerateThumbnail(ctx, file)
+	}
 
 	return nil
 }
