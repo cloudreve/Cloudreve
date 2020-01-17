@@ -3,7 +3,7 @@ package auth
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"fmt"
+	"encoding/base64"
 	"io"
 	"strconv"
 	"strings"
@@ -25,7 +25,7 @@ func (auth HMACAuth) Sign(body string, expires int64) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%x", h.Sum(nil)) + ":" + expireTimeStamp
+	return base64.URLEncoding.EncodeToString(h.Sum(nil)) + ":" + expireTimeStamp
 }
 
 // Check 对给定Body和Sign进行鉴权，包括对expires的检查
