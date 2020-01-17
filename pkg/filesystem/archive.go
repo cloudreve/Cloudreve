@@ -105,7 +105,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 	if file != nil {
 		// 切换上传策略
 		fs.Policy = file.GetPolicy()
-		err := fs.dispatchHandler()
+		err := fs.DispatchHandler()
 		if err != nil {
 			util.Log().Warning("无法压缩文件%s，%s", file.Name, err)
 			return

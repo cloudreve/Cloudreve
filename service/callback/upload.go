@@ -2,6 +2,7 @@ package callback
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/local"
@@ -60,6 +61,17 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 		return serializer.Err(serializer.CodeInternalSetting, "找不到回调会话", nil)
 	}
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+
+	// 重新指向上传策略
+	policy, err := model.GetPolicyByID(callbackSession.PolicyID)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	fs.Policy = &policy
+	err = fs.DispatchHandler()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
 
 	// 获取父目录
 	exist, parentFolder := fs.IsPathExist(callbackSession.VirtualPath)

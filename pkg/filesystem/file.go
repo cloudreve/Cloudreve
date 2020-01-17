@@ -79,7 +79,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (response.RSCloser, error) {
 	// 重设上传策略
 	fs.Policy = &model.Policy{Type: "local"}
-	_ = fs.dispatchHandler()
+	_ = fs.DispatchHandler()
 
 	// 获取文件流
 	rs, err := fs.Handler.Get(ctx, path)
@@ -184,7 +184,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 
 		// 切换上传策略
 		fs.Policy = toBeDeletedFiles[0].GetPolicy()
-		err := fs.dispatchHandler()
+		err := fs.DispatchHandler()
 		if err != nil {
 			failed[policyID] = sourceNames
 			continue
@@ -327,7 +327,7 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 	}
 
 	fs.Policy = fs.FileTarget[0].GetPolicy()
-	err := fs.dispatchHandler()
+	err := fs.DispatchHandler()
 	if err != nil {
 		return err
 	}

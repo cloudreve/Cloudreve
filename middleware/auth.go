@@ -132,11 +132,6 @@ func uploadCallbackCheck(c *gin.Context) (serializer.Response, *model.User) {
 	}
 	c.Set("user", &user)
 
-	// 检查存储策略是否一致
-	if user.GetPolicyID() != callbackSession.PolicyID {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略已变更，请重新上传", nil), nil
-	}
-
 	return serializer.Response{}, &user
 }
 

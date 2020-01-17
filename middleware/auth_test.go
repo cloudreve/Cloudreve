@@ -277,36 +277,6 @@ func TestRemoteCallbackAuth(t *testing.T) {
 		asserts.True(c.IsAborted())
 	}
 
-	// 存储策略不一致
-	{
-		cache.Set(
-			"callback_testCallBackRemote",
-			serializer.UploadSession{
-				UID:         1,
-				PolicyID:    2,
-				VirtualPath: "/",
-			},
-			0,
-		)
-		cache.Deletes([]string{"1"}, "policy_")
-		mock.ExpectQuery("SELECT(.+)users(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
-		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[3]"))
-		mock.ExpectQuery("SELECT(.+)policies(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "secret_key"}).AddRow(3, "123"))
-		c, _ := gin.CreateTestContext(rec)
-		c.Params = []gin.Param{
-			{"key", "testCallBackRemote"},
-		}
-		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/remote/testCallBackRemote", nil)
-		authInstance := auth.HMACAuth{SecretKey: []byte("123")}
-		auth.SignRequest(authInstance, c.Request, 0)
-		AuthFunc(c)
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.True(c.IsAborted())
-	}
-
 	// 签名错误
 	{
 		cache.Set(

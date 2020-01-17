@@ -64,13 +64,13 @@ func TestDispatchHandler(t *testing.T) {
 	}
 
 	// 未指定，使用用户默认
-	err := fs.dispatchHandler()
+	err := fs.DispatchHandler()
 	asserts.NoError(err)
 	asserts.IsType(local.Driver{}, fs.Handler)
 
 	// 已指定，发生错误
 	fs.Policy = &model.Policy{Type: "unknown"}
-	err = fs.dispatchHandler()
+	err = fs.DispatchHandler()
 	asserts.Error(err)
 }
 

@@ -106,7 +106,7 @@ func HookResetPolicy(ctx context.Context, fs *FileSystem) error {
 	}
 
 	fs.Policy = originFile.GetPolicy()
-	return fs.dispatchHandler()
+	return fs.DispatchHandler()
 }
 
 // HookValidateCapacity 验证并扣除用户容量，包含数据库操作

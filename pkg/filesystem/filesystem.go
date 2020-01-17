@@ -109,7 +109,7 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	fs := getEmptyFS()
 	fs.User = user
 	// 分配存储策略适配器
-	err := fs.dispatchHandler()
+	err := fs.DispatchHandler()
 
 	// TODO 分配默认钩子
 	return fs, err
@@ -135,9 +135,9 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 	return fs, nil
 }
 
-// dispatchHandler 根据存储策略分配文件适配器
+// DispatchHandler 根据存储策略分配文件适配器
 // TODO 完善测试
-func (fs *FileSystem) dispatchHandler() error {
+func (fs *FileSystem) DispatchHandler() error {
 	var policyType string
 	var currentPolicy *model.Policy
 
