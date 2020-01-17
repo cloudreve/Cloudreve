@@ -23,4 +23,6 @@ const (
 	ThumbSizeCtx
 	// OriginSourceNameCtx 原始原文件名
 	OriginSourceNameCtx
+	// FileSizeCtx 文件大小
+	FileSizeCtx
 )

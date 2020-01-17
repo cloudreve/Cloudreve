@@ -10,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/qiniu"
 	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/filesystem/upyun"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -173,6 +174,11 @@ func (fs *FileSystem) dispatchHandler() error {
 		fs.Handler = oss.Driver{
 			Policy:     currentPolicy,
 			HTTPClient: request.HTTPClient{},
+		}
+		return nil
+	case "upyun":
+		fs.Handler = upyun.Driver{
+			Policy: currentPolicy,
 		}
 		return nil
 	default:

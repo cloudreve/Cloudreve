@@ -151,6 +151,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	if fs.User.Policy.IsPathGenerateNeeded() {
 		ctx = context.WithValue(ctx, fsctx.SavePathCtx, fs.GenerateSavePath(ctx, local.FileStream{}))
 	}
+	ctx = context.WithValue(ctx, fsctx.FileSizeCtx, size)
 
 	// 获取上传凭证
 	callbackKey := util.RandStringRunes(32)

@@ -182,6 +182,8 @@ func (policy *Policy) GetUploadURL() string {
 		controller, _ = url.Parse("/api/v3/slave/upload")
 	case "oss":
 		return policy.BaseURL
+	case "upyun":
+		return "http://v0.api.upyun.com/" + policy.BucketName
 	default:
 		controller, _ = url.Parse("")
 	}
