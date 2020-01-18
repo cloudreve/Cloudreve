@@ -144,6 +144,12 @@ func InitMasterRouter() *gin.Engine {
 				middleware.OSSCallbackAuth(),
 				controllers.OSSCallback,
 			)
+			// 又拍云策略上传回调
+			callback.POST(
+				"upyun/:key",
+				middleware.UpyunCallbackAuth(),
+				controllers.UpyunCallback,
+			)
 		}
 
 		// 需要登录保护的

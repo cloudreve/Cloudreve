@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/callback"
 	"github.com/gin-gonic/gin"
 )
@@ -38,6 +39,25 @@ func OSSCallback(c *gin.Context) {
 	if err := c.ShouldBindJSON(&callbackBody); err == nil {
 		if callbackBody.PicInfo == "," {
 			callbackBody.PicInfo = ""
+		}
+		res := callback.ProcessCallback(callbackBody, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UpyunCallback 又拍云上传回调
+func UpyunCallback(c *gin.Context) {
+	var callbackBody callback.UpyunCallbackService
+	if err := c.ShouldBind(&callbackBody); err == nil {
+		if callbackBody.Code != 200 {
+			util.Log().Debug(
+				"又拍云回调返回错误代码%d，信息：%s",
+				callbackBody.Code,
+				callbackBody.Message,
+			)
+			return
 		}
 		res := callback.ProcessCallback(callbackBody, c)
 		c.JSON(200, res)

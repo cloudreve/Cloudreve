@@ -180,7 +180,7 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		testHandller := new(FileHeaderMock)
 		testHandller.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{Token: "test"}, nil)
 		fs.Handler = testHandller
-		res, err := fs.GetUploadToken(ctx, "/", 10)
+		res, err := fs.GetUploadToken(ctx, "/", 10, "123")
 		testHandller.AssertExpectations(t)
 		asserts.NoError(err)
 		asserts.Equal("test", res.Token)
@@ -195,7 +195,7 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		testHandller := new(FileHeaderMock)
 		testHandller.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{}, errors.New("error"))
 		fs.Handler = testHandller
-		_, err := fs.GetUploadToken(ctx, "/", 10)
+		_, err := fs.GetUploadToken(ctx, "/", 10, "123")
 		testHandller.AssertExpectations(t)
 		asserts.Error(err)
 	}

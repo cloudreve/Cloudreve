@@ -29,6 +29,7 @@ type UploadSession struct {
 	UID         uint
 	PolicyID    uint
 	VirtualPath string
+	Name        string
 }
 
 // UploadCallback 上传回调正文

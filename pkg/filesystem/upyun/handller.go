@@ -110,15 +110,21 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
 
 	// 生成签名
-	password := fmt.Sprintf("%x", md5.Sum([]byte(handler.Policy.SecretKey)))
-	mac := hmac.New(sha1.New, []byte(password))
 	elements := []string{"POST", "/" + handler.Policy.BucketName, policyEncoded}
-	value := strings.Join(elements, "&")
-	mac.Write([]byte(value))
-	signStr := base64.StdEncoding.EncodeToString((mac.Sum(nil)))
+	signStr := handler.Sign(ctx, elements)
 
 	return serializer.UploadCredential{
 		Policy: policyEncoded,
-		Token:  fmt.Sprintf("UPYUN %s:%s", handler.Policy.AccessKey, signStr),
+		Token:  signStr,
 	}, nil
+}
+
+// Sign 计算又拍云的签名头
+func (handler Driver) Sign(ctx context.Context, elements []string) string {
+	password := fmt.Sprintf("%x", md5.Sum([]byte(handler.Policy.SecretKey)))
+	mac := hmac.New(sha1.New, []byte(password))
+	value := strings.Join(elements, "&")
+	mac.Write([]byte(value))
+	signStr := base64.StdEncoding.EncodeToString((mac.Sum(nil)))
+	return fmt.Sprintf("UPYUN %s:%s", handler.Policy.AccessKey, signStr)
 }

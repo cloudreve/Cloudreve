@@ -13,7 +13,7 @@ import (
 
 // CallbackProcessService 上传请求回调正文接口
 type CallbackProcessService interface {
-	GetBody() serializer.UploadCallback
+	GetBody(*serializer.UploadSession) serializer.UploadCallback
 }
 
 // RemoteUploadCallbackService 远程存储上传回调请求服务
@@ -22,11 +22,11 @@ type RemoteUploadCallbackService struct {
 }
 
 // GetBody 返回回调正文
-func (service RemoteUploadCallbackService) GetBody() serializer.UploadCallback {
+func (service RemoteUploadCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return service.Data
 }
 
-// UploadCallbackService 云存储上传回调请求服务
+// UploadCallbackService OOS/七牛云存储上传回调请求服务
 type UploadCallbackService struct {
 	Name       string `json:"name"`
 	SourceName string `json:"source_name"`
@@ -34,8 +34,32 @@ type UploadCallbackService struct {
 	Size       uint64 `json:"size"`
 }
 
+// UpyunCallbackService 又拍云上传回调请求服务
+type UpyunCallbackService struct {
+	Code       int    `form:"code" binding:"required"`
+	Message    string `form:"message" binding:"required"`
+	SourceName string `form:"url" binding:"required"`
+	Width      string `form:"image-width"`
+	Height     string `form:"image-height"`
+	Size       uint64 `form:"file_size"`
+}
+
 // GetBody 返回回调正文
-func (service UploadCallbackService) GetBody() serializer.UploadCallback {
+func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+	res := serializer.UploadCallback{
+		Name:       session.Name,
+		SourceName: service.SourceName,
+		Size:       service.Size,
+	}
+	if service.Width != "" {
+		res.PicInfo = service.Width + "," + service.Height
+	}
+
+	return res
+}
+
+// GetBody 返回回调正文
+func (service UploadCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return serializer.UploadCallback{
 		Name:       service.Name,
 		SourceName: service.SourceName,
@@ -46,8 +70,6 @@ func (service UploadCallbackService) GetBody() serializer.UploadCallback {
 
 // ProcessCallback 处理上传结果回调
 func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.Response {
-	// 获取回调正文
-	callbackBody := service.GetBody()
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -62,12 +84,16 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	}
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
 
+	// 获取回调正文
+	callbackBody := service.GetBody(callbackSession)
+
 	// 重新指向上传策略
 	policy, err := model.GetPolicyByID(callbackSession.PolicyID)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 	fs.Policy = &policy
+	fs.User.Policy = policy
 	err = fs.DispatchHandler()
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)

@@ -1,14 +1,20 @@
 package middleware
 
 import (
+	"bytes"
+	"context"
+	"crypto/md5"
+	"fmt"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/upyun"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -201,6 +207,61 @@ func OSSCallbackAuth() gin.HandlerFunc {
 		}
 
 		// TODO 验证OSS给出的签名
+
+		c.Next()
+	}
+}
+
+// UpyunCallbackAuth 又拍云回调签名验证
+// TODO 测试
+func UpyunCallbackAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 验证key并查找用户
+		resp, user := uploadCallbackCheck(c)
+		if resp.Code != 0 {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.Abort()
+			return
+		}
+
+		// 获取请求正文
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: err.Error()})
+			c.Abort()
+			return
+		}
+
+		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+		// 准备验证Upyun回调签名
+		handler := upyun.Driver{Policy: &user.Policy}
+		contentMD5 := c.Request.Header.Get("Content-Md5")
+		date := c.Request.Header.Get("Date")
+		actualSignature := c.Request.Header.Get("Authorization")
+
+		// 计算正文MD5
+		actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
+		if actualContentMD5 != contentMD5 {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: "MD5不一致"})
+			c.Abort()
+			return
+		}
+
+		// 计算理论签名
+		signature := handler.Sign(context.Background(), []string{
+			"POST",
+			c.Request.URL.Path,
+			date,
+			contentMD5,
+		})
+
+		// 对比签名
+		if signature != actualSignature {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: "鉴权失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}

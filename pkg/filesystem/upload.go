@@ -140,7 +140,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 }
 
 // GetUploadToken 生成新的上传凭证
-func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint64) (*serializer.UploadCredential, error) {
+func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint64, name string) (*serializer.UploadCredential, error) {
 	// 获取相关有效期设置
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
@@ -167,6 +167,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 			UID:         fs.User.ID,
 			PolicyID:    fs.User.GetPolicyID(),
 			VirtualPath: path,
+			Name:        name,
 		},
 		callBackSessionTTL,
 	)
