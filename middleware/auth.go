@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/oss"
 	"github.com/HFO4/cloudreve/pkg/filesystem/upyun"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -206,14 +207,19 @@ func OSSCallbackAuth() gin.HandlerFunc {
 			return
 		}
 
-		// TODO 验证OSS给出的签名
+		err := oss.VerifyCallbackSignature(c.Request)
+		if err != nil {
+			util.Log().Debug("回调签名验证失败，%s", err)
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: "回调签名验证失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
 }
 
 // UpyunCallbackAuth 又拍云回调签名验证
-// TODO 测试
 func UpyunCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 验证key并查找用户
@@ -226,6 +232,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 
 		// 获取请求正文
 		body, err := ioutil.ReadAll(c.Request.Body)
+		c.Request.Body.Close()
 		if err != nil {
 			c.JSON(401, serializer.QiniuCallbackFailed{Error: err.Error()})
 			c.Abort()

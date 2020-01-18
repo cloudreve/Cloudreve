@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
@@ -12,8 +13,10 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -411,7 +414,7 @@ func TestOSSCallbackAuth(t *testing.T) {
 		asserts.True(c.IsAborted())
 	}
 
-	// 成功
+	// 签名验证失败
 	{
 		cache.Set(
 			"callback_testCallBackOSS",
@@ -433,14 +436,183 @@ func TestOSSCallbackAuth(t *testing.T) {
 		c.Params = []gin.Param{
 			{"key", "testCallBackOSS"},
 		}
-		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/qiniu/testCallBackOSS", nil)
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/oss/testCallBackOSS", nil)
 		mac := qbox.NewMac("123", "123")
 		token, err := mac.SignRequest(c.Request)
 		asserts.NoError(err)
 		c.Request.Header["Authorization"] = []string{"QBox " + token}
 		AuthFunc(c)
 		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_TnXx5E5VyfJUyM1UdkdDu1rtnJ34EbmH",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "TnXx5E5VyfJUyM1UdkdDu1rtnJ34EbmH"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/oss/TnXx5E5VyfJUyM1UdkdDu1rtnJ34EbmH", ioutil.NopCloser(strings.NewReader(`{"name":"2f7b2ccf30e9270ea920f1ab8a4037a546a2f0d5.jpg","source_name":"1/1_hFRtDLgM_2f7b2ccf30e9270ea920f1ab8a4037a546a2f0d5.jpg","size":114020,"pic_info":"810,539"}`)))
+		c.Request.Header["Authorization"] = []string{"e5LwzwTkP9AFAItT4YzvdJOHd0Y0wqTMWhsV/h5SG90JYGAmMd+8LQyj96R+9qUfJWjMt6suuUh7LaOryR87Dw=="}
+		c.Request.Header["X-Oss-Pub-Key-Url"] = []string{"aHR0cHM6Ly9nb3NzcHVibGljLmFsaWNkbi5jb20vY2FsbGJhY2tfcHViX2tleV92MS5wZW0="}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.False(c.IsAborted())
 	}
 
+}
+
+type fakeRead string
+
+func (r fakeRead) Read(p []byte) (int, error) {
+	return 0, errors.New("error")
+}
+
+func TestUpyunCallbackAuth(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	AuthFunc := UpyunCallbackAuth()
+
+	// Callback Key 相关验证失败
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testUpyunBackRemote"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testUpyunBackRemote", nil)
+		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 无法获取请求正文
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(fakeRead("")))
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(c.IsAborted())
+	}
+
+	// 正文MD5不一致
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		c.Request.Header["Content-Md5"] = []string{"123"}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(c.IsAborted())
+	}
+
+	// 签名不一致
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		c.Request.Header["Content-Md5"] = []string{"c4ca4238a0b923820dcc509a6f75849b"}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    2,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		c.Request.Header["Content-Md5"] = []string{"c4ca4238a0b923820dcc509a6f75849b"}
+		c.Request.Header["Authorization"] = []string{"UPYUN 123:GWueK9x493BKFFk5gmfdO2Mn6EM="}
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.False(c.IsAborted())
+	}
 }

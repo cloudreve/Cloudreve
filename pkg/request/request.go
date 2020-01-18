@@ -152,6 +152,8 @@ func (resp *Response) GetResponse() (string, error) {
 		return "", resp.Err
 	}
 	respBody, err := ioutil.ReadAll(resp.Response.Body)
+	_ = resp.Response.Body.Close()
+
 	return string(respBody), err
 }
 
