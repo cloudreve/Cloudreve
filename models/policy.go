@@ -37,11 +37,12 @@ type Policy struct {
 
 // PolicyOption 非公有的存储策略属性
 type PolicyOption struct {
-	OPName               string   `json:"op_name"`
-	OPPassword           string   `json:"op_pwd"`
-	FileType             []string `json:"file_type"`
-	MimeType             string   `json:"mimetype"`
-	RangeTransferEnabled bool     `json:"range_transfer_enabled"`
+	// Upyun访问Token
+	Token string `json:"token"`
+	// 允许的文件扩展名
+	FileType []string `json:"file_type"`
+	// MimeType
+	MimeType string `json:"mimetype"`
 }
 
 func init() {

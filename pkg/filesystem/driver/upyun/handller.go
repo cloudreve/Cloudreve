@@ -13,9 +13,12 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/upyun/go-sdk/upyun"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -48,12 +51,88 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	return []string{}, errors.New("未实现")
+	up := upyun.NewUpYun(&upyun.UpYunConfig{
+		Bucket:   handler.Policy.BucketName,
+		Operator: handler.Policy.AccessKey,
+		Password: handler.Policy.SecretKey,
+	})
+
+	var (
+		failed       = make([]string, 0, len(files))
+		lastErr      error
+		currentIndex = 0
+		indexLock    sync.Mutex
+		failedLock   sync.Mutex
+		wg           sync.WaitGroup
+		routineNum   = 4
+	)
+	wg.Add(routineNum)
+
+	// upyun不支持批量操作，这里开四个协程并行操作
+	for i := 0; i < routineNum; i++ {
+		go func() {
+			for {
+				// 取得待删除文件
+				indexLock.Lock()
+				if currentIndex >= len(files) {
+					// 所有文件处理完成
+					wg.Done()
+					indexLock.Unlock()
+					return
+				}
+				path := files[currentIndex]
+				currentIndex++
+				indexLock.Unlock()
+
+				// 发送异步删除请求
+				err := up.Delete(&upyun.DeleteObjectConfig{
+					Path:  path,
+					Async: true,
+				})
+
+				// 处理错误
+				if err != nil {
+					failedLock.Lock()
+					lastErr = err
+					failed = append(failed, path)
+					failedLock.Unlock()
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return failed, lastErr
 }
 
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	var (
+		thumbSize = [2]uint{400, 300}
+		ok        = false
+	)
+	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
+		return nil, errors.New("无法获取缩略图尺寸设置")
+	}
+
+	thumbParam := fmt.Sprintf("!/fwfh/%dx%d", thumbSize[0], thumbSize[1])
+	thumbURL, err := handler.Source(
+		ctx,
+		path+thumbParam,
+		url.URL{},
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		false,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      thumbURL,
+	}, nil
 }
 
 // Source 获取外链URL
@@ -65,7 +144,56 @@ func (handler Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	return "", errors.New("未实现")
+	// 尝试从上下文获取文件名
+	fileName := ""
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		fileName = file.Name
+	}
+
+	sourceURL, err := url.Parse(handler.Policy.BaseURL)
+	if err != nil {
+		return "", err
+	}
+
+	fileKey, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+
+	sourceURL = sourceURL.ResolveReference(fileKey)
+
+	// 如果是下载文件URL
+	if isDownload {
+		query := sourceURL.Query()
+		query.Add("_upd", fileName)
+		sourceURL.RawQuery = query.Encode()
+	}
+
+	return handler.signURL(ctx, sourceURL, ttl)
+}
+
+func (handler Driver) signURL(ctx context.Context, path *url.URL, TTL int64) (string, error) {
+	if !handler.Policy.IsPrivate {
+		// 未开启Token防盗链时，直接返回
+		return path.String(), nil
+	}
+
+	etime := time.Now().Add(time.Duration(TTL) * time.Second).Unix()
+	signStr := fmt.Sprintf(
+		"%s&%d&%s",
+		handler.Policy.OptionsSerialized.Token,
+		etime,
+		path.Path,
+	)
+	signMd5 := fmt.Sprintf("%x", md5.Sum([]byte(signStr)))
+	finalSign := signMd5[12:20] + strconv.FormatInt(etime, 10)
+
+	// 将签名添加到URL中
+	query := path.Query()
+	query.Add("_upt", finalSign)
+	path.RawQuery = query.Encode()
+
+	return path.String(), nil
 }
 
 // Token 获取上传策略和认证Token

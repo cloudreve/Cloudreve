@@ -3,8 +3,8 @@ package filesystem
 import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem/local"
-	"github.com/HFO4/cloudreve/pkg/filesystem/remote"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/remote"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
