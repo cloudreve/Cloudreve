@@ -12,9 +12,11 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/upyun/go-sdk/upyun"
 	"io"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -40,12 +42,63 @@ type Driver struct {
 
 // Get 获取文件
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	return nil, errors.New("未实现")
+	// 给文件名加上随机参数以强制拉取
+	path = fmt.Sprintf("%s?v=%d", path, time.Now().UnixNano())
+
+	// 获取文件源地址
+	downloadURL, err := handler.Source(
+		ctx,
+		path,
+		url.URL{},
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		false,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件数据流
+	client := request.HTTPClient{}
+	resp, err := client.Request(
+		"GET",
+		downloadURL,
+		nil,
+		request.WithContext(ctx),
+		request.WithHeader(
+			http.Header{"Cache-Control": {"no-cache", "no-store", "must-revalidate"}},
+		),
+	).CheckHTTPResponse(200).GetRSCloser()
+	if err != nil {
+		return nil, err
+	}
+
+	resp.SetFirstFakeChunk()
+
+	// 尝试自主获取文件大小
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		resp.SetContentLength(int64(file.Size))
+	}
+
+	return resp, nil
+
 }
 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return errors.New("未实现")
+	defer file.Close()
+
+	up := upyun.NewUpYun(&upyun.UpYunConfig{
+		Bucket:   handler.Policy.BucketName,
+		Operator: handler.Policy.AccessKey,
+		Password: handler.Policy.SecretKey,
+	})
+	err := up.Put(&upyun.PutObjectConfig{
+		Path:   dst,
+		Reader: file,
+	})
+
+	return err
 }
 
 // Delete 删除一个或多个文件，

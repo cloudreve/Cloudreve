@@ -43,6 +43,9 @@ type PolicyOption struct {
 	FileType []string `json:"file_type"`
 	// MimeType
 	MimeType string `json:"mimetype"`
+
+	// OdRedirect Onedrive重定向地址
+	OdRedirect string `json:"od_redirect,omitempty"`
 }
 
 func init() {
@@ -189,4 +192,18 @@ func (policy *Policy) GetUploadURL() string {
 		controller, _ = url.Parse("")
 	}
 	return server.ResolveReference(controller).String()
+}
+
+// UpdateAccessKey 更新 AccessKey
+// TODO 测试
+func (policy *Policy) UpdateAccessKey(key string) error {
+	policy.AccessKey = key
+	err := DB.Save(policy).Error
+	policy.ClearCache()
+	return err
+}
+
+// ClearCache 清空policy缓存
+func (policy *Policy) ClearCache() {
+	cache.Deletes([]string{strconv.FormatUint(uint64(policy.ID), 10)}, "policy_")
 }

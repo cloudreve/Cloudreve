@@ -1,0 +1,59 @@
+package onedrive
+
+import (
+	"errors"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/request"
+)
+
+var (
+	// ErrAuthEndpoint 无法解析授权端点地址
+	ErrAuthEndpoint        = errors.New("无法解析授权端点地址")
+	ErrInvalidRefreshToken = errors.New("上传策略无有效的RefreshToken")
+)
+
+// Client OneDrive客户端
+type Client struct {
+	Endpoints  *Endpoints
+	Policy     *model.Policy
+	Credential *Credential
+
+	ClientID     string
+	ClientSecret string
+	Redirect     string
+
+	Request request.Client
+}
+
+// Endpoints OneDrive客户端相关设置
+type Endpoints struct {
+	OAuthURL       string // OAuth认证的基URL
+	OAuthEndpoints *oauthEndpoint
+	EndpointURL    string // 接口请求的基URL
+}
+
+// NewClient 根据存储策略获取新的client
+func NewClient(policy *model.Policy) (*Client, error) {
+	client := &Client{
+		Endpoints: &Endpoints{
+			OAuthURL:    policy.BaseURL,
+			EndpointURL: policy.Server,
+		},
+		Credential: &Credential{
+			RefreshToken: policy.AccessKey,
+		},
+		Policy:       policy,
+		ClientID:     policy.BucketName,
+		ClientSecret: policy.SecretKey,
+		Redirect:     policy.OptionsSerialized.OdRedirect,
+		Request:      request.HTTPClient{},
+	}
+
+	oauthBase := client.getOAuthEndpoint()
+	if oauthBase == nil {
+		return nil, ErrAuthEndpoint
+	}
+	client.Endpoints.OAuthEndpoints = oauthBase
+
+	return client, nil
+}

@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/qiniu"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/remote"
@@ -181,6 +182,13 @@ func (fs *FileSystem) DispatchHandler() error {
 			Policy: currentPolicy,
 		}
 		return nil
+	case "onedrive":
+		client, err := onedrive.NewClient(currentPolicy)
+		fs.Handler = onedrive.Driver{
+			Policy: currentPolicy,
+			Client: client,
+		}
+		return err
 	default:
 		return ErrUnknownPolicyType
 	}
