@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"io"
@@ -51,18 +52,25 @@ func (handler Driver) Source(
 
 // Token 获取上传策略和认证Token
 func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
-	err := handler.Client.UpdateCredential(ctx)
+
+	// 读取上下文中生成的存储路径
+	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
+	if !ok {
+		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
+	}
+
+	// 生成回调地址
+	siteURL := model.GetSiteURL()
+	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + key)
+	apiURL := siteURL.ResolveReference(apiBaseURI)
+
+	uploadURL, err := handler.Client.CreateUploadSession(ctx, savePath, WithConflictBehavior("fail"))
 	if err != nil {
 		return serializer.UploadCredential{}, err
 	}
+
 	return serializer.UploadCredential{
-		Policy: handler.Client.Credential.AccessToken,
+		Policy: uploadURL,
+		Token:  apiURL.String(),
 	}, nil
-	//res,err := handler.Client.ObtainToken(ctx,WithCode("M2e92c4a9-de12-cdda-9cf4-e01f67272831"))
-	//if err != nil{
-	//	return serializer.UploadCredential{},err
-	//}
-	//return serializer.UploadCredential{
-	//	Policy:res.RefreshToken,
-	//}, nil
 }

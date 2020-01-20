@@ -2,13 +2,15 @@ package callback
 
 import (
 	"context"
-	model "github.com/HFO4/cloudreve/models"
+	"fmt"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 // CallbackProcessService 上传请求回调正文接口
@@ -44,6 +46,12 @@ type UpyunCallbackService struct {
 	Size       uint64 `form:"file_size"`
 }
 
+// OneDriveCallback OneDrive 客户端回调正文
+type OneDriveCallback struct {
+	ID   string `json:"id" binding:"required"`
+	Meta *onedrive.FileInfo
+}
+
 // GetBody 返回回调正文
 func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	res := serializer.UploadCallback{
@@ -68,36 +76,33 @@ func (service UploadCallbackService) GetBody(session *serializer.UploadSession) 
 	}
 }
 
+// GetBody 返回回调正文
+func (service OneDriveCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+	var picInfo = "0,0"
+	if service.Meta.Image.Width != 0 {
+		picInfo = fmt.Sprintf("%d,%d", service.Meta.Image.Width, service.Meta.Image.Height)
+	}
+	return serializer.UploadCallback{
+		Name:       session.Name,
+		SourceName: session.SavePath,
+		PicInfo:    picInfo,
+		Size:       session.Size,
+	}
+}
+
 // ProcessCallback 处理上传结果回调
 func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.Response {
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
+	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 	defer fs.Recycle()
 
 	// 获取回调会话
-	callbackSessionRaw, ok := c.Get("callbackSession")
-	if !ok {
-		return serializer.Err(serializer.CodeInternalSetting, "找不到回调会话", nil)
-	}
+	callbackSessionRaw, _ := c.Get("callbackSession")
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
-
-	// 获取回调正文
 	callbackBody := service.GetBody(callbackSession)
-
-	// 重新指向上传策略
-	policy, err := model.GetPolicyByID(callbackSession.PolicyID)
-	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
-	}
-	fs.Policy = &policy
-	fs.User.Policy = policy
-	err = fs.DispatchHandler()
-	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
-	}
 
 	// 获取父目录
 	exist, parentFolder := fs.IsPathExist(callbackSession.VirtualPath)
@@ -139,4 +144,33 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	return serializer.Response{
 		Code: 0,
 	}
+}
+
+// PreProcess 对OneDrive客户端回调进行预处理验证
+func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromCallback(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 获取回调会话
+	callbackSessionRaw, _ := c.Get("callbackSession")
+	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+
+	// 获取文件信息
+	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, "文件元信息查询失败", err)
+	}
+
+	// 验证与回调会话中是否一致
+	actualPath := strings.TrimPrefix(callbackSession.SavePath, "/")
+	if callbackSession.Size != info.Size || info.GetSourcePath() != actualPath {
+		// TODO 删除文件信息
+		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+	}
+	service.Meta = info
+	return ProcessCallback(service, c)
 }

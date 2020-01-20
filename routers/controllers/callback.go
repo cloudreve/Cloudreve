@@ -65,3 +65,14 @@ func UpyunCallback(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// OneDriveCallback OneDrive上传完成客户端回调
+func OneDriveCallback(c *gin.Context) {
+	var callbackBody callback.OneDriveCallback
+	if err := c.ShouldBindJSON(&callbackBody); err == nil {
+		res := callbackBody.PreProcess(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

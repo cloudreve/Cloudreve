@@ -150,6 +150,15 @@ func InitMasterRouter() *gin.Engine {
 				middleware.UpyunCallbackAuth(),
 				controllers.UpyunCallback,
 			)
+			onedrive := callback.Group("onedrive")
+			{
+				// 文件上传完成
+				onedrive.POST(
+					"finish/:key",
+					middleware.OneDriveCallbackAuth(),
+					controllers.OneDriveCallback,
+				)
+			}
 		}
 
 		// 需要登录保护的

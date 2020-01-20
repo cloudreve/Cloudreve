@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"errors"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
@@ -195,13 +196,39 @@ func (fs *FileSystem) DispatchHandler() error {
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统
-// TODO 用户不存在时使用匿名文件系统
 func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 	user, exist := c.Get("user")
 	if !exist {
 		return NewAnonymousFileSystem()
 	}
 	fs, err := NewFileSystem(user.(*model.User))
+	return fs, err
+}
+
+// NewFileSystemFromCallback 从gin.Context创建回调用文件系统
+// TODO 测试
+func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
+	fs, err := NewFileSystemFromContext(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取回调会话
+	callbackSessionRaw, ok := c.Get("callbackSession")
+	if !ok {
+		return nil, errors.New("找不到回调会话")
+	}
+	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+
+	// 重新指向上传策略
+	policy, err := model.GetPolicyByID(callbackSession.PolicyID)
+	if err != nil {
+		return nil, err
+	}
+	fs.Policy = &policy
+	fs.User.Policy = policy
+	err = fs.DispatchHandler()
+
 	return fs, err
 }
 

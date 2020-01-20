@@ -148,8 +148,10 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	var err error
 
 	// 是否需要预先生成存储路径
+	var savePath string
 	if fs.User.Policy.IsPathGenerateNeeded() {
-		ctx = context.WithValue(ctx, fsctx.SavePathCtx, fs.GenerateSavePath(ctx, local.FileStream{}))
+		savePath = fs.GenerateSavePath(ctx, local.FileStream{Name: name})
+		ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 	}
 	ctx = context.WithValue(ctx, fsctx.FileSizeCtx, size)
 
@@ -168,6 +170,8 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 			PolicyID:    fs.User.GetPolicyID(),
 			VirtualPath: path,
 			Name:        name,
+			Size:        size,
+			SavePath:    savePath,
 		},
 		callBackSessionTTL,
 	)
