@@ -30,7 +30,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	return []string{}, errors.New("未实现")
+	return handler.Client.Delete(ctx, files)
 }
 
 // Thumb 获取文件缩略图
@@ -50,13 +50,22 @@ func (handler Driver) Source(
 	return "", errors.New("未实现")
 }
 
-// Token 获取上传策略和认证Token
+// Token 获取上传会话URL
 func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
 
-	// 读取上下文中生成的存储路径
+	// 读取上下文中生成的存储路径和文件大小
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
 	if !ok {
 		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
+	}
+	fileSize, ok := ctx.Value(fsctx.FileSizeCtx).(uint64)
+	if !ok {
+		return serializer.UploadCredential{}, errors.New("无法获取文件大小")
+	}
+
+	// 如果小于10MB，则由服务端中转
+	if fileSize <= 10*1024*1024 {
+		return serializer.UploadCredential{}, nil
 	}
 
 	// 生成回调地址
@@ -68,6 +77,9 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 	if err != nil {
 		return serializer.UploadCredential{}, err
 	}
+
+	// 监控回调及上传
+	go handler.Client.MonitorUpload(uploadURL, key, savePath, fileSize, TTL)
 
 	return serializer.UploadCredential{
 		Policy: uploadURL,

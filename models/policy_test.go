@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
@@ -15,13 +16,13 @@ func TestGetPolicyByID(t *testing.T) {
 	// 缓存未命中
 	{
 		rows := sqlmock.NewRows([]string{"name", "type", "options"}).
-			AddRow("默认存储策略", "local", "{\"op_name\":\"123\"}")
+			AddRow("默认存储策略", "local", "{\"od_redirect\":\"123\"}")
 		mock.ExpectQuery("^SELECT(.+)").WillReturnRows(rows)
 		policy, err := GetPolicyByID(uint(22))
 		asserts.NoError(err)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal("默认存储策略", policy.Name)
-		asserts.Equal("123", policy.OptionsSerialized.OPName)
+		asserts.Equal("123", policy.OptionsSerialized.OdRedirect)
 
 		rows = sqlmock.NewRows([]string{"name", "type", "options"})
 		mock.ExpectQuery("^SELECT(.+)").WillReturnRows(rows)
@@ -35,7 +36,7 @@ func TestGetPolicyByID(t *testing.T) {
 		policy, err := GetPolicyByID(uint(22))
 		asserts.NoError(err)
 		asserts.Equal("默认存储策略", policy.Name)
-		asserts.Equal("123", policy.OptionsSerialized.OPName)
+		asserts.Equal("123", policy.OptionsSerialized.OdRedirect)
 
 	}
 
@@ -46,7 +47,7 @@ func TestPolicy_BeforeSave(t *testing.T) {
 
 	testPolicy := Policy{
 		OptionsSerialized: PolicyOption{
-			OPName: "123",
+			OdRedirect: "123",
 		},
 	}
 	expected, _ := json.Marshal(testPolicy.OptionsSerialized)
@@ -163,6 +164,7 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 
 	// 本地
 	{
+		cache.Set("setting_siteURL", "http://127.0.0.1", 0)
 		policy := Policy{Type: "local", Server: "http://127.0.0.1"}
 		asserts.Equal("http://127.0.0.1/api/v3/file/upload", policy.GetUploadURL())
 	}

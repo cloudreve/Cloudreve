@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/upyun"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -285,6 +286,9 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		// 发送回调结束信号
+		onedrive.FinishCallback(c.Param("key"))
 
 		c.Next()
 	}

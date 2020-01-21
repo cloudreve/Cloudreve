@@ -107,6 +107,8 @@ solid #e9e9e9;"bgcolor="#fff"><tbody><tr style="font-family: 'Helvetica Neue',He
 		{Name: "upload_credential_timeout", Value: `1800`, Type: "timeout"},
 		{Name: "upload_session_timeout", Value: `86400`, Type: "timeout"},
 		{Name: "slave_api_timeout", Value: `60`, Type: "timeout"},
+		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
+		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
 		{Name: "allowdVisitorDownload", Value: `false`, Type: "share"},
 		{Name: "login_captcha", Value: `0`, Type: "login"},
 		{Name: "qq_login", Value: `0`, Type: "login"},
