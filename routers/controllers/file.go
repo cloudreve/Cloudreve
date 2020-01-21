@@ -3,7 +3,7 @@ package controllers
 import "C"
 import (
 	"context"
-	"github.com/HFO4/cloudreve/models"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
@@ -244,16 +244,16 @@ func FileUploadStream(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 非本地策略时拒绝上传
-	if user, ok := c.Get("user"); ok && user.(*model.User).Policy.Type != "local" {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
-		return
-	}
-
 	// 取得文件大小
 	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	// 非可用策略时拒绝上传
+	if user, ok := c.Get("user"); ok && !user.(*model.User).Policy.IsTransitUpload(fileSize) {
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
 		return
 	}
 

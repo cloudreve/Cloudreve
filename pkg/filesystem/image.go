@@ -31,6 +31,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 
 	w, h := fs.GenerateThumbnailSize(0, 0)
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
 	res, err := fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
 
 	// TODO 出错时重新生成缩略图

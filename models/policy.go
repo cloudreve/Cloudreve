@@ -161,6 +161,17 @@ func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
 }
 
+// IsTransitUpload 返回此策略上传给定size文件时是否需要服务端中转
+func (policy *Policy) IsTransitUpload(size uint64) bool {
+	if policy.Type == "local" {
+		return true
+	}
+	if policy.Type == "onedrive" && size < 4*1024*1024 {
+		return true
+	}
+	return false
+}
+
 // IsPathGenerateNeeded 返回此策略是否需要在生成上传凭证时生成存储路径
 func (policy *Policy) IsPathGenerateNeeded() bool {
 	return policy.Type != "remote"
@@ -169,6 +180,11 @@ func (policy *Policy) IsPathGenerateNeeded() bool {
 // IsThumbGenerateNeeded 返回此策略是否需要在上传后生成缩略图
 func (policy *Policy) IsThumbGenerateNeeded() bool {
 	return policy.Type == "local"
+}
+
+// IsMockThumbNeeded 返回此策略是否需要在上传后默认当图像文件
+func (policy *Policy) IsMockThumbNeeded() bool {
+	return policy.Type == "onedrive"
 }
 
 // GetUploadURL 获取文件上传服务API地址

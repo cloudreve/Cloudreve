@@ -24,7 +24,9 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return errors.New("未实现")
+	defer file.Close()
+	_, err := handler.Client.PutFile(ctx, dst, file)
+	return err
 }
 
 // Delete 删除一个或多个文件，
@@ -35,7 +37,25 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	var (
+		thumbSize = [2]uint{400, 300}
+		ok        = false
+	)
+	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
+		return nil, errors.New("无法获取缩略图尺寸设置")
+	}
+
+	res, err := handler.Client.GetThumbURL(ctx, path, thumbSize[0], thumbSize[1])
+	if err != nil {
+		// 如果出现异常，就清空文件的pic_info
+		if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+			file.UpdatePicInfo("")
+		}
+	}
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      res,
+	}, err
 }
 
 // Source 获取外链URL
@@ -63,8 +83,8 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 		return serializer.UploadCredential{}, errors.New("无法获取文件大小")
 	}
 
-	// 如果小于10MB，则由服务端中转
-	if fileSize <= 10*1024*1024 {
+	// 如果小于4MB，则由服务端中转
+	if fileSize <= SmallFileSize {
 		return serializer.UploadCredential{}, nil
 	}
 

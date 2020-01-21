@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/request"
@@ -16,6 +17,13 @@ import (
 	"strconv"
 	"strings"
 	"time"
+)
+
+const (
+	// SmallFileSize 单文件上传接口最大尺寸
+	SmallFileSize uint64 = 4 * 1024 * 1024
+	// ChunkSize 分片上传分片大小
+	ChunkSize uint64 = 10 * 1024 * 1024
 )
 
 // GetSourcePath 获取文件的绝对路径
@@ -209,11 +217,41 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 	return string(res)
 }
 
+// GetThumbURL 获取给定尺寸的缩略图URL
+func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (string, error) {
+	dst = strings.TrimPrefix(dst, "/")
+	cropOption := fmt.Sprintf("c%dx%d_Crop", w, h)
+	requestURL := client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+
+	res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)
+	if err != nil {
+		return "", err
+	}
+
+	var (
+		decodeErr error
+		thumbRes  ThumbResponse
+	)
+	decodeErr = json.Unmarshal([]byte(res), &thumbRes)
+	if decodeErr != nil {
+		return "", decodeErr
+	}
+
+	if len(thumbRes.Value) == 1 {
+		if res, ok := thumbRes.Value[0][cropOption]; ok {
+			return res.(map[string]interface{})["url"].(string), nil
+		}
+	}
+
+	return "", errors.New("无法生成缩略图")
+}
+
 // MonitorUpload 监控客户端分片上传进度
 func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size uint64, ttl int64) {
 	// 回调完成通知chan
 	callbackChan := make(chan bool)
 	callbackSignal.Store(callbackKey, callbackChan)
+	defer callbackSignal.Delete(callbackKey)
 	timeout := model.GetIntSetting("onedrive_monitor_timeout", 600)
 	interval := model.GetIntSetting("onedrive_callback_check", 20)
 
@@ -339,7 +377,7 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	if res.Response.StatusCode != expectedCode {
 		decodeErr = json.Unmarshal([]byte(respBody), &errResp)
 		if decodeErr != nil {
-			return "", sysError(err)
+			return "", sysError(decodeErr)
 		}
 		return "", &errResp
 	}

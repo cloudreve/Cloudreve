@@ -74,4 +74,9 @@ type BatchResponse struct {
 	Status int    `json:"status"`
 }
 
+// ThumbResponse 获取缩略图的响应
+type ThumbResponse struct {
+	Value []map[string]interface{} `json:"value"`
+}
+
 var callbackSignal sync.Map
