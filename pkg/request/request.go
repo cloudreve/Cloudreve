@@ -85,7 +85,19 @@ func WithCredential(instance auth.Auth, ttl int64) Option {
 // WithHeader 设置请求Header
 func WithHeader(header http.Header) Option {
 	return optionFunc(func(o *options) {
-		o.header = header
+		for k, v := range header {
+			o.header[k] = v
+		}
+	})
+}
+
+// WithoutHeader 设置清除请求Header
+func WithoutHeader(header []string) Option {
+	return optionFunc(func(o *options) {
+		for _, v := range header {
+			delete(o.header, v)
+		}
+
 	})
 }
 

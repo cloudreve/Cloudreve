@@ -1,6 +1,7 @@
 package onedrive
 
 import (
+	"io"
 	"sync"
 )
 
@@ -29,6 +30,7 @@ type FileInfo struct {
 	Size            uint64          `json:"size"`
 	Image           imageInfo       `json:"image"`
 	ParentReference parentReference `json:"parentReference"`
+	DownloadURL     string          `json:"@microsoft.graph.downloadUrl"`
 }
 
 type imageInfo struct {
@@ -77,6 +79,20 @@ type BatchResponse struct {
 // ThumbResponse 获取缩略图的响应
 type ThumbResponse struct {
 	Value []map[string]interface{} `json:"value"`
+}
+
+// Chunk 文件分片
+type Chunk struct {
+	Offset    int
+	ChunkSize int
+	Total     int
+	Retried   int
+	Reader    io.Reader
+}
+
+// IsLast 返回是否为最后一个分片
+func (chunk *Chunk) IsLast() bool {
+	return chunk.Total-chunk.Offset == chunk.ChunkSize
 }
 
 var callbackSignal sync.Map

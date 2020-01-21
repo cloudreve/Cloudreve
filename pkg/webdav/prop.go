@@ -280,7 +280,7 @@ loop:
 
 	// The file doesn't implement the optional DeadPropsHolder interface, so
 	// all patches are forbidden.
-	pstat := Propstat{Status: http.StatusForbidden}
+	pstat := Propstat{Status: http.StatusOK}
 	for _, patch := range patches {
 		for _, p := range patch.Props {
 			pstat.Props = append(pstat.Props, Property{XMLName: p.XMLName})

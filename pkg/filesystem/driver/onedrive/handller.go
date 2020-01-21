@@ -6,6 +6,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"io"
 	"net/url"
@@ -13,20 +14,51 @@ import (
 
 // Driver OneDrive 适配器
 type Driver struct {
-	Policy *model.Policy
-	Client *Client
+	Policy     *model.Policy
+	Client     *Client
+	HTTPClient request.Client
 }
 
 // Get 获取文件
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	return nil, errors.New("未实现")
+	// 获取文件源地址
+	downloadURL, err := handler.Source(
+		ctx,
+		path,
+		url.URL{},
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		false,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取文件数据流
+	resp, err := handler.HTTPClient.Request(
+		"GET",
+		downloadURL,
+		nil,
+		request.WithContext(ctx),
+	).CheckHTTPResponse(200).GetRSCloser()
+	if err != nil {
+		return nil, err
+	}
+
+	resp.SetFirstFakeChunk()
+
+	// 尝试自主获取文件大小
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		resp.SetContentLength(int64(file.Size))
+	}
+
+	return resp, nil
 }
 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
-	_, err := handler.Client.PutFile(ctx, dst, file)
-	return err
+	return handler.Client.Upload(ctx, dst, int(size), file)
 }
 
 // Delete 删除一个或多个文件，
@@ -67,7 +99,11 @@ func (handler Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	return "", errors.New("未实现")
+	res, err := handler.Client.Meta(ctx, "", path)
+	if err == nil {
+		return res.DownloadURL, nil
+	}
+	return "", err
 }
 
 // Token 获取上传会话URL

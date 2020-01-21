@@ -186,8 +186,9 @@ func (fs *FileSystem) DispatchHandler() error {
 	case "onedrive":
 		client, err := onedrive.NewClient(currentPolicy)
 		fs.Handler = onedrive.Driver{
-			Policy: currentPolicy,
-			Client: client,
+			Policy:     currentPolicy,
+			Client:     client,
+			HTTPClient: request.HTTPClient{},
 		}
 		return err
 	default:

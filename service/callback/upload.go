@@ -160,7 +160,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
 
 	// 获取文件信息
-	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), service.ID)
+	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), service.ID, "")
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, "文件元信息查询失败", err)
 	}
