@@ -26,7 +26,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 		ctx,
 		path,
 		url.URL{},
-		int64(model.GetIntSetting("preview_timeout", 60)),
+		60,
 		false,
 		0,
 	)

@@ -1,7 +1,9 @@
 package onedrive
 
 import (
+	"encoding/gob"
 	"io"
+	"net/url"
 	"sync"
 )
 
@@ -89,6 +91,33 @@ type Chunk struct {
 	Total     int
 	Retried   int
 	Reader    io.Reader
+}
+
+// oauthEndpoint OAuth接口地址
+type oauthEndpoint struct {
+	token     url.URL
+	authorize url.URL
+}
+
+// Credential 获取token时返回的凭证
+type Credential struct {
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int64  `json:"expires_in"`
+	Scope        string `json:"scope"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	UserID       string `json:"user_id"`
+}
+
+// OAuthError OAuth相关接口的错误响应
+type OAuthError struct {
+	ErrorType        string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+	CorrelationID    string `json:"correlation_id"`
+}
+
+func init() {
+	gob.Register(Credential{})
 }
 
 // IsLast 返回是否为最后一个分片

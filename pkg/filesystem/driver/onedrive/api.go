@@ -393,7 +393,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 							cache.Deletes([]string{callbackKey}, "callback_")
 							_, err = client.Delete(context.Background(), []string{path})
 							if err != nil {
-								util.Log().Warning("无法删除未回掉的文件，%s", err)
+								util.Log().Warning("无法删除未回调的文件，%s", err)
 							}
 						}
 						return
@@ -486,7 +486,7 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 		decodeErr error
 	)
 	// 如果有错误
-	if res.Response.StatusCode < 200 && res.Response.StatusCode >= 300 {
+	if res.Response.StatusCode < 200 || res.Response.StatusCode >= 300 {
 		decodeErr = json.Unmarshal([]byte(respBody), &errResp)
 		if decodeErr != nil {
 			return "", sysError(decodeErr)

@@ -38,13 +38,6 @@ func WithConflictBehavior(t string) Option {
 	})
 }
 
-// WithExpires 设置过期时间
-func WithExpires(t time.Time) Option {
-	return optionFunc(func(o *options) {
-		o.expires = t
-	})
-}
-
 func (f optionFunc) apply(o *options) {
 	f(o)
 }

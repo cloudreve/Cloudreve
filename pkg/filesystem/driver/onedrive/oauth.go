@@ -2,7 +2,6 @@ package onedrive
 
 import (
 	"context"
-	"encoding/gob"
 	"encoding/json"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/request"
@@ -13,33 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
-// oauthEndpoint OAuth接口地址
-type oauthEndpoint struct {
-	token     url.URL
-	authorize url.URL
-}
-
-// Credential 获取token时返回的凭证
-type Credential struct {
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int64  `json:"expires_in"`
-	Scope        string `json:"scope"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	UserID       string `json:"user_id"`
-}
-
-// OAuthError OAuth相关接口的错误响应
-type OAuthError struct {
-	ErrorType        string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	CorrelationID    string `json:"correlation_id"`
-}
-
-func init() {
-	gob.Register(Credential{})
-}
 
 // Error 实现error接口
 func (err OAuthError) Error() string {
