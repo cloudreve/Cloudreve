@@ -212,7 +212,6 @@ func (policy *Policy) GetUploadURL() string {
 }
 
 // UpdateAccessKey 更新 AccessKey
-// TODO 测试
 func (policy *Policy) UpdateAccessKey(key string) error {
 	policy.AccessKey = key
 	err := DB.Save(policy).Error

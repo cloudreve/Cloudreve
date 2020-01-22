@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
@@ -195,4 +196,38 @@ func TestPolicy_IsPathGenerateNeeded(t *testing.T) {
 	asserts.True(policy.IsPathGenerateNeeded())
 	policy.Type = "remote"
 	asserts.False(policy.IsPathGenerateNeeded())
+}
+
+func TestPolicy_ClearCache(t *testing.T) {
+	asserts := assert.New(t)
+	cache.Set("policy_202", 1, 0)
+	policy := Policy{Model: gorm.Model{ID: 202}}
+	policy.ClearCache()
+	_, ok := cache.Get("policy_202")
+	asserts.False(ok)
+}
+
+func TestPolicy_UpdateAccessKey(t *testing.T) {
+	asserts := assert.New(t)
+	policy := Policy{Model: gorm.Model{ID: 202}}
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	err := policy.UpdateAccessKey("123")
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NoError(err)
+}
+
+func TestPolicy_Props(t *testing.T) {
+	asserts := assert.New(t)
+	policy := Policy{Type: "onedrive"}
+	asserts.True(policy.IsMockThumbNeeded())
+	asserts.False(policy.IsThumbGenerateNeeded())
+	asserts.True(policy.IsPathGenerateNeeded())
+	asserts.True(policy.IsTransitUpload(4))
+	asserts.False(policy.IsTransitUpload(5 * 1024 * 1024))
+	policy.Type = "local"
+	asserts.False(policy.IsMockThumbNeeded())
+	asserts.True(policy.IsThumbGenerateNeeded())
+	asserts.True(policy.IsPathGenerateNeeded())
 }

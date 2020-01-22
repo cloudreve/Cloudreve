@@ -3,8 +3,10 @@ package filesystem
 import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/remote"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
@@ -72,6 +74,94 @@ func TestDispatchHandler(t *testing.T) {
 	fs.Policy = &model.Policy{Type: "unknown"}
 	err = fs.DispatchHandler()
 	asserts.Error(err)
+
+	fs.Policy = &model.Policy{Type: "mock"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "local"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "remote"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "qiniu"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "oss"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "upyun"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "onedrive"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
+}
+
+func TestNewFileSystemFromCallback(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 用户上下文不存在
+	{
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		fs, err := NewFileSystemFromCallback(c)
+		asserts.Nil(fs)
+		asserts.Error(err)
+	}
+
+	// 找不到回调会话
+	{
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("user", &model.User{
+			Policy: model.Policy{
+				Type: "local",
+			},
+		})
+		fs, err := NewFileSystemFromCallback(c)
+		asserts.Nil(fs)
+		asserts.Error(err)
+	}
+
+	// 找不到上传策略
+	{
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("user", &model.User{
+			Policy: model.Policy{
+				Type: "local",
+			},
+		})
+		c.Set("callbackSession", &serializer.UploadSession{PolicyID: 138})
+		cache.Deletes([]string{"138"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		fs, err := NewFileSystemFromCallback(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Nil(fs)
+		asserts.Error(err)
+	}
+
+	// 成功
+	{
+		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Set("user", &model.User{
+			Policy: model.Policy{
+				Type: "local",
+			},
+		})
+		c.Set("callbackSession", &serializer.UploadSession{PolicyID: 138})
+		cache.Deletes([]string{"138"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type", "options"}).AddRow(138, "local", "{}"))
+		fs, err := NewFileSystemFromCallback(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NotNil(fs)
+		asserts.NoError(err)
+	}
+
 }
 
 func TestFileSystem_SetTargetFileByIDs(t *testing.T) {
