@@ -197,27 +197,33 @@ func (client *Client) Upload(ctx context.Context, dst string, size int, file io.
 		chunkNum++
 	}
 	for i := 0; i < chunkNum; i++ {
-		// 分块
-		// TODO 取消上传
-		chunkSize := int(ChunkSize)
-		if size-offset < chunkSize {
-			chunkSize = size - offset
+		select {
+		case <-ctx.Done():
+			util.Log().Debug("OneDrive 客户端取消")
+			return ErrClientCanceled
+		default:
+			// 分块
+			chunkSize := int(ChunkSize)
+			if size-offset < chunkSize {
+				chunkSize = size - offset
+			}
+			chunk := Chunk{
+				Offset:    offset,
+				ChunkSize: chunkSize,
+				Total:     size,
+				Reader: &io.LimitedReader{
+					R: file,
+					N: int64(chunkSize),
+				},
+			}
+			// 上传
+			_, err := client.UploadChunk(ctx, uploadURL, &chunk)
+			if err != nil {
+				return err
+			}
+			offset += chunkSize
 		}
-		chunk := Chunk{
-			Offset:    offset,
-			ChunkSize: chunkSize,
-			Total:     size,
-			Reader: &io.LimitedReader{
-				R: file,
-				N: int64(chunkSize),
-			},
-		}
-		// 上传
-		_, err := client.UploadChunk(ctx, uploadURL, &chunk)
-		if err != nil {
-			return err
-		}
-		offset += chunkSize
+
 	}
 	return nil
 }
@@ -274,7 +280,7 @@ func (client *Client) Delete(ctx context.Context, dst []string) ([]string, error
 	// 取得删除失败的文件
 	failed := getDeleteFailed(&deleteRes)
 	if len(failed) != 0 {
-		return failed, errors.New("无法删除文件")
+		return failed, ErrDeleteFile
 	}
 	return failed, nil
 }
