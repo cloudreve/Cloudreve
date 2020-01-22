@@ -310,8 +310,17 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 // GetThumbURL 获取给定尺寸的缩略图URL
 func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (string, error) {
 	dst = strings.TrimPrefix(dst, "/")
-	cropOption := fmt.Sprintf("c%dx%d_Crop", w, h)
-	requestURL := client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+	var (
+		cropOption string
+		requestURL string
+	)
+	if client.Endpoints.isInChina {
+		cropOption = "large"
+		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails/0") + "/" + cropOption
+	} else {
+		cropOption = fmt.Sprintf("c%dx%d_Crop", w, h)
+		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)
 	if err != nil {
@@ -325,6 +334,10 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 	decodeErr = json.Unmarshal([]byte(res), &thumbRes)
 	if decodeErr != nil {
 		return "", decodeErr
+	}
+
+	if thumbRes.URL != "" {
+		return thumbRes.URL, nil
 	}
 
 	if len(thumbRes.Value) == 1 {
@@ -386,6 +399,9 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 			}
 
 			// 成功获取分片上传状态，检查文件大小
+			if len(status.NextExpectedRanges) == 0 {
+				continue
+			}
 			sizeRange := strings.Split(
 				status.NextExpectedRanges[len(status.NextExpectedRanges)-1],
 				"-",

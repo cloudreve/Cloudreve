@@ -79,6 +79,7 @@ type BatchResponse struct {
 // ThumbResponse 获取缩略图的响应
 type ThumbResponse struct {
 	Value []map[string]interface{} `json:"value"`
+	URL   string                   `json:"url"`
 }
 
 // Chunk 文件分片

@@ -22,8 +22,8 @@ type Policy struct {
 	BucketName         string
 	IsPrivate          bool
 	BaseURL            string
-	AccessKey          string `gorm:"size:512"`
-	SecretKey          string `gorm:"size:512"`
+	AccessKey          string `gorm:"size:1024"`
+	SecretKey          string `gorm:"size:1024"`
 	MaxSize            uint64
 	AutoRename         bool
 	DirNameRule        string

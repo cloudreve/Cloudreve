@@ -72,6 +72,10 @@ func (client *Client) getOAuthEndpoint() *oauthEndpoint {
 	case "login.live.com":
 		token, _ = url.Parse("https://login.live.com/oauth20_token.srf")
 		authorize, _ = url.Parse("https://login.live.com/oauth20_authorize.srf")
+	case "login.chinacloudapi.cn":
+		client.Endpoints.isInChina = true
+		token, _ = url.Parse("https://login.chinacloudapi.cn/common/oauth2/v2.0/token")
+		authorize, _ = url.Parse("https://login.chinacloudapi.cn/common/oauth2/v2.0/authorize")
 	default:
 		token, _ = url.Parse("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 		authorize, _ = url.Parse("https://login.microsoftonline.com/common/oauth2/v2.0/authorize")

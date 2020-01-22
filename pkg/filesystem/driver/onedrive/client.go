@@ -30,6 +30,7 @@ type Endpoints struct {
 	OAuthURL       string // OAuth认证的基URL
 	OAuthEndpoints *oauthEndpoint
 	EndpointURL    string // 接口请求的基URL
+	isInChina      bool   // 是否为世纪互联
 }
 
 // NewClient 根据存储策略获取新的client
