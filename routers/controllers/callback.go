@@ -76,3 +76,14 @@ func OneDriveCallback(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// COSCallback COS上传完成客户端回调
+func COSCallback(c *gin.Context) {
+	var callbackBody callback.COSCallback
+	if err := c.ShouldBindQuery(&callbackBody); err == nil {
+		res := callbackBody.PreProcess(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

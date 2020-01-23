@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
@@ -52,6 +53,12 @@ type OneDriveCallback struct {
 	Meta *onedrive.FileInfo
 }
 
+// COSCallback COS 客户端回调正文
+type COSCallback struct {
+	Bucket string `form:"bucket"`
+	Etag   string `form:"etag"`
+}
+
 // GetBody 返回回调正文
 func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	res := serializer.UploadCallback{
@@ -86,6 +93,16 @@ func (service OneDriveCallback) GetBody(session *serializer.UploadSession) seria
 		Name:       session.Name,
 		SourceName: session.SavePath,
 		PicInfo:    picInfo,
+		Size:       session.Size,
+	}
+}
+
+// GetBody 返回回调正文
+func (service COSCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+	return serializer.UploadCallback{
+		Name:       session.Name,
+		SourceName: session.SavePath,
+		PicInfo:    "",
 		Size:       session.Size,
 	}
 }
@@ -168,9 +185,36 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 	// 验证与回调会话中是否一致
 	actualPath := strings.TrimPrefix(callbackSession.SavePath, "/")
 	if callbackSession.Size != info.Size || info.GetSourcePath() != actualPath {
-		// TODO 删除文件信息
+		fs.Handler.(onedrive.Driver).Client.Delete(context.Background(), []string{info.GetSourcePath()})
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
 	service.Meta = info
+	return ProcessCallback(service, c)
+}
+
+// PreProcess 对COS客户端回调进行预处理
+func (service *COSCallback) PreProcess(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromCallback(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 获取回调会话
+	callbackSessionRaw, _ := c.Get("callbackSession")
+	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+
+	// 获取文件信息
+	info, err := fs.Handler.(cos.Driver).Meta(context.Background(), callbackSession.SavePath)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+	}
+
+	// 验证实际文件信息与回调会话中是否一致
+	if callbackSession.Size != info.Size || callbackSession.Key != info.CallbackKey {
+		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+	}
+
 	return ProcessCallback(service, c)
 }

@@ -165,6 +165,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	err = cache.Set(
 		"callback_"+callbackKey,
 		serializer.UploadSession{
+			Key:         callbackKey,
 			UID:         fs.User.ID,
 			PolicyID:    fs.User.GetPolicyID(),
 			VirtualPath: path,

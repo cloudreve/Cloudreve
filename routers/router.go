@@ -159,6 +159,12 @@ func InitMasterRouter() *gin.Engine {
 					controllers.OneDriveCallback,
 				)
 			}
+			// 腾讯云COS策略上传回调
+			callback.GET(
+				"cos/:key",
+				middleware.COSCallbackAuth(),
+				controllers.COSCallback,
+			)
 		}
 
 		// 需要登录保护的

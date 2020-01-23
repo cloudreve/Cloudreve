@@ -293,3 +293,19 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// COSCallbackAuth 腾讯云COS回调签名验证
+// TODO 解耦 测试
+func COSCallbackAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 验证key并查找用户
+		resp, _ := uploadCallbackCheck(c)
+		if resp.Code != 0 {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

@@ -26,6 +26,7 @@ require (
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.4.0
+	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20200120023323-87ff3bc489ac
 	github.com/upyun/go-sdk v2.1.0+incompatible
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	gopkg.in/go-playground/validator.v8 v8.18.2

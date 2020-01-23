@@ -20,12 +20,16 @@ type UploadPolicy struct {
 type UploadCredential struct {
 	Token     string `json:"token"`
 	Policy    string `json:"policy"`
-	Path      string `json:"path"`
+	Path      string `json:"path"` // 存储路径
 	AccessKey string `json:"ak"`
+	KeyTime   string `json:"key_time,omitempty"` // COS用有效期
+	Callback  string `json:"callback,omitempty"` // 回调地址
+	Key       string `json:"key,omitempty"`      // 文件标识符，通常为回调key
 }
 
 // UploadSession 上传会话
 type UploadSession struct {
+	Key         string
 	UID         uint
 	PolicyID    uint
 	VirtualPath string

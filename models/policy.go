@@ -145,7 +145,7 @@ func (policy Policy) getOriginNameRule(origin string) string {
 			return "$(fname)"
 		case "local", "remote":
 			return origin
-		case "oss":
+		case "oss", "cos":
 			// OSS会将${filename}自动替换为原始文件名
 			return "${filename}"
 		case "upyun":
@@ -201,7 +201,7 @@ func (policy *Policy) GetUploadURL() string {
 		controller, _ = url.Parse("/api/v3/file/upload")
 	case "remote":
 		controller, _ = url.Parse("/api/v3/slave/upload")
-	case "oss":
+	case "oss", "cos":
 		return policy.BaseURL
 	case "upyun":
 		return "http://v0.api.upyun.com/" + policy.BucketName

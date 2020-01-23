@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
@@ -16,7 +17,9 @@ import (
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
+	cossdk "github.com/tencentyun/cos-go-sdk-v5"
 	"io"
+	"net/http"
 	"net/url"
 	"sync"
 )
@@ -191,6 +194,19 @@ func (fs *FileSystem) DispatchHandler() error {
 			HTTPClient: request.HTTPClient{},
 		}
 		return err
+	case "cos":
+		u, _ := url.Parse(currentPolicy.Server)
+		b := &cossdk.BaseURL{BucketURL: u}
+		fs.Handler = cos.Driver{
+			Policy: currentPolicy,
+			Client: cossdk.NewClient(b, &http.Client{
+				Transport: &cossdk.AuthorizationTransport{
+					SecretID:  currentPolicy.AccessKey,
+					SecretKey: currentPolicy.SecretKey,
+				},
+			}),
+		}
+		return nil
 	default:
 		return ErrUnknownPolicyType
 	}
