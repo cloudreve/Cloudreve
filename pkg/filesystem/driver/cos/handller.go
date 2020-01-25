@@ -50,7 +50,27 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	return []string{}, errors.New("未实现")
+	obs := []cossdk.Object{}
+	for _, v := range files {
+		obs = append(obs, cossdk.Object{Key: v})
+	}
+	opt := &cossdk.ObjectDeleteMultiOptions{
+		Objects: obs,
+		Quiet:   true,
+	}
+
+	res, _, err := handler.Client.Object.DeleteMulti(context.Background(), opt)
+	if err != nil {
+		return files, err
+	}
+
+	// 整理删除结果
+	failed := make([]string, 0, len(files))
+	for _, v := range res.Errors {
+		failed = append(failed, v.Key)
+	}
+
+	return failed, errors.New("删除失败")
 }
 
 // Thumb 获取文件缩略图

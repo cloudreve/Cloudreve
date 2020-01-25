@@ -131,7 +131,7 @@ const (
 )
 
 func lex(s string) (tokenType rune, tokenStr string, remaining string) {
-	// The net/textproto Reader that parses the HTTP header will collapse
+	// The net/textproto Data that parses the HTTP header will collapse
 	// Linear White Space that spans multiple "\r\n" lines to a single " ",
 	// so we don't need to look for '\r' or '\n'.
 	for len(s) > 0 && (s[0] == '\t' || s[0] == ' ') {

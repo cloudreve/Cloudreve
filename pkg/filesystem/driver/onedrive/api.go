@@ -1,6 +1,7 @@
 package onedrive
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,7 +10,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/cloudflare/cfssl/log"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -142,7 +142,7 @@ func (client *Client) GetUploadSessionStatus(ctx context.Context, uploadURL stri
 // UploadChunk 上传分片
 func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *Chunk) (*UploadSessionResponse, error) {
 	res, err := client.request(
-		ctx, "PUT", uploadURL, chunk.Reader,
+		ctx, "PUT", uploadURL, bytes.NewReader(chunk.Data[0:chunk.ChunkSize]),
 		request.WithContentLength(int64(chunk.ChunkSize)),
 		request.WithHeader(http.Header{
 			"Content-Range": {fmt.Sprintf("bytes %d-%d/%d", chunk.Offset, chunk.Offset+chunk.ChunkSize-1, chunk.Total)},
@@ -153,7 +153,7 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 		// 如果重试次数小于限制，5秒后重试
 		if chunk.Retried < model.GetIntSetting("onedrive_chunk_retries", 1) {
 			chunk.Retried++
-			log.Debug("分片偏移%d上传失败，5秒钟后重试", chunk.Offset)
+			util.Log().Debug("分片偏移%d上传失败，5秒钟后重试", chunk.Offset)
 			time.Sleep(time.Duration(5) * time.Second)
 			return client.UploadChunk(ctx, uploadURL, chunk)
 		}
@@ -196,6 +196,9 @@ func (client *Client) Upload(ctx context.Context, dst string, size int, file io.
 	if size%int(ChunkSize) != 0 {
 		chunkNum++
 	}
+
+	chunkData := make([]byte, ChunkSize)
+
 	for i := 0; i < chunkNum; i++ {
 		select {
 		case <-ctx.Done():
@@ -207,17 +210,23 @@ func (client *Client) Upload(ctx context.Context, dst string, size int, file io.
 			if size-offset < chunkSize {
 				chunkSize = size - offset
 			}
+
+			// 因为后面需要错误重试，这里要把分片内容读到内存中
+			chunkContent := chunkData[:chunkSize]
+			_, err := io.ReadFull(file, chunkContent)
+			if err != nil {
+				return err
+			}
+
 			chunk := Chunk{
 				Offset:    offset,
 				ChunkSize: chunkSize,
 				Total:     size,
-				Reader: &io.LimitedReader{
-					R: file,
-					N: int64(chunkSize),
-				},
+				Data:      chunkContent,
 			}
+
 			// 上传
-			_, err := client.UploadChunk(ctx, uploadURL, &chunk)
+			_, err = client.UploadChunk(ctx, uploadURL, &chunk)
 			if err != nil {
 				return err
 			}

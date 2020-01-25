@@ -43,6 +43,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	// 保存文件
 	err = fs.Handler.Put(ctx, file, savePath, file.GetSize())
 	if err != nil {
+		fs.Trigger(ctx, "AfterUploadFailed")
 		return err
 	}
 

@@ -346,6 +346,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+		fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
 	}
 
 	// 执行上传

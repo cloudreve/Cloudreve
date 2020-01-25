@@ -2,7 +2,6 @@ package onedrive
 
 import (
 	"encoding/gob"
-	"io"
 	"net/url"
 	"sync"
 )
@@ -90,7 +89,7 @@ type Chunk struct {
 	ChunkSize int
 	Total     int
 	Retried   int
-	Reader    io.Reader
+	Data      []byte
 }
 
 // oauthEndpoint OAuth接口地址

@@ -288,6 +288,7 @@ func FileUploadStream(c *gin.Context) {
 	fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
