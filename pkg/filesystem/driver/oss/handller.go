@@ -236,10 +236,21 @@ func (handler Driver) Source(
 }
 
 func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
-	// 是否带有 Version ID
-	if _, ok := ctx.Value(VersionID).(int64); ok {
-
+	cdnURL, err := url.Parse(handler.Policy.BaseURL)
+	if err != nil {
+		return "", err
 	}
+
+	// 公有空间不需要签名
+	if !handler.Policy.IsPrivate {
+		file, err := url.Parse(path)
+		if err != nil {
+			return "", err
+		}
+		sourceURL := cdnURL.ResolveReference(file)
+		return sourceURL.String(), nil
+	}
+
 	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
 	if err != nil {
 		return "", err
@@ -247,10 +258,6 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 
 	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
 	finalURL, err := url.Parse(signedURL)
-	if err != nil {
-		return "", err
-	}
-	cdnURL, err := url.Parse(handler.Policy.BaseURL)
 	if err != nil {
 		return "", err
 	}

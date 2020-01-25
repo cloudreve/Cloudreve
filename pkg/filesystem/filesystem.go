@@ -205,6 +205,7 @@ func (fs *FileSystem) DispatchHandler() error {
 					SecretKey: currentPolicy.SecretKey,
 				},
 			}),
+			HTTPClient: request.HTTPClient{},
 		}
 		return nil
 	default:

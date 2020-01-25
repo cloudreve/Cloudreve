@@ -79,6 +79,7 @@ func TestDriver_Source(t *testing.T) {
 			SecretKey:  "sk",
 			BucketName: "test",
 			Server:     "test.com",
+			IsPrivate:  true,
 		},
 	}
 
@@ -137,6 +138,18 @@ func TestDriver_Source(t *testing.T) {
 		asserts.Equal("ak", query.Get("OSSAccessKeyId"))
 		asserts.EqualValues("838860800", query.Get("x-oss-traffic-limit"))
 		asserts.NotEmpty(query.Get("response-content-disposition"))
+	}
+
+	// 公共空间
+	{
+		handler.Policy.IsPrivate = false
+		res, err := handler.Source(context.Background(), "/123", url.URL{}, 10, false, 0)
+		asserts.NoError(err)
+		resURL, err := url.Parse(res)
+		asserts.NoError(err)
+		query := resURL.Query()
+		asserts.Empty(query.Get("Signature"))
+		asserts.Empty(query.Get("Expires"))
 	}
 }
 
