@@ -12,8 +12,10 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/google/go-querystring/query"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
 	"io"
+	"net/http"
 	"net/url"
 	"time"
 )
@@ -29,6 +31,11 @@ type MetaData struct {
 	Size        uint64
 	CallbackKey string
 	CallbackURL string
+}
+
+type urlOption struct {
+	Speed              int    `url:"x-cos-traffic-limit,omitempty"`
+	ContentDescription string `url:"response-content-disposition,omitempty"`
 }
 
 // Driver 腾讯云COS适配器模板
@@ -87,7 +94,67 @@ func (handler Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	return "", errors.New("未实现")
+	// 尝试从上下文获取文件名
+	fileName := ""
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		fileName = file.Name
+	}
+
+	// 添加各项设置
+	options := urlOption{}
+	if speed > 0 {
+		if speed < 819200 {
+			speed = 819200
+		}
+		if speed > 838860800 {
+			speed = 838860800
+		}
+		options.Speed = speed
+	}
+	if isDownload {
+		options.ContentDescription = "attachment; filename=\"" + url.PathEscape(fileName) + "\""
+	}
+
+	return handler.signSourceURL(ctx, path, ttl, &options)
+}
+
+func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options *urlOption) (string, error) {
+	cdnURL, err := url.Parse(handler.Policy.BaseURL)
+	if err != nil {
+		return "", err
+	}
+
+	// 公有空间不需要签名
+	if !handler.Policy.IsPrivate {
+		file, err := url.Parse(path)
+		if err != nil {
+			return "", err
+		}
+
+		// 非签名URL不支持设置响应header
+		options.ContentDescription = ""
+
+		optionQuery, err := query.Values(*options)
+		if err != nil {
+			return "", err
+		}
+		file.RawQuery = optionQuery.Encode()
+		sourceURL := cdnURL.ResolveReference(file)
+
+		return sourceURL.String(), nil
+	}
+
+	presignedURL, err := handler.Client.Object.GetPresignedURL(ctx, http.MethodGet, path,
+		handler.Policy.AccessKey, handler.Policy.SecretKey, time.Duration(ttl)*time.Second, options)
+	if err != nil {
+		return "", err
+	}
+
+	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
+	presignedURL.Host = cdnURL.Host
+	presignedURL.Scheme = cdnURL.Scheme
+
+	return presignedURL.String(), nil
 }
 
 // Token 获取上传策略和认证Token

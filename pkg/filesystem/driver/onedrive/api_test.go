@@ -388,7 +388,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			ChunkSize: 10,
 			Total:     100,
 			Retried:   0,
-			Data:      strings.NewReader("1231312"),
+			Data:      []byte("12313121231312"),
 		})
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
@@ -418,7 +418,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			ChunkSize: 10,
 			Total:     100,
 			Retried:   0,
-			Data:      strings.NewReader("1231312"),
+			Data:      []byte("12313112313122"),
 		})
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
@@ -448,7 +448,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			ChunkSize: 5,
 			Total:     100,
 			Retried:   0,
-			Data:      strings.NewReader("1231312"),
+			Data:      []byte("1231312"),
 		})
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
@@ -483,7 +483,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			ChunkSize: 5,
 			Total:     100,
 			Retried:   0,
-			Data:      strings.NewReader("1231312"),
+			Data:      []byte("1231312"),
 		}
 		res, err := client.UploadChunk(context.Background(), "http://dev.com", chunk)
 		clientMock.AssertExpectations(t)
