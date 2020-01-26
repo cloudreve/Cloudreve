@@ -197,8 +197,7 @@ func (policy *Policy) GetUploadURL() string {
 	var controller *url.URL
 	switch policy.Type {
 	case "local", "onedrive":
-		server = GetSiteURL()
-		controller, _ = url.Parse("/api/v3/file/upload")
+		return "/api/v3/file/upload"
 	case "remote":
 		controller, _ = url.Parse("/api/v3/slave/upload")
 	case "oss", "cos":

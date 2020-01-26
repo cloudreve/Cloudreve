@@ -233,3 +233,17 @@ func (user *User) SetPassword(password string) error {
 	user.Password = salt + ":" + string(bs)
 	return nil
 }
+
+// NewAnonymousUser 返回一个匿名用户
+// TODO 测试
+func NewAnonymousUser() *User {
+	user := User{}
+	user.Group, _ = GetGroupByID(3)
+	return &user
+}
+
+// IsAnonymous 返回是否为未登录用户
+// TODO 测试
+func (user *User) IsAnonymous() bool {
+	return user.ID == 0
+}

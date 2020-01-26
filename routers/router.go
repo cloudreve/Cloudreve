@@ -167,6 +167,13 @@ func InitMasterRouter() *gin.Engine {
 			)
 		}
 
+		// 分享相关
+		share := v3.Group("share")
+		{
+			// 获取分享
+			share.GET(":id", controllers.GetShare)
+		}
+
 		// 需要登录保护的
 		auth := v3.Group("")
 		auth.Use(middleware.AuthRequired())

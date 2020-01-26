@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"time"
@@ -28,4 +29,19 @@ func (share *Share) Create() (uint, error) {
 		return 0, err
 	}
 	return share.ID, nil
+}
+
+// GetShareByHashID 根据HashID查找分享
+func GetShareByHashID(hashID string) *Share {
+	id, err := hashid.DecodeHashID(hashID, hashid.ShareID)
+	if err != nil {
+		return nil
+	}
+	var share Share
+	result := DB.First(&share, id)
+	if result.Error != nil {
+		return nil
+	}
+
+	return &share
 }

@@ -15,3 +15,14 @@ func CreateShare(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// GetShare 查看分享
+func GetShare(c *gin.Context) {
+	var service share.ShareGetService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Get(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

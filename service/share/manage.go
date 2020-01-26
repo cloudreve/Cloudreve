@@ -19,10 +19,14 @@ type ShareCreateService struct {
 	Score           int    `json:"score" binding:"gte=0"`
 }
 
+// ShareGetService 获取分享服务
+type ShareGetService struct {
+	Password string `form:"password" binding:"max=255"`
+}
+
 // Create 创建新分享
 func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
-	userCtx, _ := c.Get("user")
-	user := userCtx.(*model.User)
+	user := currentUser(c)
 
 	// 是否拥有权限
 	if !user.Group.ShareEnabled {
@@ -79,4 +83,28 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		Data: shareURL.String(),
 	}
 
+}
+
+// Get 获取分享内容
+func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
+	user := currentUser(c)
+	share := model.GetShareByHashID(c.Param("id"))
+	if share == nil {
+		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
+	}
+
+	return serializer.Response{
+		Code: 0,
+		Data: user,
+	}
+}
+
+func currentUser(c *gin.Context) *model.User {
+	var user *model.User
+	if userCtx, ok := c.Get("user"); ok {
+		user = userCtx.(*model.User)
+	} else {
+		user = model.NewAnonymousUser()
+	}
+	return user
 }
