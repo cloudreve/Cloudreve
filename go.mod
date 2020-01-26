@@ -26,6 +26,7 @@ require (
 	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
+	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/stretchr/testify v1.4.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20200120023323-87ff3bc489ac
 	github.com/upyun/go-sdk v2.1.0+incompatible

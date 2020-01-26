@@ -48,6 +48,8 @@ const (
 	CodeCheckLogin = 401
 	// CodeNoRightErr 未授权访问
 	CodeNoRightErr = 403
+	// CodeNotFound 资源未找到
+	CodeNotFound = 404
 	// CodeUploadFailed 上传出错
 	CodeUploadFailed = 40002
 	// CodeCreateFolderFailed 目录创建失败

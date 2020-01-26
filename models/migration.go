@@ -29,7 +29,7 @@ func migration() {
 	if conf.DatabaseConfig.Type == "mysql" {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
-	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{})
+	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -161,6 +161,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "task_queue_token", Value: ``, Type: "task"},
 		{Name: "secret_key", Value: util.RandStringRunes(256), Type: "auth"},
 		{Name: "temp_path", Value: "temp", Type: "path"},
+		{Name: "score_enabled", Value: "1", Type: "score"},
+		{Name: "share_score_rate", Value: "80", Type: "score"},
 	}
 
 	for _, value := range defaultSettings {

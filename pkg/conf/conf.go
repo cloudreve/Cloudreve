@@ -22,6 +22,7 @@ type system struct {
 	Listen        string `validate:"required"`
 	Debug         bool
 	SessionSecret string
+	HashIDSalt    string `validate:"required"`
 }
 
 // slave 作为slave存储端配置

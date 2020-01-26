@@ -233,6 +233,13 @@ func InitMasterRouter() *gin.Engine {
 				object.POST("rename", controllers.Rename)
 			}
 
+			// 分享
+			share := auth.Group("share")
+			{
+				// 创建新分享
+				share.POST("", controllers.CreateShare)
+			}
+
 		}
 
 	}

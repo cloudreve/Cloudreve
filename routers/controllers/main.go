@@ -15,6 +15,7 @@ func ParamErrorMsg(filed string, tag string) string {
 		"UserName": "邮箱",
 		"Password": "密码",
 		"Path":     "路径",
+		"SourceID": "原始资源",
 	}
 	// 未通过的规则与中文对应
 	tagMap := map[string]string{

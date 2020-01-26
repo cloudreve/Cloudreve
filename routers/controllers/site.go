@@ -21,6 +21,8 @@ func SiteConfig(c *gin.Context) {
 		"email_active",
 		"themes",
 		"defaultTheme",
+		"score_enabled",
+		"share_score_rate",
 	})
 
 	// 如果已登录，则同时返回用户信息
