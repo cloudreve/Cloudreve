@@ -51,7 +51,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		IsDir:    service.IsDir,
 		UserID:   user.ID,
 		SourceID: service.SourceID,
-		Score:    service.RemainDownloads,
+		Score:    service.Score,
 	}
 
 	// 如果开启了自动过期
@@ -78,4 +78,5 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		Code: 0,
 		Data: shareURL.String(),
 	}
+
 }
