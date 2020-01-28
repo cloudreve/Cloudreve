@@ -22,6 +22,7 @@ type User struct {
 	Avatar         string `json:"avatar"`
 	CreatedAt      int64  `json:"created_at"`
 	PreferredTheme string `json:"preferred_theme"`
+	Score          int    `json:"score"`
 	Policy         policy `json:"policy"`
 	Group          group  `json:"group"`
 }
@@ -41,6 +42,7 @@ type group struct {
 	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
 	AllowTorrentDownload bool   `json:"allowTorrentDownload"`
 	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
+	ShareFreeEnabled     bool   `json:"shareFree"`
 }
 
 type storage struct {
@@ -60,6 +62,7 @@ func BuildUser(user model.User) User {
 		Avatar:         user.Avatar,
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
+		Score:          user.Score,
 		Policy: policy{
 			SaveType:       user.Policy.Type,
 			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/(1024*1024)),
@@ -74,6 +77,7 @@ func BuildUser(user model.User) User {
 			AllowRemoteDownload:  aria2Option[0],
 			AllowTorrentDownload: aria2Option[2],
 			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownloadEnabled,
+			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFreeEnabled,
 		},
 	}
 }

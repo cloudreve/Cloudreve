@@ -1,6 +1,9 @@
 package model
 
 import (
+	"errors"
+	"fmt"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
@@ -86,6 +89,14 @@ func (share *Share) GetCreator() *User {
 	return &share.User
 }
 
+// GetSource 返回源对象
+func (share *Share) GetSource() interface{} {
+	if share.IsDir {
+		return share.GetSourceFolder()
+	}
+	return share.GetSourceFile()
+}
+
 // GetSourceFolder 获取源目录
 func (share *Share) GetSourceFolder() *Folder {
 	if share.Folder.ID == 0 {
@@ -106,4 +117,70 @@ func (share *Share) GetSourceFile() *File {
 		}
 	}
 	return &share.File
+}
+
+// CanBeDownloadBy 返回此分享是否可以被给定用户下载
+func (share *Share) CanBeDownloadBy(user *User) error {
+	// 用户组权限
+	if !user.Group.OptionsSerialized.ShareDownloadEnabled {
+		if user.IsAnonymous() {
+			return errors.New("未登录用户无法下载")
+		}
+		return errors.New("您当前的用户组无权下载")
+	}
+
+	// 需要积分但未登录
+	if share.Score > 0 && user.IsAnonymous() {
+		return errors.New("未登录用户无法下载")
+	}
+
+	return nil
+}
+
+// WasDownloadedBy 返回分享是否已被用户下载过
+func (share *Share) WasDownloadedBy(user *User) bool {
+	_, exist := cache.Get(fmt.Sprintf("share_%d_%d", share.ID, user.ID))
+	return exist
+}
+
+// DownloadBy 增加下载次数、检查积分等，匿名用户不会缓存
+func (share *Share) DownloadBy(user *User) error {
+	if !share.WasDownloadedBy(user) {
+		if err := share.Purchase(user); err != nil {
+			return err
+		}
+		share.Downloaded()
+		if !user.IsAnonymous() {
+			cache.Set(fmt.Sprintf("share_%d_%d", share.ID, user.ID), true,
+				GetIntSetting("share_download_session_timeout", 2073600))
+		}
+	}
+	return nil
+}
+
+// Purchase 使用积分购买分享
+func (share *Share) Purchase(user *User) error {
+	// 不需要付积分
+	if share.Score == 0 || user.Group.OptionsSerialized.ShareFreeEnabled {
+		return nil
+	}
+
+	ok := user.PayScore(share.Score)
+	if !ok {
+		return errors.New("积分不足")
+	}
+
+	return nil
+}
+
+// Viewed 增加访问次数
+func (share *Share) Viewed() {
+	share.Views++
+	DB.Model(share).UpdateColumn("views", gorm.Expr("views + ?", 1))
+}
+
+// Downloaded 增加下载次数
+func (share *Share) Downloaded() {
+	share.Downloads++
+	DB.Model(share).UpdateColumn("downloads", gorm.Expr("downloads + ?", 1))
 }

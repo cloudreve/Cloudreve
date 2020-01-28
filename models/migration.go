@@ -108,6 +108,7 @@ solid #e9e9e9;"bgcolor="#fff"><tbody><tr style="font-family: 'Helvetica Neue',He
 		{Name: "upload_session_timeout", Value: `86400`, Type: "timeout"},
 		{Name: "slave_api_timeout", Value: `60`, Type: "timeout"},
 		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
+		{Name: "share_download_session_timeout", Value: `2073600`, Type: "timeout"},
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
 		{Name: "allowdVisitorDownload", Value: `false`, Type: "share"},
@@ -185,6 +186,7 @@ func addDefaultGroups() {
 			OptionsSerialized: GroupOption{
 				ArchiveDownloadEnabled: true,
 				ArchiveTaskEnabled:     true,
+				ShareDownloadEnabled:   true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {

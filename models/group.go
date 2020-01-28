@@ -25,10 +25,11 @@ type Group struct {
 
 // GroupOption 用户组其他配置
 type GroupOption struct {
-	ArchiveDownloadEnabled bool `json:"archive_download"`
-	ArchiveTaskEnabled     bool `json:"archive_task"`
-	OneTimeDownloadEnabled bool `json:"one_time_download"`
-	ShareDownloadEnabled   bool `json:"share_download"`
+	ArchiveDownloadEnabled bool `json:"archive_download,omitempty"`
+	ArchiveTaskEnabled     bool `json:"archive_task,omitempty"`
+	OneTimeDownloadEnabled bool `json:"one_time_download,omitempty"`
+	ShareDownloadEnabled   bool `json:"share_download,omitempty"`
+	ShareFreeEnabled       bool `json:"share_free,omitempty"`
 }
 
 // GetAria2Option 获取用户离线下载设备

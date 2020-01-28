@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	ErrAuthFailed = serializer.NewError(serializer.CodeNoRightErr, "鉴权失败", nil)
+	ErrAuthFailed = serializer.NewError(serializer.CodeNoPermissionErr, "鉴权失败", nil)
 	ErrExpired    = serializer.NewError(serializer.CodeSignExpired, "签名已过期", nil)
 )
 

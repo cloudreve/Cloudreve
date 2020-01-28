@@ -172,6 +172,8 @@ func InitMasterRouter() *gin.Engine {
 		{
 			// 获取分享
 			share.GET(":id", controllers.GetShare)
+			// 创建文件下载会话
+			share.POST("download/:id", controllers.GetShareDownload)
 		}
 
 		// 需要登录保护的

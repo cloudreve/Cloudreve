@@ -46,8 +46,8 @@ const (
 	CodeNotFullySuccess = 203
 	// CodeCheckLogin 未登录
 	CodeCheckLogin = 401
-	// CodeNoRightErr 未授权访问
-	CodeNoRightErr = 403
+	// CodeNoPermissionErr 未授权访问
+	CodeNoPermissionErr = 403
 	// CodeNotFound 资源未找到
 	CodeNotFound = 404
 	// CodeUploadFailed 上传出错

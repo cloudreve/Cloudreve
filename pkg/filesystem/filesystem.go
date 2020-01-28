@@ -280,6 +280,21 @@ func (fs *FileSystem) SetTargetFileByIDs(ids []uint) error {
 	return nil
 }
 
+// SetTargetByInterface 根据 model.File 或者 model.Folder 设置目标对象
+// TODO 测试
+func (fs *FileSystem) SetTargetByInterface(target interface{}) error {
+	if file, ok := target.(*model.File); ok {
+		fs.SetTargetFile(&[]model.File{*file})
+		return nil
+	}
+	if folder, ok := target.(*model.Folder); ok {
+		fs.SetTargetDir(&[]model.Folder{*folder})
+		return nil
+	}
+
+	return ErrObjectNotExist
+}
+
 // CleanTargets 清空目标
 func (fs *FileSystem) CleanTargets() {
 	fs.FileTarget = fs.FileTarget[:0]

@@ -25,7 +25,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 
 	// 是否拥有权限
 	if !user.Group.ShareEnabled {
-		return serializer.Err(serializer.CodeNoRightErr, "您无权创建分享链接", nil)
+		return serializer.Err(serializer.CodeNoPermissionErr, "您无权创建分享链接", nil)
 	}
 
 	// 对象是否存在

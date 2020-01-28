@@ -1,8 +1,10 @@
 package share
 
 import (
+	"context"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -13,8 +15,14 @@ type ShareGetService struct {
 	Password string `form:"password" binding:"max=255"`
 }
 
+// SingleFileService 对单文件进行操作的服务，path为可选文件完整路径
+type SingleFileService struct {
+	Path string `form:"path" binding:"max=65535"`
+}
+
 // Get 获取分享内容
 func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
+	user := currentUser(c)
 	share := model.GetShareByHashID(c.Param("id"))
 	if share == nil || !share.IsAvailable() {
 		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
@@ -34,8 +42,62 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 		}
 	}
 
+	if unlocked {
+		share.Viewed()
+	}
+
+	// 如果已经下载过，不需要付积分
+	if share.WasDownloadedBy(user) {
+		share.Score = 0
+	}
+
 	return serializer.Response{
 		Code: 0,
 		Data: serializer.BuildShareResponse(share, unlocked),
+	}
+}
+
+// CreateDownloadSession 创建下载会话
+func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializer.Response {
+	user := currentUser(c)
+	share := model.GetShareByHashID(c.Param("id"))
+	if share == nil || !share.IsAvailable() {
+		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
+	}
+
+	// 检查用户是否可以下载此分享的文件
+	err := share.CanBeDownloadBy(user)
+	if err != nil {
+		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
+	}
+
+	// 对积分、下载次数进行更新
+	err = share.DownloadBy(user)
+	if err != nil {
+		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 重设文件系统处理目标为源文件
+	err = fs.SetTargetByInterface(share.GetSource())
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
+	}
+
+	// 取得下载地址
+	downloadURL, err := fs.GetDownloadURL(context.Background(), "", "download_timeout")
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Code: 0,
+		Data: downloadURL,
 	}
 }

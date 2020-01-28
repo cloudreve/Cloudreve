@@ -8,6 +8,7 @@ import (
 
 // Share 分享序列化
 type Share struct {
+	Key        string        `json:"key"`
 	Locked     bool          `json:"locked"`
 	IsDir      bool          `json:"is_dir"`
 	Score      int           `json:"score"`
@@ -34,6 +35,7 @@ type shareSource struct {
 func BuildShareResponse(share *model.Share, unlocked bool) Share {
 	creator := share.GetCreator()
 	resp := Share{
+		Key:    hashid.HashID(share.ID, hashid.ShareID),
 		Locked: !unlocked,
 		Creator: &shareCreator{
 			Key:       hashid.HashID(creator.ID, hashid.UserID),

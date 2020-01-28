@@ -26,3 +26,14 @@ func GetShare(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// GetShareDownload 创建分享下载会话
+func GetShareDownload(c *gin.Context) {
+	var service share.SingleFileService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.CreateDownloadSession(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

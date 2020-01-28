@@ -39,6 +39,7 @@ type User struct {
 	Avatar        string
 	Options       string `json:"-",gorm:"size:4096"`
 	Authn         string `gorm:"size:8192"`
+	Score         int
 
 	// 关联模型
 	Group  Group  `gorm:"association_autoupdate:false"`
@@ -88,6 +89,20 @@ func (user *User) IncreaseStorage(size uint64) bool {
 	if size <= user.GetRemainingCapacity() {
 		user.Storage += size
 		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
+		return true
+	}
+	return false
+}
+
+// PayScore 扣除积分，返回是否成功
+// todo 测试
+func (user *User) PayScore(score int) bool {
+	if score == 0 {
+		return true
+	}
+	if score <= user.Score {
+		user.Score -= score
+		DB.Model(user).UpdateColumn("score", gorm.Expr("score - ?", score))
 		return true
 	}
 	return false
