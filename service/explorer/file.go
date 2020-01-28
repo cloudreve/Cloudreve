@@ -218,6 +218,11 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	}
 	defer fs.Recycle()
 
+	// 如果上下文中已有File对象，则重设目标
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
+		fs.SetTargetFile(&[]model.File{*file})
+	}
+
 	// 获取文件预览响应
 	resp, err := fs.Preview(ctx, service.Path, isText)
 	if err != nil {

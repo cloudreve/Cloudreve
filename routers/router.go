@@ -171,9 +171,11 @@ func InitMasterRouter() *gin.Engine {
 		share := v3.Group("share")
 		{
 			// 获取分享
-			share.GET(":id", controllers.GetShare)
+			share.GET("info/:id", controllers.GetShare)
 			// 创建文件下载会话
 			share.POST("download/:id", controllers.GetShareDownload)
+			// 预览分享文件
+			share.GET("preview/:id", controllers.PreviewShare)
 		}
 
 		// 需要登录保护的
@@ -185,7 +187,10 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 当前登录用户信息
 				user.GET("me", controllers.UserMe)
+				// 存储信息
 				user.GET("storage", controllers.UserStorage)
+				// 退出登录
+				user.DELETE("session", controllers.UserSignOut)
 
 				// WebAuthn 注册相关
 				authn := user.Group("authn")

@@ -116,6 +116,12 @@ func UserLogin(c *gin.Context) {
 
 }
 
+// UserSignOut 用户退出登录
+func UserSignOut(c *gin.Context) {
+	util.DeleteSession(c, "user_id")
+	c.JSON(200, serializer.Response{})
+}
+
 // UserMe 获取当前登录的用户
 func UserMe(c *gin.Context) {
 	currUser := CurrentUser(c)

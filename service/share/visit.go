@@ -5,8 +5,10 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 
@@ -66,13 +68,7 @@ func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializ
 	}
 
 	// 检查用户是否可以下载此分享的文件
-	err := share.CanBeDownloadBy(user)
-	if err != nil {
-		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
-	}
-
-	// 对积分、下载次数进行更新
-	err = share.DownloadBy(user)
+	err := CheckBeforeGetShare(share, user)
 	if err != nil {
 		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
 	}
@@ -100,4 +96,45 @@ func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializ
 		Code: 0,
 		Data: downloadURL,
 	}
+}
+
+// PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
+// 强制经由服务端中转
+func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
+	user := currentUser(c)
+	share := model.GetShareByHashID(c.Param("id"))
+	if share == nil || !share.IsAvailable() {
+		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
+	}
+
+	// 检查用户是否可以下载此分享的文件
+	err := CheckBeforeGetShare(share, user)
+	if err != nil {
+		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
+	}
+
+	// 用于调用子service
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+	subService := explorer.SingleFileService{
+		Path: "",
+	}
+
+	return subService.PreviewContent(ctx, c, isText)
+}
+
+// CheckBeforeGetShare 获取分享内容/下载前进行的一系列检查
+func CheckBeforeGetShare(share *model.Share, user *model.User) error {
+	// 检查用户是否可以下载此分享的文件
+	err := share.CanBeDownloadBy(user)
+	if err != nil {
+		return err
+	}
+
+	// 对积分、下载次数进行更新
+	err = share.DownloadBy(user)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
