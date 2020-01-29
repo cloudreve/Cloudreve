@@ -13,7 +13,7 @@ type Folder struct {
 	// 表字段
 	gorm.Model
 	Name     string `gorm:"unique_index:idx_only_one_name"`
-	ParentID uint   `gorm:"index:parent_id;unique_index:idx_only_one_name"`
+	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
 	OwnerID  uint   `gorm:"index:owner_id"`
 
 	// 数据库忽略字段
@@ -192,7 +192,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		// 顶级目录直接指向新的目的目录
 		if folder.ID == folderID {
 			newID = dstFolder.ID
-		} else if IDCache, ok := newIDCache[folder.ParentID]; ok {
+		} else if IDCache, ok := newIDCache[*folder.ParentID]; ok {
 			newID = IDCache
 		} else {
 			util.Log().Warning("无法取得新的父目录:%d", folder.ParentID)
@@ -202,7 +202,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		// 插入新的目录记录
 		oldID := folder.ID
 		folder.Model = gorm.Model{}
-		folder.ParentID = newID
+		folder.ParentID = &newID
 		if err = DB.Create(&folder).Error; err != nil {
 			return size, err
 		}
@@ -260,6 +260,40 @@ func (folder *Folder) Rename(new string) error {
 		return err
 	}
 	return nil
+}
+
+// CopyChildFrom 将给定文件和拷贝至自身，并更改所有者ID
+func (folder *Folder) CopyChildFrom(folders []Folder, files []File) error {
+	// 开启事务
+	tx := DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 记录文件父目录对应复制的新目录ID
+	var newParent = make(map[uint]uint, len(folders))
+
+	// TODO 复制目录结构
+
+	// 复制子文件
+	for _, file := range files {
+		file.ID = 0
+		file.UserID = folder.OwnerID
+		if newParentID, ok := newParent[file.FolderID]; ok {
+			file.FolderID = newParentID
+		} else {
+			file.FolderID = folder.ID
+		}
+		if err := tx.Create(&file).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit().Error
+
 }
 
 /*

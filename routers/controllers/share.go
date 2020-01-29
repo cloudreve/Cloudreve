@@ -90,3 +90,14 @@ func GetShareDocPreview(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SaveShare 转存他人分享
+func SaveShare(c *gin.Context) {
+	var service share.SingleFileService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.SaveToMyFile(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

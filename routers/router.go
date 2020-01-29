@@ -168,18 +168,31 @@ func InitMasterRouter() *gin.Engine {
 		}
 
 		// 分享相关
-		share := v3.Group("share")
+		share := v3.Group("share", middleware.ShareAvailable())
 		{
 			// 获取分享
 			share.GET("info/:id", controllers.GetShare)
 			// 创建文件下载会话
-			share.POST("download/:id", controllers.GetShareDownload)
+			share.POST("download/:id",
+				middleware.BeforeShareDownload(),
+				controllers.GetShareDownload,
+			)
 			// 预览分享文件
-			share.GET("preview/:id", controllers.PreviewShare)
+			share.GET("preview/:id",
+				middleware.ShareCanPreview(),
+				middleware.BeforeShareDownload(),
+				controllers.PreviewShare,
+			)
 			// 取得Office文档预览地址
-			share.GET("doc/:id", controllers.GetShareDocPreview)
+			share.GET("doc/:id", middleware.ShareCanPreview(),
+				middleware.BeforeShareDownload(),
+				controllers.GetShareDocPreview,
+			)
 			// 获取文本文件内容
-			share.GET("content/:id", controllers.PreviewShareText)
+			share.GET("content/:id",
+				middleware.BeforeShareDownload(),
+				controllers.PreviewShareText,
+			)
 		}
 
 		// 需要登录保护的
@@ -256,6 +269,12 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 创建新分享
 				share.POST("", controllers.CreateShare)
+				// 转存他人分享
+				share.POST("save/:id",
+					middleware.ShareAvailable(),
+					middleware.BeforeShareDownload(),
+					controllers.SaveShare,
+				)
 			}
 
 		}

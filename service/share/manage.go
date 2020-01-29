@@ -22,7 +22,8 @@ type ShareCreateService struct {
 
 // Create 创建新分享
 func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
-	user := currentUser(c)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
 
 	// 是否拥有权限
 	if !user.Group.ShareEnabled {
@@ -81,14 +82,4 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		Data: shareURL.String(),
 	}
 
-}
-
-func currentUser(c *gin.Context) *model.User {
-	var user *model.User
-	if userCtx, ok := c.Get("user"); ok {
-		user = userCtx.(*model.User)
-	} else {
-		user = model.NewAnonymousUser()
-	}
-	return user
 }

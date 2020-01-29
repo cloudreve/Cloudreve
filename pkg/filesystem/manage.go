@@ -345,7 +345,7 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	// 创建目录
 	newFolder := model.Folder{
 		Name:     dir,
-		ParentID: parent.ID,
+		ParentID: &parent.ID,
 		OwnerID:  fs.User.ID,
 	}
 	_, err := newFolder.Create()
@@ -353,5 +353,36 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	if err != nil {
 		return ErrFolderExisted
 	}
+	return nil
+}
+
+// SaveTo 将别人分享的文件转存到目标路径下
+// TODO 测试
+func (fs *FileSystem) SaveTo(ctx context.Context, path string) error {
+	// 获取父目录
+	isExist, folder := fs.IsPathExist(path)
+	if !isExist {
+		return ErrPathNotExist
+	}
+
+	// TODO 列目录
+
+	// 计算要复制的总大小
+	var totalSize uint64
+	for _, file := range fs.FileTarget {
+		totalSize += file.Size
+	}
+
+	// 扣除用户容量
+	if !fs.User.IncreaseStorage(totalSize) {
+		return ErrInsufficientCapacity
+	}
+
+	err := folder.CopyChildFrom(fs.DirTarget, fs.FileTarget)
+	if err != nil {
+		fs.User.DeductionStorage(totalSize)
+		return ErrFileExisted.WithError(err)
+	}
+
 	return nil
 }

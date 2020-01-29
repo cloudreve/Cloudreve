@@ -2,7 +2,6 @@ package share
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
@@ -25,11 +24,10 @@ type SingleFileService struct {
 
 // Get 获取分享内容
 func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
-	user := currentUser(c)
-	share := model.GetShareByHashID(c.Param("id"))
-	if share == nil || !share.IsAvailable() {
-		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
-	}
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
 
 	// 是否已解锁
 	unlocked := true
@@ -62,17 +60,10 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 
 // CreateDownloadSession 创建下载会话
 func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializer.Response {
-	user := currentUser(c)
-	share := model.GetShareByHashID(c.Param("id"))
-	if share == nil || !share.IsAvailable() {
-		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
-	}
-
-	// 检查用户是否可以下载此分享的文件
-	err := CheckBeforeGetShare(share, user, c)
-	if err != nil {
-		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
-	}
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(user)
@@ -102,21 +93,8 @@ func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializ
 // PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
 // 强制经由服务端中转
 func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
-	user := currentUser(c)
-	share := model.GetShareByHashID(c.Param("id"))
-	if share == nil || !share.IsAvailable() {
-		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
-	}
-
-	if !share.PreviewEnabled {
-		return serializer.Err(serializer.CodeNoPermissionErr, "此分享无法预览", nil)
-	}
-
-	// 检查用户是否可以下载此分享的文件
-	err := CheckBeforeGetShare(share, user, c)
-	if err != nil {
-		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
-	}
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
 
 	// 用于调下层service
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
@@ -129,21 +107,8 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 
 // CreateDocPreviewSession 创建Office预览会话，返回预览地址
 func (service *SingleFileService) CreateDocPreviewSession(c *gin.Context) serializer.Response {
-	user := currentUser(c)
-	share := model.GetShareByHashID(c.Param("id"))
-	if share == nil || !share.IsAvailable() {
-		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
-	}
-
-	if !share.PreviewEnabled {
-		return serializer.Err(serializer.CodeNoPermissionErr, "此分享无法预览", nil)
-	}
-
-	// 检查用户是否可以下载此分享的文件
-	err := CheckBeforeGetShare(share, user, c)
-	if err != nil {
-		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
-	}
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
 
 	// 用于调下层service
 	ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, share.GetSource())
@@ -154,28 +119,35 @@ func (service *SingleFileService) CreateDocPreviewSession(c *gin.Context) serial
 	return subService.CreateDocPreviewSession(ctx, c)
 }
 
-// CheckBeforeGetShare 获取分享内容/下载前进行的一系列检查
-func CheckBeforeGetShare(share *model.Share, user *model.User, c *gin.Context) error {
-	// 检查用户是否可以下载此分享的文件
-	err := share.CanBeDownloadBy(user)
+// SaveToMyFile 将此分享转存到自己的网盘
+func (service *SingleFileService) SaveToMyFile(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
+
+	// 不能转存自己的文件
+	if share.UserID == user.ID {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "不能转存自己的分享", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user)
 	if err != nil {
-		return err
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+	defer fs.Recycle()
 
-	// 分享是否已解锁
-	if share.Password != "" {
-		sessionKey := fmt.Sprintf("share_unlock_%d", share.ID)
-		unlocked := util.GetSession(c, sessionKey) != nil
-		if !unlocked {
-			return errors.New("无权访问此分享")
-		}
-	}
-
-	// 对积分、下载次数进行更新
-	err = share.DownloadBy(user, c)
+	// 重设文件系统处理目标为源文件
+	err = fs.SetTargetByInterface(share.GetSource())
 	if err != nil {
-		return err
+		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
 	}
 
-	return nil
+	err = fs.SaveTo(context.Background(), service.Path)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{}
 }

@@ -60,7 +60,7 @@ type UserOption struct {
 // Root 获取用户的根目录
 func (user *User) Root() (*Folder, error) {
 	var folder Folder
-	err := DB.Where("parent_id = 0 AND owner_id = ?", user.ID).First(&folder).Error
+	err := DB.Where("parent_id is NULL AND owner_id = ?", user.ID).First(&folder).Error
 	return &folder, err
 }
 

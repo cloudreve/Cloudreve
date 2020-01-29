@@ -515,7 +515,6 @@ func TestFolder_FileInfoInterface(t *testing.T) {
 			UpdatedAt: time.Date(2019, 12, 21, 12, 40, 0, 0, time.UTC),
 		},
 		Name:     "test_name",
-		ParentID: 0,
 		OwnerID:  0,
 		Position: "/test",
 	}
