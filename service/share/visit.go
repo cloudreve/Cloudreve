@@ -127,6 +127,33 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	return subService.PreviewContent(ctx, c, isText)
 }
 
+// CreateDocPreviewSession 创建Office预览会话，返回预览地址
+func (service *SingleFileService) CreateDocPreviewSession(c *gin.Context) serializer.Response {
+	user := currentUser(c)
+	share := model.GetShareByHashID(c.Param("id"))
+	if share == nil || !share.IsAvailable() {
+		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
+	}
+
+	if !share.PreviewEnabled {
+		return serializer.Err(serializer.CodeNoPermissionErr, "此分享无法预览", nil)
+	}
+
+	// 检查用户是否可以下载此分享的文件
+	err := CheckBeforeGetShare(share, user, c)
+	if err != nil {
+		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
+	}
+
+	// 用于调下层service
+	ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, share.GetSource())
+	subService := explorer.SingleFileService{
+		Path: "",
+	}
+
+	return subService.CreateDocPreviewSession(ctx, c)
+}
+
 // CheckBeforeGetShare 获取分享内容/下载前进行的一系列检查
 func CheckBeforeGetShare(share *model.Share, user *model.User, c *gin.Context) error {
 	// 检查用户是否可以下载此分享的文件

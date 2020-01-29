@@ -128,6 +128,11 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 	}
 	defer fs.Recycle()
 
+	// 如果上下文中已有File对象，则重设目标
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
+		fs.SetTargetFile(&[]model.File{*file})
+	}
+
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "doc_preview_timeout")
 	if err != nil {

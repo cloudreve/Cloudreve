@@ -176,6 +176,10 @@ func InitMasterRouter() *gin.Engine {
 			share.POST("download/:id", controllers.GetShareDownload)
 			// 预览分享文件
 			share.GET("preview/:id", controllers.PreviewShare)
+			// 取得Office文档预览地址
+			share.GET("doc/:id", controllers.GetShareDocPreview)
+			// 获取文本文件内容
+			share.GET("content/:id", controllers.PreviewShareText)
 		}
 
 		// 需要登录保护的
