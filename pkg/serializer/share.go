@@ -61,7 +61,11 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 	}
 
 	if share.IsDir {
-
+		source := share.GetSourceFolder()
+		resp.Source = &shareSource{
+			Name: source.Name,
+			Size: 0,
+		}
 	} else {
 		source := share.GetSourceFile()
 		resp.Source = &shareSource{

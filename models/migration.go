@@ -164,6 +164,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "temp_path", Value: "temp", Type: "path"},
 		{Name: "score_enabled", Value: "1", Type: "score"},
 		{Name: "share_score_rate", Value: "80", Type: "score"},
+		{Name: "home_view_method", Value: "icon", Type: "view"},
+		{Name: "share_view_method", Value: "list", Type: "view"},
 	}
 
 	for _, value := range defaultSettings {

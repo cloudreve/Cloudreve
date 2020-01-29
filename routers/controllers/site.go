@@ -23,6 +23,8 @@ func SiteConfig(c *gin.Context) {
 		"defaultTheme",
 		"score_enabled",
 		"share_score_rate",
+		"home_view_method",
+		"share_view_method",
 	})
 
 	// 如果已登录，则同时返回用户信息
