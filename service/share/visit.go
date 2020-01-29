@@ -2,6 +2,7 @@ package share
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
@@ -49,7 +50,7 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 	}
 
 	// 如果已经下载过，不需要付积分
-	if share.WasDownloadedBy(user) {
+	if share.WasDownloadedBy(user, c) {
 		share.Score = 0
 	}
 
@@ -68,7 +69,7 @@ func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializ
 	}
 
 	// 检查用户是否可以下载此分享的文件
-	err := CheckBeforeGetShare(share, user)
+	err := CheckBeforeGetShare(share, user, c)
 	if err != nil {
 		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
 	}
@@ -107,13 +108,17 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 		return serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil)
 	}
 
+	if !share.PreviewEnabled {
+		return serializer.Err(serializer.CodeNoPermissionErr, "此分享无法预览", nil)
+	}
+
 	// 检查用户是否可以下载此分享的文件
-	err := CheckBeforeGetShare(share, user)
+	err := CheckBeforeGetShare(share, user, c)
 	if err != nil {
 		return serializer.Err(serializer.CodeNoPermissionErr, err.Error(), nil)
 	}
 
-	// 用于调用子service
+	// 用于调下层service
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
 	subService := explorer.SingleFileService{
 		Path: "",
@@ -123,15 +128,24 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 }
 
 // CheckBeforeGetShare 获取分享内容/下载前进行的一系列检查
-func CheckBeforeGetShare(share *model.Share, user *model.User) error {
+func CheckBeforeGetShare(share *model.Share, user *model.User, c *gin.Context) error {
 	// 检查用户是否可以下载此分享的文件
 	err := share.CanBeDownloadBy(user)
 	if err != nil {
 		return err
 	}
 
+	// 分享是否已解锁
+	if share.Password != "" {
+		sessionKey := fmt.Sprintf("share_unlock_%d", share.ID)
+		unlocked := util.GetSession(c, sessionKey) != nil
+		if !unlocked {
+			return errors.New("无权访问此分享")
+		}
+	}
+
 	// 对积分、下载次数进行更新
-	err = share.DownloadBy(user)
+	err = share.DownloadBy(user, c)
 	if err != nil {
 		return err
 	}

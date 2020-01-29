@@ -156,7 +156,7 @@ func (fs *FileSystem) DispatchHandler() error {
 	}
 
 	switch policyType {
-	case "mock":
+	case "mock", "anonymous":
 		return nil
 	case "local":
 		fs.Handler = local.Driver{

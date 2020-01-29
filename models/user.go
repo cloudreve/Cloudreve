@@ -253,6 +253,7 @@ func (user *User) SetPassword(password string) error {
 // TODO 测试
 func NewAnonymousUser() *User {
 	user := User{}
+	user.Policy.Type = "anonymous"
 	user.Group, _ = GetGroupByID(3)
 	return &user
 }

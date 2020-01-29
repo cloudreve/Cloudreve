@@ -17,6 +17,7 @@ type ShareCreateService struct {
 	RemainDownloads int    `json:"downloads"`
 	Expire          int    `json:"expire"`
 	Score           int    `json:"score" binding:"gte=0"`
+	Preview         bool   `json:"preview"`
 }
 
 // Create 创建新分享
@@ -52,6 +53,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		SourceID:        service.SourceID,
 		Score:           service.Score,
 		RemainDownloads: -1,
+		PreviewEnabled:  service.Preview,
 	}
 
 	// 如果开启了自动过期

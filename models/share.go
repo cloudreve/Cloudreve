@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"time"
 )
@@ -22,6 +23,7 @@ type Share struct {
 	RemainDownloads int        // 剩余下载配额，负值标识无限制
 	Expires         *time.Time // 过期时间，空值表示无过期时间
 	Score           int        // 每人次下载扣除积分
+	PreviewEnabled  bool       // 是否允许直接预览
 
 	// 数据库忽略字段
 	User   User   `gorm:"PRELOAD:false,association_autoupdate:false"`
@@ -138,14 +140,19 @@ func (share *Share) CanBeDownloadBy(user *User) error {
 }
 
 // WasDownloadedBy 返回分享是否已被用户下载过
-func (share *Share) WasDownloadedBy(user *User) bool {
-	_, exist := cache.Get(fmt.Sprintf("share_%d_%d", share.ID, user.ID))
+func (share *Share) WasDownloadedBy(user *User, c *gin.Context) (exist bool) {
+	if user.IsAnonymous() {
+		exist = util.GetSession(c, fmt.Sprintf("share_%d_%d", share.ID, user.ID)) != nil
+	} else {
+		_, exist = cache.Get(fmt.Sprintf("share_%d_%d", share.ID, user.ID))
+	}
+
 	return exist
 }
 
 // DownloadBy 增加下载次数、检查积分等，匿名用户不会缓存
-func (share *Share) DownloadBy(user *User) error {
-	if !share.WasDownloadedBy(user) {
+func (share *Share) DownloadBy(user *User, c *gin.Context) error {
+	if !share.WasDownloadedBy(user, c) {
 		if err := share.Purchase(user); err != nil {
 			return err
 		}
@@ -153,6 +160,8 @@ func (share *Share) DownloadBy(user *User) error {
 		if !user.IsAnonymous() {
 			cache.Set(fmt.Sprintf("share_%d_%d", share.ID, user.ID), true,
 				GetIntSetting("share_download_session_timeout", 2073600))
+		} else {
+			util.SetSession(c, map[string]interface{}{fmt.Sprintf("share_%d_%d", share.ID, user.ID): true})
 		}
 	}
 	return nil
@@ -182,5 +191,11 @@ func (share *Share) Viewed() {
 // Downloaded 增加下载次数
 func (share *Share) Downloaded() {
 	share.Downloads++
-	DB.Model(share).UpdateColumn("downloads", gorm.Expr("downloads + ?", 1))
+	if share.RemainDownloads > 0 {
+		share.RemainDownloads--
+	}
+	DB.Model(share).Updates(map[string]interface{}{
+		"downloads":        share.Downloads,
+		"remain_downloads": share.RemainDownloads,
+	})
 }

@@ -16,6 +16,7 @@ type Share struct {
 	Downloads  int           `json:"downloads"`
 	Views      int           `json:"views"`
 	Expire     int64         `json:"expire"`
+	Preview    bool          `json:"preview"`
 	Creator    *shareCreator `json:"creator,omitempty"`
 	Source     *shareSource  `json:"source,omitempty"`
 }
@@ -53,6 +54,8 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 	resp.IsDir = share.IsDir
 	resp.Downloads = share.Downloads
 	resp.Views = share.Views
+	resp.Preview = share.PreviewEnabled
+
 	if share.Expires != nil {
 		resp.Expire = share.Expires.Unix() - time.Now().Unix()
 	}
