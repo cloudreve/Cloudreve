@@ -133,6 +133,11 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 		fs.SetTargetFile(&[]model.File{*file})
 	}
 
+	// 如果上下文中已有Folder对象，则重设目标
+	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
+		fs.SetTargetDir(&[]model.Folder{*folder})
+	}
+
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "doc_preview_timeout")
 	if err != nil {
@@ -226,6 +231,11 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	// 如果上下文中已有File对象，则重设目标
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
 		fs.SetTargetFile(&[]model.File{*file})
+	}
+
+	// 如果上下文中已有Folder对象，则重设目标
+	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
+		fs.SetTargetDir(&[]model.Folder{*folder})
 	}
 
 	// 获取文件预览响应

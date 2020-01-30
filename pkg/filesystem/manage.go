@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"path"
@@ -24,6 +25,7 @@ type Object struct {
 	Size uint64 `json:"size"`
 	Type string `json:"type"`
 	Date string `json:"date"`
+	Key  string `json:"key,omitempty"`
 }
 
 // Rename 重命名对象
@@ -260,6 +262,12 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	var childFolders []model.Folder
 	var childFiles []model.File
 
+	// 分享文件的ID
+	shareKey := ""
+	if key, ok := ctx.Value(fsctx.ShareKeyCtx).(string); ok {
+		shareKey = key
+	}
+
 	// 获取子目录
 	childFolders, _ = folder.GetChildFolder()
 
@@ -302,7 +310,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 			}
 		}
 
-		objects = append(objects, Object{
+		newFile := Object{
 			ID:   file.ID,
 			Name: file.Name,
 			Path: processedPath,
@@ -310,7 +318,11 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 			Size: file.Size,
 			Type: "file",
 			Date: file.CreatedAt.Format("2006-01-02 15:04:05"),
-		})
+		}
+		if shareKey != "" {
+			newFile.Key = shareKey
+		}
+		objects = append(objects, newFile)
 	}
 
 	return objects, nil

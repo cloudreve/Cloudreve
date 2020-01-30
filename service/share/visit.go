@@ -6,6 +6,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
@@ -81,7 +82,7 @@ func (service *ShareService) CreateDownloadSession(c *gin.Context) serializer.Re
 	}
 
 	// 取得下载地址
-	downloadURL, err := fs.GetDownloadURL(context.Background(), "", "download_timeout")
+	downloadURL, err := fs.GetDownloadURL(context.Background(), service.Path, "download_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -99,9 +100,13 @@ func (service *ShareService) PreviewContent(ctx context.Context, c *gin.Context,
 	share := shareCtx.(*model.Share)
 
 	// 用于调下层service
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+	if share.IsDir {
+		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.GetSource())
+	} else {
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+	}
 	subService := explorer.SingleFileService{
-		Path: "",
+		Path: service.Path,
 	}
 
 	return subService.PreviewContent(ctx, c, isText)
@@ -113,9 +118,14 @@ func (service *ShareService) CreateDocPreviewSession(c *gin.Context) serializer.
 	share := shareCtx.(*model.Share)
 
 	// 用于调下层service
-	ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, share.GetSource())
+	ctx := context.Background()
+	if share.IsDir {
+		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.GetSource())
+	} else {
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+	}
 	subService := explorer.SingleFileService{
-		Path: "",
+		Path: service.Path,
 	}
 
 	return subService.CreateDocPreviewSession(ctx, c)
@@ -181,6 +191,9 @@ func (service *ShareService) List(c *gin.Context) serializer.Response {
 	// 重设根目录
 	fs.SetTargetDir(&[]model.Folder{*share.GetSource().(*model.Folder)})
 	fs.DirTarget[0].Name = "/"
+
+	// 分享Key上下文
+	ctx = context.WithValue(ctx, fsctx.ShareKeyCtx, hashid.HashID(share.ID, hashid.ShareID))
 
 	// 获取子项目
 	objects, err := fs.List(ctx, service.Path, nil)

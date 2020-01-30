@@ -173,7 +173,7 @@ func InitMasterRouter() *gin.Engine {
 			// 获取分享
 			share.GET("info/:id", controllers.GetShare)
 			// 创建文件下载会话
-			share.POST("download/:id",
+			share.PUT("download/:id",
 				middleware.CheckShareUnlocked(),
 				middleware.BeforeShareDownload(),
 				controllers.GetShareDownload,

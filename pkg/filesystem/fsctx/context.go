@@ -13,6 +13,8 @@ const (
 	PathCtx
 	// FileModelCtx 文件数据库模型
 	FileModelCtx
+	// FolderModelCtx 目录数据库模型
+	FolderModelCtx
 	// HTTPCtx HTTP请求的上下文
 	HTTPCtx
 	// UploadPolicyCtx 上传策略，一般为slave模式下使用
@@ -25,4 +27,6 @@ const (
 	OriginSourceNameCtx
 	// FileSizeCtx 文件大小
 	FileSizeCtx
+	// ShareKeyCtx 分享文件的 HashID
+	ShareKeyCtx
 )
