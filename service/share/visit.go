@@ -10,6 +10,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
+	"path"
 )
 
 // ShareGetService 获取分享服务
@@ -17,9 +18,10 @@ type ShareGetService struct {
 	Password string `form:"password" binding:"max=255"`
 }
 
-// SingleFileService 对单文件进行操作的服务，path为可选文件完整路径
-type SingleFileService struct {
-	Path string `form:"path" binding:"max=65535"`
+// ShareService 对分享进行操作的服务，
+// path 为可选文件完整路径，在目录分享下有效
+type ShareService struct {
+	Path string `form:"path" uri:"path" binding:"max=65535"`
 }
 
 // Get 获取分享内容
@@ -59,7 +61,7 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 }
 
 // CreateDownloadSession 创建下载会话
-func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializer.Response {
+func (service *ShareService) CreateDownloadSession(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 	userCtx, _ := c.Get("user")
@@ -92,7 +94,7 @@ func (service *SingleFileService) CreateDownloadSession(c *gin.Context) serializ
 
 // PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
 // 强制经由服务端中转
-func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
+func (service *ShareService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 
@@ -106,7 +108,7 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 }
 
 // CreateDocPreviewSession 创建Office预览会话，返回预览地址
-func (service *SingleFileService) CreateDocPreviewSession(c *gin.Context) serializer.Response {
+func (service *ShareService) CreateDocPreviewSession(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 
@@ -120,7 +122,7 @@ func (service *SingleFileService) CreateDocPreviewSession(c *gin.Context) serial
 }
 
 // SaveToMyFile 将此分享转存到自己的网盘
-func (service *SingleFileService) SaveToMyFile(c *gin.Context) serializer.Response {
+func (service *ShareService) SaveToMyFile(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 	userCtx, _ := c.Get("user")
@@ -150,4 +152,44 @@ func (service *SingleFileService) SaveToMyFile(c *gin.Context) serializer.Respon
 	}
 
 	return serializer.Response{}
+}
+
+// List 列出分享的目录下的对象
+func (service *ShareService) List(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+
+	if !share.IsDir {
+		return serializer.ParamErr("此分享无法列目录", nil)
+	}
+
+	if !path.IsAbs(service.Path) {
+		return serializer.ParamErr("路径无效", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(share.GetCreator())
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 重设根目录
+	fs.SetTargetDir(&[]model.Folder{*share.GetSource().(*model.Folder)})
+	fs.DirTarget[0].Name = "/"
+
+	// 获取子项目
+	objects, err := fs.List(ctx, service.Path, nil)
+	if err != nil {
+		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Code: 0,
+		Data: objects,
+	}
 }

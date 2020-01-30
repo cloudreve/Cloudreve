@@ -49,6 +49,30 @@ func ShareCanPreview() gin.HandlerFunc {
 	}
 }
 
+// CheckShareUnlocked 检查分享是否已解锁
+func CheckShareUnlocked() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if shareCtx, ok := c.Get("share"); ok {
+			share := shareCtx.(*model.Share)
+			// 分享是否已解锁
+			if share.Password != "" {
+				sessionKey := fmt.Sprintf("share_unlock_%d", share.ID)
+				unlocked := util.GetSession(c, sessionKey) != nil
+				if !unlocked {
+					c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr,
+						"无权访问此分享", nil))
+					c.Abort()
+					return
+				}
+			}
+
+			c.Next()
+			return
+		}
+		c.Abort()
+	}
+}
+
 // BeforeShareDownload 分享被下载前的检查
 func BeforeShareDownload() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -64,18 +88,6 @@ func BeforeShareDownload() gin.HandlerFunc {
 						nil))
 					c.Abort()
 					return
-				}
-
-				// 分享是否已解锁
-				if share.Password != "" {
-					sessionKey := fmt.Sprintf("share_unlock_%d", share.ID)
-					unlocked := util.GetSession(c, sessionKey) != nil
-					if !unlocked {
-						c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr,
-							"无权访问此分享", nil))
-						c.Abort()
-						return
-					}
 				}
 
 				// 对积分、下载次数进行更新

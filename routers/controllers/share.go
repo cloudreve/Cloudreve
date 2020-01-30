@@ -30,7 +30,7 @@ func GetShare(c *gin.Context) {
 
 // GetShareDownload 创建分享下载会话
 func GetShareDownload(c *gin.Context) {
-	var service share.SingleFileService
+	var service share.ShareService
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.CreateDownloadSession(c)
 		c.JSON(200, res)
@@ -45,7 +45,7 @@ func PreviewShare(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service share.SingleFileService
+	var service share.ShareService
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.PreviewContent(ctx, c, false)
 		// 是否需要重定向
@@ -68,7 +68,7 @@ func PreviewShareText(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service share.SingleFileService
+	var service share.ShareService
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.PreviewContent(ctx, c, true)
 		// 是否有错误发生
@@ -82,7 +82,7 @@ func PreviewShareText(c *gin.Context) {
 
 // GetShareDocPreview 创建分享Office文档预览地址
 func GetShareDocPreview(c *gin.Context) {
-	var service share.SingleFileService
+	var service share.ShareService
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.CreateDocPreviewSession(c)
 		c.JSON(200, res)
@@ -93,9 +93,20 @@ func GetShareDocPreview(c *gin.Context) {
 
 // SaveShare 转存他人分享
 func SaveShare(c *gin.Context) {
-	var service share.SingleFileService
+	var service share.ShareService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.SaveToMyFile(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// ListSharedFolder 列出分享的目录下的对象
+func ListSharedFolder(c *gin.Context) {
+	var service share.ShareService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.List(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

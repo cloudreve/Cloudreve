@@ -20,13 +20,22 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 	}
 
 	// 递归步入目录
-	// TODO:装入树形缓存
+	// TODO:测试新增
 	var currentFolder *model.Folder
+
+	// 如果已设定目录对象，则从给定目录向下遍历
+	if len(fs.DirTarget) > 0 {
+		currentFolder = &fs.DirTarget[0]
+	}
+
 	for _, folderName := range pathList {
 		var err error
 
 		// 根目录
 		if folderName == "/" {
+			if currentFolder != nil {
+				continue
+			}
 			currentFolder, err = fs.User.Root()
 			if err != nil {
 				return false, nil

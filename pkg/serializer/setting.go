@@ -31,6 +31,8 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 	var userRes User
 	if user != nil {
 		userRes = BuildUser(*user)
+	} else {
+		userRes = BuildUser(*model.NewAnonymousUser())
 	}
 	return Response{
 		Data: SiteConfig{

@@ -174,24 +174,34 @@ func InitMasterRouter() *gin.Engine {
 			share.GET("info/:id", controllers.GetShare)
 			// 创建文件下载会话
 			share.POST("download/:id",
+				middleware.CheckShareUnlocked(),
 				middleware.BeforeShareDownload(),
 				controllers.GetShareDownload,
 			)
 			// 预览分享文件
 			share.GET("preview/:id",
+				middleware.CheckShareUnlocked(),
 				middleware.ShareCanPreview(),
 				middleware.BeforeShareDownload(),
 				controllers.PreviewShare,
 			)
 			// 取得Office文档预览地址
-			share.GET("doc/:id", middleware.ShareCanPreview(),
+			share.GET("doc/:id",
+				middleware.CheckShareUnlocked(),
+				middleware.ShareCanPreview(),
 				middleware.BeforeShareDownload(),
 				controllers.GetShareDocPreview,
 			)
 			// 获取文本文件内容
 			share.GET("content/:id",
+				middleware.CheckShareUnlocked(),
 				middleware.BeforeShareDownload(),
 				controllers.PreviewShareText,
+			)
+			// 分享目录列文件
+			share.GET("list/:id/*path",
+				middleware.CheckShareUnlocked(),
+				controllers.ListSharedFolder,
 			)
 		}
 
@@ -272,6 +282,7 @@ func InitMasterRouter() *gin.Engine {
 				// 转存他人分享
 				share.POST("save/:id",
 					middleware.ShareAvailable(),
+					middleware.CheckShareUnlocked(),
 					middleware.BeforeShareDownload(),
 					controllers.SaveShare,
 				)
