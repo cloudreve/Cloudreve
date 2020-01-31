@@ -19,10 +19,17 @@ type ShareGetService struct {
 	Password string `form:"password" binding:"max=255"`
 }
 
-// ShareService 对分享进行操作的服务，
+// Service 对分享进行操作的服务，
 // path 为可选文件完整路径，在目录分享下有效
-type ShareService struct {
+type Service struct {
 	Path string `form:"path" uri:"path" binding:"max=65535"`
+}
+
+// ArchiveService 分享归档下载服务
+type ArchiveService struct {
+	Path  string `json:"path" binding:"required,max=65535"`
+	Items []uint `json:"items" binding:"exists"`
+	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
 // Get 获取分享内容
@@ -62,7 +69,7 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 }
 
 // CreateDownloadSession 创建下载会话
-func (service *ShareService) CreateDownloadSession(c *gin.Context) serializer.Response {
+func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 	userCtx, _ := c.Get("user")
@@ -100,7 +107,7 @@ func (service *ShareService) CreateDownloadSession(c *gin.Context) serializer.Re
 
 // PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
 // 强制经由服务端中转
-func (service *ShareService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
+func (service *Service) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 
@@ -118,7 +125,7 @@ func (service *ShareService) PreviewContent(ctx context.Context, c *gin.Context,
 }
 
 // CreateDocPreviewSession 创建Office预览会话，返回预览地址
-func (service *ShareService) CreateDocPreviewSession(c *gin.Context) serializer.Response {
+func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 
@@ -137,7 +144,7 @@ func (service *ShareService) CreateDocPreviewSession(c *gin.Context) serializer.
 }
 
 // SaveToMyFile 将此分享转存到自己的网盘
-func (service *ShareService) SaveToMyFile(c *gin.Context) serializer.Response {
+func (service *Service) SaveToMyFile(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 	userCtx, _ := c.Get("user")
@@ -170,7 +177,7 @@ func (service *ShareService) SaveToMyFile(c *gin.Context) serializer.Response {
 }
 
 // List 列出分享的目录下的对象
-func (service *ShareService) List(c *gin.Context) serializer.Response {
+func (service *Service) List(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
 
@@ -210,4 +217,51 @@ func (service *ShareService) List(c *gin.Context) serializer.Response {
 		Code: 0,
 		Data: objects,
 	}
+}
+
+// Archive 创建批量下载归档
+func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
+
+	// 是否有权限
+	if !user.Group.OptionsSerialized.ArchiveDownloadEnabled {
+		return serializer.Err(serializer.CodeNoPermissionErr, "您的用户组无权进行此操作", nil)
+	}
+
+	if !share.IsDir {
+		return serializer.ParamErr("此分享无法进行打包", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 重设根目录
+	fs.Root = share.GetSource().(*model.Folder)
+
+	// 找到要打包文件的父目录
+	exist, parent := fs.IsPathExist(service.Path)
+	if !exist {
+		return serializer.Err(serializer.CodeNotFound, "路径不存在", nil)
+	}
+
+	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
+
+	// 用于调下层service
+	tempUser := share.GetCreator()
+	tempUser.Group.OptionsSerialized.ArchiveDownloadEnabled = true
+	c.Set("user", tempUser)
+
+	subService := explorer.ItemService{
+		Items: service.Items,
+		Dirs:  service.Dirs,
+	}
+
+	return subService.Archive(ctx, c)
 }

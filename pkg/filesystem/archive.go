@@ -33,6 +33,23 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 		return "", ErrDBListObjects
 	}
 
+	// 如果上下文限制了父目录，则进行检查
+	if parent, ok := ctx.Value(fsctx.LimitParentCtx).(*model.Folder); ok {
+		// 检查目录
+		for _, folder := range folders {
+			if *folder.ParentID != parent.ID {
+				return "", ErrObjectNotExist
+			}
+		}
+
+		// 检查文件
+		for _, file := range files {
+			if file.FolderID != parent.ID {
+				return "", ErrObjectNotExist
+			}
+		}
+	}
+
 	// 尝试获取请求上下文，以便于后续检查用户取消任务
 	reqContext := ctx
 	ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context)

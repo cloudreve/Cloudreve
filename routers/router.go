@@ -203,6 +203,12 @@ func InitMasterRouter() *gin.Engine {
 				middleware.CheckShareUnlocked(),
 				controllers.ListSharedFolder,
 			)
+			// 归档打包下载
+			share.POST("archive/:id",
+				middleware.CheckShareUnlocked(),
+				middleware.BeforeShareDownload(),
+				controllers.ArchiveShare,
+			)
 		}
 
 		// 需要登录保护的

@@ -29,4 +29,6 @@ const (
 	FileSizeCtx
 	// ShareKeyCtx 分享文件的 HashID
 	ShareKeyCtx
+	// LimitParentCtx 限制父目录
+	LimitParentCtx
 )
