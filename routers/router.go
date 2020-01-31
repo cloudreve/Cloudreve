@@ -209,6 +209,11 @@ func InitMasterRouter() *gin.Engine {
 				middleware.BeforeShareDownload(),
 				controllers.ArchiveShare,
 			)
+			// 获取README文本文件内容
+			share.GET("readme/:id",
+				middleware.CheckShareUnlocked(),
+				controllers.PreviewShareReadme,
+			)
 		}
 
 		// 需要登录保护的

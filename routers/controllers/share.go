@@ -2,8 +2,13 @@ package controllers
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/share"
 	"github.com/gin-gonic/gin"
+	"path"
+	"strings"
 )
 
 // CreateShare 创建分享
@@ -70,6 +75,38 @@ func PreviewShareText(c *gin.Context) {
 
 	var service share.Service
 	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.PreviewContent(ctx, c, true)
+		// 是否有错误发生
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// PreviewShareReadme 预览文本自述文件
+func PreviewShareReadme(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service share.Service
+	if err := c.ShouldBindQuery(&service); err == nil {
+		// 自述文件名限制
+		allowFileName := []string{"readme.txt", "readme.md"}
+		fileName := strings.ToLower(path.Base(service.Path))
+		if !util.ContainsString(allowFileName, fileName) {
+			c.JSON(200, serializer.ParamErr("非README文件", nil))
+		}
+
+		// 必须是目录分享
+		if shareCtx, ok := c.Get("share"); ok {
+			if !shareCtx.(*model.Share).IsDir {
+				c.JSON(200, serializer.ParamErr("此分享无自述文件", nil))
+			}
+		}
+
 		res := service.PreviewContent(ctx, c, true)
 		// 是否有错误发生
 		if res.Code != 0 {

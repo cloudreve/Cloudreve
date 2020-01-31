@@ -255,6 +255,10 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 	// 直接返回文件内容
 	defer resp.Content.Close()
 
+	if isText {
+		c.Header("Cache-Control", "no-cache")
+	}
+
 	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, resp.Content)
 
 	return serializer.Response{

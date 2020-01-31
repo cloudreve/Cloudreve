@@ -243,6 +243,9 @@ func (instance NopRSCloser) SetContentLength(size int64) {
 
 // Read 实现 NopRSCloser reader
 func (instance NopRSCloser) Read(p []byte) (n int, err error) {
+	if instance.status.IgnoreFirst && len(p) == 512 {
+		return 0, io.EOF
+	}
 	return instance.body.Read(p)
 }
 
