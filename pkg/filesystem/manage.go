@@ -377,22 +377,24 @@ func (fs *FileSystem) SaveTo(ctx context.Context, path string) error {
 		return ErrPathNotExist
 	}
 
-	// TODO 列目录
+	var (
+		totalSize uint64
+		err       error
+	)
 
-	// 计算要复制的总大小
-	var totalSize uint64
-	for _, file := range fs.FileTarget {
-		totalSize += file.Size
+	if len(fs.DirTarget) > 0 {
+		totalSize, err = fs.DirTarget[0].CopyFolderTo(fs.DirTarget[0].ID, folder)
+	} else {
+		parent := model.Folder{
+			OwnerID: fs.FileTarget[0].UserID,
+		}
+		parent.ID = fs.FileTarget[0].FolderID
+		totalSize, err = parent.MoveOrCopyFileTo([]uint{fs.FileTarget[0].ID}, folder, true)
 	}
 
 	// 扣除用户容量
-	if !fs.User.IncreaseStorage(totalSize) {
-		return ErrInsufficientCapacity
-	}
-
-	err := folder.CopyChildFrom(fs.DirTarget, fs.FileTarget)
+	fs.User.IncreaseStorageWithoutCheck(totalSize)
 	if err != nil {
-		fs.User.DeductionStorage(totalSize)
 		return ErrFileExisted.WithError(err)
 	}
 

@@ -76,6 +76,8 @@ type FileSystem struct {
 	FileTarget []model.File
 	// 当前正在处理的目录对象
 	DirTarget []model.Folder
+	// 相对根目录
+	Root *model.Folder
 
 	/*
 	   钩子函数
@@ -107,6 +109,7 @@ func (fs *FileSystem) reset() {
 	fs.Policy = nil
 	fs.Hooks = nil
 	fs.Handler = nil
+	fs.Root = nil
 }
 
 // NewFileSystem 初始化一个文件系统

@@ -13,7 +13,7 @@ var (
 	ErrIllegalObjectName       = errors.New("目标名称非法")
 	ErrClientCanceled          = errors.New("客户端取消操作")
 	ErrInsertFileRecord        = serializer.NewError(serializer.CodeDBError, "无法插入文件记录", nil)
-	ErrFileExisted             = serializer.NewError(serializer.CodeObjectExist, "同名文件已存在", nil)
+	ErrFileExisted             = serializer.NewError(serializer.CodeObjectExist, "同名文件或目录已存在", nil)
 	ErrFolderExisted           = serializer.NewError(serializer.CodeObjectExist, "同名目录已存在", nil)
 	ErrPathNotExist            = serializer.NewError(404, "路径不存在", nil)
 	ErrObjectNotExist          = serializer.NewError(404, "文件不存在", nil)

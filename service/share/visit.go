@@ -50,8 +50,8 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 		share.Viewed()
 	}
 
-	// 如果已经下载过，不需要付积分
-	if share.WasDownloadedBy(user, c) {
+	// 如果已经下载过或者是自己的分享，不需要付积分
+	if share.UserID == user.ID || share.WasDownloadedBy(user, c) {
 		share.Score = 0
 	}
 
@@ -79,6 +79,11 @@ func (service *ShareService) CreateDownloadSession(c *gin.Context) serializer.Re
 	err = fs.SetTargetByInterface(share.GetSource())
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
+	}
+
+	// 重设根目录
+	if share.IsDir {
+		fs.Root = &fs.DirTarget[0]
 	}
 
 	// 取得下载地址
@@ -189,8 +194,8 @@ func (service *ShareService) List(c *gin.Context) serializer.Response {
 	defer cancel()
 
 	// 重设根目录
-	fs.SetTargetDir(&[]model.Folder{*share.GetSource().(*model.Folder)})
-	fs.DirTarget[0].Name = "/"
+	fs.Root = share.GetSource().(*model.Folder)
+	fs.Root.Name = "/"
 
 	// 分享Key上下文
 	ctx = context.WithValue(ctx, fsctx.ShareKeyCtx, hashid.HashID(share.ID, hashid.ShareID))

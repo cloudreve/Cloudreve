@@ -133,9 +133,9 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 		fs.SetTargetFile(&[]model.File{*file})
 	}
 
-	// 如果上下文中已有Folder对象，则重设目标
+	// 重设根目录
 	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
-		fs.SetTargetDir(&[]model.Folder{*folder})
+		fs.Root = folder
 	}
 
 	// 获取文件临时下载地址
@@ -233,9 +233,9 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 		fs.SetTargetFile(&[]model.File{*file})
 	}
 
-	// 如果上下文中已有Folder对象，则重设目标
+	// 如果上下文中已有Folder对象，则重设根目录
 	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
-		fs.SetTargetDir(&[]model.Folder{*folder})
+		fs.Root = folder
 	}
 
 	// 获取文件预览响应

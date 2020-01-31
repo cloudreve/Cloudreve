@@ -47,6 +47,7 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 		CreateDate: share.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
 
+	// 未解锁时只返回基本信息
 	if !unlocked {
 		return resp
 	}

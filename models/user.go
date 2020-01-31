@@ -108,6 +108,13 @@ func (user *User) PayScore(score int) bool {
 	return false
 }
 
+// AddScore 增加积分
+// todo 测试
+func (user *User) AddScore(score int) {
+	user.Score += score
+	DB.Model(user).UpdateColumn("score", gorm.Expr("score + ?", score))
+}
+
 // IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
 func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 	if size == 0 {

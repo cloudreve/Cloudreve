@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	"math"
 	"time"
 )
 
@@ -170,7 +171,7 @@ func (share *Share) DownloadBy(user *User, c *gin.Context) error {
 // Purchase 使用积分购买分享
 func (share *Share) Purchase(user *User) error {
 	// 不需要付积分
-	if share.Score == 0 || user.Group.OptionsSerialized.ShareFreeEnabled {
+	if share.Score == 0 || user.Group.OptionsSerialized.ShareFreeEnabled || user.ID == share.UserID {
 		return nil
 	}
 
@@ -178,6 +179,10 @@ func (share *Share) Purchase(user *User) error {
 	if !ok {
 		return errors.New("积分不足")
 	}
+
+	scoreRate := GetIntSetting("share_score_rate", 100)
+	gainedScore := int(math.Ceil(float64(share.Score*scoreRate) / 100))
+	share.GetCreator().AddScore(gainedScore)
 
 	return nil
 }
