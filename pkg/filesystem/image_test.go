@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -32,6 +33,7 @@ func CreateTestImage() *os.File {
 func TestFileSystem_GetThumb(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()
+	cache.Set("setting_preview_timeout", "60", 0)
 
 	// 正常
 	{

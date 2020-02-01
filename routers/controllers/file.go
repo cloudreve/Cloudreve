@@ -3,6 +3,7 @@ package controllers
 import "C"
 import (
 	"context"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
@@ -126,6 +127,7 @@ func Thumb(c *gin.Context) {
 	}
 
 	if resp.Redirect {
+		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
 		c.Redirect(http.StatusMovedPermanently, resp.URL)
 		return
 	}

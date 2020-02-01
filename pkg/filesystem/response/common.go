@@ -9,6 +9,7 @@ type ContentResponse struct {
 	Redirect bool
 	Content  RSCloser
 	URL      string
+	MaxAge   int
 }
 
 // RSCloser 存储策略适配器返回的文件流，有些策略需要带有Closer
