@@ -601,3 +601,16 @@ func TestFileSystem_Preview(t *testing.T) {
 		asserts.Nil(resp)
 	}
 }
+
+func TestFileSystem_ResetFileIDIfNotExist(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, &model.Folder{Model: gorm.Model{ID: 1}})
+	fs := FileSystem{
+		FileTarget: []model.File{
+			{
+				FolderID: 2,
+			},
+		},
+	}
+	asserts.Equal(ErrObjectNotExist, fs.resetFileIDIfNotExist(ctx, 1))
+}

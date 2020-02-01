@@ -238,3 +238,22 @@ func TestFileSystem_Recycle(t *testing.T) {
 		t.Error("指针不一致")
 	}
 }
+
+func TestFileSystem_SetTargetByInterface(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{}
+
+	// 目录
+	{
+		asserts.NoError(fs.SetTargetByInterface(&model.Folder{}))
+		asserts.Len(fs.DirTarget, 1)
+		asserts.Len(fs.FileTarget, 0)
+	}
+
+	// 文件
+	{
+		asserts.NoError(fs.SetTargetByInterface(&model.File{}))
+		asserts.Len(fs.DirTarget, 1)
+		asserts.Len(fs.FileTarget, 1)
+	}
+}

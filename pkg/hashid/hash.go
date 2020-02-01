@@ -54,7 +54,6 @@ func HashID(id uint, t int) string {
 }
 
 // DecodeHashID 计算HashID对应的数据库ID
-// TODO 测试
 func DecodeHashID(id string, t int) (uint, error) {
 	v, _ := HashDecode(id)
 	if len(v) != 2 || v[1] != t {

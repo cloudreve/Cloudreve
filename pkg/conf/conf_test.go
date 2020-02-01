@@ -41,7 +41,12 @@ TablePrefix = v3_`
 // TestInitNoPanic 日志路径存在且合法时
 func TestInitNoPanic(t *testing.T) {
 	asserts := assert.New(t)
-	testCase := `[Database]
+	testCase := `
+[System]
+Listen = 3000
+HashIDSalt = 1
+
+[Database]
 Type = mysql
 User = root
 Password = root
@@ -62,7 +67,12 @@ func TestMapSection(t *testing.T) {
 	asserts := assert.New(t)
 
 	//正常情况
-	testCase := `[Database]
+	testCase := `
+[System]
+Listen = 3000
+HashIDSalt = 1
+
+[Database]
 Type = mysql
 User = root
 Password:root

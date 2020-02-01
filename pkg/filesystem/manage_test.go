@@ -7,6 +7,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,25 @@ func TestFileSystem_List(t *testing.T) {
 	mock.ExpectQuery("SELECT(.+)file(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(6, "sub_file1.txt").AddRow(7, "sub_file2.txt"))
 	objects, err := fs.List(ctx, "/folder", nil)
 	asserts.Len(objects, 4)
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 成功，子目录包含文件和路径，不使用路径处理钩子，包含分享key
+	// 根目录
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "owner_id"}).AddRow(1, "/", 1))
+	// folder
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "folder").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "owner_id"}).AddRow(5, "folder", 1))
+
+	mock.ExpectQuery("SELECT(.+)folder(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(6, "sub_folder1").AddRow(7, "sub_folder2"))
+	mock.ExpectQuery("SELECT(.+)file(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(6, "sub_file1.txt").AddRow(7, "sub_file2.txt"))
+	ctxWithKey := context.WithValue(ctx, fsctx.ShareKeyCtx, "share")
+	objects, err = fs.List(ctxWithKey, "/folder", nil)
+	asserts.Len(objects, 4)
+	asserts.Equal("share", objects[3].Key)
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -583,5 +603,51 @@ func TestFileSystem_Rename(t *testing.T) {
 		err := fs.Rename(ctx, []uint{10}, []uint{}, "ne/w")
 		asserts.Error(err)
 		asserts.Equal(ErrIllegalObjectName, err)
+	}
+}
+
+func TestFileSystem_SaveTo(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{User: &model.User{
+		Model: gorm.Model{
+			ID: 1,
+		},
+	}}
+	ctx := context.Background()
+
+	// 单文件 失败
+	{
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)").WillReturnError(errors.New("error"))
+		fs.SetTargetFile(&[]model.File{{Name: "test.txt"}})
+		err := fs.SaveTo(ctx, "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+	// 目录 成功
+	{
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)").WillReturnError(errors.New("error"))
+		fs.SetTargetDir(&[]model.Folder{{Name: "folder"}})
+		err := fs.SaveTo(ctx, "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+	// 父目录不存在
+	{
+		// 根目录
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+		fs.SetTargetDir(&[]model.Folder{{Name: "folder"}})
+		err := fs.SaveTo(ctx, "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
 	}
 }

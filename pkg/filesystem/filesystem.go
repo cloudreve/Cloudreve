@@ -227,7 +227,6 @@ func NewFileSystemFromContext(c *gin.Context) (*FileSystem, error) {
 }
 
 // NewFileSystemFromCallback 从gin.Context创建回调用文件系统
-// TODO 测试
 func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 	fs, err := NewFileSystemFromContext(c)
 	if err != nil {

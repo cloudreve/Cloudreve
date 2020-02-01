@@ -102,6 +102,25 @@ func TestFileSystem_IsPathExist(t *testing.T) {
 		asserts.Equal(uint(4), folder.ID)
 	}
 
+	// 深层路径 重设根目录为/1
+	{
+		path := "/2/3"
+		fs.Root = &model.Folder{Name: "1", Model: gorm.Model{ID: 2}, OwnerID: 1}
+		// 2
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(2, 1, "2").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(3, 1))
+		// 3
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(3, 1, "3").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(4, 1))
+		exist, folder := fs.IsPathExist(path)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(exist)
+		asserts.Equal(uint(4), folder.ID)
+		fs.Root = nil
+	}
+
 	// 深层 不存在
 	{
 		path := "/1/2/3"

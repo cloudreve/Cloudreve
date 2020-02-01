@@ -5,6 +5,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -79,4 +80,30 @@ func TestFileSystem_Compress(t *testing.T) {
 		asserts.Error(err)
 		asserts.Empty(zipFile)
 	}
+
+	// 限制父目录
+	{
+		ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, &model.Folder{
+			Model: gorm.Model{ID: 3},
+		})
+		// 查找压缩父目录
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(1, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name", "parent_id"}).AddRow(1, "parent", 3))
+		// 查找顶级待压缩文件
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(1, 1).
+			WillReturnRows(
+				sqlmock.NewRows(
+					[]string{"id", "name", "source_name", "policy_id"}).
+					AddRow(1, "1.txt", "tests/file1.txt", 1),
+			)
+		asserts.NoError(cache.Set("setting_temp_path", "tests", -1))
+
+		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1})
+		asserts.Error(err)
+		asserts.Equal(ErrObjectNotExist, err)
+		asserts.Empty(zipFile)
+	}
+
 }
