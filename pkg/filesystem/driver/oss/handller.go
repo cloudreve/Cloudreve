@@ -179,6 +179,7 @@ func (handler Driver) Thumb(ctx context.Context, path string) (*response.Content
 	}
 
 	thumbParam := fmt.Sprintf("image/resize,m_lfit,h_%d,w_%d", thumbSize[1], thumbSize[0])
+	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, thumbParam)
 	thumbOption := []oss.Option{oss.Process(thumbParam)}
 	thumbURL, err := handler.signSourceURL(
 		ctx,
@@ -248,6 +249,12 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 			return "", err
 		}
 		sourceURL := cdnURL.ResolveReference(file)
+
+		// 如果有缩略图设置
+		if thumbSize, ok := ctx.Value(fsctx.ThumbSizeCtx).(string); ok {
+			sourceURL.RawQuery = "x-oss-process=" + thumbSize
+		}
+
 		return sourceURL.String(), nil
 	}
 
