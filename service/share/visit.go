@@ -85,7 +85,7 @@ func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Respons
 	defer fs.Recycle()
 
 	// 重设文件系统处理目标为源文件
-	err = fs.SetTargetByInterface(share.GetSource())
+	err = fs.SetTargetByInterface(share.Source())
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
 	}
@@ -115,9 +115,9 @@ func (service *Service) PreviewContent(ctx context.Context, c *gin.Context, isTe
 
 	// 用于调下层service
 	if share.IsDir {
-		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.GetSource())
+		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
 	} else {
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
 	subService := explorer.SingleFileService{
 		Path: service.Path,
@@ -134,9 +134,9 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	// 用于调下层service
 	ctx := context.Background()
 	if share.IsDir {
-		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.GetSource())
+		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
 	} else {
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.GetSource())
+		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
 	subService := explorer.SingleFileService{
 		Path: service.Path,
@@ -165,7 +165,7 @@ func (service *Service) SaveToMyFile(c *gin.Context) serializer.Response {
 	defer fs.Recycle()
 
 	// 重设文件系统处理目标为源文件
-	err = fs.SetTargetByInterface(share.GetSource())
+	err = fs.SetTargetByInterface(share.Source())
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
 	}
@@ -192,7 +192,7 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 	}
 
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(share.GetCreator())
+	fs, err := filesystem.NewFileSystem(share.Creator())
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
@@ -203,7 +203,7 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 	defer cancel()
 
 	// 重设根目录
-	fs.Root = share.GetSource().(*model.Folder)
+	fs.Root = share.Source().(*model.Folder)
 	fs.Root.Name = "/"
 
 	// 分享Key上下文
@@ -231,14 +231,14 @@ func (service *Service) Thumb(c *gin.Context) serializer.Response {
 	}
 
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(share.GetCreator())
+	fs, err := filesystem.NewFileSystem(share.Creator())
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 	defer fs.Recycle()
 
 	// 重设根目录
-	fs.Root = share.GetSource().(*model.Folder)
+	fs.Root = share.Source().(*model.Folder)
 
 	// 找到缩略图的父目录
 	exist, parent := fs.IsPathExist(service.Path)
@@ -297,7 +297,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	defer fs.Recycle()
 
 	// 重设根目录
-	fs.Root = share.GetSource().(*model.Folder)
+	fs.Root = share.Source().(*model.Folder)
 
 	// 找到要打包文件的父目录
 	exist, parent := fs.IsPathExist(service.Path)
@@ -309,7 +309,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
 
 	// 用于调下层service
-	tempUser := share.GetCreator()
+	tempUser := share.Creator()
 	tempUser.Group.OptionsSerialized.ArchiveDownloadEnabled = true
 	c.Set("user", tempUser)
 

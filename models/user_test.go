@@ -340,3 +340,48 @@ func TestUser_Root(t *testing.T) {
 		asserts.Error(err)
 	}
 }
+
+func TestUser_PayScore(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{Score: 5}
+
+	asserts.True(user.PayScore(0))
+	asserts.False(user.PayScore(10))
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	asserts.True(user.PayScore(5))
+	asserts.EqualValues(0, user.Score)
+	asserts.NoError(mock.ExpectationsWereMet())
+}
+
+func TestUser_AddScore(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{Score: 5}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	user.AddScore(5)
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.EqualValues(10, user.Score)
+}
+
+func TestNewAnonymousUser(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
+	user := NewAnonymousUser()
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NotNil(user)
+	asserts.EqualValues(3, user.Group.ID)
+}
+
+func TestUser_IsAnonymous(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{}
+	asserts.True(user.IsAnonymous())
+	user.ID = 1
+	asserts.False(user.IsAnonymous())
+}

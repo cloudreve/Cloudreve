@@ -95,7 +95,6 @@ func (user *User) IncreaseStorage(size uint64) bool {
 }
 
 // PayScore 扣除积分，返回是否成功
-// todo 测试
 func (user *User) PayScore(score int) bool {
 	if score == 0 {
 		return true
@@ -109,7 +108,6 @@ func (user *User) PayScore(score int) bool {
 }
 
 // AddScore 增加积分
-// todo 测试
 func (user *User) AddScore(score int) {
 	user.Score += score
 	DB.Model(user).UpdateColumn("score", gorm.Expr("score + ?", score))
@@ -257,7 +255,6 @@ func (user *User) SetPassword(password string) error {
 }
 
 // NewAnonymousUser 返回一个匿名用户
-// TODO 测试
 func NewAnonymousUser() *User {
 	user := User{}
 	user.Policy.Type = "anonymous"
@@ -266,7 +263,6 @@ func NewAnonymousUser() *User {
 }
 
 // IsAnonymous 返回是否为未登录用户
-// TODO 测试
 func (user *User) IsAnonymous() bool {
 	return user.ID == 0
 }

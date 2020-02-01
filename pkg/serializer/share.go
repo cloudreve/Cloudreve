@@ -34,7 +34,7 @@ type shareSource struct {
 
 // BuildShareResponse 构建获取分享信息响应
 func BuildShareResponse(share *model.Share, unlocked bool) Share {
-	creator := share.GetCreator()
+	creator := share.Creator()
 	resp := Share{
 		Key:    hashid.HashID(share.ID, hashid.ShareID),
 		Locked: !unlocked,
@@ -62,13 +62,13 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 	}
 
 	if share.IsDir {
-		source := share.GetSourceFolder()
+		source := share.SourceFolder()
 		resp.Source = &shareSource{
 			Name: source.Name,
 			Size: 0,
 		}
 	} else {
-		source := share.GetSourceFile()
+		source := share.SourceFile()
 		resp.Source = &shareSource{
 			Name: source.Name,
 			Size: source.Size,

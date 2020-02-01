@@ -33,7 +33,6 @@ type Share struct {
 }
 
 // Create 创建分享
-// TODO 测试
 func (share *Share) Create() (uint, error) {
 	if err := DB.Create(share).Error; err != nil {
 		util.Log().Warning("无法插入数据库记录, %s", err)
@@ -43,7 +42,6 @@ func (share *Share) Create() (uint, error) {
 }
 
 // GetShareByHashID 根据HashID查找分享
-// TODO 测试
 func GetShareByHashID(hashID string) *Share {
 	id, err := hashid.DecodeHashID(hashID, hashid.ShareID)
 	if err != nil {
@@ -59,7 +57,6 @@ func GetShareByHashID(hashID string) *Share {
 }
 
 // IsAvailable 返回此分享是否可用（是否过期）
-// TODO 测试
 func (share *Share) IsAvailable() bool {
 	if share.RemainDownloads == 0 {
 		return false
@@ -71,37 +68,38 @@ func (share *Share) IsAvailable() bool {
 	// 检查源对象是否存在
 	var sourceID uint
 	if share.IsDir {
-		folder := share.GetSourceFolder()
+		folder := share.SourceFolder()
 		sourceID = folder.ID
 	} else {
-		file := share.GetSourceFile()
+		file := share.SourceFile()
 		sourceID = file.ID
 	}
 	if sourceID == 0 {
+		// TODO 是否要在这里删除这个无效分享？
 		return false
 	}
 
 	return true
 }
 
-// GetCreator 获取分享的创建者
-func (share *Share) GetCreator() *User {
+// Creator 获取分享的创建者
+func (share *Share) Creator() *User {
 	if share.User.ID == 0 {
 		share.User, _ = GetUserByID(share.UserID)
 	}
 	return &share.User
 }
 
-// GetSource 返回源对象
-func (share *Share) GetSource() interface{} {
+// Source 返回源对象
+func (share *Share) Source() interface{} {
 	if share.IsDir {
-		return share.GetSourceFolder()
+		return share.SourceFolder()
 	}
-	return share.GetSourceFile()
+	return share.SourceFile()
 }
 
-// GetSourceFolder 获取源目录
-func (share *Share) GetSourceFolder() *Folder {
+// SourceFolder 获取源目录
+func (share *Share) SourceFolder() *Folder {
 	if share.Folder.ID == 0 {
 		folders, _ := GetFoldersByIDs([]uint{share.SourceID}, share.UserID)
 		if len(folders) > 0 {
@@ -111,8 +109,8 @@ func (share *Share) GetSourceFolder() *Folder {
 	return &share.Folder
 }
 
-// GetSourceFile 获取源文件
-func (share *Share) GetSourceFile() *File {
+// SourceFile 获取源文件
+func (share *Share) SourceFile() *File {
 	if share.File.ID == 0 {
 		files, _ := GetFilesByIDs([]uint{share.SourceID}, share.UserID)
 		if len(files) > 0 {
@@ -182,7 +180,7 @@ func (share *Share) Purchase(user *User) error {
 
 	scoreRate := GetIntSetting("share_score_rate", 100)
 	gainedScore := int(math.Ceil(float64(share.Score*scoreRate) / 100))
-	share.GetCreator().AddScore(gainedScore)
+	share.Creator().AddScore(gainedScore)
 
 	return nil
 }

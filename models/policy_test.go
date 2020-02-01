@@ -167,7 +167,7 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 	{
 		cache.Set("setting_siteURL", "http://127.0.0.1", 0)
 		policy := Policy{Type: "local", Server: "http://127.0.0.1"}
-		asserts.Equal("http://127.0.0.1/api/v3/file/upload", policy.GetUploadURL())
+		asserts.Equal("/api/v3/file/upload", policy.GetUploadURL())
 	}
 
 	// 远程

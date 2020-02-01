@@ -64,7 +64,7 @@ func AnonymousGetContent(c *gin.Context) {
 	}
 }
 
-// GetSource 获取文件的外链地址
+// Source 获取文件的外链地址
 func GetSource(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())

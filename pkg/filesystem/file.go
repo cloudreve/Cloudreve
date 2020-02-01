@@ -240,7 +240,7 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout s
 	return source, nil
 }
 
-// GetSource 获取可直接访问文件的外链地址
+// Source 获取可直接访问文件的外链地址
 func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error) {
 	// 查找文件记录
 	err := fs.resetFileIDIfNotExist(ctx, fileID)
