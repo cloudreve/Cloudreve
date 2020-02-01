@@ -11,7 +11,9 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"path"
+	"strconv"
 )
 
 // ShareGetService 获取分享服务
@@ -219,6 +221,58 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 	}
 }
 
+// Thumb 获取被分享文件的缩略图
+func (service *Service) Thumb(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+
+	if !share.IsDir {
+		return serializer.ParamErr("此分享无缩略图", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(share.GetCreator())
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 重设根目录
+	fs.Root = share.GetSource().(*model.Folder)
+
+	// 找到缩略图的父目录
+	exist, parent := fs.IsPathExist(service.Path)
+	if !exist {
+		return serializer.Err(serializer.CodeNotFound, "路径不存在", nil)
+	}
+
+	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
+
+	// 获取文件ID
+	fileID, err := strconv.ParseUint(c.Param("file"), 10, 32)
+	if err != nil {
+		return serializer.ParamErr("无法解析文件ID", err)
+	}
+
+	// 获取缩略图
+	resp, err := fs.GetThumb(ctx, uint(fileID))
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err)
+	}
+
+	if resp.Redirect {
+		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
+		c.Redirect(http.StatusMovedPermanently, resp.URL)
+		return serializer.Response{Code: -1}
+	}
+
+	defer resp.Content.Close()
+	http.ServeContent(c.Writer, c.Request, "thumb.png", fs.FileTarget[0].UpdatedAt, resp.Content)
+
+	return serializer.Response{Code: -1}
+
+}
+
 // Archive 创建批量下载归档
 func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
@@ -251,6 +305,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotFound, "路径不存在", nil)
 	}
 
+	// 限制操作范围为父目录下
 	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
 
 	// 用于调下层service

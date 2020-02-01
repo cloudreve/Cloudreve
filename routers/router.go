@@ -214,6 +214,12 @@ func InitMasterRouter() *gin.Engine {
 				middleware.CheckShareUnlocked(),
 				controllers.PreviewShareReadme,
 			)
+			// 获取缩略图
+			share.GET("thumb/:id/:file",
+				middleware.CheckShareUnlocked(),
+				middleware.ShareCanPreview(),
+				controllers.ShareThumb,
+			)
 		}
 
 		// 需要登录保护的

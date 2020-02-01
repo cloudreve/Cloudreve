@@ -311,6 +311,13 @@ func (fs *FileSystem) resetFileIDIfNotExist(ctx context.Context, id uint) error 
 		fs.FileTarget = []model.File{file[0]}
 	}
 
+	// 如果上下文限制了父目录，则进行检查
+	if parent, ok := ctx.Value(fsctx.LimitParentCtx).(*model.Folder); ok {
+		if parent.ID != fs.FileTarget[0].FolderID {
+			return ErrObjectNotExist
+		}
+	}
+
 	// 将当前存储策略重设为文件使用的
 	return fs.resetPolicyToFirstFile(ctx)
 }

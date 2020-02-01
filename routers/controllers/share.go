@@ -160,3 +160,16 @@ func ArchiveShare(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// ShareThumb 获取分享目录下文件的缩略图
+func ShareThumb(c *gin.Context) {
+	var service share.Service
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Thumb(c)
+		if res.Code >= 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
