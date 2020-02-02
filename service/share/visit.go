@@ -281,7 +281,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	user := userCtx.(*model.User)
 
 	// 是否有权限
-	if !user.Group.OptionsSerialized.ArchiveDownloadEnabled {
+	if !user.Group.OptionsSerialized.ArchiveDownload {
 		return serializer.Err(serializer.CodeNoPermissionErr, "您的用户组无权进行此操作", nil)
 	}
 
@@ -310,7 +310,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 
 	// 用于调下层service
 	tempUser := share.Creator()
-	tempUser.Group.OptionsSerialized.ArchiveDownloadEnabled = true
+	tempUser.Group.OptionsSerialized.ArchiveDownload = true
 	c.Set("user", tempUser)
 
 	subService := explorer.ItemService{

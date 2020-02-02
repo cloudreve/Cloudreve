@@ -9,9 +9,12 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/task"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"math"
 	"net/url"
+	"path"
 	"time"
 )
 
@@ -34,6 +37,80 @@ type ItemService struct {
 	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
+// ItemCompressService 文件压缩任务服务
+type ItemCompressService struct {
+	Src  ItemService `json:"src" binding:"exists"`
+	Dst  string      `json:"dst" binding:"required,min=1,max=65535"`
+	Name string      `json:"name" binding:"required,min=1,max=255"`
+}
+
+// CreateCompressTask 创建文件压缩任务
+func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 检查用户组权限
+	if !fs.User.Group.OptionsSerialized.ArchiveTask {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+	}
+
+	// 存放目录是否存在，是否重名
+	if exist, _ := fs.IsPathExist(service.Dst); !exist {
+		return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+	}
+	if exist, _ := fs.IsFileExist(path.Join(service.Dst, service.Name)); exist {
+		return serializer.ParamErr("名为 "+service.Name+" 的文件已存在", nil)
+	}
+
+	// 检查文件名合法性
+	if !fs.ValidateLegalName(context.Background(), service.Name) {
+		return serializer.ParamErr("文件名非法", nil)
+	}
+	if !fs.ValidateExtension(context.Background(), service.Name) {
+		return serializer.ParamErr("不允许存储此扩展名的文件", nil)
+	}
+
+	// 递归列出待压缩子目录
+	folders, err := model.GetRecursiveChildFolder(service.Src.Dirs, fs.User.ID, true)
+	if err != nil {
+		return serializer.Err(serializer.CodeDBError, "无法列出子目录", err)
+	}
+
+	// 列出所有待压缩文件
+	files, err := model.GetChildFilesOfFolders(&folders)
+	if err != nil {
+		return serializer.Err(serializer.CodeDBError, "无法列出子文件", err)
+	}
+
+	// 计算待压缩文件大小
+	var totalSize uint64
+	for i := 0; i < len(files); i++ {
+		totalSize += files[i].Size
+	}
+
+	// 按照平均压缩率计算用户空间是否足够
+	compressRatio := 0.4
+	spaceNeeded := uint64(math.Round(float64(totalSize) * compressRatio))
+	if fs.User.GetRemainingCapacity() < spaceNeeded {
+		return serializer.Err(serializer.CodeParamErr, "剩余空间不足", err)
+	}
+
+	// 创建任务
+	job, err := task.NewCompressTask(fs.User, path.Join(service.Dst, service.Name), service.Src.Dirs,
+		service.Src.Items)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
+	}
+
+	task.TaskPoll.Submit(job)
+	return serializer.Response{}
+
+}
+
 // Archive 创建归档
 func (service *ItemService) Archive(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
@@ -44,13 +121,13 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 	defer fs.Recycle()
 
 	// 检查用户组权限
-	if !fs.User.Group.OptionsSerialized.ArchiveDownloadEnabled {
+	if !fs.User.Group.OptionsSerialized.ArchiveDownload {
 		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
 	}
 
 	// 开始压缩
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	zipFile, err := fs.Compress(ctx, service.Dirs, service.Items)
+	zipFile, err := fs.Compress(ctx, service.Dirs, service.Items, true)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
 	}

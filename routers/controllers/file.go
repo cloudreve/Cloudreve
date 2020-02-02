@@ -47,6 +47,17 @@ func Archive(c *gin.Context) {
 	}
 }
 
+// Compress 创建文件压缩任务
+func Compress(c *gin.Context) {
+	var service explorer.ItemCompressService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.CreateCompressTask(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AnonymousGetContent 匿名获取文件资源
 func AnonymousGetContent(c *gin.Context) {
 	// 创建上下文

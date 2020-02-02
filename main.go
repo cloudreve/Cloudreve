@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/task"
 	"github.com/HFO4/cloudreve/routers"
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +21,7 @@ func init() {
 	if conf.SystemConfig.Mode == "master" {
 		model.Init()
 		authn.Init()
+		task.Init()
 	}
 	auth.Init()
 }

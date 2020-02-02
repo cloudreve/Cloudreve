@@ -267,6 +267,8 @@ func InitMasterRouter() *gin.Engine {
 				file.GET("source/:id", controllers.GetSource)
 				// 打包要下载的文件
 				file.POST("archive", controllers.Archive)
+				// 创建文件压缩任务
+				file.POST("compress", controllers.Compress)
 			}
 
 			// 目录

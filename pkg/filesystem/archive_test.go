@@ -51,7 +51,7 @@ func TestFileSystem_Compress(t *testing.T) {
 		// 查找上传策略
 		asserts.NoError(cache.Set("policy_1", model.Policy{Type: "local"}, -1))
 
-		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1})
+		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1}, true)
 		asserts.NoError(err)
 		asserts.NotEmpty(zipFile)
 		asserts.Contains(zipFile, "archive_")
@@ -76,7 +76,7 @@ func TestFileSystem_Compress(t *testing.T) {
 			)
 		asserts.NoError(cache.Set("setting_temp_path", "tests", -1))
 
-		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1})
+		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1}, true)
 		asserts.Error(err)
 		asserts.Empty(zipFile)
 	}
@@ -100,7 +100,7 @@ func TestFileSystem_Compress(t *testing.T) {
 			)
 		asserts.NoError(cache.Set("setting_temp_path", "tests", -1))
 
-		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1})
+		zipFile, err := fs.Compress(ctx, []uint{1}, []uint{1}, true)
 		asserts.Error(err)
 		asserts.Equal(ErrObjectNotExist, err)
 		asserts.Empty(zipFile)

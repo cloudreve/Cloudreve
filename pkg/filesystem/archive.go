@@ -20,7 +20,7 @@ import (
 */
 
 // Compress 创建给定目录和文件的压缩文件
-func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (string, error) {
+func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, isArchive bool) (string, error) {
 	// 查找待压缩目录
 	folders, err := model.GetFoldersByIDs(folderIDs, fs.User.ID)
 	if err != nil && len(folders) != 0 {
@@ -66,8 +66,13 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 	}
 
 	// 创建临时压缩文件
+	saveFolder := "archive"
+	if !isArchive {
+		saveFolder = "compress"
+	}
 	zipFilePath := filepath.Join(
 		model.GetSettingByName("temp_path"),
+		saveFolder,
 		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
 	)
 	zipFile, err := util.CreatNestedFile(zipFilePath)
@@ -91,7 +96,7 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
 			return "", ErrClientCanceled
 		default:
-			fs.doCompress(ctx, nil, &folders[i], zipWriter, true)
+			fs.doCompress(ctx, nil, &folders[i], zipWriter, isArchive)
 		}
 
 	}
@@ -102,7 +107,7 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint) (
 			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
 			return "", ErrClientCanceled
 		default:
-			fs.doCompress(ctx, &files[i], nil, zipWriter, true)
+			fs.doCompress(ctx, &files[i], nil, zipWriter, isArchive)
 		}
 	}
 

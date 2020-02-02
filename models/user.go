@@ -37,8 +37,8 @@ type User struct {
 	TwoFactor     string `json:"-"`
 	Delay         int
 	Avatar        string
-	Options       string `json:"-",gorm:"size:4096"`
-	Authn         string `gorm:"size:8192"`
+	Options       string `json:"-",gorm:"type:text"`
+	Authn         string `gorm:"type:text"`
 	Score         int
 
 	// 关联模型

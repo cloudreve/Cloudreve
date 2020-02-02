@@ -136,7 +136,7 @@ func TestBeforeShareDownload(t *testing.T) {
 		c.Set("user", &model.User{
 			Model: gorm.Model{ID: 1},
 			Group: model.Group{OptionsSerialized: model.GroupOption{
-				ShareDownloadEnabled: true,
+				ShareDownload: true,
 			}},
 		})
 		testFunc(c)

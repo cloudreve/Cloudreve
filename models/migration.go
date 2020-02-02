@@ -29,7 +29,7 @@ func migration() {
 	if conf.DatabaseConfig.Type == "mysql" {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
-	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{})
+	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{}, &Task{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -159,7 +159,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
 		{Name: "aria2_rpcurl", Value: `http://127.0.0.1:6800/`, Type: "aria2"},
 		{Name: "aria2_options", Value: `{"max-tries":5}`, Type: "aria2"},
-		{Name: "task_queue_token", Value: ``, Type: "task"},
+		{Name: "max_worker_num", Value: `10`, Type: "task"},
 		{Name: "secret_key", Value: util.RandStringRunes(256), Type: "auth"},
 		{Name: "temp_path", Value: "temp", Type: "path"},
 		{Name: "score_enabled", Value: "1", Type: "score"},
@@ -186,9 +186,9 @@ func addDefaultGroups() {
 			WebDAVEnabled: true,
 			Aria2Option:   "0,0,0",
 			OptionsSerialized: GroupOption{
-				ArchiveDownloadEnabled: true,
-				ArchiveTaskEnabled:     true,
-				ShareDownloadEnabled:   true,
+				ArchiveDownload: true,
+				ArchiveTask:     true,
+				ShareDownload:   true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {

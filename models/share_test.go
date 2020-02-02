@@ -156,7 +156,7 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 		user := &User{
 			Group: Group{
 				OptionsSerialized: GroupOption{
-					ShareDownloadEnabled: false,
+					ShareDownload: false,
 				},
 			},
 		}
@@ -169,7 +169,7 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 			Model: gorm.Model{ID: 1},
 			Group: Group{
 				OptionsSerialized: GroupOption{
-					ShareDownloadEnabled: false,
+					ShareDownload: false,
 				},
 			},
 		}
@@ -181,7 +181,7 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 		user := &User{
 			Group: Group{
 				OptionsSerialized: GroupOption{
-					ShareDownloadEnabled: true,
+					ShareDownload: true,
 				},
 			},
 		}
@@ -195,7 +195,7 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 			Model: gorm.Model{ID: 1},
 			Group: Group{
 				OptionsSerialized: GroupOption{
-					ShareDownloadEnabled: true,
+					ShareDownload: true,
 				},
 			},
 		}
@@ -259,10 +259,10 @@ func TestShare_Purchase(t *testing.T) {
 		asserts.NoError(share.Purchase(&user))
 
 		share.Score = 1
-		user.Group.OptionsSerialized.ShareFreeEnabled = true
+		user.Group.OptionsSerialized.ShareFree = true
 		asserts.NoError(share.Purchase(&user))
 
-		user.Group.OptionsSerialized.ShareFreeEnabled = false
+		user.Group.OptionsSerialized.ShareFree = false
 		share.UserID = 1
 		user.ID = 1
 		asserts.NoError(share.Purchase(&user))

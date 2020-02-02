@@ -77,9 +77,9 @@ func BuildUser(user model.User) User {
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  aria2Option[0],
 			AllowTorrentDownload: aria2Option[2],
-			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownloadEnabled,
-			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFreeEnabled,
-			ShareDownload:        user.Group.OptionsSerialized.ShareDownloadEnabled,
+			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownload,
+			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFree,
+			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 		},
 	}
 }

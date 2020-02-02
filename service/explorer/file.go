@@ -75,7 +75,7 @@ func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Con
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
-	if fs.User.Group.OptionsSerialized.OneTimeDownloadEnabled {
+	if fs.User.Group.OptionsSerialized.OneTimeDownload {
 		// 清理资源，删除临时文件
 		_ = cache.Deletes([]string{service.ID}, "archive_")
 	}
@@ -205,7 +205,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	// 设置文件名
 	c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
 
-	if fs.User.Group.OptionsSerialized.OneTimeDownloadEnabled {
+	if fs.User.Group.OptionsSerialized.OneTimeDownload {
 		// 清理资源，删除临时文件
 		_ = cache.Deletes([]string{service.ID}, "download_")
 	}

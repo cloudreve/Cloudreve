@@ -123,7 +123,7 @@ func (share *Share) SourceFile() *File {
 // CanBeDownloadBy 返回此分享是否可以被给定用户下载
 func (share *Share) CanBeDownloadBy(user *User) error {
 	// 用户组权限
-	if !user.Group.OptionsSerialized.ShareDownloadEnabled {
+	if !user.Group.OptionsSerialized.ShareDownload {
 		if user.IsAnonymous() {
 			return errors.New("未登录用户无法下载")
 		}
@@ -169,7 +169,7 @@ func (share *Share) DownloadBy(user *User, c *gin.Context) error {
 // Purchase 使用积分购买分享
 func (share *Share) Purchase(user *User) error {
 	// 不需要付积分
-	if share.Score == 0 || user.Group.OptionsSerialized.ShareFreeEnabled || user.ID == share.UserID {
+	if share.Score == 0 || user.Group.OptionsSerialized.ShareFree || user.ID == share.UserID {
 		return nil
 	}
 

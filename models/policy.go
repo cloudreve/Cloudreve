@@ -22,14 +22,14 @@ type Policy struct {
 	BucketName         string
 	IsPrivate          bool
 	BaseURL            string
-	AccessKey          string `gorm:"size:1024"`
-	SecretKey          string `gorm:"size:1024"`
+	AccessKey          string `gorm:"type:text"`
+	SecretKey          string `gorm:"type:text"`
 	MaxSize            uint64
 	AutoRename         bool
 	DirNameRule        string
 	FileNameRule       string
 	IsOriginLinkEnable bool
-	Options            string `gorm:"size:4096"`
+	Options            string `gorm:"type:text"`
 
 	// 数据库忽略字段
 	OptionsSerialized PolicyOption `gorm:"-"`

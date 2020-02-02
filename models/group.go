@@ -16,7 +16,7 @@ type Group struct {
 	Aria2Option   string
 	Color         string
 	SpeedLimit    int
-	Options       string `json:"-",gorm:"size:4096"`
+	Options       string `json:"-",gorm:"type:text"`
 
 	// 数据库忽略字段
 	PolicyList        []uint      `gorm:"-"`
@@ -25,11 +25,11 @@ type Group struct {
 
 // GroupOption 用户组其他配置
 type GroupOption struct {
-	ArchiveDownloadEnabled bool `json:"archive_download,omitempty"`
-	ArchiveTaskEnabled     bool `json:"archive_task,omitempty"`
-	OneTimeDownloadEnabled bool `json:"one_time_download,omitempty"`
-	ShareDownloadEnabled   bool `json:"share_download,omitempty"`
-	ShareFreeEnabled       bool `json:"share_free,omitempty"`
+	ArchiveDownload bool `json:"archive_download,omitempty"`
+	ArchiveTask     bool `json:"archive_task,omitempty"`
+	OneTimeDownload bool `json:"one_time_download,omitempty"`
+	ShareDownload   bool `json:"share_download,omitempty"`
+	ShareFree       bool `json:"share_free,omitempty"`
 }
 
 // GetAria2Option 获取用户离线下载设备

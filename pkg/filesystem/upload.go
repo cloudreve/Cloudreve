@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"os"
 	"path"
 )
 
@@ -114,8 +115,10 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 	var reqContext context.Context
 	if ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context); ok {
 		reqContext = ginCtx.Request.Context()
+	} else if reqCtx, ok := ctx.Value(fsctx.HTTPCtx).(context.Context); ok {
+		reqContext = reqCtx
 	} else {
-		reqContext = ctx.Value(fsctx.HTTPCtx).(context.Context)
+		return
 	}
 
 	select {
@@ -181,4 +184,43 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	}
 
 	return &credential, nil
+}
+
+// UploadFromPath 将本机已有文件上传到用户的文件系统
+func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string) error {
+	file, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// 获取源文件大小
+	fi, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	size := fi.Size()
+
+	// 构建文件头
+	fileName := path.Base(dst)
+	filePath := path.Dir(dst)
+	fileData := local.FileStream{
+		File:        file,
+		Size:        uint64(size),
+		Name:        fileName,
+		VirtualPath: filePath,
+	}
+
+	// 给文件系统分配钩子
+	fs.Use("BeforeUpload", HookValidateFile)
+	fs.Use("BeforeUpload", HookValidateCapacity)
+	fs.Use("AfterUploadCanceled", HookDeleteTempFile)
+	fs.Use("AfterUploadCanceled", HookGiveBackCapacity)
+	fs.Use("AfterUpload", GenericAfterUpload)
+	fs.Use("AfterValidateFailed", HookDeleteTempFile)
+	fs.Use("AfterValidateFailed", HookGiveBackCapacity)
+	fs.Use("AfterUploadFailed", HookGiveBackCapacity)
+
+	// 开始上传
+	return fs.Upload(ctx, fileData)
 }
