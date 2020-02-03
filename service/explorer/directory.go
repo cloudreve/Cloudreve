@@ -51,7 +51,7 @@ func (service *DirectoryService) CreateDirectory(c *gin.Context) serializer.Resp
 	defer cancel()
 
 	// 创建目录
-	err = fs.CreateDirectory(ctx, service.Path)
+	_, err = fs.CreateDirectory(ctx, service.Path)
 	if err != nil {
 		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
 	}

@@ -78,6 +78,8 @@ type FileSystem struct {
 	DirTarget []model.Folder
 	// 相对根目录
 	Root *model.Folder
+	// 互斥锁
+	Lock sync.Mutex
 
 	/*
 	   钩子函数
@@ -110,6 +112,7 @@ func (fs *FileSystem) reset() {
 	fs.Hooks = nil
 	fs.Handler = nil
 	fs.Root = nil
+	fs.Lock = sync.Mutex{}
 }
 
 // NewFileSystem 初始化一个文件系统

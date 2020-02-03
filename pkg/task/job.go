@@ -9,6 +9,8 @@ import (
 const (
 	// CompressTaskType 压缩任务
 	CompressTaskType = iota
+	// DecompressTaskType 解压缩任务
+	DecompressTaskType
 )
 
 // 任务状态
@@ -27,8 +29,10 @@ const (
 
 // 任务进度
 const (
+	// PendingProgress 等待中
+	PendingProgress = iota
 	// Compressing 压缩中
-	CompressingProgress = iota
+	CompressingProgress
 	// Decompressing 解压缩中
 	DecompressingProgress
 	// Downloading 下载中
@@ -51,7 +55,8 @@ type Job interface {
 
 // JobError 任务失败信息
 type JobError struct {
-	Msg string
+	Msg   string `json:"msg,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 // Record 将任务记录到数据库中
@@ -92,6 +97,8 @@ func GetJobFromModel(task *model.Task) (Job, error) {
 	switch task.Type {
 	case CompressTaskType:
 		return NewCompressTaskFromModel(task)
+	case DecompressTaskType:
+		return NewDecompressTaskFromModel(task)
 	default:
 		return nil, ErrUnknownTaskType
 	}

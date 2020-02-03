@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"io"
 	"os"
 	"path"
 )
@@ -186,8 +187,45 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	return &credential, nil
 }
 
+// UploadFromStream 从文件流上传文件
+func (fs *FileSystem) UploadFromStream(ctx context.Context, src io.ReadCloser, dst string, size uint64) error {
+	// 构建文件头
+	fileName := path.Base(dst)
+	filePath := path.Dir(dst)
+	fileData := local.FileStream{
+		File:        src,
+		Size:        size,
+		Name:        fileName,
+		VirtualPath: filePath,
+	}
+
+	// 给文件系统分配钩子
+	fs.Lock.Lock()
+	if fs.Hooks == nil {
+		fs.Use("BeforeUpload", HookValidateFile)
+		fs.Use("BeforeUpload", HookValidateCapacity)
+		fs.Use("AfterUploadCanceled", HookDeleteTempFile)
+		fs.Use("AfterUploadCanceled", HookGiveBackCapacity)
+		fs.Use("AfterUpload", GenericAfterUpload)
+		fs.Use("AfterValidateFailed", HookDeleteTempFile)
+		fs.Use("AfterValidateFailed", HookGiveBackCapacity)
+		fs.Use("AfterUploadFailed", HookGiveBackCapacity)
+	}
+	fs.Lock.Unlock()
+
+	// 开始上传
+	return fs.Upload(ctx, fileData)
+}
+
 // UploadFromPath 将本机已有文件上传到用户的文件系统
 func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string) error {
+	// 重设存储策略
+	fs.Policy = &fs.User.Policy
+	err := fs.DispatchHandler()
+	if err != nil {
+		return err
+	}
+
 	file, err := os.Open(src)
 	if err != nil {
 		return err
@@ -201,26 +239,6 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string) error
 	}
 	size := fi.Size()
 
-	// 构建文件头
-	fileName := path.Base(dst)
-	filePath := path.Dir(dst)
-	fileData := local.FileStream{
-		File:        file,
-		Size:        uint64(size),
-		Name:        fileName,
-		VirtualPath: filePath,
-	}
-
-	// 给文件系统分配钩子
-	fs.Use("BeforeUpload", HookValidateFile)
-	fs.Use("BeforeUpload", HookValidateCapacity)
-	fs.Use("AfterUploadCanceled", HookDeleteTempFile)
-	fs.Use("AfterUploadCanceled", HookGiveBackCapacity)
-	fs.Use("AfterUpload", GenericAfterUpload)
-	fs.Use("AfterValidateFailed", HookDeleteTempFile)
-	fs.Use("AfterValidateFailed", HookGiveBackCapacity)
-	fs.Use("AfterUploadFailed", HookGiveBackCapacity)
-
 	// 开始上传
-	return fs.Upload(ctx, fileData)
+	return fs.UploadFromStream(ctx, file, dst, uint64(size))
 }

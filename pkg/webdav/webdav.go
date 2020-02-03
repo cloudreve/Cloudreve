@@ -326,6 +326,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	exist, originFile := fs.IsFileExist(reqPath)
 	if exist {
 		// 已存在，为更新操作
+
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookResetPolicy)
 		fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
@@ -382,7 +383,7 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesy
 	if r.ContentLength > 0 {
 		return http.StatusUnsupportedMediaType, nil
 	}
-	if err := fs.CreateDirectory(ctx, reqPath); err != nil {
+	if _, err := fs.CreateDirectory(ctx, reqPath); err != nil {
 		return http.StatusConflict, err
 	}
 	return http.StatusCreated, nil

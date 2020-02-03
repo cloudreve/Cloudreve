@@ -28,6 +28,15 @@ func (fs *FileSystem) Use(name string, hook Hook) {
 	fs.Hooks[name] = []Hook{hook}
 }
 
+// CleanHooks 清空钩子,name为空表示全部清空
+func (fs *FileSystem) CleanHooks(name string) {
+	if name == "" {
+		fs.Hooks = nil
+	} else {
+		delete(fs.Hooks, name)
+	}
+}
+
 // Trigger 触发钩子,遇到第一个错误时
 // 返回错误，后续钩子不会继续执行
 func (fs *FileSystem) Trigger(ctx context.Context, name string) error {
@@ -247,10 +256,14 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 文件存放的虚拟路径
 	virtualPath := ctx.Value(fsctx.FileHeaderCtx).(FileHeader).GetVirtualPath()
 
-	// 检查路径是否存在
+	// 检查路径是否存在，不存在就创建
 	isExist, folder := fs.IsPathExist(virtualPath)
 	if !isExist {
-		return ErrPathNotExist
+		newFolder, err := fs.CreateDirectory(ctx, virtualPath)
+		if err != nil {
+			return err
+		}
+		folder = newFolder
 	}
 
 	// 检查文件是否存在

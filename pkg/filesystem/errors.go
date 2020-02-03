@@ -12,6 +12,7 @@ var (
 	ErrInsufficientCapacity    = errors.New("容量空间不足")
 	ErrIllegalObjectName       = errors.New("目标名称非法")
 	ErrClientCanceled          = errors.New("客户端取消操作")
+	ErrRootProtected           = errors.New("无法对根目录进行操作")
 	ErrInsertFileRecord        = serializer.NewError(serializer.CodeDBError, "无法插入文件记录", nil)
 	ErrFileExisted             = serializer.NewError(serializer.CodeObjectExist, "同名文件或目录已存在", nil)
 	ErrFolderExisted           = serializer.NewError(serializer.CodeObjectExist, "同名目录已存在", nil)

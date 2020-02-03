@@ -15,6 +15,7 @@ import (
 	"math"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -42,6 +43,59 @@ type ItemCompressService struct {
 	Src  ItemService `json:"src" binding:"exists"`
 	Dst  string      `json:"dst" binding:"required,min=1,max=65535"`
 	Name string      `json:"name" binding:"required,min=1,max=255"`
+}
+
+// ItemDecompressService 文件解压缩任务服务
+type ItemDecompressService struct {
+	Src string `json:"src" binding:"exists"`
+	Dst string `json:"dst" binding:"required,min=1,max=65535"`
+}
+
+// CreateDecompressTask 创建文件解压缩任务
+func (service *ItemDecompressService) CreateDecompressTask(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 检查用户组权限
+	if !fs.User.Group.OptionsSerialized.ArchiveTask {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+	}
+
+	// 存放目录是否存在
+	if exist, _ := fs.IsPathExist(service.Dst); !exist {
+		return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+	}
+
+	// 压缩包是否存在
+	exist, file := fs.IsFileExist(service.Src)
+	if !exist {
+		return serializer.Err(serializer.CodeNotFound, "文件不存在", nil)
+	}
+
+	// 文件尺寸限制
+	if fs.User.Group.OptionsSerialized.DecompressSize != 0 && file.Size > fs.User.Group.
+		OptionsSerialized.DecompressSize {
+		return serializer.Err(serializer.CodeParamErr, "文件太大", nil)
+	}
+
+	// 必须是zip压缩包
+	if !strings.HasSuffix(file.Name, ".zip") {
+		return serializer.Err(serializer.CodeParamErr, "只能解压 ZIP 格式的压缩文件", nil)
+	}
+
+	// 创建任务
+	job, err := task.NewDecompressTask(fs.User, service.Src, service.Dst)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
+	}
+	task.TaskPoll.Submit(job)
+
+	return serializer.Response{}
+
 }
 
 // CreateCompressTask 创建文件压缩任务
@@ -92,6 +146,12 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 		totalSize += files[i].Size
 	}
 
+	// 文件尺寸限制
+	if fs.User.Group.OptionsSerialized.DecompressSize != 0 && totalSize > fs.User.Group.
+		OptionsSerialized.CompressSize {
+		return serializer.Err(serializer.CodeParamErr, "文件太大", nil)
+	}
+
 	// 按照平均压缩率计算用户空间是否足够
 	compressRatio := 0.4
 	spaceNeeded := uint64(math.Round(float64(totalSize) * compressRatio))
@@ -105,8 +165,8 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
-
 	task.TaskPoll.Submit(job)
+
 	return serializer.Response{}
 
 }

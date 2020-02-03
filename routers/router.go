@@ -269,6 +269,8 @@ func InitMasterRouter() *gin.Engine {
 				file.POST("archive", controllers.Archive)
 				// 创建文件压缩任务
 				file.POST("compress", controllers.Compress)
+				// 创建文件解压缩任务
+				file.POST("decompress", controllers.Decompress)
 			}
 
 			// 目录

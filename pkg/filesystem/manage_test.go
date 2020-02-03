@@ -146,12 +146,12 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	ctx := context.Background()
 
 	// 目录名非法
-	err := fs.CreateDirectory(ctx, "/ad/a+?")
+	_, err := fs.CreateDirectory(ctx, "/ad/a+?")
 	asserts.Equal(ErrIllegalObjectName, err)
 
 	// 父目录不存在
 	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
-	err = fs.CreateDirectory(ctx, "/ad/ab")
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.Equal(ErrPathNotExist, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -166,7 +166,7 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "ab"))
-	err = fs.CreateDirectory(ctx, "/ad/ab")
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.Equal(ErrFileExisted, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -183,7 +183,7 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("s"))
 	mock.ExpectRollback()
-	err = fs.CreateDirectory(ctx, "/ad/ab")
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.Error(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
@@ -201,7 +201,7 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err = fs.CreateDirectory(ctx, "/ad/ab")
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }

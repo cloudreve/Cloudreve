@@ -10,7 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -148,7 +151,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 
 		// 创建压缩文件头
 		header := &zip.FileHeader{
-			Name:               filepath.Join(file.Position, file.Name),
+			Name:               filepath.FromSlash(path.Join(file.Position, file.Name)),
 			Modified:           file.UpdatedAt,
 			UncompressedSize64: file.Size,
 		}
@@ -184,4 +187,118 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 			}
 		}
 	}
+}
+
+// Decompress 解压缩给定压缩文件到dst目录
+func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
+	err := fs.resetFileIfNotExist(ctx, src)
+	if err != nil {
+		return err
+	}
+
+	tempZipFilePath := ""
+	defer func() {
+		// 结束时删除临时压缩文件
+		if tempZipFilePath != "" {
+			if err := os.Remove(tempZipFilePath); err != nil {
+				util.Log().Warning("无法删除临时压缩文件 %s , %s", tempZipFilePath, err)
+			}
+		}
+	}()
+
+	// 下载压缩文件到临时目录
+	fileStream, err := fs.Handler.Get(ctx, fs.FileTarget[0].SourceName)
+	if err != nil {
+		return err
+	}
+
+	tempZipFilePath = filepath.Join(
+		model.GetSettingByName("temp_path"),
+		"decompress",
+		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
+	)
+
+	zipFile, err := util.CreatNestedFile(tempZipFilePath)
+	if err != nil {
+		util.Log().Warning("无法创建临时压缩文件 %s , %s", tempZipFilePath, err)
+		tempZipFilePath = ""
+		return err
+	}
+	defer zipFile.Close()
+
+	_, err = io.Copy(zipFile, fileStream)
+	if err != nil {
+		util.Log().Warning("无法写入临时压缩文件 %s , %s", tempZipFilePath, err)
+		return err
+	}
+
+	zipFile.Close()
+
+	// 解压缩文件
+	r, err := zip.OpenReader(tempZipFilePath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	// 重设存储策略
+	fs.Policy = &fs.User.Policy
+	err = fs.DispatchHandler()
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	parallel := model.GetIntSetting("max_parallel_transfer", 4)
+	worker := make(chan int, parallel)
+	for i := 0; i < parallel; i++ {
+		worker <- i
+	}
+
+	for _, f := range r.File {
+		rawPath := util.FormSlash(f.Name)
+		savePath := path.Join(dst, rawPath)
+		// 路径是否合法
+		if !strings.HasPrefix(savePath, path.Clean(dst)+"/") {
+			return fmt.Errorf("%s: illegal file path", f.Name)
+		}
+
+		// 如果是目录
+		if f.FileInfo().IsDir() {
+			fs.CreateDirectory(ctx, savePath)
+			continue
+		}
+
+		// 上传文件
+		fileStream, err := f.Open()
+		if err != nil {
+			util.Log().Warning("无法打开压缩包内文件%s , %s , 跳过", rawPath, err)
+			continue
+		}
+
+		select {
+		case <-worker:
+			go func(fileStream io.ReadCloser, size int64) {
+				wg.Add(1)
+				defer func() {
+					worker <- 1
+					wg.Done()
+					if err := recover(); err != nil {
+						util.Log().Warning("上传压缩包内文件时出错")
+						fmt.Println(err)
+					}
+				}()
+
+				err = fs.UploadFromStream(ctx, fileStream, savePath, uint64(size))
+				fileStream.Close()
+				if err != nil {
+					util.Log().Debug("无法上传压缩包内的文件%s , %s , 跳过", rawPath, err)
+				}
+			}(fileStream, f.FileInfo().Size())
+		}
+
+	}
+	wg.Wait()
+	return nil
+
 }

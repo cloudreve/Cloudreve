@@ -1,6 +1,9 @@
 package util
 
-import "strings"
+import (
+	"path"
+	"strings"
+)
 
 // DotPathToStandardPath 将","分割的路径转换为标准路径
 func DotPathToStandardPath(path string) string {
@@ -36,4 +39,9 @@ func SplitPath(path string) []string {
 	pathSplit := strings.Split(path, "/")
 	pathSplit[0] = "/"
 	return pathSplit
+}
+
+// FormSlash 将path中的反斜杠'\'替换为'/'
+func FormSlash(old string) string {
+	return path.Clean(strings.ReplaceAll(old, "\\", "/"))
 }

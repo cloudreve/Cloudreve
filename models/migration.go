@@ -160,6 +160,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "aria2_rpcurl", Value: `http://127.0.0.1:6800/`, Type: "aria2"},
 		{Name: "aria2_options", Value: `{"max-tries":5}`, Type: "aria2"},
 		{Name: "max_worker_num", Value: `10`, Type: "task"},
+		{Name: "max_parallel_transfer", Value: `4`, Type: "task"},
 		{Name: "secret_key", Value: util.RandStringRunes(256), Type: "auth"},
 		{Name: "temp_path", Value: "temp", Type: "path"},
 		{Name: "score_enabled", Value: "1", Type: "score"},

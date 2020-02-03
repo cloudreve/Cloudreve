@@ -328,8 +328,12 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	return objects, nil
 }
 
-// CreateDirectory 根据给定的完整创建目录，不会递归创建
-func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) error {
+// CreateDirectory 根据给定的完整创建目录，支持递归创建
+func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*model.Folder, error) {
+	if fullPath == "/" {
+		return nil, ErrRootProtected
+	}
+
 	// 获取要创建目录的父路径和目录名
 	fullPath = path.Clean(fullPath)
 	base := path.Dir(fullPath)
@@ -340,18 +344,26 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 
 	// 检查目录名是否合法
 	if !fs.ValidateLegalName(ctx, dir) {
-		return ErrIllegalObjectName
+		return nil, ErrIllegalObjectName
 	}
 
 	// 父目录是否存在
 	isExist, parent := fs.IsPathExist(base)
 	if !isExist {
-		return ErrPathNotExist
+		// 递归创建父目录
+		if _, ok := ctx.Value(fsctx.IgnoreConflictCtx).(bool); !ok {
+			ctx = context.WithValue(ctx, fsctx.IgnoreConflictCtx, true)
+		}
+		newParent, err := fs.CreateDirectory(ctx, base)
+		if err != nil {
+			return nil, err
+		}
+		parent = newParent
 	}
 
 	// 是否有同名文件
 	if ok, _ := fs.IsChildFileExist(parent, dir); ok {
-		return ErrFileExisted
+		return nil, ErrFileExisted
 	}
 
 	// 创建目录
@@ -363,9 +375,12 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) erro
 	_, err := newFolder.Create()
 
 	if err != nil {
-		return ErrFolderExisted
+		if _, ok := ctx.Value(fsctx.IgnoreConflictCtx).(bool); !ok {
+			return nil, ErrFolderExisted
+		}
+
 	}
-	return nil
+	return &newFolder, nil
 }
 
 // SaveTo 将别人分享的文件转存到目标路径下

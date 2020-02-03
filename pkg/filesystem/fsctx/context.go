@@ -31,4 +31,6 @@ const (
 	ShareKeyCtx
 	// LimitParentCtx 限制父目录
 	LimitParentCtx
+	// IgnoreConflictCtx 忽略重名冲突
+	IgnoreConflictCtx
 )
