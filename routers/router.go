@@ -273,6 +273,9 @@ func InitMasterRouter() *gin.Engine {
 				file.POST("decompress", controllers.Decompress)
 			}
 
+			// 离线下载任务
+			//aria2 := auth.Group("aria2")
+
 			// 目录
 			directory := auth.Group("directory")
 			{

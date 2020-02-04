@@ -64,7 +64,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	return handler.Client.Delete(ctx, files)
+	return handler.Client.BatchDelete(ctx, files)
 }
 
 // Thumb 获取文件缩略图

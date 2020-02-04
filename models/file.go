@@ -13,8 +13,8 @@ type File struct {
 	// 表字段
 	gorm.Model
 	Name       string `gorm:"unique_index:idx_only_one"`
-	SourceName string
-	UserID     uint `gorm:"index:user_id;unique_index:idx_only_one"`
+	SourceName string `gorm:"type:text"`
+	UserID     uint   `gorm:"index:user_id;unique_index:idx_only_one"`
 	Size       uint64
 	PicInfo    string
 	FolderID   uint `gorm:"index:folder_id;unique_index:idx_only_one"`

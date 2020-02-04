@@ -269,7 +269,28 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 	return &uploadRes, nil
 }
 
-// Delete 并行删除文件，返回删除失败的文件，及第一个遇到的错误
+// BatchDelete 并行删除给出的文件，返回删除失败的文件，及第一个遇到的错误。此方法将文件分为
+// 20个一组，调用Delete并行删除
+// TODO 测试
+func (client *Client) BatchDelete(ctx context.Context, dst []string) ([]string, error) {
+	groupNum := len(dst)/20 + 1
+	finalRes := make([]string, 0, len(dst))
+	res := make([]string, 0, 20)
+	var err error
+
+	for i := 0; i < groupNum; i++ {
+		end := 20*i + 20
+		if i == groupNum-1 {
+			end = len(dst)
+		}
+		res, err = client.Delete(ctx, dst[20*i:end])
+		finalRes = append(finalRes, res...)
+	}
+
+	return finalRes, err
+}
+
+// Delete 并行删除文件，返回删除失败的文件，及第一个遇到的错误，最多删除20个
 func (client *Client) Delete(ctx context.Context, dst []string) ([]string, error) {
 	body := client.makeBatchDeleteRequestsBody(dst)
 	res, err := client.requestWithStr(ctx, "POST", client.getRequestURL("$batch"), body, 200)
