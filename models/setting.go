@@ -39,7 +39,7 @@ func GetSettingByName(name string) string {
 }
 
 // GetSettingByNames 用多个 Name 获取设置值
-func GetSettingByNames(names []string) map[string]string {
+func GetSettingByNames(names ...string) map[string]string {
 	var queryRes []Setting
 	res, miss := cache.GetSettings(names, "setting_")
 

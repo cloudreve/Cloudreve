@@ -67,7 +67,7 @@ func TestGetSettingByNames(t *testing.T) {
 		AddRow("siteName", "Cloudreve", "basic").
 		AddRow("siteDes", "Something wonderful", "basic")
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND(.+)$").WillReturnRows(rows)
-	settings := GetSettingByNames([]string{"siteName", "siteDes"})
+	settings := GetSettingByNames("siteName", "siteDes")
 	asserts.Equal(map[string]string{
 		"siteName": "Cloudreve",
 		"siteDes":  "Something wonderful",
@@ -78,7 +78,7 @@ func TestGetSettingByNames(t *testing.T) {
 	rows = sqlmock.NewRows([]string{"name", "value", "type"}).
 		AddRow("siteName2", "Cloudreve", "basic")
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND(.+)$").WillReturnRows(rows)
-	settings = GetSettingByNames([]string{"siteName2", "siteDes2333"})
+	settings = GetSettingByNames("siteName2", "siteDes2333")
 	asserts.Equal(map[string]string{
 		"siteName2": "Cloudreve",
 	}, settings)
@@ -87,14 +87,14 @@ func TestGetSettingByNames(t *testing.T) {
 	//找不到设置时
 	rows = sqlmock.NewRows([]string{"name", "value", "type"})
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND(.+)$").WillReturnRows(rows)
-	settings = GetSettingByNames([]string{"siteName2333", "siteDes2333"})
+	settings = GetSettingByNames("siteName2333", "siteDes2333")
 	asserts.Equal(map[string]string{}, settings)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 一个设置命中缓存
 	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND(.+)$").WithArgs("siteDes2").WillReturnRows(sqlmock.NewRows([]string{"name", "value", "type"}).
 		AddRow("siteDes2", "Cloudreve2", "basic"))
-	settings = GetSettingByNames([]string{"siteName", "siteDes2"})
+	settings = GetSettingByNames("siteName", "siteDes2")
 	asserts.Equal(map[string]string{
 		"siteName": "Cloudreve",
 		"siteDes2": "Cloudreve2",

@@ -290,7 +290,8 @@ func (client *Client) BatchDelete(ctx context.Context, dst []string) ([]string, 
 	return finalRes, err
 }
 
-// Delete 并行删除文件，返回删除失败的文件，及第一个遇到的错误，最多删除20个
+// Delete 并行删除文件，返回删除失败的文件，及第一个遇到的错误，
+// 由于API限制，最多删除20个
 func (client *Client) Delete(ctx context.Context, dst []string) ([]string, error) {
 	body := client.makeBatchDeleteRequestsBody(dst)
 	res, err := client.requestWithStr(ctx, "POST", client.getRequestURL("$batch"), body, 200)

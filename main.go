@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/aria2"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/cache"
@@ -22,6 +23,7 @@ func init() {
 		model.Init()
 		authn.Init()
 		task.Init()
+		aria2.Init()
 	}
 	auth.Init()
 }

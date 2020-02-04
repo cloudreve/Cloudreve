@@ -30,6 +30,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20200120023323-87ff3bc489ac
 	github.com/upyun/go-sdk v2.1.0+incompatible
+	github.com/zyxar/argo v0.0.0-20190709183644-6096bc0e6414
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	gopkg.in/go-playground/validator.v8 v8.18.2
 	gopkg.in/ini.v1 v1.51.0 // indirect

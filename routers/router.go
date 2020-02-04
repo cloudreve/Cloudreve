@@ -274,7 +274,10 @@ func InitMasterRouter() *gin.Engine {
 			}
 
 			// 离线下载任务
-			//aria2 := auth.Group("aria2")
+			aria2 := auth.Group("aria2")
+			{
+				aria2.POST("url", controllers.AddAria2URL)
+			}
 
 			// 目录
 			directory := auth.Group("directory")

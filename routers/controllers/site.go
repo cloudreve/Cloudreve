@@ -11,7 +11,7 @@ import (
 
 // SiteConfig 获取站点全局配置
 func SiteConfig(c *gin.Context) {
-	siteConfig := model.GetSettingByNames([]string{
+	siteConfig := model.GetSettingByNames(
 		"siteName",
 		"login_captcha",
 		"qq_login",
@@ -25,7 +25,7 @@ func SiteConfig(c *gin.Context) {
 		"share_score_rate",
 		"home_view_method",
 		"share_view_method",
-	})
+	)
 
 	// 如果已登录，则同时返回用户信息
 	user, _ := c.Get("user")

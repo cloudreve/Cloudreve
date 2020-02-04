@@ -29,7 +29,8 @@ func migration() {
 	if conf.DatabaseConfig.Type == "mysql" {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
-	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{}, &Task{})
+	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{},
+		&Task{}, &Download{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -110,6 +111,7 @@ solid #e9e9e9;"bgcolor="#fff"><tbody><tr style="font-family: 'Helvetica Neue',He
 		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
 		{Name: "share_download_session_timeout", Value: `2073600`, Type: "timeout"},
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
+		{Name: "aria2_call_timeout", Value: `5`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
 		{Name: "allowdVisitorDownload", Value: `false`, Type: "share"},
 		{Name: "login_captcha", Value: `0`, Type: "login"},
@@ -155,9 +157,9 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"light":"#7986cb","main":"#3f51b5","dark":"#303f9f","contrastText":"#fff"},"secondary":{"light":"#ff4081","main":"#f50057","dark":"#c51162","contrastText":"#fff"},"error":{"light":"#e57373","main":"#f44336","dark":"#d32f2f","contrastText":"#fff"},"explorer":{"filename":"#474849","icon":"#8f8f8f","bgSelected":"#D5DAF0","emptyIcon":"#e8e8e8"}}}}`, Type: "basic"},
 		{Name: "refererCheck", Value: `true`, Type: "share"},
 		{Name: "header", Value: `X-Sendfile`, Type: "download"},
-		{Name: "aria2_tmppath", Value: `/path/to/public/download`, Type: "aria2"},
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
-		{Name: "aria2_rpcurl", Value: `http://127.0.0.1:6800/`, Type: "aria2"},
+		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
+		{Name: "aria2_temp_path", Value: `F:\aria2-1.33.1-win-64bit-build1\temp`, Type: "aria2"},
 		{Name: "aria2_options", Value: `{"max-tries":5}`, Type: "aria2"},
 		{Name: "max_worker_num", Value: `10`, Type: "task"},
 		{Name: "max_parallel_transfer", Value: `4`, Type: "task"},

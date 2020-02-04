@@ -10,9 +10,10 @@ type Download struct {
 	gorm.Model
 	Status   int    // 任务状态
 	Type     int    // 任务类型
+	Source   string // 文件下载地址
 	Name     string // 任务文件名
 	Size     uint64 // 文件大小
-	PID      string // 任务ID
+	GID      string // 任务ID
 	Path     string `gorm:"type:text"` // 存储路径
 	Attrs    string `gorm:"type:text"` // 任务状态属性
 	FolderID uint   // 存储父目录ID
