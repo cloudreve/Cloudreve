@@ -11,11 +11,11 @@ import (
 // AddURLService 添加URL离线下载服务
 type AddURLService struct {
 	URL string `json:"url" binding:"required"`
-	Dst string `json:"dst" binding:"required,min=1,max=65535"`
+	Dst string `json:"dst" binding:"required,min=1"`
 }
 
 // Add 创建新的链接离线下载任务
-func (service *AddURLService) Add(c *gin.Context) serializer.Response {
+func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -36,7 +36,7 @@ func (service *AddURLService) Add(c *gin.Context) serializer.Response {
 	// 创建任务
 	task := &model.Download{
 		Status: aria2.Ready,
-		Type:   aria2.URLTask,
+		Type:   taskType,
 		Dst:    service.Dst,
 		UserID: fs.User.ID,
 		Source: service.URL,

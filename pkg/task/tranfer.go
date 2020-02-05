@@ -7,6 +7,8 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"os"
+	"path"
+	"path/filepath"
 )
 
 // TransferTask 文件中转任务
@@ -21,9 +23,9 @@ type TransferTask struct {
 
 // TransferProps 中转任务属性
 type TransferProps struct {
-	Src    string `json:"src"`    // 原始目录
-	Parent string `json:"parent"` // 父目录
-	Dst    string `json:"dst"`    // 目的目录ID
+	Src    []string `json:"src"`    // 原始目录
+	Parent string   `json:"parent"` // 父目录
+	Dst    string   `json:"dst"`    // 目的目录ID
 }
 
 // Props 获取任务属性
@@ -86,30 +88,26 @@ func (job *TransferTask) Do() {
 	}
 	defer fs.Recycle()
 
-	err = fs.UploadFromPath(context.Background(), job.TaskProps.Src, job.TaskProps.Dst)
-	if err != nil {
-		job.SetErrorMsg("文件转存失败", err)
-		return
+	for _, file := range job.TaskProps.Src {
+		err = fs.UploadFromPath(context.Background(), file, path.Join(job.TaskProps.Dst, filepath.Base(file)))
+		if err != nil {
+			job.SetErrorMsg("文件转存失败", err)
+		}
 	}
+
 }
 
 // Recycle 回收临时文件
 func (job *TransferTask) Recycle() {
-	err := os.Remove(job.TaskProps.Src)
+	err := os.RemoveAll(job.TaskProps.Parent)
 	if err != nil {
-		util.Log().Warning("无法删除中转临时文件[%s], %s", job.TaskProps.Src, err)
+		util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
 	}
 
-	if empty, _ := util.IsEmpty(job.TaskProps.Parent); empty {
-		err := os.Remove(job.TaskProps.Parent)
-		if err != nil {
-			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
-		}
-	}
 }
 
 // NewTransferTask 新建中转任务
-func NewTransferTask(user uint, dst, src, parent string) (Job, error) {
+func NewTransferTask(user uint, src []string, dst, parent string) (Job, error) {
 	creator, err := model.GetUserByID(user)
 	if err != nil {
 		return nil, err

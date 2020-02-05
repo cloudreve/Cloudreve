@@ -16,6 +16,7 @@ require (
 	github.com/go-ini/ini v1.50.0
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/go-querystring v1.0.0
+	github.com/gorilla/websocket v1.4.1
 	github.com/jinzhu/gorm v1.9.11
 	github.com/juju/ratelimit v1.0.1
 	github.com/mattn/go-colorable v0.1.4 // indirect

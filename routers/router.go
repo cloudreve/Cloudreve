@@ -276,7 +276,12 @@ func InitMasterRouter() *gin.Engine {
 			// 离线下载任务
 			aria2 := auth.Group("aria2")
 			{
+				// 创建URL下载任务
 				aria2.POST("url", controllers.AddAria2URL)
+				// 创建种子下载任务
+				aria2.POST("torrent/*path", controllers.AddAria2Torrent)
+				// 重新选择要下载的文件
+				aria2.PUT("select/:gid", controllers.SelectAria2File)
 			}
 
 			// 目录

@@ -3,9 +3,11 @@ package aria2
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/zyxar/argo/rpc"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -46,20 +48,32 @@ func (client *RPCService) Cancel(task *model.Download) error {
 	return err
 }
 
+// Select 选取要下载的文件
+func (client *RPCService) Select(task *model.Download, files []int) error {
+	var selected = make([]string, len(files))
+	for i := 0; i < len(files); i++ {
+		selected[i] = strconv.Itoa(files[i])
+	}
+	ok, err := client.caller.ChangeOption(task.GID, map[string]interface{}{"select-file": strings.Join(selected, ",")})
+	util.Log().Debug(ok)
+	return err
+}
+
 // CreateTask 创建新任务
 func (client *RPCService) CreateTask(task *model.Download) error {
 	// 生成存储路径
-	task.Path = filepath.Join(
+	path := filepath.Join(
 		model.GetSettingByName("aria2_temp_path"),
 		"aria2",
 		strconv.FormatInt(time.Now().UnixNano(), 10),
 	)
 
 	// 创建下载任务
-	options := []interface{}{map[string]string{"dir": task.Path}}
+	options := []interface{}{map[string]string{"dir": path}}
 	if len(client.options.Options) > 0 {
 		options = append(options, client.options.Options)
 	}
+
 	gid, err := client.caller.AddURI(task.Source, options...)
 	if err != nil || gid == "" {
 		return err

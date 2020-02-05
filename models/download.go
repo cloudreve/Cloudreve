@@ -1,8 +1,10 @@
 package model
 
 import (
+	"encoding/json"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
+	"github.com/zyxar/argo/rpc"
 )
 
 // Download 离线下载队列模型
@@ -10,12 +12,11 @@ type Download struct {
 	gorm.Model
 	Status         int    // 任务状态
 	Type           int    // 任务类型
-	Source         string // 文件下载地址
+	Source         string `gorm:"type:text"` // 文件下载地址
 	TotalSize      uint64 // 文件大小
 	DownloadedSize uint64 // 文件大小
-	GID            string // 任务ID
+	GID            string `gorm:"size:32,index:gid"` // 任务ID
 	Speed          int    // 下载速度
-	Path           string `gorm:"type:text"` // 存储路径
 	Parent         string `gorm:"type:text"` // 存储目录
 	Attrs          string `gorm:"type:text"` // 任务状态属性
 	Error          string `gorm:"type:text"` // 错误描述
@@ -25,6 +26,24 @@ type Download struct {
 
 	// 关联模型
 	User *User `gorm:"PRELOAD:false,association_autoupdate:false"`
+
+	// 数据库忽略字段
+	StatusInfo rpc.StatusInfo `gorm:"-"`
+}
+
+// AfterFind 找到下载任务后的钩子，处理Status结构
+func (task *Download) AfterFind() (err error) {
+	// 解析状态
+	if task.Attrs != "" {
+		err = json.Unmarshal([]byte(task.Attrs), &task.StatusInfo)
+	}
+
+	return err
+}
+
+// BeforeSave Save下载任务前的钩子
+func (task *Download) BeforeSave() (err error) {
+	return task.AfterFind()
 }
 
 // Create 创建离线下载记录
@@ -50,6 +69,13 @@ func GetDownloadsByStatus(status ...int) []Download {
 	var tasks []Download
 	DB.Where("status in (?)", status).Find(&tasks)
 	return tasks
+}
+
+// GetDownloadByGid 根据GID和用户ID查找下载
+func GetDownloadByGid(gid string, uid uint) (*Download, error) {
+	download := &Download{}
+	result := DB.Where("user_id = ? and g_id = ?", uid, gid).Find(download)
+	return download, result.Error
 }
 
 // GetOwner 获取下载任务所属用户

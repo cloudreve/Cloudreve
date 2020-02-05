@@ -501,6 +501,7 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	)
 
 	if res.Err != nil {
+		// TODO 重试
 		return "", sysError(res.Err)
 	}
 

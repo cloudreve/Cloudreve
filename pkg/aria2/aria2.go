@@ -22,6 +22,8 @@ type Aria2 interface {
 	Status(task *model.Download) (rpc.StatusInfo, error)
 	// 取消任务
 	Cancel(task *model.Download) error
+	// 选择要下载的文件
+	Select(task *model.Download, files []int) error
 }
 
 const (
@@ -70,6 +72,11 @@ func (instance *DummyAria2) Status(task *model.Download) (rpc.StatusInfo, error)
 
 // Cancel 返回未开启错误
 func (instance *DummyAria2) Cancel(task *model.Download) error {
+	return ErrNotEnabled
+}
+
+// Select 返回未开启错误
+func (instance *DummyAria2) Select(task *model.Download, files []int) error {
 	return ErrNotEnabled
 }
 

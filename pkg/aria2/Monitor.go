@@ -12,7 +12,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/zyxar/argo/rpc"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -110,7 +109,6 @@ func (monitor *Monitor) Update() bool {
 // UpdateTaskInfo 更新数据库中的任务信息
 func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 	originSize := monitor.Task.TotalSize
-	originPath := monitor.Task.Path
 
 	monitor.Task.GID = status.Gid
 	monitor.Task.Status = getStatus(status.Status)
@@ -136,9 +134,6 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 	}
 
 	monitor.Task.Speed = speed
-	if len(status.Files) > 0 {
-		monitor.Task.Path = status.Files[0].Path
-	}
 	attrs, _ := json.Marshal(status)
 	monitor.Task.Attrs = string(attrs)
 
@@ -146,8 +141,8 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 		return nil
 	}
 
-	if originSize != monitor.Task.TotalSize || originPath != monitor.Task.Path {
-		// 大小、文件名更新后，对文件限制等进行校验
+	if originSize != monitor.Task.TotalSize {
+		// 文件大小更新后，对文件限制等进行校验
 		if err := monitor.ValidateFile(); err != nil {
 			// 验证失败时取消任务
 			monitor.Cancel()
@@ -190,17 +185,27 @@ func (monitor *Monitor) ValidateFile() error {
 	// 创建上下文环境
 	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
 		Size: monitor.Task.TotalSize,
-		Name: filepath.Base(monitor.Task.Path),
 	})
-
-	// 验证文件
-	if err := filesystem.HookValidateFile(ctx, fs); err != nil {
-		return err
-	}
 
 	// 验证用户容量
 	if err := filesystem.HookValidateCapacityWithoutIncrease(ctx, fs); err != nil {
 		return err
+	}
+
+	// 验证每个文件
+	for _, fileInfo := range monitor.Task.StatusInfo.Files {
+		if fileInfo.Selected == "true" {
+			// 创建上下文环境
+			fileSize, _ := strconv.ParseUint(fileInfo.Length, 10, 64)
+			ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+				Size: fileSize,
+				Name: filepath.Base(fileInfo.Path),
+			})
+			if err := filesystem.HookValidateFile(ctx, fs); err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -216,21 +221,6 @@ func (monitor *Monitor) Error(status rpc.StatusInfo) bool {
 	return true
 }
 
-// RemoveTempFile 清理下载临时文件
-func (monitor *Monitor) RemoveTempFile() {
-	err := os.Remove(monitor.Task.Path)
-	if err != nil {
-		util.Log().Warning("无法删除离线下载临时文件[%s], %s", monitor.Task.Path, err)
-	}
-
-	if empty, _ := util.IsEmpty(monitor.Task.Parent); empty {
-		err := os.Remove(monitor.Task.Parent)
-		if err != nil {
-			util.Log().Warning("无法删除离线下载临时目录[%s], %s", monitor.Task.Parent, err)
-		}
-	}
-}
-
 // RemoveTempFolder 清理下载临时目录
 func (monitor *Monitor) RemoveTempFolder() {
 	err := os.RemoveAll(monitor.Task.Parent)
@@ -243,10 +233,16 @@ func (monitor *Monitor) RemoveTempFolder() {
 // Complete 完成下载，返回是否中断监控
 func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 	// 创建中转任务
+	file := make([]string, 0, len(monitor.Task.StatusInfo.Files))
+	for i := 0; i < len(monitor.Task.StatusInfo.Files); i++ {
+		if monitor.Task.StatusInfo.Files[i].Selected == "true" {
+			file = append(file, monitor.Task.StatusInfo.Files[i].Path)
+		}
+	}
 	job, err := task.NewTransferTask(
 		monitor.Task.UserID,
-		path.Join(monitor.Task.Dst, filepath.Base(monitor.Task.Path)),
-		monitor.Task.Path,
+		file,
+		monitor.Task.Dst,
 		monitor.Task.Parent,
 	)
 	if err != nil {
