@@ -22,6 +22,9 @@ type Download struct {
 	Dst            string `gorm:"type:text"` // 用户文件系统存储父目录路径
 	UserID         uint   // 发起者UID
 	TaskID         uint   // 对应的转存任务ID
+
+	// 关联模型
+	User *User `gorm:"PRELOAD:false,association_autoupdate:false"`
 }
 
 // Create 创建离线下载记录
@@ -47,4 +50,14 @@ func GetDownloadsByStatus(status ...int) []Download {
 	var tasks []Download
 	DB.Where("status in (?)", status).Find(&tasks)
 	return tasks
+}
+
+// GetOwner 获取下载任务所属用户
+func (task *Download) GetOwner() *User {
+	if task.User == nil {
+		if user, err := GetUserByID(task.UserID); err == nil {
+			return &user
+		}
+	}
+	return task.User
 }

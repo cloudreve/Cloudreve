@@ -128,6 +128,16 @@ func HookValidateCapacity(ctx context.Context, fs *FileSystem) error {
 	return nil
 }
 
+// HookValidateCapacityWithoutIncrease 验证用户容量，不扣除
+func HookValidateCapacityWithoutIncrease(ctx context.Context, fs *FileSystem) error {
+	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	// 验证并扣除容量
+	if fs.User.GetRemainingCapacity() < file.GetSize() {
+		return ErrInsufficientCapacity
+	}
+	return nil
+}
+
 // HookChangeCapacity 根据原有文件和新文件的大小更新用户容量
 func HookChangeCapacity(ctx context.Context, fs *FileSystem) error {
 	newFile := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)

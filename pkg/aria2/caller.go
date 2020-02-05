@@ -40,6 +40,12 @@ func (client *RPCService) Status(task *model.Download) (rpc.StatusInfo, error) {
 	return client.caller.TellStatus(task.GID)
 }
 
+// Cancel 取消下载
+func (client *RPCService) Cancel(task *model.Download) error {
+	_, err := client.caller.Remove(task.GID)
+	return err
+}
+
 // CreateTask 创建新任务
 func (client *RPCService) CreateTask(task *model.Download) error {
 	// 生成存储路径

@@ -20,6 +20,8 @@ type Aria2 interface {
 	CreateTask(task *model.Download) error
 	// 返回状态信息
 	Status(task *model.Download) (rpc.StatusInfo, error)
+	// 取消任务
+	Cancel(task *model.Download) error
 }
 
 const (
@@ -48,7 +50,8 @@ const (
 
 var (
 	// ErrNotEnabled 功能未开启错误
-	ErrNotEnabled = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	ErrNotEnabled   = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	ErrUserNotFound = serializer.NewError(serializer.CodeNotFound, "无法找到任务创建者", nil)
 )
 
 // DummyAria2 未开启Aria2功能时使用的默认处理器
@@ -63,6 +66,11 @@ func (instance *DummyAria2) CreateTask(task *model.Download) error {
 // Status 返回未开启错误
 func (instance *DummyAria2) Status(task *model.Download) (rpc.StatusInfo, error) {
 	return rpc.StatusInfo{}, ErrNotEnabled
+}
+
+// Cancel 返回未开启错误
+func (instance *DummyAria2) Cancel(task *model.Download) error {
+	return ErrNotEnabled
 }
 
 // Init 初始化

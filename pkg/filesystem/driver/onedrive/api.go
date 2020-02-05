@@ -153,7 +153,7 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 		// 如果重试次数小于限制，5秒后重试
 		if chunk.Retried < model.GetIntSetting("onedrive_chunk_retries", 1) {
 			chunk.Retried++
-			util.Log().Debug("分片偏移%d上传失败，5秒钟后重试", chunk.Offset)
+			util.Log().Debug("分片偏移%d上传失败[%s]，5秒钟后重试", chunk.Offset, err)
 			time.Sleep(time.Duration(5) * time.Second)
 			return client.UploadChunk(ctx, uploadURL, chunk)
 		}
@@ -518,6 +518,7 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	if res.Response.StatusCode < 200 || res.Response.StatusCode >= 300 {
 		decodeErr = json.Unmarshal([]byte(respBody), &errResp)
 		if decodeErr != nil {
+			util.Log().Debug("Onedrive返回未知响应[%s]", respBody)
 			return "", sysError(decodeErr)
 		}
 		return "", &errResp
