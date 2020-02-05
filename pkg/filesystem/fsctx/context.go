@@ -23,8 +23,6 @@ const (
 	UserCtx
 	// ThumbSizeCtx 缩略图尺寸
 	ThumbSizeCtx
-	// OriginSourceNameCtx 原始原文件名
-	OriginSourceNameCtx
 	// FileSizeCtx 文件大小
 	FileSizeCtx
 	// ShareKeyCtx 分享文件的 HashID
@@ -33,4 +31,6 @@ const (
 	LimitParentCtx
 	// IgnoreConflictCtx 忽略重名冲突
 	IgnoreConflictCtx
+	// RetryCtx 失败重试次数
+	RetryCtx
 )

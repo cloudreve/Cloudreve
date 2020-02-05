@@ -8,6 +8,7 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
@@ -254,6 +255,16 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)))
 	if err != nil {
+		retried := 0
+		if v, ok := ctx.Value(fsctx.RetryCtx).(int); ok {
+			retried = v
+		}
+		if retried < model.GetIntSetting("onedrive_chunk_retries", 1) {
+			retried++
+			util.Log().Debug("文件[%s]上传失败[%s]，5秒钟后重试", dst, err)
+			time.Sleep(time.Duration(5) * time.Second)
+			return client.SimpleUpload(context.WithValue(ctx, fsctx.RetryCtx, retried), dst, body, size)
+		}
 		return nil, err
 	}
 
@@ -501,7 +512,6 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	)
 
 	if res.Err != nil {
-		// TODO 重试
 		return "", sysError(res.Err)
 	}
 
