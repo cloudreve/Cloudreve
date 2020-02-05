@@ -11,6 +11,8 @@ const (
 	CompressTaskType = iota
 	// DecompressTaskType 解压缩任务
 	DecompressTaskType
+	// TransferTaskType 中转任务
+	TransferTaskType
 )
 
 // 任务状态
@@ -99,6 +101,8 @@ func GetJobFromModel(task *model.Task) (Job, error) {
 		return NewCompressTaskFromModel(task)
 	case DecompressTaskType:
 		return NewDecompressTaskFromModel(task)
+	case TransferTaskType:
+		return NewTransferTaskFromModel(task)
 	default:
 		return nil, ErrUnknownTaskType
 	}

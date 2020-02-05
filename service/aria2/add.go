@@ -29,21 +29,17 @@ func (service *AddURLService) Add(c *gin.Context) serializer.Response {
 	}
 
 	// 存放目录是否存在
-	var (
-		exist  bool
-		parent *model.Folder
-	)
-	if exist, parent = fs.IsPathExist(service.Dst); !exist {
+	if exist, _ := fs.IsPathExist(service.Dst); !exist {
 		return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
 	}
 
 	// 创建任务
 	task := &model.Download{
-		Status:   aria2.Ready,
-		Type:     aria2.URLTask,
-		FolderID: parent.ID,
-		UserID:   fs.User.ID,
-		Source:   service.URL,
+		Status: aria2.Ready,
+		Type:   aria2.URLTask,
+		Dst:    service.Dst,
+		UserID: fs.User.ID,
+		Source: service.URL,
 	}
 	if err := aria2.Instance.CreateTask(task); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)

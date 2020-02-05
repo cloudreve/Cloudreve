@@ -30,9 +30,14 @@ func (client *RPCService) Init(server, secret string, timeout int, options []int
 		Options: options,
 	}
 	caller, err := rpc.New(context.Background(), server, secret, time.Duration(timeout)*time.Second,
-		rpc.DummyNotifier{})
+		EventNotifier)
 	client.caller = caller
 	return err
+}
+
+// Status 查询下载状态
+func (client *RPCService) Status(task *model.Download) (rpc.StatusInfo, error) {
+	return client.caller.TellStatus(task.GID)
 }
 
 // CreateTask 创建新任务
@@ -45,7 +50,11 @@ func (client *RPCService) CreateTask(task *model.Download) error {
 	)
 
 	// 创建下载任务
-	gid, err := client.caller.AddURI(task.Source, map[string]string{"dir": task.Path})
+	options := []interface{}{map[string]string{"dir": task.Path}}
+	if len(client.options.Options) > 0 {
+		options = append(options, client.options.Options)
+	}
+	gid, err := client.caller.AddURI(task.Source, options...)
 	if err != nil || gid == "" {
 		return err
 	}
@@ -53,6 +62,12 @@ func (client *RPCService) CreateTask(task *model.Download) error {
 	// 保存到数据库
 	task.GID = gid
 	_, err = task.Create()
+	if err != nil {
+		return err
+	}
 
-	return err
+	// 创建任务监控
+	NewMonitor(task)
+
+	return nil
 }
