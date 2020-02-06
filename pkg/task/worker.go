@@ -19,7 +19,7 @@ func (worker *GeneralWorker) Do(job Job) {
 	defer func() {
 		// 致命错误捕获
 		if err := recover(); err != nil {
-			util.Log().Debug("任务执行出错，panic")
+			util.Log().Debug("任务执行出错，%s", err)
 			job.SetError(&JobError{Msg: "致命错误"})
 			job.SetStatus(Error)
 		}

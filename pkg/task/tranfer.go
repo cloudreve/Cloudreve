@@ -88,7 +88,8 @@ func (job *TransferTask) Do() {
 	}
 	defer fs.Recycle()
 
-	for _, file := range job.TaskProps.Src {
+	for index, file := range job.TaskProps.Src {
+		job.TaskModel.SetProgress(index)
 		err = fs.UploadFromPath(context.Background(), file, path.Join(job.TaskProps.Dst, filepath.Base(file)))
 		if err != nil {
 			job.SetErrorMsg("文件转存失败", err)

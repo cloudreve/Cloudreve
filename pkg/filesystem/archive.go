@@ -26,13 +26,13 @@ import (
 func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, isArchive bool) (string, error) {
 	// 查找待压缩目录
 	folders, err := model.GetFoldersByIDs(folderIDs, fs.User.ID)
-	if err != nil && len(folders) != 0 {
+	if err != nil && len(folderIDs) != 0 {
 		return "", ErrDBListObjects
 	}
 
 	// 查找待压缩文件
 	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID)
-	if err != nil && len(files) != 0 {
+	if err != nil && len(fileIDs) != 0 {
 		return "", ErrDBListObjects
 	}
 

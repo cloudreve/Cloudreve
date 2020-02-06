@@ -44,6 +44,9 @@ func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
 
 // ValidateFileSize 验证上传的文件大小是否超出限制
 func (fs *FileSystem) ValidateFileSize(ctx context.Context, size uint64) bool {
+	if fs.User.Policy.MaxSize == 0 {
+		return true
+	}
 	return size <= fs.User.Policy.MaxSize
 }
 
