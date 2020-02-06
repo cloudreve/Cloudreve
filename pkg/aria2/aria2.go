@@ -87,7 +87,7 @@ func Init() {
 	options := model.GetSettingByNames("aria2_rpcurl", "aria2_token", "aria2_options")
 	timeout := model.GetIntSetting("aria2_call_timeout", 5)
 	if options["aria2_rpcurl"] == "" {
-		// 未开启Aria2服务
+		Instance = &DummyAria2{}
 		return
 	}
 
@@ -101,19 +101,23 @@ func Init() {
 	server, err := url.Parse(options["aria2_rpcurl"])
 	if err != nil {
 		util.Log().Warning("无法解析 aria2 RPC 服务地址，%s", err)
+		Instance = &DummyAria2{}
 		return
 	}
 	server.Path = "/jsonrpc"
 
-	// todo 加载自定义下载配置
+	// 加载自定义下载配置
 	var globalOptions []interface{}
 	err = json.Unmarshal([]byte(options["aria2_options"]), &globalOptions)
 	if err != nil {
 		util.Log().Warning("无法解析 aria2 全局配置，%s", err)
+		Instance = &DummyAria2{}
+		return
 	}
 
 	if err := client.Init(server.String(), options["aria2_token"], timeout, globalOptions); err != nil {
 		util.Log().Warning("初始化 aria2 RPC 服务失败，%s", err)
+		Instance = &DummyAria2{}
 		return
 	}
 

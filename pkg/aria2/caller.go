@@ -72,8 +72,7 @@ func (client *RPCService) Select(task *model.Download, files []int) error {
 	for i := 0; i < len(files); i++ {
 		selected[i] = strconv.Itoa(files[i])
 	}
-	ok, err := client.caller.ChangeOption(task.GID, map[string]interface{}{"select-file": strings.Join(selected, ",")})
-	util.Log().Debug(ok)
+	_, err := client.caller.ChangeOption(task.GID, map[string]interface{}{"select-file": strings.Join(selected, ",")})
 	return err
 }
 

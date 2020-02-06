@@ -89,7 +89,7 @@ func (monitor *Monitor) Update() bool {
 		return true
 	}
 
-	util.Log().Debug(status.Status)
+	util.Log().Debug("离线下载[%s]更新状态[%s]", status.Gid, status.Status)
 
 	switch status.Status {
 	case "complete":
@@ -140,7 +140,7 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 	monitor.Task.Attrs = string(attrs)
 
 	if err := monitor.Task.Save(); err != nil {
-		return nil
+		return err
 	}
 
 	if originSize != monitor.Task.TotalSize {
