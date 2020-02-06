@@ -99,6 +99,8 @@ func (monitor *Monitor) Update() bool {
 	case "active", "waiting", "paused":
 		return false
 	case "removed":
+		monitor.Task.Status = Canceled
+		monitor.Task.Save()
 		return true
 	default:
 		util.Log().Warning("下载任务[%s]返回未知状态信息[%s]，", monitor.Task.GID, status.Status)
@@ -145,26 +147,12 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 		// 文件大小更新后，对文件限制等进行校验
 		if err := monitor.ValidateFile(); err != nil {
 			// 验证失败时取消任务
-			monitor.Cancel()
+			Instance.Cancel(monitor.Task)
 			return err
 		}
 	}
 
 	return nil
-}
-
-// Cancel 取消上传并尝试删除临时文件
-func (monitor *Monitor) Cancel() {
-	if err := Instance.Cancel(monitor.Task); err != nil {
-		util.Log().Warning("无法取消离线下载任务[%s], %s", monitor.Task.GID, err)
-	}
-	util.Log().Debug("离线下载任务[%s]已取消，1 分钟后删除临时文件", monitor.Task.GID)
-	go func(monitor *Monitor) {
-		select {
-		case <-time.After(time.Duration(60) * time.Second):
-			monitor.RemoveTempFolder()
-		}
-	}(monitor)
 }
 
 // ValidateFile 上传过程中校验文件大小、文件名

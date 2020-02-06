@@ -70,3 +70,14 @@ func AddAria2Torrent(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// CancelAria2Download 取消aria2离线下载任务
+func CancelAria2Download(c *gin.Context) {
+	var selectService aria2.DownloadTaskService
+	if err := c.ShouldBindUri(&selectService); err == nil {
+		res := selectService.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
