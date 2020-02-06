@@ -74,7 +74,7 @@ func GetDownloadsByStatus(status ...int) []Download {
 // GetDownloadByGid 根据GID和用户ID查找下载
 func GetDownloadByGid(gid string, uid uint) (*Download, error) {
 	download := &Download{}
-	result := DB.Where("user_id = ? and g_id = ?", uid, gid).Find(download)
+	result := DB.Where("user_id = ? and g_id = ?", uid, gid).First(download)
 	return download, result.Error
 }
 
