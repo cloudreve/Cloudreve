@@ -1,6 +1,7 @@
 package aria2
 
 import (
+	"encoding/json"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -17,7 +18,7 @@ var EventNotifier = &Notifier{}
 // Aria2 离线下载处理接口
 type Aria2 interface {
 	// CreateTask 创建新的任务
-	CreateTask(task *model.Download) error
+	CreateTask(task *model.Download, options []interface{}) error
 	// 返回状态信息
 	Status(task *model.Download) (rpc.StatusInfo, error)
 	// 取消任务
@@ -52,7 +53,8 @@ const (
 
 var (
 	// ErrNotEnabled 功能未开启错误
-	ErrNotEnabled   = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	ErrNotEnabled = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	// ErrUserNotFound 未找到下载任务创建者
 	ErrUserNotFound = serializer.NewError(serializer.CodeNotFound, "无法找到任务创建者", nil)
 )
 
@@ -61,7 +63,7 @@ type DummyAria2 struct {
 }
 
 // CreateTask 创建新任务，此处直接返回未开启错误
-func (instance *DummyAria2) CreateTask(task *model.Download) error {
+func (instance *DummyAria2) CreateTask(model *model.Download, options []interface{}) error {
 	return ErrNotEnabled
 }
 
@@ -104,7 +106,13 @@ func Init() {
 	server.Path = "/jsonrpc"
 
 	// todo 加载自定义下载配置
-	if err := client.Init(server.String(), options["aria2_token"], timeout, []interface{}{}); err != nil {
+	var globalOptions []interface{}
+	err = json.Unmarshal([]byte(options["aria2_options"]), &globalOptions)
+	if err != nil {
+		util.Log().Warning("无法解析 aria2 全局配置，%s", err)
+	}
+
+	if err := client.Init(server.String(), options["aria2_token"], timeout, globalOptions); err != nil {
 		util.Log().Warning("初始化 aria2 RPC 服务失败，%s", err)
 		return
 	}

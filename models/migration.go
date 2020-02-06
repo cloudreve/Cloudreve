@@ -160,7 +160,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
 		{Name: "aria2_temp_path", Value: ``, Type: "aria2"},
-		{Name: "aria2_options", Value: `{"max-tries":5}`, Type: "aria2"},
+		{Name: "aria2_options", Value: `[]`, Type: "aria2"},
 		{Name: "aria2_interval", Value: `10`, Type: "aria2"},
 		{Name: "max_worker_num", Value: `10`, Type: "task"},
 		{Name: "max_parallel_transfer", Value: `4`, Type: "task"},

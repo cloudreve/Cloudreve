@@ -41,7 +41,7 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 		UserID: fs.User.ID,
 		Source: service.URL,
 	}
-	if err := aria2.Instance.CreateTask(task); err != nil {
+	if err := aria2.Instance.CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
 
