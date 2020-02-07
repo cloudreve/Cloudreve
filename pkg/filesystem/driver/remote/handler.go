@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 )
 
 // Driver 远程存储策略适配器
@@ -70,6 +71,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 		downloadURL,
 		nil,
 		request.WithContext(ctx),
+		request.WithTimeout(time.Duration(0)),
 	).CheckHTTPResponse(200).GetRSCloser()
 	if err != nil {
 		return nil, err

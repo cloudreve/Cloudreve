@@ -188,7 +188,6 @@ func addDefaultGroups() {
 			ShareEnabled:  true,
 			Color:         "danger",
 			WebDAVEnabled: true,
-			Aria2Option:   "0,0,0",
 			OptionsSerialized: GroupOption{
 				ArchiveDownload: true,
 				ArchiveTask:     true,
@@ -211,7 +210,6 @@ func addDefaultGroups() {
 			ShareEnabled:  true,
 			Color:         "danger",
 			WebDAVEnabled: true,
-			Aria2Option:   "0,0,0",
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建初始注册会员用户组, %s", err)

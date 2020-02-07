@@ -13,7 +13,6 @@ type Group struct {
 	MaxStorage    uint64
 	ShareEnabled  bool
 	WebDAVEnabled bool
-	Aria2Option   string
 	Color         string
 	SpeedLimit    int
 	Options       string `json:"-",gorm:"type:text"`
@@ -34,18 +33,6 @@ type GroupOption struct {
 	ShareFree       bool          `json:"share_free,omitempty"`
 	Aria2           bool          `json:"aria2,omitempty"`         // 离线下载
 	Aria2Options    []interface{} `json:"aria2_options,omitempty"` // 离线下载用户组配置
-}
-
-// GetAria2Option 获取用户离线下载设备
-func (group *Group) GetAria2Option() [3]bool {
-	if len(group.Aria2Option) != 5 {
-		return [3]bool{false, false, false}
-	}
-	return [3]bool{
-		group.Aria2Option[0] == '1',
-		group.Aria2Option[2] == '1',
-		group.Aria2Option[4] == '1',
-	}
 }
 
 // GetGroupByID 用ID获取用户组

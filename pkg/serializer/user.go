@@ -44,6 +44,7 @@ type group struct {
 	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
 	ShareFreeEnabled     bool   `json:"shareFree"`
 	ShareDownload        bool   `json:"shareDownload"`
+	CompressEnabled      bool   `json:"compress"`
 }
 
 type storage struct {
@@ -54,7 +55,6 @@ type storage struct {
 
 // BuildUser 序列化用户
 func BuildUser(user model.User) User {
-	aria2Option := user.Group.GetAria2Option()
 	return User{
 		ID:             user.ID,
 		Email:          user.Email,
@@ -75,11 +75,11 @@ func BuildUser(user model.User) User {
 			ID:                   user.GroupID,
 			Name:                 user.Group.Name,
 			AllowShare:           user.Group.ShareEnabled,
-			AllowRemoteDownload:  aria2Option[0],
-			AllowTorrentDownload: aria2Option[2],
+			AllowRemoteDownload:  user.Group.OptionsSerialized.Aria2,
 			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownload,
 			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFree,
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
+			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 		},
 	}
 }

@@ -257,6 +257,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	if !isExist {
 		return []Object{}, nil
 	}
+	fs.SetTargetDir(&[]model.Folder{*folder})
 
 	var parentPath = path.Join(folder.Position, folder.Name)
 	var childFolders []model.Folder

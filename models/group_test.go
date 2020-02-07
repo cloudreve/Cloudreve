@@ -63,22 +63,6 @@ func TestGroup_AfterFind(t *testing.T) {
 	asserts.Equal(testCase.PolicyList, []uint{})
 }
 
-func TestGroup_GetAria2Option(t *testing.T) {
-	asserts := assert.New(t)
-	group := Group{}
-	// 格式错误
-	{
-		group.Aria2Option = "123"
-		asserts.Equal([3]bool{false, false, false}, group.GetAria2Option())
-	}
-
-	// 正常
-	{
-		group.Aria2Option = "1,1,0"
-		asserts.Equal([3]bool{true, true, false}, group.GetAria2Option())
-	}
-}
-
 func TestGroup_BeforeSave(t *testing.T) {
 	asserts := assert.New(t)
 	group := Group{

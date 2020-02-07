@@ -68,6 +68,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 		request.WithHeader(
 			http.Header{"Cache-Control": {"no-cache", "no-store", "must-revalidate"}},
 		),
+		request.WithTimeout(time.Duration(0)),
 	).CheckHTTPResponse(200).GetRSCloser()
 	if err != nil {
 		return nil, err

@@ -215,9 +215,17 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
 	}
 
+	var parentID uint
+	if len(fs.DirTarget) > 0 {
+		parentID = fs.DirTarget[0].ID
+	}
+
 	return serializer.Response{
 		Code: 0,
-		Data: objects,
+		Data: map[string]interface{}{
+			"parent":  parentID,
+			"objects": objects,
+		},
 	}
 }
 
