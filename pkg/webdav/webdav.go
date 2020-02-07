@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
@@ -326,6 +327,16 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	exist, originFile := fs.IsFileExist(reqPath)
 	if exist {
 		// 已存在，为更新操作
+
+		// 检查此文件是否有软链接
+		fileList, err := model.RemoveFilesWithSoftLinks([]model.File{*originFile})
+		if err == nil && len(fileList) == 0 {
+			// 如果包含软连接，应重新生成新文件副本，并更新source_name
+			originFile.SourceName = fs.GenerateSavePath(ctx, fileData)
+			fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
+			fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
+			fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
+		}
 
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookResetPolicy)
