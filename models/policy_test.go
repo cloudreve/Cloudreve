@@ -14,6 +14,7 @@ import (
 func TestGetPolicyByID(t *testing.T) {
 	asserts := assert.New(t)
 
+	cache.Deletes([]string{"22", "23"}, "policy_")
 	// 缓存未命中
 	{
 		rows := sqlmock.NewRows([]string{"name", "type", "options"}).

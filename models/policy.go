@@ -77,9 +77,9 @@ func (policy *Policy) AfterFind() (err error) {
 	// 解析存储策略设置到OptionsSerialized
 	if policy.Options != "" {
 		err = json.Unmarshal([]byte(policy.Options), &policy.OptionsSerialized)
-		if policy.OptionsSerialized.FileType == nil {
-			policy.OptionsSerialized.FileType = []string{}
-		}
+	}
+	if policy.OptionsSerialized.FileType == nil {
+		policy.OptionsSerialized.FileType = []string{}
 	}
 
 	return err

@@ -637,15 +637,17 @@ func TestClient_SimpleUpload(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+	cache.Set("setting_onedrive_chunk_retries", "1", 0)
 
-	// 请求失败
+	// 请求失败，并重试
 	{
 		client.Credential.ExpiresIn = 0
-		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"))
+		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"), 3)
 		asserts.Error(err)
 		asserts.Nil(res)
 	}
 
+	cache.Set("setting_onedrive_chunk_retries", "0", 0)
 	// 返回未知响应
 	{
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
@@ -664,7 +666,7 @@ func TestClient_SimpleUpload(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"))
+		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"), 3)
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
 		asserts.Nil(res)
@@ -688,7 +690,7 @@ func TestClient_SimpleUpload(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"))
+		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"), 3)
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
 		asserts.NotNil(res)
@@ -730,6 +732,36 @@ func TestClient_DeleteUploadSession(t *testing.T) {
 		err := client.DeleteUploadSession(context.Background(), "123.jpg")
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
+	}
+}
+
+func TestClient_BatchDelete(t *testing.T) {
+	asserts := assert.New(t)
+	client, _ := NewClient(&model.Policy{})
+	client.Credential.AccessToken = "AccessToken"
+
+	// 小于20个，失败1个
+	{
+		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"responses":[{"id":"2","status":400}]}`)),
+			},
+		})
+		client.Request = clientMock
+		res, err := client.BatchDelete(context.Background(), []string{"1", "2", "3", "1", "2"})
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+		asserts.Equal([]string{"2"}, res)
 	}
 }
 

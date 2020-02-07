@@ -14,9 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -197,6 +199,33 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		fs.Handler = testHandller
 		_, err := fs.GetUploadToken(ctx, "/", 10, "123")
 		testHandller.AssertExpectations(t)
+		asserts.Error(err)
+	}
+}
+
+func TestFileSystem_UploadFromStream(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{User: &model.User{Model: gorm.Model{ID: 1}}}
+	ctx := context.Background()
+
+	err := fs.UploadFromStream(ctx, ioutil.NopCloser(strings.NewReader("123")), "/1.txt", 1)
+	asserts.Error(err)
+}
+
+func TestFileSystem_UploadFromPath(t *testing.T) {
+	asserts := assert.New(t)
+	fs := FileSystem{User: &model.User{Policy: model.Policy{Type: "mock"}, Model: gorm.Model{ID: 1}}}
+	ctx := context.Background()
+
+	// 文件不存在
+	{
+		err := fs.UploadFromPath(ctx, "test/not_exist", "/")
+		asserts.Error(err)
+	}
+
+	// 文存在,上传失败
+	{
+		err := fs.UploadFromPath(ctx, "tests/test.zip", "/")
 		asserts.Error(err)
 	}
 }

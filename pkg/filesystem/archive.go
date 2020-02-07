@@ -259,7 +259,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 		rawPath := util.FormSlash(f.Name)
 		savePath := path.Join(dst, rawPath)
 		// 路径是否合法
-		if !strings.HasPrefix(savePath, path.Clean(dst)+"/") {
+		if !strings.HasPrefix(savePath, util.FillSlash(path.Clean(dst))) {
 			return fmt.Errorf("%s: illegal file path", f.Name)
 		}
 

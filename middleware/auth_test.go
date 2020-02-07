@@ -216,7 +216,7 @@ func TestRemoteCallbackAuth(t *testing.T) {
 			"callback_testCallBackRemote",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    513,
 				VirtualPath: "/",
 			},
 			0,
@@ -225,7 +225,7 @@ func TestRemoteCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[513]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "secret_key"}).AddRow(2, "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -260,7 +260,7 @@ func TestRemoteCallbackAuth(t *testing.T) {
 			"callback_testCallBackRemote",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    550,
 				VirtualPath: "/",
 			},
 			0,
@@ -286,7 +286,7 @@ func TestRemoteCallbackAuth(t *testing.T) {
 			"callback_testCallBackRemote",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    514,
 				VirtualPath: "/",
 			},
 			0,
@@ -295,7 +295,7 @@ func TestRemoteCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[514]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "secret_key"}).AddRow(2, "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -339,7 +339,7 @@ func TestQiniuCallbackAuth(t *testing.T) {
 			"callback_testCallBackQiniu",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    515,
 				VirtualPath: "/",
 			},
 			0,
@@ -348,7 +348,7 @@ func TestQiniuCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[515]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -371,7 +371,7 @@ func TestQiniuCallbackAuth(t *testing.T) {
 			"callback_testCallBackQiniu",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    516,
 				VirtualPath: "/",
 			},
 			0,
@@ -380,7 +380,7 @@ func TestQiniuCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[516]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -420,7 +420,7 @@ func TestOSSCallbackAuth(t *testing.T) {
 			"callback_testCallBackOSS",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    517,
 				VirtualPath: "/",
 			},
 			0,
@@ -429,7 +429,7 @@ func TestOSSCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[517]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -452,7 +452,7 @@ func TestOSSCallbackAuth(t *testing.T) {
 			"callback_TnXx5E5VyfJUyM1UdkdDu1rtnJ34EbmH",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    518,
 				VirtualPath: "/",
 			},
 			0,
@@ -461,7 +461,7 @@ func TestOSSCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[518]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -506,7 +506,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 			"callback_testCallBackUpyun",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    509,
 				VirtualPath: "/",
 			},
 			0,
@@ -515,7 +515,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[519]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -534,7 +534,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 			"callback_testCallBackUpyun",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    510,
 				VirtualPath: "/",
 			},
 			0,
@@ -543,7 +543,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[520]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -563,7 +563,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 			"callback_testCallBackUpyun",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    511,
 				VirtualPath: "/",
 			},
 			0,
@@ -572,7 +572,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[521]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -592,7 +592,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 			"callback_testCallBackUpyun",
 			serializer.UploadSession{
 				UID:         1,
-				PolicyID:    2,
+				PolicyID:    512,
 				VirtualPath: "/",
 			},
 			0,
@@ -601,7 +601,7 @@ func TestUpyunCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[2]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[522]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)

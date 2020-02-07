@@ -2,12 +2,19 @@ package filesystem
 
 import (
 	"context"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/request"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
+	"io"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -106,4 +113,147 @@ func TestFileSystem_Compress(t *testing.T) {
 		asserts.Empty(zipFile)
 	}
 
+}
+
+type MockNopRSC string
+
+func (m MockNopRSC) Read(b []byte) (int, error) {
+	return 0, errors.New("read error")
+}
+
+func (m MockNopRSC) Seek(n int64, offset int) (int64, error) {
+	return 0, errors.New("read error")
+}
+
+func (m MockNopRSC) Close() error {
+	return errors.New("read error")
+}
+
+type MockRSC struct {
+	rs io.ReadSeeker
+}
+
+func (m MockRSC) Read(b []byte) (int, error) {
+	return m.rs.Read(b)
+}
+
+func (m MockRSC) Seek(n int64, offset int) (int64, error) {
+	return m.rs.Seek(n, offset)
+}
+
+func (m MockRSC) Close() error {
+	return nil
+}
+
+func TestFileSystem_Decompress(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := FileSystem{
+		User: &model.User{Model: gorm.Model{ID: 1}},
+	}
+
+	// 压缩文件不存在
+	{
+		// 查找根目录
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "/"))
+		// 查找压缩文件，未找到
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+
+	// 无法下载压缩文件
+	{
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(request.NopRSCloser{}, errors.New("error"))
+		fs.Handler = testHandler
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.EqualError(err, "error")
+	}
+
+	// 无法创建临时压缩文件
+	{
+		cache.Set("setting_temp_path", "/tests:", 0)
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(request.NopRSCloser{}, nil)
+		fs.Handler = testHandler
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Contains(err.Error(), "label syntax")
+	}
+
+	// 无法写入压缩文件
+	{
+		cache.Set("setting_temp_path", "tests", 0)
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(MockNopRSC("1"), nil)
+		fs.Handler = testHandler
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.EqualError(err, "read error")
+	}
+
+	// 无效zip文件
+	{
+		cache.Set("setting_temp_path", "tests", 0)
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(MockRSC{rs: strings.NewReader("read")}, nil)
+		fs.Handler = testHandler
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.EqualError(err, "zip: not a valid zip file")
+	}
+
+	// 无法重设上传策略
+	{
+		zipFile, _ := os.Open("tests/test.zip")
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(zipFile, nil)
+		fs.Handler = testHandler
+		err := fs.Decompress(ctx, "/1.zip", "/")
+		zipFile.Close()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.True(util.IsEmpty("tests/decompress"))
+		asserts.EqualError(err, "未知存储策略类型")
+	}
+
+	// 无法上传，容量不足
+	{
+		cache.Set("setting_max_parallel_transfer", "1", 0)
+		zipFile, _ := os.Open("tests/test.zip")
+		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
+		fs.FileTarget[0].Policy.ID = 1
+		fs.User.Policy.Type = "mock"
+		testHandler := new(FileHeaderMock)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(zipFile, nil)
+		fs.Handler = testHandler
+
+		err := fs.Decompress(ctx, "/1.zip", "/")
+
+		zipFile.Close()
+
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.True(util.IsEmpty("tests/decompress"))
+		testHandler.AssertExpectations(t)
+	}
 }

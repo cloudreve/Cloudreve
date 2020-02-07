@@ -625,3 +625,31 @@ func TestSlaveAfterUpload(t *testing.T) {
 		asserts.NoError(err)
 	}
 }
+
+func TestFileSystem_CleanHooks(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{
+		User: &model.User{
+			Model: gorm.Model{ID: 1},
+		},
+		Hooks: map[string][]Hook{
+			"hook1": []Hook{},
+			"hook2": []Hook{},
+			"hook3": []Hook{},
+		},
+	}
+
+	// 清理一个
+	{
+		fs.CleanHooks("hook2")
+		asserts.Len(fs.Hooks, 2)
+		asserts.Contains(fs.Hooks, "hook1")
+		asserts.Contains(fs.Hooks, "hook3")
+	}
+
+	// 清理全部
+	{
+		fs.CleanHooks("")
+		asserts.Len(fs.Hooks, 0)
+	}
+}

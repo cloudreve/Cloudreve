@@ -149,12 +149,6 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	_, err := fs.CreateDirectory(ctx, "/ad/a+?")
 	asserts.Equal(ErrIllegalObjectName, err)
 
-	// 父目录不存在
-	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
-	_, err = fs.CreateDirectory(ctx, "/ad/ab")
-	asserts.Equal(ErrPathNotExist, err)
-	asserts.NoError(mock.ExpectationsWereMet())
-
 	// 存在同名文件
 	// 根目录
 	mock.ExpectQuery("SELECT(.+)").
@@ -203,6 +197,12 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	mock.ExpectCommit()
 	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 父目录不存在
+	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+	_, err = fs.CreateDirectory(ctx, "/ad")
+	asserts.Equal(ErrRootProtected, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
 
@@ -323,12 +323,11 @@ func TestFileSystem_Delete(t *testing.T) {
 					AddRow(4, "1.txt", "1.txt", 2, 1),
 			)
 		// 查询顶级的文件
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "1.txt", "1.txt", 1, 2))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "1.txt", "1.txt", 603, 2))
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		// 查询上传策略
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(603, "local"))
 		// 删除文件记录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)files").
@@ -368,14 +367,13 @@ func TestFileSystem_Delete(t *testing.T) {
 			WithArgs(1, 2, 3).
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).
-					AddRow(4, "1.txt", "1.txt", 2, 1),
+					AddRow(4, "1.txt", "1.txt", 602, 1),
 			)
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "2.txt", "2.txt", 1, 2))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "2.txt", "2.txt", 602, 2))
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		// 查询上传策略
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(602, "local"))
 		// 删除文件记录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").

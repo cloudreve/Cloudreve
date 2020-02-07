@@ -82,6 +82,10 @@ func TestFileSystem_ValidateFileSize(t *testing.T) {
 	asserts.True(fs.ValidateFileSize(ctx, 5))
 	asserts.True(fs.ValidateFileSize(ctx, 10))
 	asserts.False(fs.ValidateFileSize(ctx, 11))
+
+	// 无限制
+	fs.User.Policy.MaxSize = 0
+	asserts.True(fs.ValidateFileSize(ctx, 11))
 }
 
 func TestFileSystem_ValidateExtension(t *testing.T) {

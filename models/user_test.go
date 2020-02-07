@@ -12,7 +12,7 @@ import (
 
 func TestGetUserByID(t *testing.T) {
 	asserts := assert.New(t)
-
+	cache.Deletes([]string{"1"}, "policy_")
 	//找到用户时
 	userRows := sqlmock.NewRows([]string{"id", "deleted_at", "email", "options", "group_id"}).
 		AddRow(1, nil, "admin@cloudreve.org", "{}", 1)
@@ -104,6 +104,7 @@ func TestNewUser(t *testing.T) {
 
 func TestUser_AfterFind(t *testing.T) {
 	asserts := assert.New(t)
+	cache.Deletes([]string{"1"}, "policy_")
 
 	policyRows := sqlmock.NewRows([]string{"id", "name"}).
 		AddRow(1, "默认存储策略")
@@ -198,6 +199,7 @@ func TestUser_GetRemainingCapacity(t *testing.T) {
 func TestUser_DeductionCapacity(t *testing.T) {
 	asserts := assert.New(t)
 
+	cache.Deletes([]string{"1"}, "policy_")
 	userRows := sqlmock.NewRows([]string{"id", "deleted_at", "storage", "options", "group_id"}).
 		AddRow(1, nil, 0, "{}", 1)
 	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(userRows)

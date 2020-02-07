@@ -30,3 +30,10 @@ func TestCreatNestedFile(t *testing.T) {
 		asserts.FileExists("test/direct.txt")
 	}
 }
+
+func TestIsEmpty(t *testing.T) {
+	asserts := assert.New(t)
+
+	asserts.False(IsEmpty(""))
+	asserts.False(IsEmpty("not_exist"))
+}
