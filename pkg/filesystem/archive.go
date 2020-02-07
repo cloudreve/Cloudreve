@@ -2,13 +2,17 @@ package filesystem
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -256,7 +260,16 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 	}
 
 	for _, f := range r.File {
-		rawPath := util.FormSlash(f.Name)
+		fileName := f.Name
+		// 处理非UTF-8编码
+		if f.NonUTF8 {
+			i := bytes.NewReader([]byte(fileName))
+			decoder := transform.NewReader(i, simplifiedchinese.GB18030.NewDecoder())
+			content, _ := ioutil.ReadAll(decoder)
+			fileName = string(content)
+		}
+
+		rawPath := util.FormSlash(fileName)
 		savePath := path.Join(dst, rawPath)
 		// 路径是否合法
 		if !strings.HasPrefix(savePath, util.FillSlash(path.Clean(dst))) {
