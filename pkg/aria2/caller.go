@@ -39,7 +39,15 @@ func (client *RPCService) Init(server, secret string, timeout int, options []int
 
 // Status 查询下载状态
 func (client *RPCService) Status(task *model.Download) (rpc.StatusInfo, error) {
-	return client.caller.TellStatus(task.GID)
+	res, err := client.caller.TellStatus(task.GID)
+	if err != nil {
+		// 失败后重试
+		util.Log().Debug("无法获取离线下载状态，%s，10秒钟后重试", err)
+		time.Sleep(time.Duration(10) * time.Second)
+		res, err = client.caller.TellStatus(task.GID)
+	}
+
+	return res, err
 }
 
 // Cancel 取消下载

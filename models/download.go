@@ -71,6 +71,14 @@ func GetDownloadsByStatus(status ...int) []Download {
 	return tasks
 }
 
+// GetDownloadsByStatusAndUser 根据状态检索和用户ID下载
+// TODO 测试
+func GetDownloadsByStatusAndUser(uid uint, status ...int) []Download {
+	var tasks []Download
+	DB.Where("user_id = ? and status in (?)", uid, status).Find(&tasks)
+	return tasks
+}
+
 // GetDownloadByGid 根据GID和用户ID查找下载
 func GetDownloadByGid(gid string, uid uint) (*Download, error) {
 	download := &Download{}

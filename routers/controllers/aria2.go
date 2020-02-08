@@ -81,3 +81,14 @@ func CancelAria2Download(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// ListDownloading 获取正在下载中的任务
+func ListDownloading(c *gin.Context) {
+	var service aria2.DownloadListService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Downloading(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

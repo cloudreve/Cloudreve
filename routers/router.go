@@ -284,6 +284,8 @@ func InitMasterRouter() *gin.Engine {
 				aria2.PUT("select/:gid", controllers.SelectAria2File)
 				// 取消下载任务
 				aria2.DELETE("task/:gid", controllers.CancelAria2Download)
+				// 获取正在下载中的任务
+				aria2.GET("downloading", controllers.ListDownloading)
 			}
 
 			// 目录

@@ -17,6 +17,17 @@ type DownloadTaskService struct {
 	GID string `uri:"gid" binding:"required"`
 }
 
+// DownloadListService 下载列表服务
+type DownloadListService struct {
+}
+
+// Downloading 获取正在下载中的任务
+func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
+	// 查找下载记录
+	downloads := model.GetDownloadsByStatusAndUser(user.ID, aria2.Downloading, aria2.Paused, aria2.Ready)
+	return serializer.BuildDownloadingResponse(downloads)
+}
+
 // Delete 取消下载任务
 func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	userCtx, _ := c.Get("user")
