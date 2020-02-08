@@ -101,6 +101,7 @@ func (monitor *Monitor) Update() bool {
 	case "removed":
 		monitor.Task.Status = Canceled
 		monitor.Task.Save()
+		monitor.RemoveTempFolder()
 		return true
 	default:
 		util.Log().Warning("下载任务[%s]返回未知状态信息[%s]，", monitor.Task.GID, status.Status)

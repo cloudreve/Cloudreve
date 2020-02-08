@@ -5,7 +5,6 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/zyxar/argo/rpc"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -51,17 +50,17 @@ func (client *RPCService) Cancel(task *model.Download) error {
 		util.Log().Warning("无法取消离线下载任务[%s], %s", task.GID, err)
 	}
 
-	// 删除临时文件
-	util.Log().Debug("离线下载任务[%s]已取消，1 分钟后删除临时文件", task.GID)
-	go func(task *model.Download) {
-		select {
-		case <-time.After(time.Duration(60) * time.Second):
-			err := os.RemoveAll(task.Parent)
-			if err != nil {
-				util.Log().Warning("无法删除离线下载临时目录[%s], %s", task.Parent, err)
-			}
-		}
-	}(task)
+	//// 删除临时文件
+	//util.Log().Debug("离线下载任务[%s]已取消，1 分钟后删除临时文件", task.GID)
+	//go func(task *model.Download) {
+	//	select {
+	//	case <-time.After(time.Duration(60) * time.Second):
+	//		err := os.RemoveAll(task.Parent)
+	//		if err != nil {
+	//			util.Log().Warning("无法删除离线下载临时目录[%s], %s", task.Parent, err)
+	//		}
+	//	}
+	//}(task)
 
 	return err
 }

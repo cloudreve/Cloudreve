@@ -40,7 +40,6 @@ type group struct {
 	Name                 string `json:"name"`
 	AllowShare           bool   `json:"allowShare"`
 	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
-	AllowTorrentDownload bool   `json:"allowTorrentDownload"`
 	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
 	ShareFreeEnabled     bool   `json:"shareFree"`
 	ShareDownload        bool   `json:"shareDownload"`
