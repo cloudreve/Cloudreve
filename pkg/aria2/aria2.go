@@ -125,9 +125,10 @@ func Init() {
 
 	// 从数据库中读取未完成任务，创建监控
 	unfinished := model.GetDownloadsByStatus(Ready, Paused, Downloading)
-	for _, task := range unfinished {
+
+	for i := 0; i < len(unfinished); i++ {
 		// 创建任务监控
-		NewMonitor(&task)
+		NewMonitor(&unfinished[i])
 	}
 }
 

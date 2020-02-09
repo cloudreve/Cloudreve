@@ -8,21 +8,23 @@ import (
 
 // DownloadListResponse 下载列表响应条目
 type DownloadListResponse struct {
-	UpdateTime int64          `json:"update"`
-	Name       string         `json:"name"`
-	Status     int            `json:"status"`
-	UserID     uint           `json:"uid"`
-	Error      string         `json:"error"`
-	Dst        string         `json:"dst"`
-	Total      uint64         `json:"total"`
-	Downloaded uint64         `json:"downloaded"`
-	Speed      int            `json:"speed"`
-	Info       rpc.StatusInfo `json:"info"`
+	UpdateTime     int64          `json:"update"`
+	UpdateInterval int            `json:"interval"`
+	Name           string         `json:"name"`
+	Status         int            `json:"status"`
+	UserID         uint           `json:"uid"`
+	Error          string         `json:"error"`
+	Dst            string         `json:"dst"`
+	Total          uint64         `json:"total"`
+	Downloaded     uint64         `json:"downloaded"`
+	Speed          int            `json:"speed"`
+	Info           rpc.StatusInfo `json:"info"`
 }
 
 // BuildDownloadingResponse 构建正在下载的列表响应
 func BuildDownloadingResponse(tasks []model.Download) Response {
 	resp := make([]DownloadListResponse, 0, len(tasks))
+	interval := model.GetIntSetting("aria2_interval", 10)
 
 	for i := 0; i < len(tasks); i++ {
 		fileName := ""
@@ -37,16 +39,17 @@ func BuildDownloadingResponse(tasks []model.Download) Response {
 		}
 
 		resp = append(resp, DownloadListResponse{
-			UpdateTime: tasks[i].UpdatedAt.Unix(),
-			Name:       fileName,
-			Status:     tasks[i].Status,
-			UserID:     tasks[i].UserID,
-			Error:      tasks[i].Error,
-			Dst:        tasks[i].Dst,
-			Total:      tasks[i].TotalSize,
-			Downloaded: tasks[i].DownloadedSize,
-			Speed:      tasks[i].Speed,
-			Info:       tasks[i].StatusInfo,
+			UpdateTime:     tasks[i].UpdatedAt.Unix(),
+			UpdateInterval: interval,
+			Name:           fileName,
+			Status:         tasks[i].Status,
+			UserID:         tasks[i].UserID,
+			Error:          tasks[i].Error,
+			Dst:            tasks[i].Dst,
+			Total:          tasks[i].TotalSize,
+			Downloaded:     tasks[i].DownloadedSize,
+			Speed:          tasks[i].Speed,
+			Info:           tasks[i].StatusInfo,
 		})
 	}
 
