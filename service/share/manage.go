@@ -11,7 +11,7 @@ import (
 
 // ShareCreateService 创建新分享服务
 type ShareCreateService struct {
-	SourceID        uint   `json:"id" binding:"required"`
+	SourceID        string `json:"id" binding:"required"`
 	IsDir           bool   `json:"is_dir"`
 	Password        string `json:"password" binding:"max=255"`
 	RemainDownloads int    `json:"downloads"`
@@ -30,15 +30,29 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNoPermissionErr, "您无权创建分享链接", nil)
 	}
 
+	// 源对象真实ID
+	var (
+		sourceID uint
+		err      error
+	)
+	if service.IsDir {
+		sourceID, err = hashid.DecodeHashID(service.SourceID, hashid.FolderID)
+	} else {
+		sourceID, err = hashid.DecodeHashID(service.SourceID, hashid.FileID)
+	}
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "原始资源不存在", nil)
+	}
+
 	// 对象是否存在
 	exist := true
 	if service.IsDir {
-		folder, err := model.GetFoldersByIDs([]uint{service.SourceID}, user.ID)
+		folder, err := model.GetFoldersByIDs([]uint{sourceID}, user.ID)
 		if err != nil || len(folder) == 0 {
 			exist = false
 		}
 	} else {
-		file, err := model.GetFilesByIDs([]uint{service.SourceID}, user.ID)
+		file, err := model.GetFilesByIDs([]uint{sourceID}, user.ID)
 		if err != nil || len(file) == 0 {
 			exist = false
 		}
@@ -51,7 +65,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		Password:        service.Password,
 		IsDir:           service.IsDir,
 		UserID:          user.ID,
-		SourceID:        service.SourceID,
+		SourceID:        sourceID,
 		Score:           service.Score,
 		RemainDownloads: -1,
 		PreviewEnabled:  service.Preview,

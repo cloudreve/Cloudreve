@@ -5,6 +5,7 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"path"
@@ -18,7 +19,7 @@ import (
 
 // Object 文件或者目录
 type Object struct {
-	ID   uint   `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 	Path string `json:"path"`
 	Pic  string `json:"pic"`
@@ -262,36 +263,41 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	var childFolders []model.Folder
 	var childFiles []model.File
 
-	// 分享文件的ID
-	shareKey := ""
-	if key, ok := ctx.Value(fsctx.ShareKeyCtx).(string); ok {
-		shareKey = key
-	}
-
 	// 获取子目录
 	childFolders, _ = folder.GetChildFolder()
 
 	// 获取子文件
 	childFiles, _ = folder.GetChildFiles()
 
+	return fs.listObjects(ctx, parentPath, childFiles, childFolders, pathProcessor), nil
+}
+
+func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []model.File, folders []model.Folder, pathProcessor func(string) string) []Object {
+	// 分享文件的ID
+	shareKey := ""
+	if key, ok := ctx.Value(fsctx.ShareKeyCtx).(string); ok {
+		shareKey = key
+	}
+
 	// 汇总处理结果
-	objects := make([]Object, 0, len(childFiles)+len(childFolders))
+	objects := make([]Object, 0, len(files)+len(folders))
+
 	// 所有对象的父目录
 	var processedPath string
 
-	for _, subFolder := range childFolders {
+	for _, subFolder := range folders {
 		// 路径处理钩子，
 		// 所有对象父目录都是一样的，所以只处理一次
 		if processedPath == "" {
 			if pathProcessor != nil {
-				processedPath = pathProcessor(parentPath)
+				processedPath = pathProcessor(parent)
 			} else {
-				processedPath = parentPath
+				processedPath = parent
 			}
 		}
 
 		objects = append(objects, Object{
-			ID:   subFolder.ID,
+			ID:   hashid.HashID(subFolder.ID, hashid.FolderID),
 			Name: subFolder.Name,
 			Path: processedPath,
 			Pic:  "",
@@ -301,17 +307,17 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 		})
 	}
 
-	for _, file := range childFiles {
+	for _, file := range files {
 		if processedPath == "" {
 			if pathProcessor != nil {
-				processedPath = pathProcessor(parentPath)
+				processedPath = pathProcessor(parent)
 			} else {
-				processedPath = parentPath
+				processedPath = parent
 			}
 		}
 
 		newFile := Object{
-			ID:   file.ID,
+			ID:   hashid.HashID(file.ID, hashid.FileID),
 			Name: file.Name,
 			Path: processedPath,
 			Pic:  file.PicInfo,
@@ -325,7 +331,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 		objects = append(objects, newFile)
 	}
 
-	return objects, nil
+	return objects
 }
 
 // CreateDirectory 根据给定的完整创建目录，支持递归创建

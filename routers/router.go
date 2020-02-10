@@ -3,6 +3,7 @@ package routers
 import (
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-contrib/cors"
@@ -245,22 +246,22 @@ func InitMasterRouter() *gin.Engine {
 			}
 
 			// 文件
-			file := auth.Group("file")
+			file := auth.Group("file", middleware.HashID(hashid.FileID))
 			{
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
 				// 获取上传凭证
 				file.GET("upload/credential", controllers.GetUploadCredential)
 				// 更新文件
-				file.PUT("update/*path", controllers.PutContent)
+				file.PUT("update/:id", controllers.PutContent)
 				// 创建文件下载会话
-				file.PUT("download/*path", controllers.CreateDownloadSession)
+				file.PUT("download/:id", controllers.CreateDownloadSession)
 				// 预览文件
-				file.GET("preview/*path", controllers.Preview)
+				file.GET("preview/:id", controllers.Preview)
 				// 获取文本文件内容
-				file.GET("content/*path", controllers.PreviewText)
+				file.GET("content/:id", controllers.PreviewText)
 				// 取得Office文档预览地址
-				file.GET("doc/*path", controllers.GetDocPreview)
+				file.GET("doc/:id", controllers.GetDocPreview)
 				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
@@ -281,7 +282,7 @@ func InitMasterRouter() *gin.Engine {
 				// 创建URL下载任务
 				aria2.POST("url", controllers.AddAria2URL)
 				// 创建种子下载任务
-				aria2.POST("torrent/*path", controllers.AddAria2Torrent)
+				aria2.POST("torrent/:id", middleware.HashID(hashid.FileID), controllers.AddAria2Torrent)
 				// 重新选择要下载的文件
 				aria2.PUT("select/:gid", controllers.SelectAria2File)
 				// 取消下载任务

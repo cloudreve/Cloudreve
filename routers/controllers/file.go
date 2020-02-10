@@ -38,7 +38,7 @@ func Archive(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.ItemService
+	var service explorer.ItemIDService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Archive(ctx, c)
 		c.JSON(200, res)
@@ -86,7 +86,7 @@ func AnonymousGetContent(c *gin.Context) {
 	}
 }
 
-// Source 获取文件的外链地址
+// GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -100,13 +100,13 @@ func GetSource(c *gin.Context) {
 	defer fs.Recycle()
 
 	// 获取文件ID
-	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("无法解析文件ID", err))
+	fileID, ok := c.Get("object_id")
+	if !ok {
+		c.JSON(200, serializer.ParamErr("文件不存在", err))
 		return
 	}
 
-	sourceURL, err := fs.GetSource(ctx, uint(fileID))
+	sourceURL, err := fs.GetSource(ctx, fileID.(uint))
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeNotSet, err.Error(), err))
 		return
@@ -135,14 +135,14 @@ func Thumb(c *gin.Context) {
 	defer fs.Recycle()
 
 	// 获取文件ID
-	fileID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("无法解析文件ID", err))
+	fileID, ok := c.Get("object_id")
+	if !ok {
+		c.JSON(200, serializer.ParamErr("文件不存在", err))
 		return
 	}
 
 	// 获取缩略图
-	resp, err := fs.GetThumb(ctx, uint(fileID))
+	resp, err := fs.GetThumb(ctx, fileID.(uint))
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err))
 		return
@@ -165,7 +165,7 @@ func Preview(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.SingleFileService
+	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.PreviewContent(ctx, c, false)
 		// 是否需要重定向
@@ -188,7 +188,7 @@ func PreviewText(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.SingleFileService
+	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.PreviewContent(ctx, c, true)
 		// 是否有错误发生
@@ -206,7 +206,7 @@ func GetDocPreview(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.SingleFileService
+	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.CreateDocPreviewSession(ctx, c)
 		c.JSON(200, res)
@@ -221,7 +221,7 @@ func CreateDownloadSession(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.SingleFileService
+	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.CreateDownloadSession(ctx, c)
 		c.JSON(200, res)
@@ -253,7 +253,7 @@ func PutContent(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.SingleFileService
+	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.PutContent(ctx, c)
 		c.JSON(200, res)
@@ -344,9 +344,9 @@ func GetUploadCredential(c *gin.Context) {
 
 // SearchFile 搜索文件
 func SearchFile(c *gin.Context) {
-	var service explorer.ItemDecompressService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.CreateDecompressTask(c)
+	var service explorer.ItemSearchService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Search(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

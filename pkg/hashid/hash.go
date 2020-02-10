@@ -8,8 +8,10 @@ import "github.com/speps/go-hashids"
 
 // ID类型
 const (
-	ShareID = iota // 分享
-	UserID         // 用户
+	ShareID  = iota // 分享
+	UserID          // 用户
+	FileID          // 文件ID
+	FolderID        // 目录ID
 )
 
 var (

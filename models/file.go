@@ -78,6 +78,21 @@ func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 	return files, result.Error
 }
 
+// GetFilesByKeywords 根据关键字搜索文件,
+// UID为0表示忽略用户，只根据文件ID检索
+// TODO 测试
+func GetFilesByKeywords(keywords string, uid uint) ([]File, error) {
+	var files []File
+	var result *gorm.DB
+
+	if uid == 0 {
+		result = DB.Where("name like ?", keywords).Find(&files)
+	} else {
+		result = DB.Where("name like ? AND user_id = ?", keywords, uid).Find(&files)
+	}
+	return files, result.Error
+}
+
 // GetChildFilesOfFolders 批量检索目录子文件
 func GetChildFilesOfFolders(folders *[]Folder) ([]File, error) {
 	// 将所有待删除目录ID抽离，以便检索文件

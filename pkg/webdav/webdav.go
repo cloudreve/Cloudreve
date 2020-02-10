@@ -231,7 +231,13 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 
 	ctx := r.Context()
 
-	rs, err := fs.Preview(ctx, reqPath, false)
+	exist, file := fs.IsFileExist(reqPath)
+	if !exist {
+		return http.StatusNotFound, nil
+	}
+	fs.SetTargetFile(&[]model.File{*file})
+
+	rs, err := fs.Preview(ctx, 0, false)
 	if err != nil {
 		if err == filesystem.ErrObjectNotExist {
 			return http.StatusNotFound, err

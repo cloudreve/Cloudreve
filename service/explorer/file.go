@@ -15,7 +15,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"time"
 )
@@ -23,6 +22,10 @@ import (
 // SingleFileService 对单文件进行操作的五福，path为文件完整路径
 type SingleFileService struct {
 	Path string `uri:"path" binding:"required,min=1,max=65535"`
+}
+
+// FileIDService 通过文件ID对文件进行操作的服务
+type FileIDService struct {
 }
 
 // FileAnonymousGetService 匿名（外链）获取文件服务
@@ -105,7 +108,7 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	}
 
 	// 获取文件流
-	rs, err := fs.GetDownloadContent(ctx, "")
+	rs, err := fs.GetDownloadContent(ctx, 0)
 	defer rs.Close()
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
@@ -120,7 +123,7 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 }
 
 // CreateDocPreviewSession 创建DOC文件预览会话，返回预览地址
-func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -138,8 +141,11 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 		fs.Root = folder
 	}
 
+	// 获取对象id
+	objectID, _ := c.Get("object_id")
+
 	// 获取文件临时下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "doc_preview_timeout")
+	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "doc_preview_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -158,7 +164,7 @@ func (service *SingleFileService) CreateDocPreviewSession(ctx context.Context, c
 }
 
 // CreateDownloadSession 创建下载会话，获取下载URL
-func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -166,8 +172,11 @@ func (service *SingleFileService) CreateDownloadSession(ctx context.Context, c *
 	}
 	defer fs.Recycle()
 
+	// 获取对象id
+	objectID, _ := c.Get("object_id")
+
 	// 获取下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, service.Path, "download_timeout")
+	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "download_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -196,7 +205,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 
 	// 开始处理下载
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	rs, err := fs.GetDownloadContent(ctx, "")
+	rs, err := fs.GetDownloadContent(ctx, 0)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -220,7 +229,7 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 
 // PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
 // 强制经由服务端中转
-func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
+func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -238,8 +247,11 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 		fs.Root = folder
 	}
 
+	// 获取对象id
+	objectID, _ := c.Get("object_id")
+
 	// 获取文件预览响应
-	resp, err := fs.Preview(ctx, service.Path, isText)
+	resp, err := fs.Preview(ctx, objectID.(uint), isText)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -267,7 +279,7 @@ func (service *SingleFileService) PreviewContent(ctx context.Context, c *gin.Con
 }
 
 // PutContent 更新文件内容
-func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -280,11 +292,9 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	}
 
 	fileData := local.FileStream{
-		MIMEType:    c.Request.Header.Get("Content-Type"),
-		File:        c.Request.Body,
-		Size:        fileSize,
-		Name:        path.Base(service.Path),
-		VirtualPath: path.Dir(service.Path),
+		MIMEType: c.Request.Header.Get("Content-Type"),
+		File:     c.Request.Body,
+		Size:     fileSize,
 	}
 
 	// 创建文件系统
@@ -295,16 +305,18 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 
 	// 取得现有文件
-	exist, originFile := fs.IsFileExist(service.Path)
-	if !exist {
+	fileID, _ := c.Get("object_id")
+	originFile, _ := model.GetFilesByIDs([]uint{fileID.(uint)}, fs.User.ID)
+	if len(originFile) == 0 {
 		return serializer.Err(404, "文件不存在", nil)
 	}
+	fileData.Name = originFile[0].Name
 
 	// 检查此文件是否有软链接
-	fileList, err := model.RemoveFilesWithSoftLinks([]model.File{*originFile})
+	fileList, err := model.RemoveFilesWithSoftLinks([]model.File{originFile[0]})
 	if err == nil && len(fileList) == 0 {
 		// 如果包含软连接，应重新生成新文件副本，并更新source_name
-		originFile.SourceName = fs.GenerateSavePath(uploadCtx, fileData)
+		originFile[0].SourceName = fs.GenerateSavePath(uploadCtx, fileData)
 		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
 		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
@@ -323,7 +335,7 @@ func (service *SingleFileService) PutContent(ctx context.Context, c *gin.Context
 	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
-	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, *originFile)
+	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, originFile[0])
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
@@ -365,7 +377,7 @@ func (service *SlaveDownloadService) ServeFile(ctx context.Context, c *gin.Conte
 
 	// 开始处理下载
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	rs, err := fs.GetDownloadContent(ctx, "")
+	rs, err := fs.GetDownloadContent(ctx, 0)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

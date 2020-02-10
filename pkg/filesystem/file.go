@@ -94,8 +94,8 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 //   path   -   文件虚拟路径
 //   isText -   是否为文本文件，文本文件会忽略重定向，直接由
 //              服务端拉取中转给用户，故会对文件大小进行限制
-func (fs *FileSystem) Preview(ctx context.Context, path string, isText bool) (*response.ContentResponse, error) {
-	err := fs.resetFileIfNotExist(ctx, path)
+func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*response.ContentResponse, error) {
+	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (fs *FileSystem) Preview(ctx context.Context, path string, isText bool) (*r
 
 	// 是否直接返回文件内容
 	if isText || fs.Policy.IsDirectlyPreview() {
-		resp, err := fs.GetDownloadContent(ctx, path)
+		resp, err := fs.GetDownloadContent(ctx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -132,9 +132,9 @@ func (fs *FileSystem) Preview(ctx context.Context, path string, isText bool) (*r
 }
 
 // GetDownloadContent 获取用于下载的文件流
-func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (response.RSCloser, error) {
+func (fs *FileSystem) GetDownloadContent(ctx context.Context, id uint) (response.RSCloser, error) {
 	// 获取原始文件流
-	rs, err := fs.GetContent(ctx, path)
+	rs, err := fs.GetContent(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (fs *FileSystem) GetDownloadContent(ctx context.Context, path string) (resp
 }
 
 // GetContent 获取文件内容，path为虚拟路径
-func (fs *FileSystem) GetContent(ctx context.Context, path string) (response.RSCloser, error) {
+func (fs *FileSystem) GetContent(ctx context.Context, id uint) (response.RSCloser, error) {
 	// 触发`下载前`钩子
 	err := fs.Trigger(ctx, "BeforeFileDownload")
 	if err != nil {
@@ -153,7 +153,7 @@ func (fs *FileSystem) GetContent(ctx context.Context, path string) (response.RSC
 		return nil, err
 	}
 
-	err = fs.resetFileIfNotExist(ctx, path)
+	err = fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -218,8 +218,8 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 }
 
 // GetDownloadURL 创建文件下载链接, timeout 为数据库中存储过期时间的字段
-func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout string) (string, error) {
-	err := fs.resetFileIfNotExist(ctx, path)
+func (fs *FileSystem) GetDownloadURL(ctx context.Context, id uint, timeout string) (string, error) {
+	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -240,7 +240,7 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, path string, timeout s
 	return source, nil
 }
 
-// Source 获取可直接访问文件的外链地址
+// GetSource 获取可直接访问文件的外链地址
 func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error) {
 	// 查找文件记录
 	err := fs.resetFileIDIfNotExist(ctx, fileID)
@@ -339,4 +339,12 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// Search 搜索文件
+func (fs *FileSystem) Search(ctx context.Context, keywords string) ([]Object, error) {
+	files, _ := model.GetFilesByKeywords(keywords, fs.User.ID)
+	fs.SetTargetFile(&files)
+
+	return fs.listObjects(ctx, "/", files, nil, nil), nil
 }

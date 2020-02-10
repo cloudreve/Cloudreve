@@ -96,7 +96,8 @@ func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Respons
 	}
 
 	// 取得下载地址
-	downloadURL, err := fs.GetDownloadURL(context.Background(), service.Path, "download_timeout")
+	// TODO 改为真实ID
+	downloadURL, err := fs.GetDownloadURL(context.Background(), 0, "download_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -119,9 +120,7 @@ func (service *Service) PreviewContent(ctx context.Context, c *gin.Context, isTe
 	} else {
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
-	subService := explorer.SingleFileService{
-		Path: service.Path,
-	}
+	subService := explorer.FileIDService{}
 
 	return subService.PreviewContent(ctx, c, isText)
 }
@@ -138,9 +137,7 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	} else {
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
-	subService := explorer.SingleFileService{
-		Path: service.Path,
-	}
+	subService := explorer.FileIDService{}
 
 	return subService.CreateDocPreviewSession(ctx, c)
 }
@@ -321,10 +318,8 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	tempUser.Group.OptionsSerialized.ArchiveDownload = true
 	c.Set("user", tempUser)
 
-	subService := explorer.ItemService{
-		Items: service.Items,
-		Dirs:  service.Dirs,
-	}
+	// todo 改成真实
+	subService := explorer.ItemIDService{}
 
 	return subService.Archive(ctx, c)
 }

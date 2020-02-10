@@ -3,6 +3,7 @@ package explorer
 import (
 	"context"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
@@ -39,7 +40,7 @@ func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Respon
 	return serializer.Response{
 		Code: 0,
 		Data: map[string]interface{}{
-			"parent":  parentID,
+			"parent":  hashid.HashID(parentID, hashid.FolderID),
 			"objects": objects,
 		},
 	}

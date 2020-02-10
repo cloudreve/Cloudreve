@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/task"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -21,15 +22,15 @@ import (
 
 // ItemMoveService 处理多文件/目录移动
 type ItemMoveService struct {
-	SrcDir string      `json:"src_dir" binding:"required,min=1,max=65535"`
-	Src    ItemService `json:"src" binding:"exists"`
-	Dst    string      `json:"dst" binding:"required,min=1,max=65535"`
+	SrcDir string        `json:"src_dir" binding:"required,min=1,max=65535"`
+	Src    ItemIDService `json:"src" binding:"exists"`
+	Dst    string        `json:"dst" binding:"required,min=1,max=65535"`
 }
 
 // ItemRenameService 处理多文件/目录重命名
 type ItemRenameService struct {
-	Src     ItemService `json:"src" binding:"exists"`
-	NewName string      `json:"new_name" binding:"required,min=1,max=255"`
+	Src     ItemIDService `json:"src" binding:"exists"`
+	NewName string        `json:"new_name" binding:"required,min=1,max=255"`
 }
 
 // ItemService 处理多文件/目录相关服务
@@ -38,17 +39,50 @@ type ItemService struct {
 	Dirs  []uint `json:"dirs" binding:"exists"`
 }
 
+// ItemIDService 处理多文件/目录相关服务，字段值为HashID，可通过Raw()方法获取原始ID
+type ItemIDService struct {
+	Items  []string `json:"items" binding:"exists"`
+	Dirs   []string `json:"dirs" binding:"exists"`
+	Source *ItemService
+}
+
 // ItemCompressService 文件压缩任务服务
 type ItemCompressService struct {
-	Src  ItemService `json:"src" binding:"exists"`
-	Dst  string      `json:"dst" binding:"required,min=1,max=65535"`
-	Name string      `json:"name" binding:"required,min=1,max=255"`
+	Src  ItemIDService `json:"src" binding:"exists"`
+	Dst  string        `json:"dst" binding:"required,min=1,max=65535"`
+	Name string        `json:"name" binding:"required,min=1,max=255"`
 }
 
 // ItemDecompressService 文件解压缩任务服务
 type ItemDecompressService struct {
 	Src string `json:"src" binding:"exists"`
 	Dst string `json:"dst" binding:"required,min=1,max=65535"`
+}
+
+// Raw 批量解码HashID，获取原始ID
+func (service *ItemIDService) Raw() *ItemService {
+	if service.Source != nil {
+		return service.Source
+	}
+
+	service.Source = &ItemService{
+		Dirs:  make([]uint, 0, len(service.Dirs)),
+		Items: make([]uint, 0, len(service.Items)),
+	}
+	for _, folder := range service.Dirs {
+		id, err := hashid.DecodeHashID(folder, hashid.FolderID)
+		if err == nil {
+			service.Source.Dirs = append(service.Source.Dirs, id)
+		}
+	}
+	for _, file := range service.Items {
+		id, err := hashid.DecodeHashID(file, hashid.FileID)
+		if err == nil {
+			service.Source.Items = append(service.Source.Items, id)
+		}
+	}
+
+	return service.Source
 }
 
 // CreateDecompressTask 创建文件解压缩任务
@@ -129,7 +163,7 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 	}
 
 	// 递归列出待压缩子目录
-	folders, err := model.GetRecursiveChildFolder(service.Src.Dirs, fs.User.ID, true)
+	folders, err := model.GetRecursiveChildFolder(service.Src.Raw().Dirs, fs.User.ID, true)
 	if err != nil {
 		return serializer.Err(serializer.CodeDBError, "无法列出子目录", err)
 	}
@@ -160,8 +194,8 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 	}
 
 	// 创建任务
-	job, err := task.NewCompressTask(fs.User, path.Join(service.Dst, service.Name), service.Src.Dirs,
-		service.Src.Items)
+	job, err := task.NewCompressTask(fs.User, path.Join(service.Dst, service.Name), service.Src.Raw().Dirs,
+		service.Src.Raw().Items)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
@@ -172,7 +206,7 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 }
 
 // Archive 创建归档
-func (service *ItemService) Archive(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *ItemIDService) Archive(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -187,7 +221,8 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 
 	// 开始压缩
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	zipFile, err := fs.Compress(ctx, service.Dirs, service.Items, true)
+	items := service.Raw()
+	zipFile, err := fs.Compress(ctx, items.Dirs, items.Items, true)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
 	}
@@ -219,7 +254,7 @@ func (service *ItemService) Archive(ctx context.Context, c *gin.Context) seriali
 }
 
 // Delete 删除对象
-func (service *ItemService) Delete(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *ItemIDService) Delete(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -228,7 +263,8 @@ func (service *ItemService) Delete(ctx context.Context, c *gin.Context) serializ
 	defer fs.Recycle()
 
 	// 删除对象
-	err = fs.Delete(ctx, service.Dirs, service.Items)
+	items := service.Raw()
+	err = fs.Delete(ctx, items.Dirs, items.Items)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -249,7 +285,8 @@ func (service *ItemMoveService) Move(ctx context.Context, c *gin.Context) serial
 	defer fs.Recycle()
 
 	// 移动对象
-	err = fs.Move(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
+	items := service.Src.Raw()
+	err = fs.Move(ctx, items.Dirs, items.Items, service.SrcDir, service.Dst)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -275,7 +312,7 @@ func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serial
 	defer fs.Recycle()
 
 	// 复制对象
-	err = fs.Copy(ctx, service.Src.Dirs, service.Src.Items, service.SrcDir, service.Dst)
+	err = fs.Copy(ctx, service.Src.Raw().Dirs, service.Src.Raw().Items, service.SrcDir, service.Dst)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -301,7 +338,7 @@ func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) se
 	defer fs.Recycle()
 
 	// 重命名对象
-	err = fs.Rename(ctx, service.Src.Dirs, service.Src.Items, service.NewName)
+	err = fs.Rename(ctx, service.Src.Raw().Dirs, service.Src.Raw().Items, service.NewName)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
