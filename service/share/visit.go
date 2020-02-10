@@ -13,7 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"path"
-	"strconv"
 )
 
 // ShareGetService 获取分享服务
@@ -29,9 +28,9 @@ type Service struct {
 
 // ArchiveService 分享归档下载服务
 type ArchiveService struct {
-	Path  string `json:"path" binding:"required,max=65535"`
-	Items []uint `json:"items" binding:"exists"`
-	Dirs  []uint `json:"dirs" binding:"exists"`
+	Path  string   `json:"path" binding:"required,max=65535"`
+	Items []string `json:"items" binding:"exists"`
+	Dirs  []string `json:"dirs" binding:"exists"`
 }
 
 // Get 获取分享内容
@@ -90,14 +89,21 @@ func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Respons
 		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
 	}
 
+	ctx := context.Background()
+
 	// 重设根目录
 	if share.IsDir {
 		fs.Root = &fs.DirTarget[0]
+
+		// 找到目标文件
+		err = fs.ResetFileIfNotExist(ctx, service.Path)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+		}
 	}
 
 	// 取得下载地址
-	// TODO 改为真实ID
-	downloadURL, err := fs.GetDownloadURL(context.Background(), 0, "download_timeout")
+	downloadURL, err := fs.GetDownloadURL(ctx, 0, "download_timeout")
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
@@ -117,6 +123,7 @@ func (service *Service) PreviewContent(ctx context.Context, c *gin.Context, isTe
 	// 用于调下层service
 	if share.IsDir {
 		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
+		ctx = context.WithValue(ctx, fsctx.PathCtx, service.Path)
 	} else {
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
@@ -134,6 +141,7 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	ctx := context.Background()
 	if share.IsDir {
 		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
+		ctx = context.WithValue(ctx, fsctx.PathCtx, service.Path)
 	} else {
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
 	}
@@ -212,15 +220,10 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
 	}
 
-	var parentID uint
-	if len(fs.DirTarget) > 0 {
-		parentID = fs.DirTarget[0].ID
-	}
-
 	return serializer.Response{
 		Code: 0,
 		Data: map[string]interface{}{
-			"parent":  parentID,
+			"parent":  "0000",
 			"objects": objects,
 		},
 	}
@@ -254,7 +257,7 @@ func (service *Service) Thumb(c *gin.Context) serializer.Response {
 	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
 
 	// 获取文件ID
-	fileID, err := strconv.ParseUint(c.Param("file"), 10, 32)
+	fileID, err := hashid.DecodeHashID(c.Param("file"), hashid.FileID)
 	if err != nil {
 		return serializer.ParamErr("无法解析文件ID", err)
 	}
@@ -318,8 +321,10 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	tempUser.Group.OptionsSerialized.ArchiveDownload = true
 	c.Set("user", tempUser)
 
-	// todo 改成真实
-	subService := explorer.ItemIDService{}
+	subService := explorer.ItemIDService{
+		Dirs:  service.Dirs,
+		Items: service.Items,
+	}
 
 	return subService.Archive(ctx, c)
 }

@@ -285,8 +285,8 @@ func (fs *FileSystem) signURL(ctx context.Context, file *model.File, ttl int64, 
 	return source, nil
 }
 
-// resetFileIfNotExist 重设当前目标文件为 path，如果当前目标为空
-func (fs *FileSystem) resetFileIfNotExist(ctx context.Context, path string) error {
+// ResetFileIfNotExist 重设当前目标文件为 path，如果当前目标为空
+func (fs *FileSystem) ResetFileIfNotExist(ctx context.Context, path string) error {
 	// 找到文件
 	if len(fs.FileTarget) == 0 {
 		exist, file := fs.IsFileExist(path)
@@ -300,7 +300,7 @@ func (fs *FileSystem) resetFileIfNotExist(ctx context.Context, path string) erro
 	return fs.resetPolicyToFirstFile(ctx)
 }
 
-// resetFileIfNotExist 重设当前目标文件为 id，如果当前目标为空
+// ResetFileIfNotExist 重设当前目标文件为 id，如果当前目标为空
 func (fs *FileSystem) resetFileIDIfNotExist(ctx context.Context, id uint) error {
 	// 找到文件
 	if len(fs.FileTarget) == 0 {

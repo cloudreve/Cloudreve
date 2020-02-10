@@ -131,18 +131,25 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 	}
 	defer fs.Recycle()
 
+	// 获取对象id
+	objectID, _ := c.Get("object_id")
+
 	// 如果上下文中已有File对象，则重设目标
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
 		fs.SetTargetFile(&[]model.File{*file})
+		objectID = uint(0)
 	}
 
-	// 重设根目录
+	// 如果上下文中已有Folder对象，则重设根目录
 	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
 		fs.Root = folder
+		path := ctx.Value(fsctx.PathCtx).(string)
+		err := fs.ResetFileIfNotExist(ctx, path)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, err.Error(), err)
+		}
+		objectID = uint(0)
 	}
-
-	// 获取对象id
-	objectID, _ := c.Get("object_id")
 
 	// 获取文件临时下载地址
 	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "doc_preview_timeout")
@@ -237,18 +244,25 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 	}
 	defer fs.Recycle()
 
+	// 获取对象id
+	objectID, _ := c.Get("object_id")
+
 	// 如果上下文中已有File对象，则重设目标
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
 		fs.SetTargetFile(&[]model.File{*file})
+		objectID = uint(0)
 	}
 
 	// 如果上下文中已有Folder对象，则重设根目录
 	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
 		fs.Root = folder
+		path := ctx.Value(fsctx.PathCtx).(string)
+		err := fs.ResetFileIfNotExist(ctx, path)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, err.Error(), err)
+		}
+		objectID = uint(0)
 	}
-
-	// 获取对象id
-	objectID, _ := c.Get("object_id")
 
 	// 获取文件预览响应
 	resp, err := fs.Preview(ctx, objectID.(uint), isText)

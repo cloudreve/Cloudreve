@@ -195,7 +195,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 
 // Decompress 解压缩给定压缩文件到dst目录
 func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
-	err := fs.resetFileIfNotExist(ctx, src)
+	err := fs.ResetFileIfNotExist(ctx, src)
 	if err != nil {
 		return err
 	}
