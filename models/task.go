@@ -41,8 +41,16 @@ func (task *Task) SetError(err string) error {
 }
 
 // GetTasksByStatus 根据状态检索任务
-func GetTasksByStatus(status int) []Task {
+func GetTasksByStatus(status ...int) []Task {
 	var tasks []Task
-	DB.Where("status = ?", status).Find(&tasks)
+	DB.Where("status in (?)", status).Find(&tasks)
 	return tasks
+}
+
+// GetTasksByID 根据ID检索任务
+// TODO 测试
+func GetTasksByID(id interface{}) (*Task, error) {
+	task := &Task{}
+	result := DB.Where("id = ?", id).First(task)
+	return task, result.Error
 }

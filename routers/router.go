@@ -271,6 +271,8 @@ func InitMasterRouter() *gin.Engine {
 				file.POST("compress", controllers.Compress)
 				// 创建文件解压缩任务
 				file.POST("decompress", controllers.Decompress)
+				// 创建文件解压缩任务
+				file.GET("search/:type/:keywords", controllers.SearchFile)
 			}
 
 			// 离线下载任务
@@ -286,6 +288,8 @@ func InitMasterRouter() *gin.Engine {
 				aria2.DELETE("task/:gid", controllers.CancelAria2Download)
 				// 获取正在下载中的任务
 				aria2.GET("downloading", controllers.ListDownloading)
+				// 获取已完成的任务
+				aria2.GET("finished", controllers.ListFinished)
 			}
 
 			// 目录

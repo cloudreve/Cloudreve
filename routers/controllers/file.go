@@ -341,3 +341,14 @@ func GetUploadCredential(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SearchFile 搜索文件
+func SearchFile(c *gin.Context) {
+	var service explorer.ItemDecompressService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.CreateDecompressTask(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

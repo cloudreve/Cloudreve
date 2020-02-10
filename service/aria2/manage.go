@@ -19,12 +19,20 @@ type DownloadTaskService struct {
 
 // DownloadListService 下载列表服务
 type DownloadListService struct {
+	Page uint `form:"page"`
+}
+
+// Finished 获取已完成的任务
+func (service *DownloadListService) Finished(c *gin.Context, user *model.User) serializer.Response {
+	// 查找下载记录
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, aria2.Error, aria2.Complete, aria2.Canceled, aria2.Unknown)
+	return serializer.BuildFinishedListResponse(downloads)
 }
 
 // Downloading 获取正在下载中的任务
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(user.ID, aria2.Downloading, aria2.Paused, aria2.Ready)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, aria2.Downloading, aria2.Paused, aria2.Ready)
 	return serializer.BuildDownloadingResponse(downloads)
 }
 

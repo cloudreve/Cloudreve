@@ -23,6 +23,7 @@ type Monitor struct {
 	Interval time.Duration
 
 	notifier chan StatusEvent
+	retried  int
 }
 
 // StatusEvent 状态改变事件
@@ -68,11 +69,20 @@ func (monitor *Monitor) Loop() {
 func (monitor *Monitor) Update() bool {
 	status, err := Instance.Status(monitor.Task)
 	if err != nil {
+		monitor.retried++
 		util.Log().Warning("无法获取下载任务[%s]的状态，%s", monitor.Task.GID, err)
-		monitor.setErrorStatus(err)
-		monitor.RemoveTempFolder()
-		return true
+
+		// 十次重试后认定为任务失败
+		if monitor.retried > 10 {
+			util.Log().Warning("无法获取下载任务[%s]的状态，超过最大重试次数限制，%s", monitor.Task.GID, err)
+			monitor.setErrorStatus(err)
+			monitor.RemoveTempFolder()
+			return true
+		}
+
+		return false
 	}
+	monitor.retried = 0
 
 	// 磁力链下载需要跟随
 	if len(status.FollowedBy) > 0 {

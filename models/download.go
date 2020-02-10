@@ -29,6 +29,7 @@ type Download struct {
 
 	// 数据库忽略字段
 	StatusInfo rpc.StatusInfo `gorm:"-"`
+	Task       *Task          `gorm:"-"`
 }
 
 // AfterFind 找到下载任务后的钩子，处理Status结构
@@ -36,6 +37,10 @@ func (task *Download) AfterFind() (err error) {
 	// 解析状态
 	if task.Attrs != "" {
 		err = json.Unmarshal([]byte(task.Attrs), &task.StatusInfo)
+	}
+
+	if task.TaskID != 0 {
+		task.Task, _ = GetTasksByID(task.TaskID)
 	}
 
 	return err
@@ -72,10 +77,15 @@ func GetDownloadsByStatus(status ...int) []Download {
 }
 
 // GetDownloadsByStatusAndUser 根据状态检索和用户ID下载
+// page 为 0 表示列出所有，非零时分页
 // TODO 测试
-func GetDownloadsByStatusAndUser(uid uint, status ...int) []Download {
+func GetDownloadsByStatusAndUser(page, uid uint, status ...int) []Download {
 	var tasks []Download
-	DB.Where("user_id = ? and status in (?)", uid, status).Find(&tasks)
+	dbChain := DB
+	if page > 0 {
+		dbChain = dbChain.Limit(10).Offset((page - 1) * 10).Order("updated_at DESC")
+	}
+	dbChain.Where("user_id = ? and status in (?)", uid, status).Find(&tasks)
 	return tasks
 }
 

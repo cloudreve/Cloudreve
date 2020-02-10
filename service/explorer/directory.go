@@ -28,7 +28,7 @@ func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Respon
 	// 获取子项目
 	objects, err := fs.List(ctx, service.Path, nil)
 	if err != nil {
-		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
 	var parentID uint

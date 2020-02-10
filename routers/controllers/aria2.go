@@ -92,3 +92,14 @@ func ListDownloading(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// ListFinished 获取已完成的任务
+func ListFinished(c *gin.Context) {
+	var service aria2.DownloadListService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Finished(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

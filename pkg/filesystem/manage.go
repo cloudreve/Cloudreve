@@ -253,9 +253,8 @@ func (fs *FileSystem) ListDeleteFiles(ctx context.Context, ids []uint) error {
 func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor func(string) string) ([]Object, error) {
 	// 获取父目录
 	isExist, folder := fs.IsPathExist(dirPath)
-	// 不存在时返回空的结果
 	if !isExist {
-		return []Object{}, nil
+		return nil, ErrPathNotExist
 	}
 	fs.SetTargetDir(&[]model.Folder{*folder})
 
