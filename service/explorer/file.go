@@ -272,6 +272,7 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 
 	// 重定向到文件源
 	if resp.Redirect {
+		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
 		return serializer.Response{
 			Code: -301,
 			Data: resp.URL,

@@ -127,6 +127,7 @@ func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*respo
 	return &response.ContentResponse{
 		Redirect: true,
 		URL:      previewURL,
+		MaxAge:   ttl,
 	}, nil
 
 }
@@ -342,8 +343,8 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 }
 
 // Search 搜索文件
-func (fs *FileSystem) Search(ctx context.Context, keywords string) ([]Object, error) {
-	files, _ := model.GetFilesByKeywords(keywords, fs.User.ID)
+func (fs *FileSystem) Search(ctx context.Context, keywords ...interface{}) ([]Object, error) {
+	files, _ := model.GetFilesByKeywords(fs.User.ID, keywords...)
 	fs.SetTargetFile(&files)
 
 	return fs.listObjects(ctx, "/", files, nil, nil), nil
