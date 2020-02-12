@@ -32,6 +32,8 @@ type StatusEvent struct {
 	Status int
 }
 
+var MAX_RETRY = 10
+
 // NewMonitor 新建上传状态监控
 func NewMonitor(task *model.Download) {
 	monitor := &Monitor{
@@ -73,7 +75,7 @@ func (monitor *Monitor) Update() bool {
 		util.Log().Warning("无法获取下载任务[%s]的状态，%s", monitor.Task.GID, err)
 
 		// 十次重试后认定为任务失败
-		if monitor.retried > 10 {
+		if monitor.retried > MAX_RETRY {
 			util.Log().Warning("无法获取下载任务[%s]的状态，超过最大重试次数限制，%s", monitor.Task.GID, err)
 			monitor.setErrorStatus(err)
 			monitor.RemoveTempFolder()

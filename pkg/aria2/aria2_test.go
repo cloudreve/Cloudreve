@@ -36,6 +36,7 @@ func TestDummyAria2(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
+	MAX_RETRY = 0
 	asserts := assert.New(t)
 	cache.Set("setting_aria2_token", "1", 0)
 	cache.Set("setting_aria2_call_timeout", "5", 0)

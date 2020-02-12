@@ -385,3 +385,25 @@ func TestFile_FileInfoInterface(t *testing.T) {
 	asserts.False(file.IsDir())
 	asserts.Equal("/test", file.GetPosition())
 }
+
+func TestGetFilesByKeywords(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 未指定用户
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs("k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		res, err := GetFilesByKeywords(0, "k1", "k2")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+	}
+
+	// 指定用户
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1, "k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		res, err := GetFilesByKeywords(1, "k1", "k2")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+	}
+}

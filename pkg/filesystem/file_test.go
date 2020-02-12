@@ -73,7 +73,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 	}
 
 	// 文件不存在
-	rs, err := fs.GetContent(ctx, "not exist file")
+	rs, err := fs.GetContent(ctx, 1)
 	asserts.Equal(ErrObjectNotExist, err)
 	asserts.Nil(rs)
 	fs.CleanTargets()
@@ -84,39 +84,30 @@ func TestFileSystem_GetContent(t *testing.T) {
 	_ = file.Close()
 
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent.txt", 1))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "unknown"))
 
-	rs, err = fs.GetContent(ctx, "/TestFileSystem_GetContent.txt")
+	rs, err = fs.GetContent(ctx, 1)
 	asserts.Error(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 	fs.CleanTargets()
 
 	// 打开文件失败
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent.txt", 1))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type", "source_name"}).AddRow(1, "local", "not exist"))
 
-	rs, err = fs.GetContent(ctx, "/TestFileSystem_GetContent.txt")
+	rs, err = fs.GetContent(ctx, 1)
 	asserts.Equal(serializer.CodeIOFailed, err.(serializer.AppError).Code)
 	asserts.NoError(mock.ExpectationsWereMet())
 	fs.CleanTargets()
 
 	// 打开成功
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id", "source_name"}).AddRow(1, "TestFileSystem_GetContent.txt", 1, "TestFileSystem_GetContent.txt"))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 
-	rs, err = fs.GetContent(ctx, "/TestFileSystem_GetContent.txt")
+	rs, err = fs.GetContent(ctx, 1)
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
@@ -141,29 +132,23 @@ func TestFileSystem_GetDownloadContent(t *testing.T) {
 	_ = file.Close()
 
 	cache.Deletes([]string{"599"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id", "source_name"}).AddRow(1, "TestFileSystem_GetDownloadContent.txt", 599, "TestFileSystem_GetDownloadContent.txt"))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 
 	// 无限速
 	cache.Deletes([]string{"599"}, "policy_")
-	_, err = fs.GetDownloadContent(ctx, "/TestFileSystem_GetDownloadContent.txt")
+	_, err = fs.GetDownloadContent(ctx, 1)
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 	fs.CleanTargets()
 
 	// 有限速
 	cache.Deletes([]string{"599"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").
-		WithArgs(1).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id", "source_name"}).AddRow(1, "TestFileSystem_GetDownloadContent.txt", 599, "TestFileSystem_GetDownloadContent.txt"))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 
 	fs.User.Group.SpeedLimit = 1
-	_, err = fs.GetDownloadContent(ctx, "/TestFileSystem_GetDownloadContent.txt")
+	_, err = fs.GetDownloadContent(ctx, 1)
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
@@ -411,9 +396,6 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 		cache.Set("setting_siteURL", "https://cloudreve.org", 0)
 		asserts.NoError(err)
 		// 查找文件
-		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 35))
 		// 查找上传策略
 		mock.ExpectQuery("SELECT(.+)").
@@ -422,7 +404,7 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 					AddRow(35, "local", true),
 			)
 		// 相关设置
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
+		downloadURL, err := fs.GetDownloadURL(ctx, 1, "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.NotEmpty(downloadURL)
@@ -436,12 +418,9 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 		err = cache.Deletes([]string{"download_timeout"}, "setting_")
 		asserts.NoError(err)
 		// 查找文件
-		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}))
 
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
+		downloadURL, err := fs.GetDownloadURL(ctx, 1, "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Empty(downloadURL)
@@ -455,9 +434,6 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 		err = cache.Deletes([]string{"download_timeout"}, "setting_")
 		asserts.NoError(err)
 		// 查找文件
-		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "1.txt", 35))
 		// 查找上传策略
 		mock.ExpectQuery("SELECT(.+)").
@@ -466,7 +442,7 @@ func TestFileSystem_GetDownloadURL(t *testing.T) {
 					AddRow(35, "unknown", true),
 			)
 
-		downloadURL, err := fs.GetDownloadURL(ctx, "/1.txt", "download_timeout")
+		downloadURL, err := fs.GetDownloadURL(ctx, 1, "download_timeout")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Empty(downloadURL)
@@ -511,7 +487,7 @@ func TestFileSystem_Preview(t *testing.T) {
 			User: &model.User{},
 		}
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
-		resp, err := fs.Preview(ctx, "/1.txt", false)
+		resp, err := fs.Preview(ctx, 1, false)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.Nil(resp)
@@ -531,7 +507,7 @@ func TestFileSystem_Preview(t *testing.T) {
 				},
 			},
 		}
-		resp, err := fs.Preview(ctx, "/1.txt", false)
+		resp, err := fs.Preview(ctx, 1, false)
 		asserts.Error(err)
 		asserts.Nil(resp)
 	}
@@ -551,7 +527,7 @@ func TestFileSystem_Preview(t *testing.T) {
 				},
 			},
 		}
-		resp, err := fs.Preview(ctx, "/1.txt", false)
+		resp, err := fs.Preview(ctx, 1, false)
 		asserts.NoError(err)
 		asserts.NotNil(resp)
 		asserts.False(resp.Redirect)
@@ -574,7 +550,7 @@ func TestFileSystem_Preview(t *testing.T) {
 			},
 		}
 		asserts.NoError(cache.Set("setting_preview_timeout", "233", 0))
-		resp, err := fs.Preview(ctx, "/1.txt", false)
+		resp, err := fs.Preview(ctx, 1, false)
 		asserts.NoError(err)
 		asserts.NotNil(resp)
 		asserts.True(resp.Redirect)
@@ -597,7 +573,7 @@ func TestFileSystem_Preview(t *testing.T) {
 			},
 		}
 		asserts.NoError(cache.Set("setting_maxEditSize", "10", 0))
-		resp, err := fs.Preview(ctx, "/1.txt", true)
+		resp, err := fs.Preview(ctx, 1, true)
 		asserts.Equal(ErrFileSizeTooBig, err)
 		asserts.Nil(resp)
 	}
@@ -614,4 +590,19 @@ func TestFileSystem_ResetFileIDIfNotExist(t *testing.T) {
 		},
 	}
 	asserts.Equal(ErrObjectNotExist, fs.resetFileIDIfNotExist(ctx, 1))
+}
+
+func TestFileSystem_Search(t *testing.T) {
+	asserts := assert.New(t)
+	ctx := context.Background()
+	fs := &FileSystem{
+		User: &model.User{},
+	}
+	fs.User.ID = 1
+
+	mock.ExpectQuery("SELECT(.+)").WithArgs(1, "k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	res, err := fs.Search(ctx, "k1", "k2")
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NoError(err)
+	asserts.Len(res, 1)
 }

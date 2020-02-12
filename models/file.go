@@ -80,7 +80,6 @@ func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 
 // GetFilesByKeywords 根据关键字搜索文件,
 // UID为0表示忽略用户，只根据文件ID检索
-// TODO 测试
 func GetFilesByKeywords(uid uint, keywords ...interface{}) ([]File, error) {
 	var (
 		files      []File

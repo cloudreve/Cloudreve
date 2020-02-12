@@ -136,7 +136,7 @@ func TestGenericAfterUpload(t *testing.T) {
 		mock.NewRows([]string{"name"}),
 	)
 	err = GenericAfterUpload(ctx, &fs)
-	asserts.Equal(ErrPathNotExist, err)
+	asserts.Equal(ErrRootProtected, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 文件已存在

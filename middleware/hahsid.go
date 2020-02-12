@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// HashID 将给定文件的HashID转换为真实ID
+// HashID 将给定对象的HashID转换为真实ID
 func HashID(IDType int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Param("id") != "" {

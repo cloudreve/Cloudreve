@@ -390,7 +390,6 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 }
 
 // SaveTo 将别人分享的文件转存到目标路径下
-// TODO 测试
 func (fs *FileSystem) SaveTo(ctx context.Context, path string) error {
 	// 获取父目录
 	isExist, folder := fs.IsPathExist(path)

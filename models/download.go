@@ -78,7 +78,6 @@ func GetDownloadsByStatus(status ...int) []Download {
 
 // GetDownloadsByStatusAndUser 根据状态检索和用户ID下载
 // page 为 0 表示列出所有，非零时分页
-// TODO 测试
 func GetDownloadsByStatusAndUser(page, uid uint, status ...int) []Download {
 	var tasks []Download
 	dbChain := DB

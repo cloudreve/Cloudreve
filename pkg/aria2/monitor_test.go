@@ -50,6 +50,7 @@ func TestNewMonitor(t *testing.T) {
 func TestMonitor_Loop(t *testing.T) {
 	asserts := assert.New(t)
 	notifier := make(chan StatusEvent)
+	MAX_RETRY = 0
 	monitor := &Monitor{
 		Task:     &model.Download{GID: "gid"},
 		Interval: time.Duration(1) * time.Second,
@@ -72,11 +73,13 @@ func TestMonitor_Update(t *testing.T) {
 
 	// 无法获取状态
 	{
+		MAX_RETRY = 1
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{}, errors.New("error"))
 		file, _ := util.CreatNestedFile("TestMonitor_Update/1")
 		file.Close()
 		Instance = testInstance
+		asserts.False(monitor.Update())
 		asserts.True(monitor.Update())
 		testInstance.AssertExpectations(t)
 		asserts.False(util.Exists("TestMonitor_Update"))

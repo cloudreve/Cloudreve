@@ -62,6 +62,15 @@ func TestDownload_AfterFind(t *testing.T) {
 		asserts.Error(err)
 		asserts.Equal("", download.StatusInfo.Gid)
 	}
+
+	// 关联任务
+	{
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "error"}).AddRow(1, "error"))
+		download := Download{TaskID: 1}
+		download.BeforeSave()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Equal("error", download.Task.Error)
+	}
 }
 
 func TestDownload_Save(t *testing.T) {
@@ -138,5 +147,25 @@ func TestDownload_GetOwner(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NotNil(user)
 		asserts.Equal("nick", user.Nick)
+	}
+}
+
+func TestGetDownloadsByStatusAndUser(t *testing.T) {
+	asserts := assert.New(t)
+
+	// 列出全部
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1, 1, 2).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2).AddRow(3))
+		res := GetDownloadsByStatusAndUser(0, 1, 1, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Len(res, 2)
+	}
+
+	// 列出全部,分页
+	{
+		mock.ExpectQuery("SELECT(.+)DESC(.+)").WithArgs(1, 1, 2).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2).AddRow(3))
+		res := GetDownloadsByStatusAndUser(2, 1, 1, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Len(res, 2)
 	}
 }

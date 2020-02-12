@@ -3,20 +3,20 @@ package model
 import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestTask_Create(t *testing.T) {
+func TestTag_Create(t *testing.T) {
 	asserts := assert.New(t)
+	tag := Tag{}
+
 	// 成功
 	{
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		task := Task{Props: "1"}
-		id, err := task.Create()
+		id, err := tag.Create()
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.EqualValues(1, id)
@@ -27,51 +27,33 @@ func TestTask_Create(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
-		task := Task{Props: "1"}
-		id, err := task.Create()
+		id, err := tag.Create()
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.EqualValues(0, id)
 	}
 }
 
-func TestTask_SetError(t *testing.T) {
+func TestDeleteTagByID(t *testing.T) {
 	asserts := assert.New(t)
-	task := Task{
-		Model: gorm.Model{ID: 1},
-	}
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	asserts.NoError(task.SetError("error"))
+	err := DeleteTagByID(1, 2)
 	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NoError(err)
 }
 
-func TestTask_SetStatus(t *testing.T) {
+func TestGetTagsByUID(t *testing.T) {
 	asserts := assert.New(t)
-	task := Task{
-		Model: gorm.Model{ID: 1},
-	}
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-	asserts.NoError(task.SetStatus(1))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	res, err := GetTagsByUID(1)
 	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NoError(err)
+	asserts.Len(res, 1)
 }
 
-func TestTask_SetProgress(t *testing.T) {
-	asserts := assert.New(t)
-	task := Task{
-		Model: gorm.Model{ID: 1},
-	}
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-	asserts.NoError(task.SetProgress(1))
-	asserts.NoError(mock.ExpectationsWereMet())
-}
-
-func TestGetTasksByID(t *testing.T) {
+func TestGetTagsByID(t *testing.T) {
 	asserts := assert.New(t)
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	res, err := GetTasksByID(1)

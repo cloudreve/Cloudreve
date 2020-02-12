@@ -92,7 +92,7 @@ func BuildUser(user model.User) User {
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 		},
-		Tags: BuildTagRes(tags),
+		Tags: buildTagRes(tags),
 	}
 }
 
@@ -121,20 +121,20 @@ func BuildUserStorageResponse(user model.User) Response {
 	}
 }
 
-// BuildTagRes 构建标签列表
-func BuildTagRes(tags []model.Tag) []tag {
+// buildTagRes 构建标签列表
+func buildTagRes(tags []model.Tag) []tag {
 	res := make([]tag, 0, len(tags))
 	for i := 0; i < len(tags); i++ {
 		newTag := tag{
-			ID:         hashid.HashID(tags[i].ID, hashid.TagID),
-			Name:       tags[i].Name,
-			Icon:       tags[i].Icon,
-			Color:      tags[i].Color,
-			Type:       tags[i].Type,
-			Expression: tags[i].Expression,
+			ID:    hashid.HashID(tags[i].ID, hashid.TagID),
+			Name:  tags[i].Name,
+			Icon:  tags[i].Icon,
+			Color: tags[i].Color,
+			Type:  tags[i].Type,
 		}
-		if newTag.Type == 0 {
-			newTag.Expression = ""
+		if newTag.Type != 0 {
+			newTag.Expression = tags[i].Expression
+
 		}
 		res = append(res, newTag)
 	}
