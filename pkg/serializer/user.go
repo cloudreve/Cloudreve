@@ -3,6 +3,7 @@ package serializer
 import (
 	"fmt"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 )
 
 // CheckLogin 检查登录
@@ -25,6 +26,7 @@ type User struct {
 	Score          int    `json:"score"`
 	Policy         policy `json:"policy"`
 	Group          group  `json:"group"`
+	Tags           []tag  `json:"tags"`
 }
 
 type policy struct {
@@ -46,6 +48,15 @@ type group struct {
 	CompressEnabled      bool   `json:"compress"`
 }
 
+type tag struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Icon       string `json:"icon"`
+	Color      string `json:"color"`
+	Type       int    `json:"type"`
+	Expression string `json:"expression"`
+}
+
 type storage struct {
 	Used  uint64 `json:"used"`
 	Free  uint64 `json:"free"`
@@ -54,6 +65,7 @@ type storage struct {
 
 // BuildUser 序列化用户
 func BuildUser(user model.User) User {
+	tags, _ := model.GetTagsByUID(user.ID)
 	return User{
 		ID:             user.ID,
 		Email:          user.Email,
@@ -80,6 +92,7 @@ func BuildUser(user model.User) User {
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 		},
+		Tags: BuildTagRes(tags),
 	}
 }
 
@@ -106,4 +119,25 @@ func BuildUserStorageResponse(user model.User) Response {
 	return Response{
 		Data: storageResp,
 	}
+}
+
+// BuildTagRes 构建标签列表
+func BuildTagRes(tags []model.Tag) []tag {
+	res := make([]tag, 0, len(tags))
+	for i := 0; i < len(tags); i++ {
+		newTag := tag{
+			ID:         hashid.HashID(tags[i].ID, hashid.TagID),
+			Name:       tags[i].Name,
+			Icon:       tags[i].Icon,
+			Color:      tags[i].Color,
+			Type:       tags[i].Type,
+			Expression: tags[i].Expression,
+		}
+		if newTag.Type == 0 {
+			newTag.Expression = ""
+		}
+		res = append(res, newTag)
+	}
+
+	return res
 }

@@ -34,7 +34,7 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 	} else {
 		userRes = BuildUser(*model.NewAnonymousUser())
 	}
-	return Response{
+	res := Response{
 		Data: SiteConfig{
 			SiteName:           checkSettingValue(settings, "siteName"),
 			LoginCaptcha:       model.IsTrueVal(checkSettingValue(settings, "login_captcha")),
@@ -50,4 +50,5 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			ShareViewMethod:    checkSettingValue(settings, "share_view_method"),
 			User:               userRes,
 		}}
+	return res
 }

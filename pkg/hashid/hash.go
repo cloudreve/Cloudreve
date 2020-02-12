@@ -12,6 +12,7 @@ const (
 	UserID          // 用户
 	FileID          // 文件ID
 	FolderID        // 目录ID
+	TagID           // 标签ID
 )
 
 var (

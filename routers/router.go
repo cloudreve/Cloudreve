@@ -329,6 +329,17 @@ func InitMasterRouter() *gin.Engine {
 				)
 			}
 
+			// 用户标签
+			tag := auth.Group("tag")
+			{
+				// 创建文件分类标签
+				tag.POST("filter", controllers.CreateFilterTag)
+				// 创建目录快捷方式标签
+				tag.POST("link", controllers.CreateLinkTag)
+				// 删除标签
+				tag.DELETE(":id", middleware.HashID(hashid.TagID), controllers.DeleteTag)
+			}
+
 		}
 
 	}

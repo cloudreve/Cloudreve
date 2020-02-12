@@ -2,9 +2,12 @@ package explorer
 
 import (
 	"context"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 // ItemSearchService 文件搜索服务
@@ -33,6 +36,20 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 		return service.SearchKeywords(c, fs, "%.mp3", "%.flac", "%.ape", "%.wav", "%.acc", "%.ogg", "%.midi", "%.mid")
 	case "doc":
 		return service.SearchKeywords(c, fs, "%.txt", "%.md", "%.pdf", "%.doc", "%.docx", "%.ppt", "%.pptx", "%.xls", "%.xlsx", "%.pub")
+	case "tag":
+		if tid, err := hashid.DecodeHashID(service.Keywords, hashid.TagID); err == nil {
+			if tag, err := model.GetTagsByID(tid, fs.User.ID); err == nil {
+				if tag.Type == model.FileTagType {
+					exp := strings.Split(tag.Expression, "\n")
+					expInput := make([]interface{}, len(exp))
+					for i := 0; i < len(exp); i++ {
+						expInput[i] = exp[i]
+					}
+					return service.SearchKeywords(c, fs, expInput...)
+				}
+			}
+		}
+		return serializer.Err(serializer.CodeNotFound, "标签不存在", nil)
 	default:
 		return serializer.ParamErr("未知搜索类型", nil)
 	}
