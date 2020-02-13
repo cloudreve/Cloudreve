@@ -320,12 +320,26 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 创建新分享
 				share.POST("", controllers.CreateShare)
+				// 列出我的分享
+				share.GET("", controllers.ListShare)
+				// 搜索公共分享
+				share.GET("search", controllers.SearchShare)
 				// 转存他人分享
 				share.POST("save/:id",
 					middleware.ShareAvailable(),
 					middleware.CheckShareUnlocked(),
 					middleware.BeforeShareDownload(),
 					controllers.SaveShare,
+				)
+				// 更新分享属性
+				share.PATCH(":id",
+					middleware.ShareAvailable(),
+					middleware.ShareOwner(),
+					controllers.UpdateShare,
+				)
+				// 删除分享
+				share.DELETE(":id",
+					controllers.DeleteShare,
 				)
 			}
 

@@ -20,6 +20,52 @@ type ShareCreateService struct {
 	Preview         bool   `json:"preview"`
 }
 
+// ShareUpdateService 分享更新服务
+type ShareUpdateService struct {
+	Prop  string `json:"prop" binding:"required,eq=password|eq=preview_enabled"`
+	Value string `json:"value" binding:"max=255"`
+}
+
+// Delete 删除分享
+func (service *Service) Delete(c *gin.Context, user *model.User) serializer.Response {
+	share := model.GetShareByHashID(c.Param("id"))
+	if share == nil || share.Creator().ID != user.ID {
+		return serializer.Err(serializer.CodeNotFound, "分享不存在", nil)
+	}
+
+	if err := share.Delete(); err != nil {
+		return serializer.Err(serializer.CodeDBError, "分享删除失败", err)
+	}
+
+	return serializer.Response{}
+}
+
+// Update 更新分享属性
+func (service *ShareUpdateService) Update(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+
+	switch service.Prop {
+	case "password":
+		err := share.Update(map[string]interface{}{"password": service.Value})
+		if err != nil {
+			return serializer.Err(serializer.CodeDBError, "无法更新分享密码", err)
+		}
+	case "preview_enabled":
+		value := service.Value == "true"
+		err := share.Update(map[string]interface{}{"preview_enabled": value})
+		if err != nil {
+			return serializer.Err(serializer.CodeDBError, "无法更新分享属性", err)
+		}
+		return serializer.Response{
+			Data: value,
+		}
+	}
+	return serializer.Response{
+		Data: service.Value,
+	}
+}
+
 // Create 创建新分享
 func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 	userCtx, _ := c.Get("user")
@@ -32,8 +78,9 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 
 	// 源对象真实ID
 	var (
-		sourceID uint
-		err      error
+		sourceID   uint
+		sourceName string
+		err        error
 	)
 	if service.IsDir {
 		sourceID, err = hashid.DecodeHashID(service.SourceID, hashid.FolderID)
@@ -50,11 +97,15 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		folder, err := model.GetFoldersByIDs([]uint{sourceID}, user.ID)
 		if err != nil || len(folder) == 0 {
 			exist = false
+		} else {
+			sourceName = folder[0].Name
 		}
 	} else {
 		file, err := model.GetFilesByIDs([]uint{sourceID}, user.ID)
 		if err != nil || len(file) == 0 {
 			exist = false
+		} else {
+			sourceName = file[0].Name
 		}
 	}
 	if !exist {
@@ -69,6 +120,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		Score:           service.Score,
 		RemainDownloads: -1,
 		PreviewEnabled:  service.Preview,
+		SourceName:      sourceName,
 	}
 
 	// 如果开启了自动过期

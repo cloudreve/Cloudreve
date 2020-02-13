@@ -18,6 +18,8 @@ const (
 	NotActivicated
 	// Baned 被封禁
 	Baned
+	// OveruseBaned 超额使用被封禁
+	OveruseBaned
 )
 
 // User 用户模型

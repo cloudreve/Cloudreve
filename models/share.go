@@ -25,6 +25,7 @@ type Share struct {
 	Expires         *time.Time // 过期时间，空值表示无过期时间
 	Score           int        // 每人次下载扣除积分
 	PreviewEnabled  bool       // 是否允许直接预览
+	SourceName      string     `gorm:"index:source"` // 用于搜索的字段
 
 	// 数据库忽略字段
 	User   User   `gorm:"PRELOAD:false,association_autoupdate:false"`
@@ -76,6 +77,11 @@ func (share *Share) IsAvailable() bool {
 	}
 	if sourceID == 0 {
 		// TODO 是否要在这里删除这个无效分享？
+		return false
+	}
+
+	// 检查创建者状态
+	if share.Creator().Status != Active {
 		return false
 	}
 
@@ -201,4 +207,51 @@ func (share *Share) Downloaded() {
 		"downloads":        share.Downloads,
 		"remain_downloads": share.RemainDownloads,
 	})
+}
+
+// Update 更新分享属性
+func (share *Share) Update(props map[string]interface{}) error {
+	return DB.Model(share).Updates(props).Error
+}
+
+// Delete 删除分享
+func (share *Share) Delete() error {
+	return DB.Model(share).Delete(share).Error
+}
+
+// ListShares 列出UID下的分享
+func ListShares(uid uint, page, pageSize int, order string, publicOnly bool) ([]Share, int) {
+	var (
+		shares []Share
+		total  int
+	)
+	dbChain := DB
+	dbChain = dbChain.Where("user_id = ?", uid)
+	if publicOnly {
+		dbChain.Where("password = ?", "")
+	}
+
+	// 计算总数用于分页
+	dbChain.Model(&Share{}).Count(&total)
+
+	// 查询记录
+	dbChain.Limit(pageSize).Offset((page - 1) * pageSize).Order(order).Find(&shares)
+	return shares, total
+}
+
+// SearchShares 根据关键字搜索分享
+func SearchShares(page, pageSize int, order, keywords string) ([]Share, int) {
+	var (
+		shares []Share
+		total  int
+	)
+	dbChain := DB
+	dbChain = dbChain.Where("password = ? and remain_downloads <> 0 and (expires is NULL or expires > ?) and source_name like ?", "", time.Now(), "%"+keywords+"%")
+
+	// 计算总数用于分页
+	dbChain.Model(&Share{}).Count(&total)
+
+	// 查询记录
+	dbChain.Limit(pageSize).Offset((page - 1) * pageSize).Order(order).Find(&shares)
+	return shares, total
 }

@@ -33,6 +33,40 @@ type ArchiveService struct {
 	Dirs  []string `json:"dirs" binding:"exists"`
 }
 
+// ShareListService 列出分享
+type ShareListService struct {
+	Page     uint   `form:"page" binding:"required,min=1"`
+	OrderBy  string `form:"order_by" binding:"required,eq=created_at|eq=downloads|eq=views"`
+	Order    string `form:"order" binding:"required,eq=DESC|eq=ASC"`
+	Keywords string `form:"keywords"`
+}
+
+// Search 搜索公共分享
+func (service *ShareListService) Search(c *gin.Context) serializer.Response {
+	// 列出分享
+	shares, total := model.SearchShares(int(service.Page), 18, service.OrderBy+" "+
+		service.Order, service.Keywords)
+	// 列出分享对应的文件
+	for i := 0; i < len(shares); i++ {
+		shares[i].Source()
+	}
+
+	return serializer.BuildShareList(shares, total)
+}
+
+// List 列出用户分享
+func (service *ShareListService) List(c *gin.Context, user *model.User) serializer.Response {
+	// 列出分享
+	shares, total := model.ListShares(user.ID, int(service.Page), 18, service.OrderBy+" "+
+		service.Order, false)
+	// 列出分享对应的文件
+	for i := 0; i < len(shares); i++ {
+		shares[i].Source()
+	}
+
+	return serializer.BuildShareList(shares, total)
+}
+
 // Get 获取分享内容
 func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")

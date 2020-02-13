@@ -124,7 +124,11 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	// 获取父目录
 	exist, parentFolder := fs.IsPathExist(callbackSession.VirtualPath)
 	if !exist {
-		return serializer.Err(serializer.CodeParamErr, "指定目录不存在", nil)
+		newFolder, err := fs.CreateDirectory(context.Background(), callbackSession.VirtualPath)
+		if err != nil {
+			return serializer.Err(serializer.CodeParamErr, "指定目录不存在", err)
+		}
+		parentFolder = newFolder
 	}
 
 	// 创建文件头

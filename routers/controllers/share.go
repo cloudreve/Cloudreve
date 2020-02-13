@@ -33,6 +33,50 @@ func GetShare(c *gin.Context) {
 	}
 }
 
+// ListShare 列出分享
+func ListShare(c *gin.Context) {
+	var service share.ShareListService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.List(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SearchShare 搜索分享
+func SearchShare(c *gin.Context) {
+	var service share.ShareListService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Search(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UpdateShare 更新分享属性
+func UpdateShare(c *gin.Context) {
+	var service share.ShareUpdateService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Update(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// DeleteShare 删除分享
+func DeleteShare(c *gin.Context) {
+	var service share.Service
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // GetShareDownload 创建分享下载会话
 func GetShareDownload(c *gin.Context) {
 	var service share.Service

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Share 分享序列化
+// Share 分享信息序列化
 type Share struct {
 	Key        string        `json:"key"`
 	Locked     bool          `json:"locked"`
@@ -30,6 +30,64 @@ type shareCreator struct {
 type shareSource struct {
 	Name string `json:"name"`
 	Size uint64 `json:"size"`
+}
+
+// myShareItem 我的分享列表条目
+type myShareItem struct {
+	Key             string       `json:"key"`
+	IsDir           bool         `json:"is_dir"`
+	Score           int          `json:"score"`
+	Password        string       `json:"password"`
+	CreateDate      string       `json:"create_date,omitempty"`
+	Downloads       int          `json:"downloads"`
+	RemainDownloads int          `json:"remain_downloads"`
+	Views           int          `json:"views"`
+	Expire          int64        `json:"expire"`
+	Preview         bool         `json:"preview"`
+	Source          *shareSource `json:"source,omitempty"`
+}
+
+// BuildShareList 构建我的分享列表响应
+func BuildShareList(shares []model.Share, total int) Response {
+	res := make([]myShareItem, 0, total)
+	now := time.Now().Unix()
+	for i := 0; i < len(shares); i++ {
+		item := myShareItem{
+			Key:             hashid.HashID(shares[i].ID, hashid.ShareID),
+			IsDir:           shares[i].IsDir,
+			Score:           shares[i].Score,
+			Password:        shares[i].Password,
+			CreateDate:      shares[i].CreatedAt.Format("2006-01-02 15:04:05"),
+			Downloads:       shares[i].Downloads,
+			Views:           shares[i].Views,
+			Preview:         shares[i].PreviewEnabled,
+			Expire:          -1,
+			RemainDownloads: shares[i].RemainDownloads,
+		}
+		if shares[i].Expires != nil {
+			item.Expire = shares[i].Expires.Unix() - now
+			if item.Expire == 0 {
+				item.Expire = 0
+			}
+		}
+		if shares[i].File.ID != 0 {
+			item.Source = &shareSource{
+				Name: shares[i].File.Name,
+				Size: shares[i].File.Size,
+			}
+		} else if shares[i].Folder.ID != 0 {
+			item.Source = &shareSource{
+				Name: shares[i].Folder.Name,
+			}
+		}
+
+		res = append(res, item)
+	}
+
+	return Response{Data: map[string]interface{}{
+		"total": total,
+		"items": res,
+	}}
 }
 
 // BuildShareResponse 构建获取分享信息响应

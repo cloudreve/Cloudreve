@@ -8,6 +8,30 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ShareOwner 检查当前登录用户是否为分享所有者
+func ShareOwner() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var user *model.User
+		if userCtx, ok := c.Get("user"); ok {
+			user = userCtx.(*model.User)
+		} else {
+			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, "请先登录", nil))
+			c.Abort()
+			return
+		}
+
+		if share, ok := c.Get("share"); ok {
+			if share.(*model.Share).Creator().ID != user.ID {
+				c.JSON(200, serializer.Err(serializer.CodeNotFound, "分享不存在", nil))
+				c.Abort()
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
 // ShareAvailable 检查分享是否可用
 func ShareAvailable() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -21,7 +45,7 @@ func ShareAvailable() gin.HandlerFunc {
 		share := model.GetShareByHashID(c.Param("id"))
 
 		if share == nil || !share.IsAvailable() {
-			c.JSON(200, serializer.Err(serializer.CodeNotFound, "分享不存在或已被取消", nil))
+			c.JSON(200, serializer.Err(serializer.CodeNotFound, "分享不存在或已失效", nil))
 			c.Abort()
 			return
 		}
