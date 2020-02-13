@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -245,8 +246,20 @@ func SearchShares(page, pageSize int, order, keywords string) ([]Share, int) {
 		shares []Share
 		total  int
 	)
+
+	keywordList := strings.Split(keywords, " ")
+	availableList := make([]string, 0, len(keywordList))
+	for i := 0; i < len(keywordList); i++ {
+		if len(keywordList[i]) > 0 {
+			availableList = append(availableList, keywordList[i])
+		}
+	}
+	if len(availableList) == 0 {
+		return shares, 0
+	}
+
 	dbChain := DB
-	dbChain = dbChain.Where("password = ? and remain_downloads <> 0 and (expires is NULL or expires > ?) and source_name like ?", "", time.Now(), "%"+keywords+"%")
+	dbChain = dbChain.Where("password = ? and remain_downloads <> 0 and (expires is NULL or expires > ?) and source_name like ?", "", time.Now(), "%"+strings.Join(availableList, "%")+"%")
 
 	// 计算总数用于分页
 	dbChain.Model(&Share{}).Count(&total)
