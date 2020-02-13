@@ -30,7 +30,7 @@ func migration() {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{},
-		&Task{}, &Download{}, &Tag{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()

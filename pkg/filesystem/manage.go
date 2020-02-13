@@ -190,6 +190,9 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 		return ErrDBDeleteObjects.WithError(err)
 	}
 
+	// 删除文件记录对应的分享记录
+	model.DeleteShareBySourceIDs(allFileIDs, false)
+
 	// 归还容量
 	var total uint64
 	for _, value := range totalStorage {
@@ -206,6 +209,9 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 	if err != nil {
 		return ErrDBDeleteObjects.WithError(err)
 	}
+
+	// 删除目录记录对应的分享记录
+	model.DeleteShareBySourceIDs(allFolderIDs, true)
 
 	if notDeleted := len(fs.FileTarget) - len(deletedFileIDs); notDeleted > 0 {
 		return serializer.NewError(

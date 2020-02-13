@@ -113,6 +113,10 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		failed = append(failed, v.Key)
 	}
 
+	if len(failed) == 0 {
+		return failed, nil
+	}
+
 	return failed, errors.New("删除失败")
 }
 

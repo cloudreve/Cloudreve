@@ -48,8 +48,8 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 	} else {
 		err = fs.Move(
 			ctx,
-			fileIDs,
 			folderIDs,
+			fileIDs,
 			src.GetPosition(),
 			path.Dir(dst),
 		)
@@ -81,7 +81,7 @@ func copyFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 			return http.StatusInternalServerError, err
 		}
 	} else {
-		err := fs.Copy(ctx, []uint{src.(*model.File).ID}, []uint{}, src.(*model.File).Position, dst)
+		err := fs.Copy(ctx, []uint{}, []uint{src.(*model.File).ID}, src.(*model.File).Position, path.Dir(dst))
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}

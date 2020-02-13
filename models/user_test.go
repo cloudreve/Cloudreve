@@ -166,7 +166,7 @@ func TestUser_GetPolicyID(t *testing.T) {
 	for key, testCase := range testCases {
 		newUser.OptionsSerialized.PreferredPolicy = testCase.preferred
 		newUser.Group.PolicyList = testCase.available
-		asserts.Equal(testCase.expected, newUser.GetPolicyID(), "测试用例 #%d 未通过", key)
+		asserts.Equal(testCase.expected, newUser.GetPolicyID(0), "测试用例 #%d 未通过", key)
 	}
 }
 

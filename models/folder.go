@@ -15,6 +15,7 @@ type Folder struct {
 	Name     string `gorm:"unique_index:idx_only_one_name"`
 	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
 	OwnerID  uint   `gorm:"index:owner_id"`
+	PolicyID uint   // Webdav下挂载的存储策略ID
 
 	// 数据库忽略字段
 	Position string `gorm:"-"`

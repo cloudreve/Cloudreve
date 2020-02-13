@@ -220,6 +220,11 @@ func (share *Share) Delete() error {
 	return DB.Model(share).Delete(share).Error
 }
 
+// DeleteShareBySourceIDs 根据原始资源类型和ID删除文件
+func DeleteShareBySourceIDs(sources []uint, isDir bool) error {
+	return DB.Where("source_id in (?) and is_dir = ?", sources, isDir).Delete(&Share{}).Error
+}
+
 // ListShares 列出UID下的分享
 func ListShares(uid uint, page, pageSize int, order string, publicOnly bool) ([]Share, int) {
 	var (

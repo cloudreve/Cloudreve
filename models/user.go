@@ -135,17 +135,20 @@ func (user *User) GetRemainingCapacity() uint64 {
 }
 
 // GetPolicyID 获取用户当前的存储策略ID
-func (user *User) GetPolicyID() uint {
+func (user *User) GetPolicyID(prefer uint) uint {
+	if prefer == 0 {
+		prefer = user.OptionsSerialized.PreferredPolicy
+	}
 	// 用户未指定时，返回可用的第一个
-	if user.OptionsSerialized.PreferredPolicy == 0 {
+	if prefer == 0 {
 		if len(user.Group.PolicyList) != 0 {
 			return user.Group.PolicyList[0]
 		}
 		return 1
 	}
 	// 用户指定时，先检查是否为可用策略列表中的值
-	if util.ContainsUint(user.Group.PolicyList, user.OptionsSerialized.PreferredPolicy) {
-		return user.OptionsSerialized.PreferredPolicy
+	if util.ContainsUint(user.Group.PolicyList, prefer) {
+		return prefer
 	}
 	// 不可用时，返回第一个
 	if len(user.Group.PolicyList) != 0 {
@@ -205,7 +208,7 @@ func (user *User) AfterFind() (err error) {
 	}
 
 	// 预加载存储策略
-	user.Policy, _ = GetPolicyByID(user.GetPolicyID())
+	user.Policy, _ = GetPolicyByID(user.GetPolicyID(0))
 	return err
 }
 

@@ -172,7 +172,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 		serializer.UploadSession{
 			Key:         callbackKey,
 			UID:         fs.User.ID,
-			PolicyID:    fs.User.GetPolicyID(),
+			PolicyID:    fs.User.GetPolicyID(0),
 			VirtualPath: path,
 			Name:        name,
 			Size:        size,
