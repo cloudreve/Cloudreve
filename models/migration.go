@@ -89,6 +89,7 @@ func addDefaultSettings() {
 		{Name: "siteDes", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteTitle", Value: `平步云端`, Type: "basic"},
 		{Name: "fromName", Value: `Cloudreve`, Type: "mail"},
+		{Name: "mail_keepalive", Value: `30`, Type: "mail"},
 		{Name: "fromAdress", Value: `no-reply@acg.blue`, Type: "mail"},
 		{Name: "smtpHost", Value: `smtp.mxhichina.com`, Type: "mail"},
 		{Name: "smtpPort", Value: `25`, Type: "mail"},
@@ -151,9 +152,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "admin_color_body", Value: `fixed-nav sticky-footer bg-light`, Type: "admin"},
 		{Name: "admin_color_nav", Value: `navbar navbar-expand-lg fixed-top navbar-light bg-light`, Type: "admin"},
 		{Name: "js_code", Value: `<script type="text/javascript"></script>`, Type: "basic"},
-		{Name: "sendfile", Value: `0`, Type: "download"},
 		{Name: "defaultTheme", Value: `#3f51b5`, Type: "basic"},
-		{Name: "header", Value: `X-Sendfile`, Type: "download"},
 		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"light":"#7986cb","main":"#3f51b5","dark":"#303f9f","contrastText":"#fff"},"secondary":{"light":"#ff4081","main":"#f50057","dark":"#c51162","contrastText":"#fff"},"error":{"light":"#e57373","main":"#f44336","dark":"#d32f2f","contrastText":"#fff"},"explorer":{"filename":"#474849","icon":"#8f8f8f","bgSelected":"#D5DAF0","emptyIcon":"#e8e8e8"}}}}`, Type: "basic"},
 		{Name: "refererCheck", Value: `true`, Type: "share"},
 		{Name: "header", Value: `X-Sendfile`, Type: "download"},
@@ -170,6 +169,9 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "share_score_rate", Value: "80", Type: "score"},
 		{Name: "home_view_method", Value: "icon", Type: "view"},
 		{Name: "share_view_method", Value: "list", Type: "view"},
+		{Name: "cron_garbage_collect", Value: "@hourly", Type: "cron"},
+		{Name: "cron_notify_user", Value: "@hourly", Type: "cron"},
+		{Name: "cron_ban_user", Value: "@hourly", Type: "cron"},
 	}
 
 	for _, value := range defaultSettings {
@@ -241,7 +243,6 @@ func addDefaultUser() {
 		defaultUser.Nick = "admin"
 		defaultUser.Status = Active
 		defaultUser.GroupID = 1
-		defaultUser.PrimaryGroup = 1
 		err := defaultUser.SetPassword("admin")
 		if err != nil {
 			util.Log().Panic("无法创建密码, %s", err)

@@ -109,7 +109,7 @@ func (job *TransferTask) Recycle() {
 
 // NewTransferTask 新建中转任务
 func NewTransferTask(user uint, src []string, dst, parent string) (Job, error) {
-	creator, err := model.GetUserByID(user)
+	creator, err := model.GetActiveUserByID(user)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func NewTransferTask(user uint, src []string, dst, parent string) (Job, error) {
 
 // NewTransferTaskFromModel 从数据库记录中恢复中转任务
 func NewTransferTaskFromModel(task *model.Task) (Job, error) {
-	user, err := model.GetUserByID(task.UserID)
+	user, err := model.GetActiveUserByID(task.UserID)
 	if err != nil {
 		return nil, err
 	}

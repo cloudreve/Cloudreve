@@ -115,6 +115,7 @@ func HookResetPolicy(ctx context.Context, fs *FileSystem) error {
 	}
 
 	fs.Policy = originFile.GetPolicy()
+	fs.User.Policy = *fs.Policy
 	return fs.DispatchHandler()
 }
 

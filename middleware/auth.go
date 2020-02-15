@@ -48,7 +48,7 @@ func CurrentUser() gin.HandlerFunc {
 		session := sessions.Default(c)
 		uid := session.Get("user_id")
 		if uid != nil {
-			user, err := model.GetUserByID(uid)
+			user, err := model.GetActiveUserByID(uid)
 			if err == nil {
 				c.Set("user", &user)
 			}
@@ -135,7 +135,7 @@ func uploadCallbackCheck(c *gin.Context) (serializer.Response, *model.User) {
 	_ = cache.Deletes([]string{callbackKey}, "callback_")
 
 	// 查找用户
-	user, err := model.GetUserByID(callbackSession.UID)
+	user, err := model.GetActiveUserByID(callbackSession.UID)
 	if err != nil {
 		return serializer.Err(serializer.CodeCheckLogin, "找不到用户", err), nil
 	}

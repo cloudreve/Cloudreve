@@ -344,8 +344,8 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 			fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
 		}
 
-		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookResetPolicy)
+		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
 		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)

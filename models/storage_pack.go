@@ -59,3 +59,15 @@ func (user *User) GetAvailablePackSize() uint64 {
 
 	return total
 }
+
+// GetExpiredStoragePack 获取已过期的容量包
+func GetExpiredStoragePack() []StoragePack {
+	var packs []StoragePack
+	DB.Where("expired_time < ?", time.Now()).Find(&packs)
+	return packs
+}
+
+// Delete 删除容量包
+func (pack *StoragePack) Delete() error {
+	return DB.Delete(&pack).Error
+}

@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"github.com/HFO4/cloudreve/pkg/util"
 	"sync"
 	"time"
 )
@@ -44,6 +45,19 @@ func getValue(item interface{}, ok bool) (interface{}, bool) {
 
 	return itemObj.value, ok
 
+}
+
+// GarbageCollect 回收已过期的缓存
+func (store *MemoStore) GarbageCollect() {
+	store.Store.Range(func(key, value interface{}) bool {
+		if item, ok := value.(itemWithTTL); ok {
+			if item.expires > 0 && item.expires < time.Now().Unix() {
+				util.Log().Debug("回收垃圾[%s]", key.(string))
+				store.Store.Delete(key)
+			}
+		}
+		return true
+	})
 }
 
 // NewMemoStore 新建内存存储

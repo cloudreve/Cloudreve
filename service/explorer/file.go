@@ -338,8 +338,8 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	}
 
 	// 给文件系统分配钩子
-	fs.Use("BeforeUpload", filesystem.HookValidateFile)
 	fs.Use("BeforeUpload", filesystem.HookResetPolicy)
+	fs.Use("BeforeUpload", filesystem.HookValidateFile)
 	fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
 	fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
 	fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)

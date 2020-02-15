@@ -7,6 +7,8 @@ import (
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/crontab"
+	"github.com/HFO4/cloudreve/pkg/email"
 	"github.com/HFO4/cloudreve/pkg/task"
 	"github.com/HFO4/cloudreve/routers"
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,8 @@ func init() {
 		authn.Init()
 		task.Init()
 		aria2.Init()
+		email.Init()
+		crontab.Init()
 	}
 	auth.Init()
 }

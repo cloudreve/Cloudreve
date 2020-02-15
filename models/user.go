@@ -26,22 +26,23 @@ const (
 type User struct {
 	// 表字段
 	gorm.Model
-	Email         string `gorm:"type:varchar(100);unique_index"`
-	Nick          string `gorm:"size:50"`
-	Password      string `json:"-"`
-	Status        int
-	GroupID       uint
-	PrimaryGroup  int
-	ActivationKey string `json:"-"`
-	Storage       uint64
-	LastNotify    *time.Time
-	OpenID        string `json:"-"`
-	TwoFactor     string `json:"-"`
-	Delay         int
-	Avatar        string
-	Options       string `json:"-",gorm:"type:text"`
-	Authn         string `gorm:"type:text"`
-	Score         int
+	Email           string `gorm:"type:varchar(100);unique_index"`
+	Nick            string `gorm:"size:50"`
+	Password        string `json:"-"`
+	Status          int
+	GroupID         uint
+	ActivationKey   string `json:"-"`
+	Storage         uint64
+	OpenID          string `json:"-"`
+	TwoFactor       string `json:"-"`
+	Delay           int
+	Avatar          string
+	Options         string `json:"-",gorm:"type:text"`
+	Authn           string `gorm:"type:text"`
+	Score           int
+	PreviousGroupID uint       // 初始用户组
+	GroupExpires    *time.Time // 用户组过期日期
+	NotifyDate      *time.Time // 通知超出配额时的日期
 
 	// 关联模型
 	Group  Group  `gorm:"association_autoupdate:false"`
@@ -165,6 +166,13 @@ func GetUserByID(ID interface{}) (User, error) {
 	return user, result.Error
 }
 
+// GetActiveUserByID 用ID获取可登录用户
+func GetActiveUserByID(ID interface{}) (User, error) {
+	var user User
+	result := DB.Set("gorm:auto_preload", true).Where("status = ?", Active).First(&user, ID)
+	return user, result.Error
+}
+
 // GetUserByEmail 用Email获取用户
 func GetUserByEmail(email string) (User, error) {
 	var user User
@@ -270,4 +278,50 @@ func NewAnonymousUser() *User {
 // IsAnonymous 返回是否为未登录用户
 func (user *User) IsAnonymous() bool {
 	return user.ID == 0
+}
+
+// Notified 更新用户容量超额通知日期
+func (user *User) Notified() {
+	if user.NotifyDate == nil {
+		timeNow := time.Now()
+		user.NotifyDate = &timeNow
+		DB.Model(&user).Update("notify_date", user.NotifyDate)
+	}
+}
+
+// ClearNotified 清除用户通知标记
+func (user *User) ClearNotified() {
+	DB.Model(&user).Update("notify_date", nil)
+}
+
+// SetStatus 设定用户状态
+func (user *User) SetStatus(status int) {
+	DB.Model(&user).Update("status", status)
+}
+
+// GetGroupExpiredUsers 获取用户组过期的用户
+func GetGroupExpiredUsers() []User {
+	var users []User
+	DB.Where("group_expires < ? and previous_group_id <> 0", time.Now()).Find(&users)
+	return users
+}
+
+// GetTolerantExpiredUser 获取超过宽容期的用户
+func GetTolerantExpiredUser() []User {
+	var users []User
+	DB.Set("gorm:auto_preload", true).Where("notify_date < ?", time.Now().Add(
+		time.Duration(-GetIntSetting("ban_time", 10))*time.Second),
+	).Find(&users)
+	return users
+}
+
+// GroupFallback 回退到初始用户组
+func (user *User) GroupFallback() {
+	if user.GroupExpires != nil && user.PreviousGroupID != 0 {
+		DB.Model(&user).Updates(map[string]interface{}{
+			"group_expires":     nil,
+			"previous_group_id": 0,
+			"group_id":          user.PreviousGroupID,
+		})
+	}
 }

@@ -1,0 +1,47 @@
+package crontab
+
+import (
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/robfig/cron/v3"
+)
+
+// Cron 定时任务
+var Cron *cron.Cron
+
+// Reload 重新启动定时任务
+func Reload() {
+	if Cron != nil {
+		Cron.Stop()
+	}
+	Init()
+}
+
+// Init 初始化定时任务
+func Init() {
+	util.Log().Info("初始化定时任务...")
+	// 读取cron日程设置
+	options := model.GetSettingByNames("cron_garbage_collect", "cron_notify_user", "cron_ban_user")
+	Cron := cron.New()
+	for k, v := range options {
+		var handler func()
+		switch k {
+		case "cron_garbage_collect":
+			handler = garbageCollect
+		case "cron_notify_user":
+			handler = notifyExpiredVAS
+		case "cron_ban_user":
+			handler = banOverusedUser
+		default:
+			util.Log().Warning("未知定时任务类型 [%s]，跳过", k)
+			continue
+		}
+
+		if _, err := Cron.AddFunc(v, handler); err != nil {
+			util.Log().Warning("无法启动定时任务 [%s] , %s", k, err)
+		}
+
+	}
+	banOverusedUser()
+	Cron.Start()
+}

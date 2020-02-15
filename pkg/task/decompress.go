@@ -109,7 +109,7 @@ func NewDecompressTask(user *model.User, src, dst string) (Job, error) {
 
 // NewDecompressTaskFromModel 从数据库记录中恢复压缩任务
 func NewDecompressTaskFromModel(task *model.Task) (Job, error) {
-	user, err := model.GetUserByID(task.UserID)
+	user, err := model.GetActiveUserByID(task.UserID)
 	if err != nil {
 		return nil, err
 	}

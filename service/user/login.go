@@ -36,7 +36,7 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	if authOK, _ := expectedUser.CheckPassword(service.Password); !authOK {
 		return serializer.Err(401, "用户邮箱或密码错误", nil)
 	}
-	if expectedUser.Status == model.Baned {
+	if expectedUser.Status == model.Baned || expectedUser.Status == model.OveruseBaned {
 		return serializer.Err(403, "该账号已被封禁", nil)
 	}
 	if expectedUser.Status == model.NotActivicated {

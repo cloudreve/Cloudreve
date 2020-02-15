@@ -137,7 +137,7 @@ func NewCompressTask(user *model.User, dst string, dirs, files []uint) (Job, err
 
 // NewCompressTaskFromModel 从数据库记录中恢复压缩任务
 func NewCompressTaskFromModel(task *model.Task) (Job, error) {
-	user, err := model.GetUserByID(task.UserID)
+	user, err := model.GetActiveUserByID(task.UserID)
 	if err != nil {
 		return nil, err
 	}
