@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"strconv"
 	"time"
@@ -18,10 +19,18 @@ type StoragePack struct {
 	Size        uint64
 }
 
+// Create 创建容量包
+func (pack *StoragePack) Create() (uint, error) {
+	if err := DB.Create(pack).Error; err != nil {
+		util.Log().Warning("无法插入离线下载记录, %s", err)
+		return 0, err
+	}
+	return pack.ID, nil
+}
+
 // GetAvailablePackSize 返回给定用户当前可用的容量包总容量
 func (user *User) GetAvailablePackSize() uint64 {
 	var (
-		packs       []StoragePack
 		total       uint64
 		firstExpire *time.Time
 		timeNow     = time.Now()
@@ -35,7 +44,7 @@ func (user *User) GetAvailablePackSize() uint64 {
 	}
 
 	// 查找所有有效容量包
-	DB.Where("expired_time > ? AND user_id = ?", timeNow, user.ID).Find(&packs)
+	packs := user.GetAvailableStoragePacks()
 
 	// 计算总容量, 并找到其中最早的过期时间
 	for _, v := range packs {
@@ -58,6 +67,15 @@ func (user *User) GetAvailablePackSize() uint64 {
 	}
 
 	return total
+}
+
+// GetAvailableStoragePacks 返回用户可用的容量包
+func (user *User) GetAvailableStoragePacks() []StoragePack {
+	var packs []StoragePack
+	timeNow := time.Now()
+	// 查找所有有效容量包
+	DB.Where("expired_time > ? AND user_id = ?", timeNow, user.ID).Find(&packs)
+	return packs
 }
 
 // GetExpiredStoragePack 获取已过期的容量包

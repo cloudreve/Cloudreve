@@ -30,7 +30,7 @@ func migration() {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Order{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -136,12 +136,10 @@ box-sizing: border-box; font-size: 14px; margin: 0;"><td style="font-family: 'He
 solid #e9e9e9;"bgcolor="#fff"><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 
 14px; margin: 0;"><td class="alert alert-warning"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 16px; vertical-align: top; color: #fff; font-weight: 500; text-align: center; border-radius: 3px 3px 0 0; background-color: #2196F3; margin: 0; padding: 20px;"align="center"bgcolor="#FF9F00"valign="top">重设{siteTitle}密码</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-wrap"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 20px;"valign="top"><table width="100%"cellpadding="0"cellspacing="0"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica 
 Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">亲爱的<strong style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">{userName}</strong>：</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">请点击下方按钮完成密码重设。如果非你本人操作，请忽略此邮件。</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top"><a href="{resetUrl}"class="btn-primary"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; color: #FFF; text-decoration: none; line-height: 2em; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 5px; text-transform: capitalize; background-color: #2196F3; margin: 0; border-color: #2196F3; border-style: solid; border-width: 10px 20px;">重设密码</a></td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">感谢您选择{siteTitle}。</td></tr></table></td></tr></table><div class="footer"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;"><table width="100%"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="aligncenter content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; vertical-align: top; color: #999; text-align: center; margin: 0; padding: 0 0 20px;"align="center"valign="top">此邮件由系统自动发送，请不要直接回复。</td></tr></table></div></div></td><td style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;"valign="top"></td></tr></table></body></html>`, Type: "mail_template"},
-		{Name: "allow_buy_pack", Value: `1`, Type: "pack"},
-		{Name: "allow_buy_pack_by_pack", Value: `1`, Type: "pack"},
-		{Name: "allow_buy_pack_by_slider", Value: `1`, Type: "pack"},
 		{Name: "pack_data", Value: `[]`, Type: "pack"},
 		{Name: "database_version", Value: `6`, Type: "version"},
-		{Name: "payment_type", Value: `youzan`, Type: "payment"},
+		{Name: "alipay_enabled", Value: `0`, Type: "payment"},
+		{Name: "payjs_enabled", Value: `0`, Type: "payment"},
 		{Name: "appid", Value: ``, Type: "payment"},
 		{Name: "appkey", Value: ``, Type: "payment"},
 		{Name: "shopid", Value: ``, Type: "payment"},
@@ -149,13 +147,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "allow_buy_group", Value: `1`, Type: "group_sell"},
 		{Name: "group_sell_data", Value: `[]`, Type: "group_sell"},
 		{Name: "gravatar_server", Value: `https://v2ex.assets.uxengine.net/gravatar/`, Type: "avatar"},
-		{Name: "admin_color_body", Value: `fixed-nav sticky-footer bg-light`, Type: "admin"},
-		{Name: "admin_color_nav", Value: `navbar navbar-expand-lg fixed-top navbar-light bg-light`, Type: "admin"},
-		{Name: "js_code", Value: `<script type="text/javascript"></script>`, Type: "basic"},
 		{Name: "defaultTheme", Value: `#3f51b5`, Type: "basic"},
 		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"light":"#7986cb","main":"#3f51b5","dark":"#303f9f","contrastText":"#fff"},"secondary":{"light":"#ff4081","main":"#f50057","dark":"#c51162","contrastText":"#fff"},"error":{"light":"#e57373","main":"#f44336","dark":"#d32f2f","contrastText":"#fff"},"explorer":{"filename":"#474849","icon":"#8f8f8f","bgSelected":"#D5DAF0","emptyIcon":"#e8e8e8"}}}}`, Type: "basic"},
-		{Name: "refererCheck", Value: `true`, Type: "share"},
-		{Name: "header", Value: `X-Sendfile`, Type: "download"},
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
 		{Name: "aria2_token", Value: `your token`, Type: "aria2"},
 		{Name: "aria2_temp_path", Value: ``, Type: "aria2"},

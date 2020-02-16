@@ -318,10 +318,21 @@ func GetTolerantExpiredUser() []User {
 // GroupFallback 回退到初始用户组
 func (user *User) GroupFallback() {
 	if user.GroupExpires != nil && user.PreviousGroupID != 0 {
+		user.Group.ID = user.PreviousGroupID
 		DB.Model(&user).Updates(map[string]interface{}{
 			"group_expires":     nil,
 			"previous_group_id": 0,
 			"group_id":          user.PreviousGroupID,
 		})
 	}
+}
+
+// UpgradeGroup 升级用户组
+func (user *User) UpgradeGroup(id uint, expires *time.Time) error {
+	user.Group.ID = id
+	return DB.Model(&user).Updates(map[string]interface{}{
+		"group_expires":     expires,
+		"previous_group_id": user.GroupID,
+		"group_id":          id,
+	}).Error
 }

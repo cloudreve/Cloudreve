@@ -354,6 +354,17 @@ func InitMasterRouter() *gin.Engine {
 				tag.DELETE(":id", middleware.HashID(hashid.TagID), controllers.DeleteTag)
 			}
 
+			// 增值服务相关
+			vas := auth.Group("vas")
+			{
+				// 获取容量包及配额信息
+				vas.GET("pack", controllers.GetQuota)
+				// 获取商品信息，同时返回支付信息
+				vas.GET("product", controllers.GetProduct)
+				// 新建支付订单
+				vas.POST("order", controllers.NewOrder)
+			}
+
 		}
 
 	}
