@@ -127,6 +127,11 @@ func InitMasterRouter() *gin.Engine {
 		// 回调接口
 		callback := v3.Group("callback")
 		{
+			// PAYJS回调
+			callback.POST(
+				"payjs",
+				controllers.PayJSCallback,
+			)
 			// 支付宝回调
 			callback.POST(
 				"alipay",

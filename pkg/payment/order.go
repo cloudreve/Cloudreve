@@ -4,8 +4,10 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/qingwg/payjs"
 	"github.com/smartwalle/alipay/v3"
 	"math/rand"
+	"net/url"
 	"time"
 )
 
@@ -41,10 +43,9 @@ type Pay interface {
 
 // OrderCreateRes 订单创建结果
 type OrderCreateRes struct {
-	Payment  bool   `json:"payment"`            // 是否需要支付
-	ID       string `json:"id,omitempty"`       // 订单号
-	QRCode   string `json:"qr_code,omitempty"`  // 支付二维码指向的地址
-	Redirect string `json:"redirect,omitempty"` // 支付跳转连接，和二维码二选一，不需要的留空
+	Payment bool   `json:"payment"`           // 是否需要支付
+	ID      string `json:"id,omitempty"`      // 订单号
+	QRCode  string `json:"qr_code,omitempty"` // 支付二维码指向的地址
 }
 
 // NewPaymentInstance 获取新的支付实例
@@ -71,6 +72,21 @@ func NewPaymentInstance(method string) (Pay, error) {
 		}
 
 		return &Alipay{Client: client}, nil
+	case "payjs":
+		options := model.GetSettingByNames("payjs_enabled", "payjs_secret", "payjs_id")
+		if options["payjs_enabled"] != "1" {
+			return nil, ErrUnknownPaymentMethod
+		}
+
+		callback, _ := url.Parse("/api/v3/callback/payjs")
+		payjsConfig := &payjs.Config{
+			Key:       options["payjs_secret"],
+			MchID:     options["payjs_id"],
+			NotifyUrl: model.GetSiteURL().ResolveReference(callback).String(),
+		}
+
+		return &PayJSClient{Client: payjs.New(payjsConfig)}, nil
+
 	default:
 		return nil, ErrUnknownPaymentMethod
 	}
@@ -124,8 +140,8 @@ func NewOrder(pack *serializer.PackProduct, group *serializer.GroupProducts, num
 }
 
 func orderID() string {
-	return fmt.Sprintf("%s%d%d",
+	return fmt.Sprintf("%s%d",
 		time.Now().Format("20060102150405"),
-		10000+rand.Intn(90000),
-		time.Now().UnixNano())
+		100000+rand.Intn(900000),
+	)
 }

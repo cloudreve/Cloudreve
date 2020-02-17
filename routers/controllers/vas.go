@@ -5,6 +5,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/vas"
 	"github.com/gin-gonic/gin"
+	"github.com/qingwg/payjs/notify"
 	"github.com/smartwalle/alipay/v3"
 )
 
@@ -99,4 +100,34 @@ func AlipayCallback(c *gin.Context) {
 
 	// 确认收到通知消息
 	alipay.AckNotification(c.Writer)
+}
+
+// PayJSCallback PayJS回调
+func PayJSCallback(c *gin.Context) {
+	pay, err := payment.NewPaymentInstance("payjs")
+	if err != nil {
+		util.Log().Debug("[PayJS回调] 无法创建支付宝客户端, %s", err)
+		c.Status(400)
+		return
+	}
+
+	payNotify := pay.(*payment.PayJSClient).Client.GetNotify(c.Request, c.Writer)
+
+	//设置接收消息的处理方法
+	payNotify.SetMessageHandler(func(msg notify.Message) {
+		if err := payment.OrderPaid(msg.OutTradeNo); err != nil {
+			util.Log().Debug("[PayJS回调] 支付处理失败, %s", err)
+		}
+	})
+
+	//处理消息接收以及回复
+	err = payNotify.Serve()
+	if err != nil {
+		util.Log().Debug("[PayJS回调] 回调处理失败, %s", err)
+		return
+	}
+
+	//发送回复的消息
+	payNotify.SendResponseMsg()
+
 }

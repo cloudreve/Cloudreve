@@ -140,6 +140,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "database_version", Value: `6`, Type: "version"},
 		{Name: "alipay_enabled", Value: `0`, Type: "payment"},
 		{Name: "payjs_enabled", Value: `0`, Type: "payment"},
+		{Name: "payjs_id", Value: ``, Type: "payment"},
+		{Name: "payjs_secret", Value: ``, Type: "payment"},
 		{Name: "appid", Value: ``, Type: "payment"},
 		{Name: "appkey", Value: ``, Type: "payment"},
 		{Name: "shopid", Value: ``, Type: "payment"},
