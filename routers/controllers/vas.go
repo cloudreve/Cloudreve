@@ -37,3 +37,25 @@ func NewOrder(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// GetRedeemInfo 获取兑换码信息
+func GetRedeemInfo(c *gin.Context) {
+	var service vas.RedeemService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Query(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// DoRedeem 获取兑换码信息
+func DoRedeem(c *gin.Context) {
+	var service vas.RedeemService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Redeem(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

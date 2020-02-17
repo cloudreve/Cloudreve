@@ -363,6 +363,10 @@ func InitMasterRouter() *gin.Engine {
 				vas.GET("product", controllers.GetProduct)
 				// 新建支付订单
 				vas.POST("order", controllers.NewOrder)
+				// 获取兑换码信息
+				vas.GET("redeem/:code", controllers.GetRedeemInfo)
+				// 执行兑换
+				vas.POST("redeem/:code", controllers.DoRedeem)
 			}
 
 		}

@@ -27,7 +27,7 @@ const (
 type Order struct {
 	gorm.Model
 	UserID    uint   // 创建者ID
-	OrderNo   string // 商户自定义订单编号
+	OrderNo   string `gorm:"index:order_number"` // 商户自定义订单编号
 	Type      int    // 订单类型
 	Method    string // 支付类型
 	ProductID int64  // 商品ID
