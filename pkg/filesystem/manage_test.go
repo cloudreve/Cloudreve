@@ -333,6 +333,11 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectExec("DELETE(.+)files").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
 		// 归还容量
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)users").
@@ -341,6 +346,11 @@ func TestFileSystem_Delete(t *testing.T) {
 		// 删除目录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)folders").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 
@@ -379,6 +389,11 @@ func TestFileSystem_Delete(t *testing.T) {
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
 		// 归还容量
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)").
@@ -387,6 +402,11 @@ func TestFileSystem_Delete(t *testing.T) {
 		// 删除目录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 

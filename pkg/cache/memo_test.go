@@ -135,3 +135,13 @@ func TestMemoStore_Delete(t *testing.T) {
 	asserts.Equal([]string{"1", "2"}, miss)
 	asserts.Equal(map[string]interface{}{"3": "3.val", "4": "4.val"}, values)
 }
+
+func TestMemoStore_GarbageCollect(t *testing.T) {
+	asserts := assert.New(t)
+	store := NewMemoStore()
+	store.Set("test", 1, 1)
+	time.Sleep(time.Duration(2000) * time.Millisecond)
+	store.GarbageCollect()
+	_, ok := store.Get("test")
+	asserts.False(ok)
+}

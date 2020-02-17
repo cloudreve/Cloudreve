@@ -8,6 +8,28 @@ import (
 	"time"
 )
 
+func TestBuildShareList(t *testing.T) {
+	asserts := assert.New(t)
+	timeNow := time.Now()
+
+	shares := []model.Share{
+		{
+			Expires: &timeNow,
+			File: model.File{
+				Model: gorm.Model{ID: 1},
+			},
+		},
+		{
+			Folder: model.Folder{
+				Model: gorm.Model{ID: 1},
+			},
+		},
+	}
+
+	res := BuildShareList(shares, 2)
+	asserts.Equal(0, res.Code)
+}
+
 func TestBuildShareResponse(t *testing.T) {
 	asserts := assert.New(t)
 
