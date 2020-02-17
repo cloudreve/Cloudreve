@@ -14,10 +14,10 @@ type GeneralVASService struct {
 
 // CreateOrderService 创建订单服务
 type CreateOrderService struct {
-	Action string `json:"action" binding:"required,eq=group|eq=pack"`
+	Action string `json:"action" binding:"required,eq=group|eq=pack|eq=score"`
 	Method string `json:"method" binding:"required,eq=alipay|eq=score|eq=payjs"`
 	ID     int64  `json:"id" binding:"required"`
-	Num    int    `json:"num" binding:"required,min=1,max=99"`
+	Num    int    `json:"num" binding:"required,min=1"`
 }
 
 // Create 创建新订单
@@ -40,7 +40,7 @@ func (service *CreateOrderService) Create(c *gin.Context, user *model.User) seri
 				break
 			}
 		}
-	} else {
+	} else if service.Action == "pack" {
 		for _, v := range packs {
 			if v.ID == service.ID {
 				pack = &v
@@ -48,8 +48,12 @@ func (service *CreateOrderService) Create(c *gin.Context, user *model.User) seri
 			}
 		}
 	}
+
+	// 购买积分
 	if pack == nil && group == nil {
-		return serializer.Err(serializer.CodeNotFound, "商品不存在", nil)
+		if service.Method == "score" {
+			return serializer.Err(serializer.CodeNotFound, "不支持此支付方式", nil)
+		}
 	}
 
 	// 创建订单
@@ -64,13 +68,14 @@ func (service *CreateOrderService) Create(c *gin.Context, user *model.User) seri
 
 // Products 获取商品信息
 func (service *GeneralVASService) Products(c *gin.Context, user *model.User) serializer.Response {
-	options := model.GetSettingByNames("alipay_enabled", "payjs_enabled")
+	options := model.GetSettingByNames("alipay_enabled", "payjs_enabled", "score_price")
+	scorePrice := model.GetIntSetting("score_price", 0)
 	packs, groups, err := decodeProductInfo()
 	if err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "无法解析商品设置", err)
 	}
 
-	return serializer.BuildProductResponse(groups, packs, options["alipay_enabled"] == "1", options["payjs_enabled"] == "1")
+	return serializer.BuildProductResponse(groups, packs, options["alipay_enabled"] == "1", options["payjs_enabled"] == "1", scorePrice)
 }
 
 func decodeProductInfo() ([]serializer.PackProduct, []serializer.GroupProducts, error) {

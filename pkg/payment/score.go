@@ -34,6 +34,7 @@ func (pay *ScorePayment) Create(order *model.Order, pack *serializer.PackProduct
 	}
 
 	// 创建订单记录
+	order.Status = model.OrderPaid
 	if _, err := order.Create(); err != nil {
 		return nil, ErrInsertOrder.WithError(err)
 	}

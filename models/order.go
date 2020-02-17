@@ -10,6 +10,8 @@ const (
 	PackOrderType = iota
 	// GroupOrderType 用户组订单
 	GroupOrderType
+	// ScoreOrderType 积分充值订单
+	ScoreOrderType
 )
 
 const (

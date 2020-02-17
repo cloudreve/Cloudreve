@@ -58,16 +58,21 @@ func NewOrder(pack *serializer.PackProduct, group *serializer.GroupProducts, num
 		title     string
 		price     int
 	)
-	if pack == nil {
+	if pack != nil {
+		orderType = model.PackOrderType
+		productID = pack.ID
+		title = pack.Name
+		price = pack.Price
+	} else if group != nil {
 		orderType = model.GroupOrderType
 		productID = group.ID
 		title = group.Name
 		price = group.Price
 	} else {
-		orderType = model.PackOrderType
-		productID = pack.ID
-		title = pack.Name
-		price = pack.Price
+		orderType = model.ScoreOrderType
+		productID = 0
+		title = fmt.Sprintf("%d 积分", num)
+		price = model.GetIntSetting("score_price", 1)
 	}
 
 	// 创建订单记录

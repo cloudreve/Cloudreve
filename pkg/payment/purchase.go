@@ -53,12 +53,19 @@ func GiveGroup(user *model.User, groupInfo *serializer.GroupProducts, num int) e
 	return nil
 }
 
+// GiveScore 积分充值
+func GiveScore(user *model.User, num int) error {
+	user.AddScore(num)
+	return nil
+}
+
 // GiveProduct “发货”
 func GiveProduct(user *model.User, pack *serializer.PackProduct, group *serializer.GroupProducts, num int) error {
 	if pack != nil {
 		return GivePack(user, pack, num)
 	} else if group != nil {
 		return GiveGroup(user, group, num)
+	} else {
+		return GiveScore(user, num)
 	}
-	return nil
 }

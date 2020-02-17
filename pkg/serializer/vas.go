@@ -68,17 +68,18 @@ type GroupProducts struct {
 }
 
 // BuildProductResponse 构建增值服务商品响应
-func BuildProductResponse(groups []GroupProducts, packs []PackProduct, alipay, payjs bool) Response {
+func BuildProductResponse(groups []GroupProducts, packs []PackProduct, alipay, payjs bool, scorePrice int) Response {
 	// 隐藏响应中的用户组ID
 	for i := 0; i < len(groups); i++ {
 		groups[i].GroupID = 0
 	}
 	return Response{
 		Data: map[string]interface{}{
-			"packs":  packs,
-			"groups": groups,
-			"alipay": alipay,
-			"payjs":  payjs,
+			"packs":       packs,
+			"groups":      groups,
+			"alipay":      alipay,
+			"payjs":       payjs,
+			"score_price": scorePrice,
 		},
 	}
 }
