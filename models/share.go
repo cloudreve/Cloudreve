@@ -67,6 +67,11 @@ func (share *Share) IsAvailable() bool {
 		return false
 	}
 
+	// 检查创建者状态
+	if share.Creator().Status != Active {
+		return false
+	}
+
 	// 检查源对象是否存在
 	var sourceID uint
 	if share.IsDir {
@@ -78,11 +83,6 @@ func (share *Share) IsAvailable() bool {
 	}
 	if sourceID == 0 {
 		// TODO 是否要在这里删除这个无效分享？
-		return false
-	}
-
-	// 检查创建者状态
-	if share.Creator().Status != Active {
 		return false
 	}
 

@@ -143,3 +143,47 @@ func TestBeforeShareDownload(t *testing.T) {
 		asserts.False(c.IsAborted())
 	}
 }
+
+func TestShareOwner(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	testFunc := ShareOwner()
+
+	// 未登录
+	{
+		c, _ := gin.CreateTestContext(rec)
+		testFunc(c)
+		asserts.True(c.IsAborted())
+
+		c, _ = gin.CreateTestContext(rec)
+		c.Set("share", &model.Share{})
+		testFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 非用户所创建分享
+	{
+		c, _ := gin.CreateTestContext(rec)
+		testFunc(c)
+		asserts.True(c.IsAborted())
+
+		c, _ = gin.CreateTestContext(rec)
+		c.Set("share", &model.Share{User: model.User{Model: gorm.Model{ID: 1}}})
+		c.Set("user", &model.User{})
+		testFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 正常
+	{
+		c, _ := gin.CreateTestContext(rec)
+		testFunc(c)
+		asserts.True(c.IsAborted())
+
+		c, _ = gin.CreateTestContext(rec)
+		c.Set("share", &model.Share{})
+		c.Set("user", &model.User{})
+		testFunc(c)
+		asserts.False(c.IsAborted())
+	}
+}

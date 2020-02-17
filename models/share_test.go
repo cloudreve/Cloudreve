@@ -114,6 +114,17 @@ func TestShare_IsAvailable(t *testing.T) {
 		asserts.True(share.IsAvailable())
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
+
+	// 用户被封禁
+	{
+		share := Share{
+			RemainDownloads: -1,
+			SourceID:        2,
+			IsDir:           true,
+			User:            User{Status: Baned},
+		}
+		asserts.False(share.IsAvailable())
+	}
 }
 
 func TestShare_GetCreator(t *testing.T) {
@@ -319,4 +330,65 @@ func TestShare_Viewed(t *testing.T) {
 	share.Viewed()
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.EqualValues(1, share.Views)
+}
+
+func TestShare_UpdateAndDelete(t *testing.T) {
+	asserts := assert.New(t)
+	share := Share{}
+
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := share.Update(map[string]interface{}{"id": 1})
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := share.Delete()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := DeleteShareBySourceIDs([]uint{1}, true)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+}
+
+func TestListShares(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2).AddRow(2))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2))
+
+	res, total := ListShares(1, 1, 10, "desc", true)
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Len(res, 2)
+	asserts.Equal(2, total)
+}
+
+func TestSearchShares(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("", sqlmock.AnyArg(), "%1%2%").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	res, total := SearchShares(1, 10, "id", "1 2")
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Len(res, 1)
+	asserts.Equal(1, total)
 }

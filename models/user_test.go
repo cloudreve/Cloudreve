@@ -62,6 +62,58 @@ func TestGetUserByID(t *testing.T) {
 	asserts.Equal(User{}, user)
 }
 
+func TestGetActiveUserByID(t *testing.T) {
+	asserts := assert.New(t)
+	cache.Deletes([]string{"1"}, "policy_")
+	//找到用户时
+	userRows := sqlmock.NewRows([]string{"id", "deleted_at", "email", "options", "group_id"}).
+		AddRow(1, nil, "admin@cloudreve.org", "{}", 1)
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(userRows)
+
+	groupRows := sqlmock.NewRows([]string{"id", "name", "policies"}).
+		AddRow(1, "管理员", "[1]")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(groupRows)
+
+	policyRows := sqlmock.NewRows([]string{"id", "name"}).
+		AddRow(1, "默认存储策略")
+	mock.ExpectQuery("^SELECT (.+)").WillReturnRows(policyRows)
+
+	user, err := GetActiveUserByID(1)
+	asserts.NoError(err)
+	asserts.Equal(User{
+		Model: gorm.Model{
+			ID:        1,
+			DeletedAt: nil,
+		},
+		Email:   "admin@cloudreve.org",
+		Options: "{}",
+		GroupID: 1,
+		Group: Group{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name:       "管理员",
+			Policies:   "[1]",
+			PolicyList: []uint{1},
+		},
+		Policy: Policy{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			OptionsSerialized: PolicyOption{
+				FileType: []string{},
+			},
+			Name: "默认存储策略",
+		},
+	}, user)
+
+	//未找到用户时
+	mock.ExpectQuery("^SELECT (.+)").WillReturnError(errors.New("not found"))
+	user, err = GetActiveUserByID(1)
+	asserts.Error(err)
+	asserts.Equal(User{}, user)
+}
+
 func TestUser_SetPassword(t *testing.T) {
 	asserts := assert.New(t)
 	user := User{}
@@ -386,4 +438,15 @@ func TestUser_IsAnonymous(t *testing.T) {
 	asserts.True(user.IsAnonymous())
 	user.ID = 1
 	asserts.False(user.IsAnonymous())
+}
+
+func TestUser_SetStatus(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{}
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	user.SetStatus(Baned)
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.Equal(Baned, user.Status)
 }
