@@ -21,6 +21,21 @@ type RedeemService struct {
 	Code string `uri:"code" binding:"required,max=64"`
 }
 
+// OrderService 订单查询
+type OrderService struct {
+	ID string `uri:"id" binding:"required"`
+}
+
+// Status 查询订单状态
+func (service *OrderService) Status(c *gin.Context, user *model.User) serializer.Response {
+	order, _ := model.GetOrderByNo(service.ID)
+	if order == nil || order.UserID != user.ID {
+		return serializer.Err(serializer.CodeNotFound, "订单不存在", nil)
+	}
+
+	return serializer.Response{Data: order.Status}
+}
+
 // Redeem 开始兑换
 func (service *RedeemService) Redeem(c *gin.Context, user *model.User) serializer.Response {
 	redeem, err := model.GetAvailableRedeem(service.Code)

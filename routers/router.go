@@ -127,6 +127,11 @@ func InitMasterRouter() *gin.Engine {
 		// 回调接口
 		callback := v3.Group("callback")
 		{
+			// 支付宝回调
+			callback.POST(
+				"alipay",
+				controllers.AlipayCallback,
+			)
 			// 远程策略上传回调
 			callback.POST(
 				"remote/:key",
@@ -363,6 +368,8 @@ func InitMasterRouter() *gin.Engine {
 				vas.GET("product", controllers.GetProduct)
 				// 新建支付订单
 				vas.POST("order", controllers.NewOrder)
+				// 查询订单状态
+				vas.GET("order/:id", controllers.OrderStatus)
 				// 获取兑换码信息
 				vas.GET("redeem/:code", controllers.GetRedeemInfo)
 				// 执行兑换

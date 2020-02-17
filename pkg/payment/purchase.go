@@ -1,6 +1,8 @@
 package payment
 
 import (
+	"encoding/json"
+	"errors"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"time"
@@ -68,4 +70,59 @@ func GiveProduct(user *model.User, pack *serializer.PackProduct, group *serializ
 	} else {
 		return GiveScore(user, num)
 	}
+}
+
+// OrderPaid 订单已支付处理
+func OrderPaid(orderNo string) error {
+	order, err := model.GetOrderByNo(orderNo)
+	if err != nil {
+		return ErrOrderNotFound.WithError(err)
+	}
+
+	// 更新订单状态为 已支付
+	order.UpdateStatus(model.OrderPaid)
+
+	user, err := model.GetActiveUserByID(order.UserID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+
+	// 查询商品
+	options := model.GetSettingByNames("pack_data", "group_sell_data")
+
+	var (
+		packs  []serializer.PackProduct
+		groups []serializer.GroupProducts
+	)
+	if err := json.Unmarshal([]byte(options["pack_data"]), &packs); err != nil {
+		return err
+	}
+	if err := json.Unmarshal([]byte(options["group_sell_data"]), &groups); err != nil {
+		return err
+	}
+
+	// 查找要购买的商品
+	var (
+		pack  *serializer.PackProduct
+		group *serializer.GroupProducts
+	)
+	if order.Type == model.GroupOrderType {
+		for _, v := range groups {
+			if v.ID == order.ProductID {
+				group = &v
+				break
+			}
+		}
+	} else if order.Type == model.PackOrderType {
+		for _, v := range packs {
+			if v.ID == order.ProductID {
+				pack = &v
+				break
+			}
+		}
+	}
+
+	// "发货"
+	return GiveProduct(&user, pack, group, order.Num)
+
 }

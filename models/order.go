@@ -45,3 +45,15 @@ func (order *Order) Create() (uint, error) {
 	}
 	return order.ID, nil
 }
+
+// UpdateStatus 更新订单状态
+func (order *Order) UpdateStatus(status int) {
+	DB.Model(order).Update("status", status)
+}
+
+// GetOrderByNo 根据商户订单号查询订单
+func GetOrderByNo(id string) (*Order, error) {
+	var order Order
+	err := DB.Where("order_no = ?", id).First(&order).Error
+	return &order, err
+}
