@@ -10,6 +10,17 @@ import (
 type SettingService struct {
 }
 
+// SettingListService 通用设置列表服务
+type SettingListService struct {
+	Page int `form:"page" binding:"required,min=1"`
+}
+
+// ListTasks 列出任务
+func (service *SettingListService) ListTasks(c *gin.Context, user *model.User) serializer.Response {
+	tasks, total := model.ListTasks(user.ID, service.Page, 10, "updated_at desc")
+	return serializer.BuildTaskList(tasks, total)
+}
+
 // Policy 获取用户存储策略设置
 func (service *SettingService) Policy(c *gin.Context, user *model.User) serializer.Response {
 	// 取得用户可用存储策略

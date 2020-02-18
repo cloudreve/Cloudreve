@@ -54,9 +54,8 @@ type User struct {
 
 // UserOption 用户个性化配置字段
 type UserOption struct {
-	ProfileOn       int    `json:"profile_on"`
+	ProfileOff      int    `json:"profile_off,omitempty"`
 	PreferredPolicy uint   `json:"preferred_policy"`
-	WebDAVKey       string `json:"webdav_key"`
 	PreferredTheme  string `json:"preferred_theme"`
 }
 

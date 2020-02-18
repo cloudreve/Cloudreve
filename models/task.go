@@ -54,3 +54,21 @@ func GetTasksByID(id interface{}) (*Task, error) {
 	result := DB.Where("id = ?", id).First(task)
 	return task, result.Error
 }
+
+// ListTasks 列出用户所属的任务
+func ListTasks(uid uint, page, pageSize int, order string) ([]Task, int) {
+	var (
+		tasks []Task
+		total int
+	)
+	dbChain := DB
+	dbChain = dbChain.Where("user_id = ?", uid)
+
+	// 计算总数用于分页
+	dbChain.Model(&Share{}).Count(&total)
+
+	// 查询记录
+	dbChain.Limit(pageSize).Offset((page - 1) * pageSize).Order(order).Find(&tasks)
+
+	return tasks, total
+}

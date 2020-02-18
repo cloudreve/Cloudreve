@@ -19,6 +19,33 @@ type SiteConfig struct {
 	User               User   `json:"user"`
 }
 
+type task struct {
+	Status     int    `json:"status"`
+	Type       int    `json:"type"`
+	CreateDate string `json:"create_date"`
+	Progress   int    `json:"progress"`
+	Error      string `json:"error"`
+}
+
+// BuildTaskList 构建任务列表响应
+func BuildTaskList(tasks []model.Task, total int) Response {
+	res := make([]task, 0, len(tasks))
+	for _, t := range tasks {
+		res = append(res, task{
+			Status:     t.Status,
+			Type:       t.Type,
+			CreateDate: t.CreatedAt.Format("2006-01-02 15:04:05"),
+			Progress:   t.Progress,
+			Error:      t.Error,
+		})
+	}
+
+	return Response{Data: map[string]interface{}{
+		"total": total,
+		"tasks": res,
+	}}
+}
+
 func checkSettingValue(setting map[string]string, key string) string {
 	if v, ok := setting[key]; ok {
 		return v

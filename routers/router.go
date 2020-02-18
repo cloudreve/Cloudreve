@@ -259,6 +259,8 @@ func InitMasterRouter() *gin.Engine {
 				{
 					// 获取用户可选存储策略
 					setting.GET("policies", controllers.UserAvailablePolicies)
+					// 任务队列
+					setting.GET("tasks", controllers.UserTasks)
 				}
 			}
 

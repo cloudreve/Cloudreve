@@ -145,5 +145,15 @@ func UserAvailablePolicies(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
+}
 
+// UserTasks 获取任务队列
+func UserTasks(c *gin.Context) {
+	var service user.SettingListService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.ListTasks(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
 }
