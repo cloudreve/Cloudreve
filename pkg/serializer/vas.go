@@ -2,6 +2,8 @@ package serializer
 
 import (
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/hashid"
+	"github.com/HFO4/cloudreve/pkg/util"
 )
 
 type quota struct {
@@ -18,6 +20,58 @@ type storagePacks struct {
 	ActivateDate   string `json:"activate_date"`
 	Expiration     int    `json:"expiration"`
 	ExpirationDate string `json:"expiration_date"`
+}
+
+// MountedFolders 已挂载的目录
+type MountedFolders struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	PolicyName string `json:"policy_name"`
+}
+
+type policyOptions struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+// BuildPolicySettingRes 构建存储策略选项选择
+func BuildPolicySettingRes(policies []model.Policy, current *model.Policy) Response {
+	options := make([]policyOptions, 0, len(policies))
+	for _, policy := range policies {
+		options = append(options, policyOptions{
+			Name: policy.Name,
+			ID:   hashid.HashID(policy.ID, hashid.PolicyID),
+		})
+	}
+
+	return Response{
+		Data: map[string]interface{}{
+			"options": options,
+			"current": policyOptions{
+				Name: current.Name,
+				ID:   hashid.HashID(current.ID, hashid.PolicyID),
+			},
+		},
+	}
+}
+
+// BuildMountedFolderRes 构建已挂载目录响应，list为当前用户可用存储策略ID
+func BuildMountedFolderRes(folders []model.Folder, list []uint) []MountedFolders {
+	res := make([]MountedFolders, 0, len(folders))
+	for _, folder := range folders {
+		single := MountedFolders{
+			ID:         hashid.HashID(folder.ID, hashid.FolderID),
+			Name:       folder.Name,
+			PolicyName: "[已失效存储策略]",
+		}
+		if policy, err := model.GetPolicyByID(folder.PolicyID); err == nil && util.ContainsUint(list, policy.ID) {
+			single.PolicyName = policy.Name
+		}
+
+		res = append(res, single)
+	}
+
+	return res
 }
 
 // BuildUserQuotaResponse 序列化用户存储配额概况响应

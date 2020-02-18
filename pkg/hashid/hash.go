@@ -13,9 +13,11 @@ const (
 	FileID          // 文件ID
 	FolderID        // 目录ID
 	TagID           // 标签ID
+	PolicyID        // 存储策略ID
 )
 
 var (
+	// ErrTypeNotMatch ID类型不匹配
 	ErrTypeNotMatch = errors.New("ID类型不匹配")
 )
 

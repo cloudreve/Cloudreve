@@ -253,6 +253,13 @@ func InitMasterRouter() *gin.Engine {
 					authn.PUT("", controllers.StartRegAuthn)
 					authn.PUT("finish", controllers.FinishRegAuthn)
 				}
+
+				// 用户设置
+				setting := user.Group("setting")
+				{
+					// 获取用户可选存储策略
+					setting.GET("policies", controllers.UserAvailablePolicies)
+				}
 			}
 
 			// 文件
@@ -390,6 +397,13 @@ func InitMasterRouter() *gin.Engine {
 				webdav.POST("accounts", controllers.CreateWebDAVAccounts)
 				// 删除账号
 				webdav.DELETE("accounts/:id", controllers.DeleteWebDAVAccounts)
+				// 删除目录挂载
+				webdav.DELETE("mount/:id",
+					middleware.HashID(hashid.FolderID),
+					controllers.DeleteWebDAVMounts,
+				)
+				// 创建目录挂载
+				webdav.POST("mount", controllers.CreateWebDAVMounts)
 			}
 
 		}

@@ -135,3 +135,15 @@ func UserStorage(c *gin.Context) {
 	res := serializer.BuildUserStorageResponse(*currUser)
 	c.JSON(200, res)
 }
+
+// UserAvailablePolicies 用户存储策略设置
+func UserAvailablePolicies(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Policy(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+
+}
