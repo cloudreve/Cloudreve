@@ -53,11 +53,13 @@ func checkUserGroup() {
 func checkStoragePack() {
 	packs := model.GetExpiredStoragePack()
 	for _, pack := range packs {
+		// 删除过期的容量包
+		pack.Delete()
 
 		//找到所属用户
-		user, err := model.GetUserByID(pack.ID)
+		user, err := model.GetUserByID(pack.UserID)
 		if err != nil {
-			util.Log().Warning("[定时任务] 无法获取用户 [UID=%d] 信息, %s", pack.ID, err)
+			util.Log().Warning("[定时任务] 无法获取用户 [UID=%d] 信息, %s", pack.UserID, err)
 			continue
 		}
 
@@ -65,9 +67,6 @@ func checkStoragePack() {
 		if user.Storage > user.Group.MaxStorage+user.GetAvailablePackSize() {
 			// 如果超额，则通知用户
 			sendNotification(&user, "容量包过期")
-
-			// 删除过期的容量包
-			pack.Delete()
 
 			// 更新最后通知日期
 			user.Notified()

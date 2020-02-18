@@ -5,6 +5,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/pkg/webdav"
+	"github.com/HFO4/cloudreve/service/setting"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,4 +40,37 @@ func ServeWebDAV(c *gin.Context) {
 	}
 
 	handler.ServeHTTP(c.Writer, c.Request, fs)
+}
+
+// GetWebDAVAccounts 获取webdav账号列表
+func GetWebDAVAccounts(c *gin.Context) {
+	var service setting.WebDAVListService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Accounts(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// DeleteWebDAVAccounts 删除WebDAV账户
+func DeleteWebDAVAccounts(c *gin.Context) {
+	var service setting.WebDAVAccountService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// CreateWebDAVAccounts 创建WebDAV账户
+func CreateWebDAVAccounts(c *gin.Context) {
+	var service setting.WebDAVAccountCreateService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
 }

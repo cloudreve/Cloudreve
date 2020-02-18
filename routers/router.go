@@ -381,6 +381,17 @@ func InitMasterRouter() *gin.Engine {
 				vas.POST("redeem/:code", controllers.DoRedeem)
 			}
 
+			// WebDAV管理相关
+			webdav := auth.Group("webdav")
+			{
+				// 获取账号信息
+				webdav.GET("accounts", controllers.GetWebDAVAccounts)
+				// 新建账号
+				webdav.POST("accounts", controllers.CreateWebDAVAccounts)
+				// 删除账号
+				webdav.DELETE("accounts/:id", controllers.DeleteWebDAVAccounts)
+			}
+
 		}
 
 	}

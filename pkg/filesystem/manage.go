@@ -185,38 +185,40 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 	// TODO 用户自主选择是否强制删除
 
 	// 删除文件记录
-	err = model.DeleteFileByIDs(allFileIDs)
+	err = model.DeleteFileByIDs(deletedFileIDs)
 	if err != nil {
 		return ErrDBDeleteObjects.WithError(err)
 	}
 
 	// 删除文件记录对应的分享记录
-	model.DeleteShareBySourceIDs(allFileIDs, false)
+	model.DeleteShareBySourceIDs(deletedFileIDs, false)
 
 	// 归还容量
 	var total uint64
-	for _, value := range totalStorage {
+	for _, value := range deletedStorage {
 		total += value
 	}
 	fs.User.DeductionStorage(total)
 
-	// 删除目录
-	var allFolderIDs = make([]uint, 0, len(fs.DirTarget))
-	for _, value := range fs.DirTarget {
-		allFolderIDs = append(allFolderIDs, value.ID)
-	}
-	err = model.DeleteFolderByIDs(allFolderIDs)
-	if err != nil {
-		return ErrDBDeleteObjects.WithError(err)
-	}
+	// 如果文件全部删除成功，继续删除目录
+	if len(deletedFileIDs) == len(allFileIDs) {
+		var allFolderIDs = make([]uint, 0, len(fs.DirTarget))
+		for _, value := range fs.DirTarget {
+			allFolderIDs = append(allFolderIDs, value.ID)
+		}
+		err = model.DeleteFolderByIDs(allFolderIDs)
+		if err != nil {
+			return ErrDBDeleteObjects.WithError(err)
+		}
 
-	// 删除目录记录对应的分享记录
-	model.DeleteShareBySourceIDs(allFolderIDs, true)
+		// 删除目录记录对应的分享记录
+		model.DeleteShareBySourceIDs(allFolderIDs, true)
+	}
 
 	if notDeleted := len(fs.FileTarget) - len(deletedFileIDs); notDeleted > 0 {
 		return serializer.NewError(
 			serializer.CodeNotFullySuccess,
-			fmt.Sprintf("有 %d 个文件未能成功删除，已删除它们的文件记录", notDeleted),
+			fmt.Sprintf("有 %d 个文件未能成功删除", notDeleted),
 			nil,
 		)
 	}
