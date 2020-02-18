@@ -54,7 +54,7 @@ type User struct {
 
 // UserOption 用户个性化配置字段
 type UserOption struct {
-	ProfileOff      int    `json:"profile_off,omitempty"`
+	ProfileOff      bool   `json:"profile_off,omitempty"`
 	PreferredPolicy uint   `json:"preferred_policy"`
 	PreferredTheme  string `json:"preferred_theme"`
 }
@@ -181,9 +181,7 @@ func GetUserByEmail(email string) (User, error) {
 
 // NewUser 返回一个新的空 User
 func NewUser() User {
-	options := UserOption{
-		ProfileOn: 1,
-	}
+	options := UserOption{}
 	return User{
 		Avatar:            "default",
 		OptionsSerialized: options,

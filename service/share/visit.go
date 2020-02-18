@@ -15,6 +15,12 @@ import (
 	"path"
 )
 
+// ShareUserGetService 获取用户的分享服务
+type ShareUserGetService struct {
+	Type string `form:"type" binding:"required,eq=hot|eq=default"`
+	Page uint   `form:"page" binding:"required,min=1"`
+}
+
 // ShareGetService 获取分享服务
 type ShareGetService struct {
 	Password string `form:"password" binding:"max=255"`
@@ -39,6 +45,46 @@ type ShareListService struct {
 	OrderBy  string `form:"order_by" binding:"required,eq=created_at|eq=downloads|eq=views"`
 	Order    string `form:"order" binding:"required,eq=DESC|eq=ASC"`
 	Keywords string `form:"keywords"`
+}
+
+// Get 获取给定用户的分享
+func (service *ShareUserGetService) Get(c *gin.Context) serializer.Response {
+	// 取得用户
+	userID, _ := c.Get("object_id")
+	user, err := model.GetActiveUserByID(userID.(uint))
+	if err != nil || user.OptionsSerialized.ProfileOff {
+		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+	}
+
+	// 列出分享
+	hotNum := model.GetIntSetting("hot_share_num", 10)
+	if service.Type == "default" {
+		hotNum = 10
+	}
+	orderBy := "created_at desc"
+	if service.Type == "hot" {
+		orderBy = "views desc"
+	}
+	shares, total := model.ListShares(user.ID, int(service.Page), hotNum, orderBy, true)
+	// 列出分享对应的文件
+	for i := 0; i < len(shares); i++ {
+		shares[i].Source()
+	}
+
+	res := serializer.BuildShareList(shares, total)
+	res.Data.(map[string]interface{})["user"] = struct {
+		ID    string `json:"id"`
+		Nick  string `json:"nick"`
+		Group string `json:"group"`
+		Date  string `json:"date"`
+	}{
+		hashid.HashID(user.ID, hashid.UserID),
+		user.Nick,
+		user.Group.Name,
+		user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return res
 }
 
 // Search 搜索公共分享

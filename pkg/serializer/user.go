@@ -16,7 +16,7 @@ func CheckLogin() Response {
 
 // User 用户序列化器
 type User struct {
-	ID             uint   `json:"id"`
+	ID             string `json:"id"`
 	Email          string `json:"user_name"`
 	Nickname       string `json:"nickname"`
 	Status         int    `json:"status"`
@@ -67,7 +67,7 @@ type storage struct {
 func BuildUser(user model.User) User {
 	tags, _ := model.GetTagsByUID(user.ID)
 	return User{
-		ID:             user.ID,
+		ID:             hashid.HashID(user.ID, hashid.UserID),
 		Email:          user.Email,
 		Nickname:       user.Nick,
 		Status:         user.Status,

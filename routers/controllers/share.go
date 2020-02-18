@@ -217,3 +217,14 @@ func ShareThumb(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// GetUserShare 查看给定用户的分享
+func GetUserShare(c *gin.Context) {
+	var service share.ShareUserGetService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Get(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

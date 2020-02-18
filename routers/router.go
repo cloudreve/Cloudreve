@@ -107,6 +107,11 @@ func InitMasterRouter() *gin.Engine {
 			user.GET("authn/:username", controllers.StartLoginAuthn)
 			// WebAuthn登陆
 			user.POST("authn/finish/:username", controllers.FinishLoginAuthn)
+			// 获取用户主页展示用分享
+			user.GET("profile/:id",
+				middleware.HashID(hashid.UserID),
+				controllers.GetUserShare,
+			)
 		}
 
 		// 需要携带签名验证的

@@ -234,7 +234,7 @@ func ListShares(uid uint, page, pageSize int, order string, publicOnly bool) ([]
 	dbChain := DB
 	dbChain = dbChain.Where("user_id = ?", uid)
 	if publicOnly {
-		dbChain.Where("password = ?", "")
+		dbChain = dbChain.Where("password = ?", "")
 	}
 
 	// 计算总数用于分页
