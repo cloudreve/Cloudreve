@@ -131,3 +131,14 @@ func PayJSCallback(c *gin.Context) {
 	payNotify.SendResponseMsg()
 
 }
+
+// QQCallback QQ互联回调
+func QQCallback(c *gin.Context) {
+	var service vas.QQCallbackService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Callback(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

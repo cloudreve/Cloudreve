@@ -151,7 +151,6 @@ func TestNewUser(t *testing.T) {
 	newUser := NewUser()
 	asserts.IsType(User{}, newUser)
 	asserts.NotEmpty(newUser.Avatar)
-	asserts.NotEmpty(newUser.OptionsSerialized)
 }
 
 func TestUser_AfterFind(t *testing.T) {
@@ -304,7 +303,7 @@ func TestUser_DeductionStorage(t *testing.T) {
 			Storage: 10,
 		}
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WithArgs(5, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)").WithArgs(5, sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
 		asserts.True(user.DeductionStorage(5))
@@ -319,7 +318,7 @@ func TestUser_DeductionStorage(t *testing.T) {
 			Storage: 10,
 		}
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WithArgs(0, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)").WithArgs(0, sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
 		asserts.False(user.DeductionStorage(20))
@@ -355,11 +354,11 @@ func TestUser_IncreaseStorageWithoutCheck(t *testing.T) {
 func TestGetUserByEmail(t *testing.T) {
 	asserts := assert.New(t)
 
-	mock.ExpectQuery("SELECT(.+)").WithArgs("abslant@foxmail.com").WillReturnRows(sqlmock.NewRows([]string{"id", "email"}))
+	mock.ExpectQuery("SELECT(.+)").WithArgs(Active, "abslant@foxmail.com").WillReturnRows(sqlmock.NewRows([]string{"id", "email"}))
 	_, err := GetUserByEmail("abslant@foxmail.com")
 
-	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Error(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 }
 
 func TestUser_AfterCreate(t *testing.T) {

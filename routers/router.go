@@ -112,6 +112,11 @@ func InitMasterRouter() *gin.Engine {
 				middleware.HashID(hashid.UserID),
 				controllers.GetUserShare,
 			)
+			// 获取用户头像
+			user.GET("avatar/:id/:size",
+				middleware.HashID(hashid.UserID),
+				controllers.GetUserAvatar,
+			)
 		}
 
 		// 需要携带签名验证的
@@ -132,6 +137,11 @@ func InitMasterRouter() *gin.Engine {
 		// 回调接口
 		callback := v3.Group("callback")
 		{
+			// QQ互联回调
+			callback.POST(
+				"qq",
+				controllers.QQCallback,
+			)
 			// PAYJS回调
 			callback.POST(
 				"payjs",
@@ -266,6 +276,14 @@ func InitMasterRouter() *gin.Engine {
 					setting.GET("policies", controllers.UserAvailablePolicies)
 					// 任务队列
 					setting.GET("tasks", controllers.UserTasks)
+					// 获取当前用户设定
+					setting.GET("", controllers.UserSetting)
+					// 从文件上传头像
+					setting.POST("avatar", controllers.UploadAvatar)
+					// 设定为Gravatar头像
+					setting.PUT("avatar", controllers.UseGravatar)
+					// 更改用户设定
+					setting.PATCH(":option", controllers.UpdateOption)
 				}
 			}
 

@@ -2,12 +2,14 @@ package thumb
 
 import (
 	"errors"
+	"fmt"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -66,14 +68,36 @@ func (image *Thumb) GetSize() (int, int) {
 
 // Save 保存图像到给定路径
 func (image *Thumb) Save(path string) (err error) {
-	out, err := os.Create(path)
-	defer out.Close()
+	out, err := util.CreatNestedFile(path)
 
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 
 	err = png.Encode(out, image.src)
 	return err
+
+}
+
+// CreateAvatar 创建头像
+func (image *Thumb) CreateAvatar(uid uint) error {
+	// 读取头像相关设定
+	savePath := model.GetSettingByName("avatar_path")
+	s := model.GetIntSetting("avatar_size_s", 50)
+	m := model.GetIntSetting("avatar_size_m", 130)
+	l := model.GetIntSetting("avatar_size_l", 200)
+
+	// 生成头像缩略图
+	src := image.src
+	for k, size := range []int{s, m, l} {
+		image.src = resize.Resize(uint(size), uint(size), src, resize.Lanczos3)
+		err := image.Save(filepath.Join(savePath, fmt.Sprintf("avatar_%d_%d.png", uid, k)))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 
 }

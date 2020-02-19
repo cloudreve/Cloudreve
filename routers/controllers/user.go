@@ -5,6 +5,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/user"
 	"github.com/duo-labs/webauthn/webauthn"
@@ -153,6 +154,120 @@ func UserTasks(c *gin.Context) {
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.ListTasks(c, CurrentUser(c))
 		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UserSetting 获取用户设定
+func UserSetting(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Settings(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UseGravatar 设定头像使用全球通用
+func UseGravatar(c *gin.Context) {
+	u := CurrentUser(c)
+	if err := u.Update(map[string]interface{}{"avatar": "gravatar"}); err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeDBError, "无法更新头像", err))
+		return
+	}
+	c.JSON(200, serializer.Response{})
+}
+
+// UploadAvatar 从文件上传头像
+func UploadAvatar(c *gin.Context) {
+	// 取得头像上传大小限制
+	maxSize := model.GetIntSetting("avatar_size", 2097152)
+	if c.Request.ContentLength == -1 || c.Request.ContentLength > int64(maxSize) {
+		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, "头像尺寸太大", nil))
+		return
+	}
+
+	// 取得上传的文件
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
+		return
+	}
+
+	// 初始化头像
+	r, err := file.Open()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
+		return
+	}
+	avatar, err := thumb.NewThumbFromFile(r, file.Filename)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法解析图像数据", err))
+		return
+	}
+
+	// 创建头像
+	u := CurrentUser(c)
+	err = avatar.CreateAvatar(u.ID)
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法创建头像", err))
+		return
+	}
+
+	// 保存头像标记
+	if err := u.Update(map[string]interface{}{
+		"avatar": "file",
+	}); err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeDBError, "无法更新头像", err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// GetUserAvatar 获取用户头像
+func GetUserAvatar(c *gin.Context) {
+	var service user.AvatarService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get(c)
+		if res.Code == -301 {
+			// 重定向到gravatar
+			c.Redirect(301, res.Data.(string))
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UpdateOption 更改用户设定
+func UpdateOption(c *gin.Context) {
+	var service user.SettingUpdateService
+	if err := c.ShouldBindUri(&service); err == nil {
+		var (
+			subService user.OptionsChangeHandler
+			subErr     error
+		)
+
+		switch service.Option {
+		case "nick":
+			subService = &user.ChangerNick{}
+		case "vip":
+			subService = &user.VIPUnsubscribe{}
+		case "qq":
+			subService = &user.QQBind{}
+		}
+
+		subErr = c.ShouldBindJSON(subService)
+		if subErr != nil {
+			c.JSON(200, ErrorResponse(subErr))
+			return
+		}
+
+		res := subService.Update(c, CurrentUser(c))
+		c.JSON(200, res)
+
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

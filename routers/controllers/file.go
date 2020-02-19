@@ -9,7 +9,6 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -294,7 +293,7 @@ func FileUploadStream(c *gin.Context) {
 		File:        c.Request.Body,
 		Size:        fileSize,
 		Name:        fileName,
-		VirtualPath: util.DotPathToStandardPath(filePath),
+		VirtualPath: filePath,
 	}
 
 	// 创建文件系统

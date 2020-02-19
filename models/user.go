@@ -45,7 +45,7 @@ type User struct {
 	NotifyDate      *time.Time // 通知超出配额时的日期
 
 	// 关联模型
-	Group  Group  `gorm:"association_autoupdate:false"`
+	Group  Group  `gorm:"save_associations:false:false"`
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 
 	// 数据库忽略字段
@@ -73,12 +73,12 @@ func (user *User) DeductionStorage(size uint64) bool {
 	}
 	if size <= user.Storage {
 		user.Storage -= size
-		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage - ?", size))
+		DB.Model(user).Update("storage", gorm.Expr("storage - ?", size))
 		return true
 	}
 	// 如果要减少的容量超出已用容量，则设为零
 	user.Storage = 0
-	DB.Model(user).UpdateColumn("storage", 0)
+	DB.Model(user).Update("storage", 0)
 
 	return false
 }
@@ -90,7 +90,7 @@ func (user *User) IncreaseStorage(size uint64) bool {
 	}
 	if size <= user.GetRemainingCapacity() {
 		user.Storage += size
-		DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
+		DB.Model(user).Update("storage", gorm.Expr("storage + ?", size))
 		return true
 	}
 	return false
@@ -103,7 +103,7 @@ func (user *User) PayScore(score int) bool {
 	}
 	if score <= user.Score {
 		user.Score -= score
-		DB.Model(user).UpdateColumn("score", gorm.Expr("score - ?", score))
+		DB.Model(user).Update("score", gorm.Expr("score - ?", score))
 		return true
 	}
 	return false
@@ -112,7 +112,7 @@ func (user *User) PayScore(score int) bool {
 // AddScore 增加积分
 func (user *User) AddScore(score int) {
 	user.Score += score
-	DB.Model(user).UpdateColumn("score", gorm.Expr("score + ?", score))
+	DB.Model(user).Update("score", gorm.Expr("score + ?", score))
 }
 
 // IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
@@ -121,7 +121,7 @@ func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 		return
 	}
 	user.Storage += size
-	DB.Model(user).UpdateColumn("storage", gorm.Expr("storage + ?", size))
+	DB.Model(user).Update("storage", gorm.Expr("storage + ?", size))
 
 }
 
@@ -175,7 +175,7 @@ func GetActiveUserByID(ID interface{}) (User, error) {
 // GetUserByEmail 用Email获取用户
 func GetUserByEmail(email string) (User, error) {
 	var user User
-	result := DB.Set("gorm:auto_preload", true).Where("email = ?", email).First(&user)
+	result := DB.Set("gorm:auto_preload", true).Where("status = ? and email = ?", Active, email).First(&user)
 	return user, result.Error
 }
 
@@ -294,6 +294,11 @@ func (user *User) ClearNotified() {
 // SetStatus 设定用户状态
 func (user *User) SetStatus(status int) {
 	DB.Model(&user).Update("status", status)
+}
+
+// Update 更新用户
+func (user *User) Update(val map[string]interface{}) error {
+	return DB.Model(user).Updates(val).Error
 }
 
 // GetGroupExpiredUsers 获取用户组过期的用户

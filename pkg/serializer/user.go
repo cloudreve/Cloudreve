@@ -46,6 +46,7 @@ type group struct {
 	ShareFreeEnabled     bool   `json:"shareFree"`
 	ShareDownload        bool   `json:"shareDownload"`
 	CompressEnabled      bool   `json:"compress"`
+	WebDAVEnabled        bool   `json:"webdav"`
 }
 
 type tag struct {
@@ -91,6 +92,7 @@ func BuildUser(user model.User) User {
 			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFree,
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
+			WebDAVEnabled:        user.Group.WebDAVEnabled,
 		},
 		Tags: buildTagRes(tags),
 	}

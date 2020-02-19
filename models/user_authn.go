@@ -49,5 +49,5 @@ func (user *User) RegisterAuthn(credential *webauthn.Credential) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	DB.Model(user).UpdateColumn("authn", string(res))
+	DB.Model(user).Update("authn", string(res))
 }

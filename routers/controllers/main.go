@@ -17,6 +17,7 @@ func ParamErrorMsg(filed string, tag string) string {
 		"Path":     "路径",
 		"SourceID": "原始资源",
 		"URL":      "链接",
+		"Nick":     "昵称",
 	}
 	// 未通过的规则与中文对应
 	tagMap := map[string]string{
