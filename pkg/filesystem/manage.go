@@ -344,7 +344,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 
 // CreateDirectory 根据给定的完整创建目录，支持递归创建
 func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*model.Folder, error) {
-	if fullPath == "/" {
+	if fullPath == "/" || fullPath == "." || fullPath == "" {
 		return nil, ErrRootProtected
 	}
 

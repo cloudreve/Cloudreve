@@ -87,6 +87,7 @@ func TestLocalFileUpload(t *testing.T) {
 				)
 				req.Header.Add("Content-Length", "4")
 				req.Header.Add("X-FileName", "TestFileUploadRoute.txt")
+				req.Header.Add("X-Path", "/")
 				return req
 			},
 			ExpectCode: 0,
