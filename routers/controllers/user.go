@@ -257,6 +257,14 @@ func UpdateOption(c *gin.Context) {
 			subService = &user.VIPUnsubscribe{}
 		case "qq":
 			subService = &user.QQBind{}
+		case "policy":
+			subService = &user.PolicyChange{}
+		case "homepage":
+			subService = &user.HomePage{}
+		case "password":
+			subService = &user.PasswordChange{}
+		case "2fa":
+			subService = &user.Enable2FA{}
 		}
 
 		subErr = c.ShouldBindJSON(subService)
@@ -268,6 +276,17 @@ func UpdateOption(c *gin.Context) {
 		res := subService.Update(c, CurrentUser(c))
 		c.JSON(200, res)
 
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UserInit2FA 初始化二步验证
+func UserInit2FA(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Init2FA(c, CurrentUser(c))
+		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

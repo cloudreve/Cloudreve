@@ -26,10 +26,15 @@ require (
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.8.0
+	github.com/pquerna/otp v1.2.0
 	github.com/qingwg/payjs v0.0.0-20190928033402-c53dbe16b371
 	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/sec51/convert v0.0.0-20190309075348-ebe586d87951 // indirect
+	github.com/sec51/cryptoengine v0.0.0-20180911112225-2306d105a49e // indirect
+	github.com/sec51/gf256 v0.0.0-20160126143050-2454accbeb9e // indirect
+	github.com/sec51/qrcode v0.0.0-20160126144534-b7779abbcaf1 // indirect
 	github.com/smartwalle/alipay/v3 v3.0.13
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible

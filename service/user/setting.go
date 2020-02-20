@@ -4,10 +4,12 @@ import (
 	"crypto/md5"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/qq"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp/totp"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,7 +33,7 @@ type AvatarService struct {
 
 // SettingUpdateService 设定更改服务
 type SettingUpdateService struct {
-	Option string `uri:"option" binding:"required,eq=nick|eq=theme|eq=homepage|eq=vip|eq=qq"`
+	Option string `uri:"option" binding:"required,eq=nick|eq=theme|eq=homepage|eq=vip|eq=qq|eq=policy|eq=password|eq=2fa"`
 }
 
 // OptionsChangeHandler 属性更改接口
@@ -52,6 +54,116 @@ type VIPUnsubscribe struct {
 type QQBind struct {
 }
 
+// PolicyChange 更改存储策略
+type PolicyChange struct {
+	ID string `json:"id" binding:"required"`
+}
+
+// HomePage 更改个人主页开关
+type HomePage struct {
+	Enabled bool `json:"status"`
+}
+
+// PasswordChange 更改密码
+type PasswordChange struct {
+	Old string `json:"old" binding:"required,min=4,max=64"`
+	New string `json:"new" binding:"required,min=4,max=64"`
+}
+
+// Enable2FA 开启二步验证
+type Enable2FA struct {
+	Code string `json:"code" binding:"required"`
+}
+
+// Update 更改密码
+func (service *Enable2FA) Update(c *gin.Context, user *model.User) serializer.Response {
+	if user.TwoFactor == "" {
+
+		secret, ok := util.GetSession(c, "2fa_init").(string)
+		if !ok {
+			return serializer.Err(serializer.CodeParamErr, "未初始化二步验证", nil)
+		}
+
+		if !totp.Validate(service.Code, secret) {
+			return serializer.ParamErr("验证码不正确", nil)
+		}
+
+		if err := user.Update(map[string]interface{}{"two_factor": secret}); err != nil {
+			return serializer.DBErr("无法更新二步验证设定", err)
+		}
+
+	}
+
+	return serializer.Response{}
+}
+
+// Init2FA 初始化二步验证
+func (service *SettingService) Init2FA(c *gin.Context, user *model.User) serializer.Response {
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "Cloudreve",
+		AccountName: user.Email,
+	})
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "无法生成验密钥", err)
+	}
+
+	util.SetSession(c, map[string]interface{}{"2fa_init": key.Secret()})
+	return serializer.Response{Data: key.Secret()}
+}
+
+// Update 更改密码
+func (service *PasswordChange) Update(c *gin.Context, user *model.User) serializer.Response {
+	// 验证老密码
+	if ok, _ := user.CheckPassword(service.Old); !ok {
+		return serializer.Err(serializer.CodeParamErr, "原密码不正确", nil)
+	}
+
+	// 更改为新密码
+	user.SetPassword(service.New)
+	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
+		return serializer.DBErr("密码更换失败", err)
+	}
+
+	return serializer.Response{}
+}
+
+// Update 切换个人主页开关
+func (service *HomePage) Update(c *gin.Context, user *model.User) serializer.Response {
+	user.OptionsSerialized.ProfileOff = !service.Enabled
+	if err := user.UpdateOptions(); err != nil {
+		return serializer.DBErr("存储策略切换失败", err)
+	}
+
+	return serializer.Response{}
+}
+
+// Update 更改用户偏好的存储策略
+func (service *PolicyChange) Update(c *gin.Context, user *model.User) serializer.Response {
+	// 取得存储策略的ID
+	rawID, err := hashid.DecodeHashID(service.ID, hashid.PolicyID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+	}
+
+	// 用户是否可以切换到此存储策略
+	if !util.ContainsUint(user.Group.PolicyList, rawID) {
+		return serializer.Err(serializer.CodeNoPermissionErr, "存储策略不可用", nil)
+	}
+
+	// 查找存储策略
+	if _, err := model.GetPolicyByID(rawID); err != nil {
+		return serializer.Err(serializer.CodeNoPermissionErr, "存储策略不可用", nil)
+	}
+
+	// 切换存储策略
+	user.OptionsSerialized.PreferredPolicy = rawID
+	if err := user.UpdateOptions(); err != nil {
+		return serializer.DBErr("存储策略切换失败", err)
+	}
+
+	return serializer.Response{}
+}
+
 // Update 绑定或解绑QQ
 func (service *QQBind) Update(c *gin.Context, user *model.User) serializer.Response {
 	// 解除绑定
@@ -59,7 +171,9 @@ func (service *QQBind) Update(c *gin.Context, user *model.User) serializer.Respo
 		if err := user.Update(map[string]interface{}{"open_id": ""}); err != nil {
 			return serializer.DBErr("接触绑定失败", err)
 		}
-		return serializer.Response{}
+		return serializer.Response{
+			Data: "",
+		}
 	}
 
 	// 新建绑定

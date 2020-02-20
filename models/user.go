@@ -301,6 +301,14 @@ func (user *User) Update(val map[string]interface{}) error {
 	return DB.Model(user).Updates(val).Error
 }
 
+// UpdateOptions 更新用户偏好设定
+func (user *User) UpdateOptions() error {
+	if err := user.SerializeOptions(); err != nil {
+		return err
+	}
+	return user.Update(map[string]interface{}{"options": user.Options})
+}
+
 // GetGroupExpiredUsers 获取用户组过期的用户
 func GetGroupExpiredUsers() []User {
 	var users []User

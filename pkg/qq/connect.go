@@ -66,7 +66,7 @@ func NewLoginRequest() (*LoginPage, error) {
 }
 
 func getCallbackURL() string {
-	return "https://drive.aoaoao.me/Callback/QQ"
+	//return "https://drive.aoaoao.me/Callback/QQ"
 	// 生成回调地址
 	gateway, _ := url.Parse("/#/login/qq")
 	callback := model.GetSiteURL().ResolveReference(gateway).String()

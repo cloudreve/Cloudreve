@@ -284,6 +284,8 @@ func InitMasterRouter() *gin.Engine {
 					setting.PUT("avatar", controllers.UseGravatar)
 					// 更改用户设定
 					setting.PATCH(":option", controllers.UpdateOption)
+					// 获得二步验证初始化信息
+					setting.GET("2fa", controllers.UserInit2FA)
 				}
 			}
 

@@ -135,7 +135,7 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	fileHeader := local.FileStream{
 		Size:        callbackBody.Size,
 		VirtualPath: callbackSession.VirtualPath,
-		Name:        callbackBody.Name,
+		Name:        callbackSession.Name,
 	}
 
 	// 生成上下文
