@@ -25,6 +25,7 @@ type User struct {
 	CreatedAt      int64  `json:"created_at"`
 	PreferredTheme string `json:"preferred_theme"`
 	Score          int    `json:"score"`
+	Anonymous      bool   `json:"anonymous"`
 	Policy         policy `json:"policy"`
 	Group          group  `json:"group"`
 	Tags           []tag  `json:"tags"`
@@ -97,6 +98,7 @@ func BuildUser(user model.User) User {
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
 		Score:          user.Score,
+		Anonymous:      user.IsAnonymous(),
 		Policy: policy{
 			SaveType:       user.Policy.Type,
 			MaxSize:        fmt.Sprintf("%.2fmb", float64(user.Policy.MaxSize)/(1024*1024)),

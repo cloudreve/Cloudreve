@@ -5,6 +5,7 @@ import (
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/authn"
+	"github.com/HFO4/cloudreve/pkg/qq"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -126,6 +127,34 @@ func UserLogin(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
+}
+
+// User2FALogin 用户二步验证登录
+func User2FALogin(c *gin.Context) {
+	var service user.Enable2FA
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Login(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UserQQLogin 初始化QQ登录
+func UserQQLogin(c *gin.Context) {
+	// 新建绑定
+	res, err := qq.NewLoginRequest()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeNotSet, "无法使用QQ登录", err))
+		return
+	}
+
+	// 设定QQ登录会话Secret
+	util.SetSession(c, map[string]interface{}{"qq_login_secret": res.SecretKey})
+
+	c.JSON(200, serializer.Response{
+		Data: res.URL,
+	})
 
 }
 

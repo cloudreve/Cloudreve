@@ -172,6 +172,13 @@ func GetActiveUserByID(ID interface{}) (User, error) {
 	return user, result.Error
 }
 
+// GetActiveUserByOpenID 用OpenID获取可登录用户
+func GetActiveUserByOpenID(openid string) (User, error) {
+	var user User
+	result := DB.Set("gorm:auto_preload", true).Where("status = ? and open_id = ?", Active, openid).Find(&user)
+	return user, result.Error
+}
+
 // GetUserByEmail 用Email获取用户
 func GetUserByEmail(email string) (User, error) {
 	var user User
