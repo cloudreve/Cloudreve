@@ -343,7 +343,7 @@ func TestHookChangeCapacity(t *testing.T) {
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WithArgs(1, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)").WithArgs(1, sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		err := HookChangeCapacity(ctx, fs)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
