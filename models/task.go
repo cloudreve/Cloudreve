@@ -48,7 +48,6 @@ func GetTasksByStatus(status ...int) []Task {
 }
 
 // GetTasksByID 根据ID检索任务
-// TODO 测试
 func GetTasksByID(id interface{}) (*Task, error) {
 	task := &Task{}
 	result := DB.Where("id = ?", id).First(task)

@@ -82,3 +82,19 @@ func TestUser_WebAuthnName(t *testing.T) {
 		asserts.Equal("abslant@foxmail.com", name)
 	}
 }
+
+func TestUser_RemoveAuthn(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{
+		Model: gorm.Model{ID: 1},
+		Authn: `[{"ID":"123","PublicKey":"+4sg1vYcjg/+=","AttestationType":"packed","Authenticator":{"AAGUID":"+lg==","SignCount":0,"CloneWarning":false}}]`,
+	}
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		user.RemoveAuthn("123")
+		asserts.NoError(mock.ExpectationsWereMet())
+	}
+}

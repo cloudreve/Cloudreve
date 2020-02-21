@@ -343,10 +343,11 @@ func TestUser_IncreaseStorageWithoutCheck(t *testing.T) {
 			Model: gorm.Model{ID: 1},
 		}
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WithArgs(10, 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)").WithArgs(10, sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 
 		user.IncreaseStorageWithoutCheck(10)
+		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal(uint64(10), user.Storage)
 	}
 }
@@ -448,4 +449,16 @@ func TestUser_SetStatus(t *testing.T) {
 	user.SetStatus(Baned)
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Equal(Baned, user.Status)
+}
+
+func TestUser_UpdateOptions(t *testing.T) {
+	asserts := assert.New(t)
+	user := User{}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	asserts.NoError(user.UpdateOptions())
+	asserts.NoError(mock.ExpectationsWereMet())
 }

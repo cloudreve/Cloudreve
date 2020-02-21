@@ -79,3 +79,15 @@ func TestGetTasksByID(t *testing.T) {
 	asserts.NoError(err)
 	asserts.EqualValues(1, res.ID)
 }
+
+func TestListTasks(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(5))
+
+	res, total := ListTasks(1, 1, 10, "")
+	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.EqualValues(5, total)
+	asserts.Len(res, 1)
+}
