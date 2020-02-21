@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -47,4 +48,32 @@ func TestHashID(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.False(c.IsAborted())
 	}
+}
+
+func TestIsFunctionEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	TestFunc := IsFunctionEnabled("TestIsFunctionEnabled")
+
+	// 未开启
+	{
+		cache.Set("setting_TestIsFunctionEnabled", "0", 0)
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/file/dellete/1", nil)
+		TestFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.True(c.IsAborted())
+	}
+	// 开启
+	{
+		cache.Set("setting_TestIsFunctionEnabled", "1", 0)
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/file/dellete/1", nil)
+		TestFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.False(c.IsAborted())
+	}
+
 }

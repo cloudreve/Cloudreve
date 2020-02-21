@@ -122,6 +122,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 			"X-FileName":    {fileName},
 		}),
 		request.WithContentLength(int64(size)),
+		request.WithTimeout(time.Duration(0)),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return err

@@ -149,6 +149,7 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 			"Content-Range": {fmt.Sprintf("bytes %d-%d/%d", chunk.Offset, chunk.Offset+chunk.ChunkSize-1, chunk.Total)},
 		}),
 		request.WithoutHeader([]string{"Authorization", "Content-Type"}),
+		request.WithTimeout(time.Duration(300)*time.Second),
 	)
 	if err != nil {
 		// 如果重试次数小于限制，5秒后重试
@@ -253,7 +254,9 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 	dst = strings.TrimPrefix(dst, "/")
 	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/content")
 
-	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)))
+	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
+		request.WithTimeout(time.Duration(150)*time.Second),
+	)
 	if err != nil {
 		retried := 0
 		if v, ok := ctx.Value(fsctx.RetryCtx).(int); ok {

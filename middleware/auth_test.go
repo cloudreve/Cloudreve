@@ -148,6 +148,8 @@ func TestWebDAVAuth(t *testing.T) {
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "password", "email", "options"}).AddRow(1, "123", "who@cloudreve.org", "{}"),
 			)
+		// 查找密码
+		mock.ExpectQuery("SELECT(.+)webdav(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 		AuthFunc(c)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal(c.Writer.Status(), http.StatusUnauthorized)
@@ -172,6 +174,8 @@ func TestWebDAVAuth(t *testing.T) {
 					),
 			)
 		mock.ExpectQuery("SELECT(.+)groups(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "web_dav_enabled"}).AddRow(1, false))
+		// 查找密码
+		mock.ExpectQuery("SELECT(.+)webdav(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		AuthFunc(c)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal(c.Writer.Status(), http.StatusForbidden)
@@ -196,6 +200,8 @@ func TestWebDAVAuth(t *testing.T) {
 					),
 			)
 		mock.ExpectQuery("SELECT(.+)groups(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "web_dav_enabled"}).AddRow(1, true))
+		// 查找密码
+		mock.ExpectQuery("SELECT(.+)webdav(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		AuthFunc(c)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Equal(c.Writer.Status(), 200)
