@@ -5,6 +5,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -109,4 +110,11 @@ func TestBuildTagRes(t *testing.T) {
 	asserts.Len(res, 2)
 	asserts.Equal("", res[0].Expression)
 	asserts.Equal("exp", res[1].Expression)
+}
+
+func TestBuildWebAuthnList(t *testing.T) {
+	asserts := assert.New(t)
+	credentials := []webauthn.Credential{{}}
+	res := BuildWebAuthnList(credentials)
+	asserts.Len(res, 1)
 }

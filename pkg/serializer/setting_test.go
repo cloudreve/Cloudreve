@@ -35,3 +35,11 @@ func TestBuildSiteConfig(t *testing.T) {
 	})
 	asserts.Equal(uint(5), res.Data.(SiteConfig).User.ID)
 }
+
+func TestBuildTaskList(t *testing.T) {
+	asserts := assert.New(t)
+	tasks := []model.Task{{}}
+
+	res := BuildTaskList(tasks, 1)
+	asserts.NotNil(res)
+}
