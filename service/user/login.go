@@ -51,6 +51,7 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	if model.IsTrueVal(isCaptchaRequired) {
 		// TODO 验证码校验
 		captchaID := util.GetSession(c, "captchaID")
+		util.DeleteSession(c, "captchaID")
 		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
 			return serializer.ParamErr("验证码错误", nil)
 		}

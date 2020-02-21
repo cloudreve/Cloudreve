@@ -103,6 +103,8 @@ func InitMasterRouter() *gin.Engine {
 		{
 			// 用户登录
 			user.POST("session", controllers.UserLogin)
+			// 用户注册
+			user.POST("", middleware.IsFunctionEnabled("register_enabled"), controllers.UserRegister)
 			// 用户登录
 			user.POST("2fa", controllers.User2FALogin)
 			// 初始化QQ登录

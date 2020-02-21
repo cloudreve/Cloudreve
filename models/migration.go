@@ -83,8 +83,8 @@ func addDefaultSettings() {
 		{Name: "siteURL", Value: ``, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteStatus", Value: `open`, Type: "basic"},
-		{Name: "regStatus", Value: `0`, Type: "register"},
-		{Name: "defaultGroup", Value: `3`, Type: "register"},
+		{Name: "register_enabled", Value: `1`, Type: "register"},
+		{Name: "default_group", Value: `2`, Type: "register"},
 		{Name: "siteKeywords", Value: `网盘，网盘`, Type: "basic"},
 		{Name: "siteDes", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteTitle", Value: `平步云端`, Type: "basic"},
@@ -177,7 +177,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	}
 
 	for _, value := range defaultSettings {
-		DB.Where(Setting{Name: value.Name}).FirstOrCreate(&value)
+		DB.Where(Setting{Name: value.Name}).Create(&value)
 	}
 }
 

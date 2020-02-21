@@ -31,11 +31,9 @@ type User struct {
 	Password        string `json:"-"`
 	Status          int
 	GroupID         uint
-	ActivationKey   string `json:"-"`
 	Storage         uint64
 	OpenID          string `json:"-"`
 	TwoFactor       string `json:"-"`
-	Delay           int
 	Avatar          string
 	Options         string `json:"-",gorm:"type:text"`
 	Authn           string `gorm:"type:text"`
@@ -55,8 +53,8 @@ type User struct {
 // UserOption 用户个性化配置字段
 type UserOption struct {
 	ProfileOff      bool   `json:"profile_off,omitempty"`
-	PreferredPolicy uint   `json:"preferred_policy"`
-	PreferredTheme  string `json:"preferred_theme"`
+	PreferredPolicy uint   `json:"preferred_policy,omitempty"`
+	PreferredTheme  string `json:"preferred_theme,omitempty"`
 }
 
 // Root 获取用户的根目录
@@ -190,7 +188,6 @@ func GetUserByEmail(email string) (User, error) {
 func NewUser() User {
 	options := UserOption{}
 	return User{
-		Avatar:            "default",
 		OptionsSerialized: options,
 	}
 }

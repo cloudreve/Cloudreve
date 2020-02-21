@@ -129,6 +129,17 @@ func UserLogin(c *gin.Context) {
 	}
 }
 
+// UserRegister 用户注册
+func UserRegister(c *gin.Context) {
+	var service user.UserRegisterService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Register(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // User2FALogin 用户二步验证登录
 func User2FALogin(c *gin.Context) {
 	var service user.Enable2FA

@@ -21,7 +21,6 @@ func SetSession(c *gin.Context, list map[string]interface{}) {
 // GetSession 获取session
 func GetSession(c *gin.Context, key string) interface{} {
 	s := sessions.Default(c)
-	Log().Debug("Key:%s Val:%s", key, s.Get(key))
 	return s.Get(key)
 }
 
