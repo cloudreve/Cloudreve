@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,19 @@ func HashID(IDType int) gin.HandlerFunc {
 			return
 
 		}
+		c.Next()
+	}
+}
+
+// IsFunctionEnabled 当功能未开启时阻止访问
+func IsFunctionEnabled(key string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !model.IsTrueVal(model.GetSettingByName(key)) {
+			c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "未开启此功能", nil))
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

@@ -1,21 +1,23 @@
 package authn
 
 import (
-	"fmt"
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/duo-labs/webauthn/webauthn"
 )
 
 var AuthnInstance *webauthn.WebAuthn
 
+// Init 初始化webauthn
 func Init() {
 	var err error
+	base := model.GetSiteURL()
 	AuthnInstance, err = webauthn.New(&webauthn.Config{
-		RPDisplayName: "Duo Labs",                 // Display Name for your site
-		RPID:          "localhost",                // Generally the FQDN for your site
-		RPOrigin:      "http://localhost:3000",    // The origin URL for WebAuthn requests
-		RPIcon:        "https://duo.com/logo.png", // Optional icon URL for your site
+		RPDisplayName: model.GetSettingByName("siteName"), // Display Name for your site
+		RPID:          base.Hostname(),                    // Generally the FQDN for your site
+		RPOrigin:      base.String(),                      // The origin URL for WebAuthn requests
 	})
 	if err != nil {
-		fmt.Println(err)
+		util.Log().Error("无法初始化WebAuthn, %s", err)
 	}
 }

@@ -33,7 +33,7 @@ type AvatarService struct {
 
 // SettingUpdateService 设定更改服务
 type SettingUpdateService struct {
-	Option string `uri:"option" binding:"required,eq=nick|eq=theme|eq=homepage|eq=vip|eq=qq|eq=policy|eq=password|eq=2fa"`
+	Option string `uri:"option" binding:"required,eq=nick|eq=theme|eq=homepage|eq=vip|eq=qq|eq=policy|eq=password|eq=2fa|eq=authn"`
 }
 
 // OptionsChangeHandler 属性更改接口
@@ -75,10 +75,36 @@ type Enable2FA struct {
 	Code string `json:"code" binding:"required"`
 }
 
-// Update 更改密码
+// DeleteWebAuthn 删除WebAuthn凭证
+type DeleteWebAuthn struct {
+	ID string `json:"id" binding:"required"`
+}
+
+// ThemeChose 主题选择
+type ThemeChose struct {
+	Theme string `json:"theme" binding:"required,hexcolor|rgb|rgba|hsl"`
+}
+
+// Update 更新主题设定
+func (service *ThemeChose) Update(c *gin.Context, user *model.User) serializer.Response {
+	user.OptionsSerialized.PreferredTheme = service.Theme
+	if err := user.UpdateOptions(); err != nil {
+		return serializer.DBErr("主题切换失败", err)
+	}
+
+	return serializer.Response{}
+}
+
+// Update 删除凭证
+func (service *DeleteWebAuthn) Update(c *gin.Context, user *model.User) serializer.Response {
+	user.RemoveAuthn(service.ID)
+	return serializer.Response{}
+}
+
+// Update 更改二步验证设定
 func (service *Enable2FA) Update(c *gin.Context, user *model.User) serializer.Response {
 	if user.TwoFactor == "" {
-
+		// 开启2FA
 		secret, ok := util.GetSession(c, "2fa_init").(string)
 		if !ok {
 			return serializer.Err(serializer.CodeParamErr, "未初始化二步验证", nil)
@@ -92,6 +118,15 @@ func (service *Enable2FA) Update(c *gin.Context, user *model.User) serializer.Re
 			return serializer.DBErr("无法更新二步验证设定", err)
 		}
 
+	} else {
+		// 关闭2FA
+		if !totp.Validate(service.Code, user.TwoFactor) {
+			return serializer.ParamErr("验证码不正确", nil)
+		}
+
+		if err := user.Update(map[string]interface{}{"two_factor": ""}); err != nil {
+			return serializer.DBErr("无法更新二步验证设定", err)
+		}
 	}
 
 	return serializer.Response{}
@@ -318,8 +353,9 @@ func (service *SettingService) Settings(c *gin.Context, user *model.User) serial
 			"homepage":      !user.OptionsSerialized.ProfileOff,
 			"two_factor":    user.TwoFactor != "",
 			"prefer_theme":  user.OptionsSerialized.PreferredTheme,
-			"themes":        model.GetSettingByNames("themes"),
+			"themes":        model.GetSettingByName("themes"),
 			"group_expires": groupExpires,
+			"authn":         serializer.BuildWebAuthnList(user.WebAuthnCredentials()),
 		},
 	}
 }

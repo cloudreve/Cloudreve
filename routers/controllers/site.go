@@ -25,6 +25,7 @@ func SiteConfig(c *gin.Context) {
 		"share_score_rate",
 		"home_view_method",
 		"share_view_method",
+		"authn_enabled",
 	)
 
 	// 如果已登录，则同时返回用户信息和标签

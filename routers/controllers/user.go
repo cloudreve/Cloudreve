@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -17,7 +18,7 @@ func StartLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
 	expectedUser, err := model.GetUserByEmail(userName)
 	if err != nil {
-		c.JSON(200, serializer.Err(401, "用户邮箱或密码错误", err))
+		c.JSON(200, serializer.Err(401, "用户不存在", err))
 		return
 	}
 
@@ -56,7 +57,7 @@ func FinishLoginAuthn(c *gin.Context) {
 	_, err = authn.AuthnInstance.FinishLogin(expectedUser, sessionData, c.Request)
 
 	if err != nil {
-		c.JSON(200, serializer.Err(401, "用户邮箱或密码错误", err))
+		c.JSON(200, serializer.Err(401, "登录验证失败", err))
 		return
 	}
 
@@ -96,13 +97,24 @@ func FinishRegAuthn(c *gin.Context) {
 	err := json.Unmarshal(sessionDataJSON, &sessionData)
 
 	credential, err := authn.AuthnInstance.FinishRegistration(currUser, sessionData, c.Request)
-
-	currUser.RegisterAuthn(credential)
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
 	}
-	c.JSON(200, serializer.Response{Code: 0})
+
+	err = currUser.RegisterAuthn(credential)
+	if err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Code: 0,
+		Data: map[string]interface{}{
+			"id":          credential.ID,
+			"fingerprint": fmt.Sprintf("% X", credential.Authenticator.AAGUID),
+		},
+	})
 }
 
 // UserLogin 用户登录
@@ -265,6 +277,10 @@ func UpdateOption(c *gin.Context) {
 			subService = &user.PasswordChange{}
 		case "2fa":
 			subService = &user.Enable2FA{}
+		case "authn":
+			subService = &user.DeleteWebAuthn{}
+		case "theme":
+			subService = &user.ThemeChose{}
 		}
 
 		subErr = c.ShouldBindJSON(subService)

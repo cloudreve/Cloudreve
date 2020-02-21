@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/hashid"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 // CheckLogin 检查登录
@@ -62,6 +63,26 @@ type storage struct {
 	Used  uint64 `json:"used"`
 	Free  uint64 `json:"free"`
 	Total uint64 `json:"total"`
+}
+
+// WebAuthnCredentials 外部验证器凭证
+type WebAuthnCredentials struct {
+	ID          []byte `json:"id"`
+	FingerPrint string `json:"fingerprint"`
+}
+
+// BuildWebAuthnList 构建设置页面凭证列表
+func BuildWebAuthnList(credentials []webauthn.Credential) []WebAuthnCredentials {
+	res := make([]WebAuthnCredentials, 0, len(credentials))
+	for _, v := range credentials {
+		credential := WebAuthnCredentials{
+			ID:          v.ID,
+			FingerPrint: fmt.Sprintf("% X", v.Authenticator.AAGUID),
+		}
+		res = append(res, credential)
+	}
+
+	return res
 }
 
 // BuildUser 序列化用户

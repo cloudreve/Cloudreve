@@ -1,10 +1,13 @@
 package model
 
 import (
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/duo-labs/webauthn/webauthn"
+	"net/url"
 )
 
 /*
@@ -30,7 +33,10 @@ func (user User) WebAuthnDisplayName() string {
 
 // WebAuthnIcon 获得用户头像
 func (user User) WebAuthnIcon() string {
-	return "https://cdn4.buysellads.net/uu/1/46074/1559075156-slack-carbon-red_2x.png"
+	avatar, _ := url.Parse("/api/v3/user/avatar/" + hashid.HashID(user.ID, hashid.UserID) + "/l")
+	base := GetSiteURL()
+	base.Scheme = "https"
+	return base.ResolveReference(avatar).String()
 }
 
 // WebAuthnCredentials 获得已注册的验证器凭证
@@ -44,10 +50,29 @@ func (user User) WebAuthnCredentials() []webauthn.Credential {
 }
 
 // RegisterAuthn 添加新的验证器
-func (user *User) RegisterAuthn(credential *webauthn.Credential) {
-	res, err := json.Marshal([]webauthn.Credential{*credential})
+func (user *User) RegisterAuthn(credential *webauthn.Credential) error {
+	exists := user.WebAuthnCredentials()
+	exists = append(exists, *credential)
+	res, err := json.Marshal(exists)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+
+	return DB.Model(user).Update("authn", string(res)).Error
+}
+
+// RemoveAuthn 删除验证器
+func (user *User) RemoveAuthn(id string) {
+	exists := user.WebAuthnCredentials()
+	for i := 0; i < len(exists); i++ {
+		idEncoded := base64.StdEncoding.EncodeToString(exists[i].ID)
+		if idEncoded == id {
+			exists[len(exists)-1], exists[i] = exists[i], exists[len(exists)-1]
+			exists = exists[:len(exists)-1]
+			break
+		}
+	}
+
+	res, _ := json.Marshal(exists)
 	DB.Model(user).Update("authn", string(res))
 }

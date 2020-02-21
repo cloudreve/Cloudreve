@@ -16,6 +16,7 @@ type SiteConfig struct {
 	ShareScoreRate     string `json:"share_score_rate"`
 	HomepageViewMethod string `json:"home_view_method"`
 	ShareViewMethod    string `json:"share_view_method"`
+	Authn              bool   `json:"authn"'`
 	User               User   `json:"user"`
 }
 
@@ -75,6 +76,7 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			ShareScoreRate:     checkSettingValue(settings, "share_score_rate"),
 			HomepageViewMethod: checkSettingValue(settings, "home_view_method"),
 			ShareViewMethod:    checkSettingValue(settings, "share_view_method"),
+			Authn:              model.IsTrueVal(checkSettingValue(settings, "authn_enabled")),
 			User:               userRes,
 		}}
 	return res

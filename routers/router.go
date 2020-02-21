@@ -104,9 +104,13 @@ func InitMasterRouter() *gin.Engine {
 			// 用户登录
 			user.POST("session", controllers.UserLogin)
 			// WebAuthn登陆初始化
-			user.GET("authn/:username", controllers.StartLoginAuthn)
+			user.GET("authn/:username",
+				middleware.IsFunctionEnabled("authn_enabled"),
+				controllers.StartLoginAuthn)
 			// WebAuthn登陆
-			user.POST("authn/finish/:username", controllers.FinishLoginAuthn)
+			user.POST("authn/finish/:username",
+				middleware.IsFunctionEnabled("authn_enabled"),
+				controllers.FinishLoginAuthn)
 			// 获取用户主页展示用分享
 			user.GET("profile/:id",
 				middleware.HashID(hashid.UserID),
@@ -263,7 +267,8 @@ func InitMasterRouter() *gin.Engine {
 				user.DELETE("session", controllers.UserSignOut)
 
 				// WebAuthn 注册相关
-				authn := user.Group("authn")
+				authn := user.Group("authn",
+					middleware.IsFunctionEnabled("authn_enabled"))
 				{
 					authn.PUT("", controllers.StartRegAuthn)
 					authn.PUT("finish", controllers.FinishRegAuthn)
