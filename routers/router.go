@@ -104,9 +104,16 @@ func InitMasterRouter() *gin.Engine {
 			// 用户登录
 			user.POST("session", controllers.UserLogin)
 			// 用户注册
-			user.POST("", middleware.IsFunctionEnabled("register_enabled"), controllers.UserRegister)
+			user.POST("",
+				middleware.IsFunctionEnabled("register_enabled"),
+				controllers.UserRegister,
+			)
 			// 用二步验证户登录
 			user.POST("2fa", controllers.User2FALogin)
+			// 发送密码重设邮件
+			user.POST("reset", controllers.UserSendReset)
+			// 通过邮件里的链接重设密码
+			user.PATCH("reset", controllers.UserReset)
 			// 邮件激活
 			user.GET("activate/:id",
 				middleware.SignRequired(),
@@ -118,11 +125,13 @@ func InitMasterRouter() *gin.Engine {
 			// WebAuthn登陆初始化
 			user.GET("authn/:username",
 				middleware.IsFunctionEnabled("authn_enabled"),
-				controllers.StartLoginAuthn)
+				controllers.StartLoginAuthn,
+			)
 			// WebAuthn登陆
 			user.POST("authn/finish/:username",
 				middleware.IsFunctionEnabled("authn_enabled"),
-				controllers.FinishLoginAuthn)
+				controllers.FinishLoginAuthn,
+			)
 			// 获取用户主页展示用分享
 			user.GET("profile/:id",
 				middleware.HashID(hashid.UserID),

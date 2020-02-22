@@ -151,6 +151,28 @@ func User2FALogin(c *gin.Context) {
 	}
 }
 
+// UserSendReset 发送密码重设邮件
+func UserSendReset(c *gin.Context) {
+	var service user.UserResetEmailService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Reset(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UserReset 重设密码
+func UserReset(c *gin.Context) {
+	var service user.UserResetService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Reset(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // UserActivate 用户激活
 func UserActivate(c *gin.Context) {
 	var service user.SettingService

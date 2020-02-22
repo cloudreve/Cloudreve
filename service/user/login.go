@@ -1,12 +1,18 @@
 package user
 
 import (
+	"fmt"
 	"github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/email"
+	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 	"github.com/pquerna/otp/totp"
+	"net/url"
+	"strings"
 )
 
 // UserLoginService 管理用户登录的服务
@@ -15,6 +21,86 @@ type UserLoginService struct {
 	UserName    string `form:"userName" json:"userName" binding:"required,email"`
 	Password    string `form:"Password" json:"Password" binding:"required,min=4,max=64"`
 	CaptchaCode string `form:"captchaCode" json:"captchaCode"`
+}
+
+// UserResetEmailService 发送密码重设邮件服务
+type UserResetEmailService struct {
+	UserName    string `form:"userName" json:"userName" binding:"required,email"`
+	CaptchaCode string `form:"captchaCode" json:"captchaCode"`
+}
+
+// UserResetService 密码重设服务
+type UserResetService struct {
+	Password string `form:"Password" json:"Password" binding:"required,min=4,max=64"`
+	ID       string `json:"id" binding:"required"`
+	Secret   string `json:"secret" binding:"required"`
+}
+
+// Reset 重设密码
+func (service *UserResetService) Reset(c *gin.Context) serializer.Response {
+	// 取得原始用户ID
+	uid, err := hashid.DecodeHashID(service.ID, hashid.UserID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "重设链接无效", err)
+	}
+
+	// 检查重设会话
+	resetSession, exist := cache.Get(fmt.Sprintf("user_reset_%d", uid))
+	if !exist || resetSession.(string) != service.Secret {
+		return serializer.Err(serializer.CodeNotFound, "链接已过期", err)
+	}
+
+	// 重设用户密码
+	user, err := model.GetActiveUserByID(uid)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+	}
+
+	user.SetPassword(service.Password)
+	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
+		return serializer.DBErr("无法重设密码", err)
+	}
+
+	cache.Deletes([]string{fmt.Sprintf("%d", uid)}, "user_reset_")
+	return serializer.Response{}
+}
+
+// Reset 发送密码重设邮件
+func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response {
+	// 检查验证码
+	isCaptchaRequired := model.IsTrueVal(model.GetSettingByName("forget_captcha"))
+	if isCaptchaRequired {
+		captchaID := util.GetSession(c, "captchaID")
+		util.DeleteSession(c, "captchaID")
+		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
+			return serializer.ParamErr("验证码错误", nil)
+		}
+	}
+
+	// 查找用户
+	if user, err := model.GetUserByEmail(service.UserName); err == nil {
+
+		// 创建密码重设会话
+		secret := util.RandStringRunes(32)
+		cache.Set(fmt.Sprintf("user_reset_%d", user.ID), secret, 3600)
+
+		// 生成用户访问的重设链接
+		controller, _ := url.Parse("/reset")
+		finalURL := model.GetSiteURL().ResolveReference(controller)
+		queries := finalURL.Query()
+		queries.Add("id", hashid.HashID(user.ID, hashid.UserID))
+		queries.Add("sign", secret)
+		finalURL.RawQuery = queries.Encode()
+
+		// 发送密码重设邮件
+		title, body := email.NewResetEmail(user.Nick, strings.ReplaceAll(finalURL.String(), "/reset", "/#/reset"))
+		if err := email.Send(user.Email, title, body); err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "无法发送密码重设邮件", err)
+		}
+
+	}
+
+	return serializer.Response{}
 }
 
 // Login 二步验证继续登录
