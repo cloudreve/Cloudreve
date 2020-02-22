@@ -105,8 +105,14 @@ func InitMasterRouter() *gin.Engine {
 			user.POST("session", controllers.UserLogin)
 			// 用户注册
 			user.POST("", middleware.IsFunctionEnabled("register_enabled"), controllers.UserRegister)
-			// 用户登录
+			// 用二步验证户登录
 			user.POST("2fa", controllers.User2FALogin)
+			// 邮件激活
+			user.GET("activate/:id",
+				middleware.SignRequired(),
+				middleware.HashID(hashid.UserID),
+				controllers.UserActivate,
+			)
 			// 初始化QQ登录
 			user.POST("qq", controllers.UserQQLogin)
 			// WebAuthn登陆初始化

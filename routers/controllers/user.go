@@ -151,6 +151,17 @@ func User2FALogin(c *gin.Context) {
 	}
 }
 
+// UserActivate 用户激活
+func UserActivate(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Activate(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // UserQQLogin 初始化QQ登录
 func UserQQLogin(c *gin.Context) {
 	// 新建绑定

@@ -91,3 +91,23 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 
 	return serializer.Response{}
 }
+
+// Activate 激活用户
+func (service *SettingService) Activate(c *gin.Context) serializer.Response {
+	// 查找待激活用户
+	uid, _ := c.Get("object_id")
+	user, err := model.GetUserByID(uid.(uint))
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+	}
+
+	// 检查状态
+	if user.Status != model.NotActivicated {
+		return serializer.Err(serializer.CodeNoPermissionErr, "该用户无法被激活", nil)
+	}
+
+	// 激活用户
+	user.SetStatus(model.Active)
+
+	return serializer.Response{Data: user.Email}
+}
