@@ -2,10 +2,10 @@ package serializer
 
 import (
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"github.com/zyxar/argo/rpc"
 	"testing"
 )
 
