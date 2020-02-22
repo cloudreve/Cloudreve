@@ -310,3 +310,17 @@ func COSCallbackAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// IsAdmin 必须为管理员用户组
+func IsAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, _ := c.Get("user")
+		if user.(*model.User).Group.ID != 1 {
+			c.JSON(200, serializer.Err(serializer.CodeAdminRequired, "您不是管理组成员", nil))
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

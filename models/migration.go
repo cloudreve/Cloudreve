@@ -200,6 +200,8 @@ func addDefaultGroups() {
 				ArchiveDownload: true,
 				ArchiveTask:     true,
 				ShareDownload:   true,
+				ShareFree:       true,
+				Aria2:           true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {

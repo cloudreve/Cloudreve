@@ -277,6 +277,13 @@ func InitMasterRouter() *gin.Engine {
 		auth := v3.Group("")
 		auth.Use(middleware.AuthRequired())
 		{
+			// 管理
+			admin := auth.Group("admin", middleware.IsAdmin())
+			{
+				// 获取站点概况
+				admin.GET("summary", controllers.AdminSummary)
+			}
+
 			// 用户
 			user := auth.Group("user")
 			{

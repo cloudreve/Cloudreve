@@ -62,6 +62,8 @@ const (
 	CodePolicyNotAllowed = 40006
 	// CodeGroupNotAllowed 用户组无法进行此操作
 	CodeGroupNotAllowed = 40007
+	// CodeAdminRequired 非管理用户组
+	CodeAdminRequired = 40008
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
