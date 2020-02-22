@@ -150,7 +150,7 @@ func TestNewUser(t *testing.T) {
 	asserts := assert.New(t)
 	newUser := NewUser()
 	asserts.IsType(User{}, newUser)
-	asserts.NotEmpty(newUser.Avatar)
+	asserts.Empty(newUser.Avatar)
 }
 
 func TestUser_AfterFind(t *testing.T) {

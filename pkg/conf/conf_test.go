@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -12,9 +13,11 @@ func TestInitPanic(t *testing.T) {
 	asserts := assert.New(t)
 
 	// 日志路径不存在时
-	asserts.Panics(func() {
+	asserts.NotPanics(func() {
 		Init("not/exist/path")
 	})
+
+	asserts.True(util.Exists("conf.ini"))
 
 }
 
