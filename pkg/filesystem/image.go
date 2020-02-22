@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"strconv"
 )
 
 /* ================
@@ -92,7 +93,12 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸
-// TODO 优先从数据库中获得
 func (fs *FileSystem) GenerateThumbnailSize(w, h int) (uint, uint) {
+	if conf.SystemConfig.Mode == "master" {
+		options := model.GetSettingByNames("thumb_width", "thumb_height")
+		w, _ := strconv.ParseUint(options["thumb_width"], 10, 32)
+		h, _ := strconv.ParseUint(options["thumb_height"], 10, 32)
+		return uint(w), uint(h)
+	}
 	return conf.ThumbConfig.MaxWidth, conf.ThumbConfig.MaxHeight
 }

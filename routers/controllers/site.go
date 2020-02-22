@@ -2,7 +2,6 @@ package controllers
 
 import (
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -48,20 +47,27 @@ func Ping(c *gin.Context) {
 
 // Captcha 获取验证码
 func Captcha(c *gin.Context) {
+	options := model.GetSettingByNames(
+		"captcha_IsShowHollowLine",
+		"captcha_IsShowNoiseDot",
+		"captcha_IsShowNoiseText",
+		"captcha_IsShowSlimeLine",
+		"captcha_IsShowSineLine",
+	)
 	// 验证码配置
 	var configD = base64Captcha.ConfigCharacter{
-		Height: conf.CaptchaConfig.Height,
-		Width:  conf.CaptchaConfig.Width,
+		Height: model.GetIntSetting("captcha_height", 60),
+		Width:  model.GetIntSetting("captcha_width", 240),
 		//const CaptchaModeNumber:数字,CaptchaModeAlphabet:字母,CaptchaModeArithmetic:算术,CaptchaModeNumberAlphabet:数字字母混合.
-		Mode:               conf.CaptchaConfig.Mode,
-		ComplexOfNoiseText: conf.CaptchaConfig.ComplexOfNoiseText,
-		ComplexOfNoiseDot:  conf.CaptchaConfig.ComplexOfNoiseDot,
-		IsShowHollowLine:   conf.CaptchaConfig.IsShowHollowLine,
-		IsShowNoiseDot:     conf.CaptchaConfig.IsShowNoiseDot,
-		IsShowNoiseText:    conf.CaptchaConfig.IsShowNoiseText,
-		IsShowSlimeLine:    conf.CaptchaConfig.IsShowSlimeLine,
-		IsShowSineLine:     conf.CaptchaConfig.IsShowSineLine,
-		CaptchaLen:         conf.CaptchaConfig.CaptchaLen,
+		Mode:               model.GetIntSetting("captcha_mode", 3),
+		ComplexOfNoiseText: model.GetIntSetting("captcha_ComplexOfNoiseText", 0),
+		ComplexOfNoiseDot:  model.GetIntSetting("captcha_ComplexOfNoiseDot", 0),
+		IsShowHollowLine:   model.IsTrueVal(options["captcha_IsShowHollowLine"]),
+		IsShowNoiseDot:     model.IsTrueVal(options["captcha_IsShowNoiseDot"]),
+		IsShowNoiseText:    model.IsTrueVal(options["captcha_IsShowNoiseText"]),
+		IsShowSlimeLine:    model.IsTrueVal(options["captcha_IsShowSlimeLine"]),
+		IsShowSineLine:     model.IsTrueVal(options["captcha_IsShowSineLine"]),
+		CaptchaLen:         model.GetIntSetting("captcha_CaptchaLen", 6),
 	}
 
 	// 生成验证码

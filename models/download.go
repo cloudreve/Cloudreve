@@ -2,9 +2,9 @@ package model
 
 import (
 	"encoding/json"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
-	"github.com/zyxar/argo/rpc"
 )
 
 // Download 离线下载队列模型

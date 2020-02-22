@@ -1,7 +1,7 @@
 package aria2
 
 import (
-	"github.com/zyxar/argo/rpc"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"sync"
 )
 

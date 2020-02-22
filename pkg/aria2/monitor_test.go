@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/task"
@@ -11,7 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
-	"github.com/zyxar/argo/rpc"
 	"testing"
 	"time"
 )

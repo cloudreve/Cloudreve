@@ -3,27 +3,26 @@ package model
 import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"github.com/mcuadros/go-version"
-	"io/ioutil"
 )
+
+// 是否需要迁移
+func needMigration() bool {
+	var setting Setting
+	DB.Where("name = ?", "database_version").First(&setting)
+	return setting.Value != conf.RequiredDBVersion
+}
 
 //执行数据迁移
 func migration() {
-	// 检查 version.lock 确认是否需要执行迁移
-	// Debug 模式及测试模式下一定会执行迁移
-	if !conf.SystemConfig.Debug && gin.Mode() != gin.TestMode {
-		if util.Exists("version.lock") {
-			versionLock, _ := ioutil.ReadFile("version.lock")
-			if version.Compare(string(versionLock), conf.BackendVersion, "=") {
-				util.Log().Info("后端版本匹配，跳过数据库迁移")
-				return
-			}
-		}
+	// 确认是否需要执行迁移
+	if !needMigration() {
+		util.Log().Info("数据库版本匹配，跳过数据库迁移")
+		return
+
 	}
 
-	util.Log().Info("开始进行数据库自动迁移...")
+	util.Log().Info("开始进行数据库初始化...")
 
 	// 自动迁移模式
 	if conf.DatabaseConfig.Type == "mysql" {
@@ -44,13 +43,7 @@ func migration() {
 	// 向设置数据表添加初始设置
 	addDefaultSettings()
 
-	// 迁移完毕后写入版本锁 version.lock
-	err := conf.WriteVersionLock()
-	if err != nil {
-		util.Log().Warning("无法写入版本控制锁 version.lock, %s", err)
-	}
-
-	util.Log().Info("数据库自动迁移结束")
+	util.Log().Info("数据库初始化结束")
 
 }
 
@@ -80,9 +73,8 @@ func addDefaultPolicy() {
 
 func addDefaultSettings() {
 	defaultSettings := []Setting{
-		{Name: "siteURL", Value: ``, Type: "basic"},
+		{Name: "siteURL", Value: `http://localhost`, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
-		{Name: "siteStatus", Value: `open`, Type: "basic"},
 		{Name: "register_enabled", Value: `1`, Type: "register"},
 		{Name: "default_group", Value: `2`, Type: "register"},
 		{Name: "siteKeywords", Value: `网盘，网盘`, Type: "basic"},
@@ -137,7 +129,7 @@ solid #e9e9e9;"bgcolor="#fff"><tr style="font-family: 'Helvetica Neue',Helvetica
 14px; margin: 0;"><td class="alert alert-warning"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 16px; vertical-align: top; color: #fff; font-weight: 500; text-align: center; border-radius: 3px 3px 0 0; background-color: #2196F3; margin: 0; padding: 20px;"align="center"bgcolor="#FF9F00"valign="top">重设{siteTitle}密码</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-wrap"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 20px;"valign="top"><table width="100%"cellpadding="0"cellspacing="0"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica 
 Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">亲爱的<strong style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;">{userName}</strong>：</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">请点击下方按钮完成密码重设。如果非你本人操作，请忽略此邮件。</td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top"><a href="{resetUrl}"class="btn-primary"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; color: #FFF; text-decoration: none; line-height: 2em; font-weight: bold; text-align: center; cursor: pointer; display: inline-block; border-radius: 5px; text-transform: capitalize; background-color: #2196F3; margin: 0; border-color: #2196F3; border-style: solid; border-width: 10px 20px;">重设密码</a></td></tr><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0; padding: 0 0 20px;"valign="top">感谢您选择{siteTitle}。</td></tr></table></td></tr></table><div class="footer"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; width: 100%; clear: both; color: #999; margin: 0; padding: 20px;"><table width="100%"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><tr style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><td class="aligncenter content-block"style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 12px; vertical-align: top; color: #999; text-align: center; margin: 0; padding: 0 0 20px;"align="center"valign="top">此邮件由系统自动发送，请不要直接回复。</td></tr></table></div></div></td><td style="font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; vertical-align: top; margin: 0;"valign="top"></td></tr></table></body></html>`, Type: "mail_template"},
 		{Name: "pack_data", Value: `[]`, Type: "pack"},
-		{Name: "database_version", Value: `6`, Type: "version"},
+		{Name: "database_version", Value: `3.0.0-beta1`, Type: "version"},
 		{Name: "alipay_enabled", Value: `0`, Type: "payment"},
 		{Name: "payjs_enabled", Value: `0`, Type: "payment"},
 		{Name: "payjs_id", Value: ``, Type: "payment"},
@@ -174,6 +166,19 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "cron_notify_user", Value: "@hourly", Type: "cron"},
 		{Name: "cron_ban_user", Value: "@hourly", Type: "cron"},
 		{Name: "authn_enabled", Value: "1", Type: "authn"},
+		{Name: "captcha_height", Value: "60", Type: "captcha"},
+		{Name: "captcha_width", Value: "240", Type: "captcha"},
+		{Name: "captcha_mode", Value: "3", Type: "captcha"},
+		{Name: "captcha_ComplexOfNoiseText", Value: "0", Type: "captcha"},
+		{Name: "captcha_ComplexOfNoiseDot", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowHollowLine", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowNoiseDot", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowNoiseText", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowSlimeLine", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowSineLine", Value: "0", Type: "captcha"},
+		{Name: "captcha_CaptchaLen", Value: "6", Type: "captcha"},
+		{Name: "thumb_width", Value: "400", Type: "thumb"},
+		{Name: "thumb_height", Value: "300", Type: "thumb"},
 	}
 
 	for _, value := range defaultSettings {

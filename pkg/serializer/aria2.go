@@ -2,7 +2,7 @@ package serializer
 
 import (
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/zyxar/argo/rpc"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"path"
 )
 

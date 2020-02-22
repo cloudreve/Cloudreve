@@ -3,9 +3,9 @@ package aria2
 import (
 	"encoding/json"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/zyxar/argo/rpc"
 	"net/url"
 )
 
