@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -203,8 +204,13 @@ func (service *PolicyChange) Update(c *gin.Context, user *model.User) serializer
 func (service *QQBind) Update(c *gin.Context, user *model.User) serializer.Response {
 	// 解除绑定
 	if user.OpenID != "" {
+		// 只通过QQ登录的用户无法解除绑定
+		if strings.HasSuffix(user.Email, "@login.qq.com") {
+			return serializer.Err(serializer.CodeNoPermissionErr, "无法解绑此账号", nil)
+		}
+
 		if err := user.Update(map[string]interface{}{"open_id": ""}); err != nil {
-			return serializer.DBErr("接触绑定失败", err)
+			return serializer.DBErr("接除绑定失败", err)
 		}
 		return serializer.Response{
 			Data: "",

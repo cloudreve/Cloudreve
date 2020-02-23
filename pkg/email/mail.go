@@ -1,6 +1,9 @@
 package email
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 // Driver 邮件发送驱动
 type Driver interface {
@@ -19,6 +22,11 @@ var (
 
 // Send 发送邮件
 func Send(to, title, body string) error {
+	// 忽略通过QQ登录的邮箱
+	if strings.HasSuffix(to, "@login.qq.com") {
+		return nil
+	}
+
 	if Client == nil {
 		return ErrNoActiveDriver
 	}

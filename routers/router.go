@@ -297,6 +297,8 @@ func InitMasterRouter() *gin.Engine {
 				admin.PATCH("setting", controllers.AdminChangeSetting)
 				// 获取设置
 				admin.POST("setting", controllers.AdminGetSetting)
+				// 获取用户组列表
+				admin.GET("groups", controllers.AdminGetGroups)
 			}
 
 			// 用户

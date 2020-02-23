@@ -46,3 +46,14 @@ func AdminGetSetting(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminGetGroups 获取用户组列表
+func AdminGetGroups(c *gin.Context) {
+	var service admin.NoParamService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.GroupList()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

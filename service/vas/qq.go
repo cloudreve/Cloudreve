@@ -3,7 +3,9 @@ package vas
 import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/qq"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 )
@@ -54,9 +56,52 @@ func (service *QQCallbackService) Callback(c *gin.Context, user *model.User) ser
 		res.Code = 203
 		return res
 
-	} else {
-		// 无匹配用户，创建新用户
 	}
 
-	return serializer.Response{}
+	// 无匹配用户，创建新用户
+	if !model.IsTrueVal(model.GetSettingByName("qq_direct_login")) {
+		return serializer.Err(serializer.CodeNoPermissionErr, "此QQ号未绑定任何账号", nil)
+	}
+
+	// 获取用户信息
+	userInfo, err := qq.GetUserInfo(credential)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法获取用户信息", err)
+	}
+
+	// 生成邮箱地址
+	fakeEmail := util.RandStringRunes(16) + "@login.qq.com"
+
+	// 创建用户
+	defaultGroup := model.GetIntSetting("default_group", 2)
+
+	newUser := model.NewUser()
+	newUser.Email = fakeEmail
+	newUser.Nick = userInfo.Nick
+	newUser.SetPassword("")
+	newUser.Status = model.Active
+	newUser.GroupID = uint(defaultGroup)
+	newUser.OpenID = credential.OpenID
+	newUser.Avatar = "file"
+
+	// 创建用户
+	if err := model.DB.Create(&newUser).Error; err != nil {
+		return serializer.DBErr("此邮箱已被使用", err)
+	}
+
+	// 下载头像
+	r := request.HTTPClient{}
+	rawAvatar := r.Request("GET", userInfo.Avatar, nil)
+	if avatar, err := thumb.NewThumbFromFile(rawAvatar.Response.Body, "avatar.jpg"); err == nil {
+		avatar.CreateAvatar(newUser.ID)
+	}
+
+	// 登录
+	util.SetSession(c, map[string]interface{}{"user_id": newUser.ID})
+
+	newUser, _ = model.GetActiveUserByID(newUser.ID)
+
+	res := serializer.BuildUserResponse(newUser)
+	res.Code = 203
+	return res
 }

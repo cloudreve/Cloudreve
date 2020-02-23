@@ -25,6 +25,12 @@ type UserCredentials struct {
 	AccessToken string
 }
 
+// UserInfo 用户信息
+type UserInfo struct {
+	Nick   string
+	Avatar string
+}
+
 var (
 	// ErrNotEnabled 未开启登录功能
 	ErrNotEnabled = serializer.NewError(serializer.CodeNoPermissionErr, "QQ登录功能未开启", nil)
@@ -84,6 +90,20 @@ func getAccessTokenURL(code string) string {
 	queries.Add("redirect_uri", getCallbackURL())
 	queries.Add("client_secret", options["qq_login_key"])
 	queries.Add("code", code)
+	api.RawQuery = queries.Encode()
+
+	return api.String()
+}
+
+func getUserInfoURL(openid, ak string) string {
+	// 获取相关设定
+	options := model.GetSettingByNames("qq_login_id", "qq_login_key")
+
+	api, _ := url.Parse("https://graph.qq.com/user/get_user_info")
+	queries := api.Query()
+	queries.Add("oauth_consumer_key", options["qq_login_id"])
+	queries.Add("openid", openid)
+	queries.Add("access_token", ak)
 	api.RawQuery = queries.Encode()
 
 	return api.String()
@@ -152,6 +172,38 @@ func Callback(code string) (*UserCredentials, error) {
 		return &UserCredentials{
 			OpenID:      openid.(string),
 			AccessToken: accessToken,
+		}, nil
+	}
+
+	return nil, ErrDecodeResponse
+}
+
+// GetUserInfo 使用凭证获取用户信息
+func GetUserInfo(credential *UserCredentials) (*UserInfo, error) {
+	api := getUserInfoURL(credential.OpenID, credential.AccessToken)
+
+	// 获取用户信息
+	client := request.HTTPClient{}
+	res := client.Request("GET", api, nil)
+	resp, err := res.GetResponse()
+	if err != nil {
+		return nil, ErrObtainAccessToken.WithError(err)
+	}
+
+	var resSerialized map[string]interface{}
+	if err := json.Unmarshal([]byte(resp), &resSerialized); err != nil {
+		return nil, ErrDecodeResponse.WithError(err)
+	}
+
+	// 如果服务端返回错误
+	if msg, ok := resSerialized["msg"]; ok && msg.(string) != "" {
+		return nil, ErrObtainAccessToken.WithError(errors.New(msg.(string)))
+	}
+
+	if avatar, ok := resSerialized["figureurl_qq_2"]; ok {
+		return &UserInfo{
+			Nick:   resSerialized["nickname"].(string),
+			Avatar: avatar.(string),
 		}, nil
 	}
 
