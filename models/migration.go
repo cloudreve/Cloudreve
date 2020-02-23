@@ -178,6 +178,12 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "captcha_CaptchaLen", Value: "6", Type: "captcha"},
 		{Name: "thumb_width", Value: "400", Type: "thumb"},
 		{Name: "thumb_height", Value: "300", Type: "thumb"},
+		{Name: "pwa_small_icon", Value: "/static/img/favicon.ico", Type: "pwa"},
+		{Name: "pwa_medium_icon", Value: "/static/img/logo192.png", Type: "pwa"},
+		{Name: "pwa_large_icon", Value: "/static/img/logo512.png", Type: "pwa"},
+		{Name: "pwa_display", Value: "standalone", Type: "pwa"},
+		{Name: "pwa_theme_color", Value: "#000000", Type: "pwa"},
+		{Name: "pwa_background_color", Value: "#ffffff", Type: "pwa"},
 	}
 
 	for _, value := range defaultSettings {

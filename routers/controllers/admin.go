@@ -35,3 +35,14 @@ func AdminChangeSetting(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminGetSetting 获取站点设置
+func AdminGetSetting(c *gin.Context) {
+	var service admin.BatchSettingGet
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Get()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

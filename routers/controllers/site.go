@@ -85,3 +85,43 @@ func Captcha(c *gin.Context) {
 		Data: base64stringD,
 	})
 }
+
+// Manifest 获取manifest.json
+func Manifest(c *gin.Context) {
+	options := model.GetSettingByNames(
+		"siteName",
+		"siteTitle",
+		"pwa_small_icon",
+		"pwa_medium_icon",
+		"pwa_large_icon",
+		"pwa_display",
+		"pwa_theme_color",
+		"pwa_background_color",
+	)
+
+	c.JSON(200, map[string]interface{}{
+		"short_name": options["siteName"],
+		"name":       options["siteTitle"],
+		"icons": []map[string]string{
+			{
+				"src":   options["pwa_small_icon"],
+				"sizes": "64x64 32x32 24x24 16x16",
+				"type":  "image/x-icon",
+			},
+			{
+				"src":   options["pwa_medium_icon"],
+				"type":  "image/png",
+				"sizes": "192x192",
+			},
+			{
+				"src":   options["pwa_large_icon"],
+				"type":  "image/png",
+				"sizes": "512x512",
+			},
+		},
+		"start_url":        ".",
+		"display":          options["pwa_display"],
+		"theme_color":      options["pwa_theme_color"],
+		"background_color": options["pwa_background_color"],
+	})
+}

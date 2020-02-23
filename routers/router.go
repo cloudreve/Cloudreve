@@ -72,6 +72,12 @@ func InitCORS(router *gin.Engine) {
 func InitMasterRouter() *gin.Engine {
 	r := gin.Default()
 	bootstrap.InitCustomRoute(r.Group("/custom"))
+
+	/*
+		静态资源
+	*/
+	r.GET("manifest.json", controllers.Manifest)
+
 	v3 := r.Group("/api/v3")
 
 	/*
@@ -289,6 +295,8 @@ func InitMasterRouter() *gin.Engine {
 				admin.GET("news", controllers.AdminNews)
 				// 更改设置
 				admin.PATCH("setting", controllers.AdminChangeSetting)
+				// 获取设置
+				admin.POST("setting", controllers.AdminGetSetting)
 			}
 
 			// 用户

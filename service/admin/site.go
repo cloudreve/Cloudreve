@@ -23,6 +23,17 @@ type SettingChangeService struct {
 	Value string `json:"value"`
 }
 
+// BatchSettingGet 设定批量获取服务
+type BatchSettingGet struct {
+	Keys []string `json:"keys"`
+}
+
+// Get 获取设定值
+func (service *BatchSettingGet) Get() serializer.Response {
+	options := model.GetSettingByNames(service.Keys...)
+	return serializer.Response{Data: options}
+}
+
 // Change 批量更改站点设定
 func (service *BatchSettingChangeService) Change() serializer.Response {
 	for _, setting := range service.Options {
