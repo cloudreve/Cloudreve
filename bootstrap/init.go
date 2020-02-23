@@ -4,7 +4,6 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/aria2"
 	"github.com/HFO4/cloudreve/pkg/auth"
-	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/crontab"
@@ -24,7 +23,6 @@ func Init(path string) {
 	cache.Init()
 	if conf.SystemConfig.Mode == "master" {
 		model.Init()
-		authn.Init()
 		task.Init()
 		aria2.Init()
 		email.Init()

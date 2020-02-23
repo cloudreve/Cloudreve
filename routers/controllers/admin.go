@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/admin"
@@ -64,8 +63,6 @@ func AdminGetGroups(c *gin.Context) {
 func AdminReloadService(c *gin.Context) {
 	service := c.Param("service")
 	switch service {
-	case "authn":
-		authn.Init()
 	}
 
 	c.JSON(200, serializer.Response{})

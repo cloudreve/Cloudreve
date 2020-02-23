@@ -23,9 +23,13 @@ func StartLoginAuthn(c *gin.Context) {
 		return
 	}
 
-	authn.Lock.RLock()
-	options, sessionData, err := authn.AuthnInstance.BeginLogin(expectedUser)
-	authn.Lock.RUnlock()
+	instance, err := authn.NewAuthnInstance()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		return
+	}
+
+	options, sessionData, err := instance.BeginLogin(expectedUser)
 
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
@@ -58,9 +62,13 @@ func FinishLoginAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err = json.Unmarshal(sessionDataJSON, &sessionData)
 
-	authn.Lock.RLock()
-	_, err = authn.AuthnInstance.FinishLogin(expectedUser, sessionData, c.Request)
-	authn.Lock.RUnlock()
+	instance, err := authn.NewAuthnInstance()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		return
+	}
+
+	_, err = instance.FinishLogin(expectedUser, sessionData, c.Request)
 
 	if err != nil {
 		c.JSON(200, serializer.Err(401, "登录验证失败", err))
@@ -77,9 +85,13 @@ func FinishLoginAuthn(c *gin.Context) {
 func StartRegAuthn(c *gin.Context) {
 	currUser := CurrentUser(c)
 
-	authn.Lock.RLock()
-	options, sessionData, err := authn.AuthnInstance.BeginRegistration(currUser)
-	authn.Lock.RUnlock()
+	instance, err := authn.NewAuthnInstance()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		return
+	}
+
+	options, sessionData, err := instance.BeginRegistration(currUser)
 
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
@@ -106,9 +118,13 @@ func FinishRegAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err := json.Unmarshal(sessionDataJSON, &sessionData)
 
-	authn.Lock.RLock()
-	credential, err := authn.AuthnInstance.FinishRegistration(currUser, sessionData, c.Request)
-	authn.Lock.RUnlock()
+	instance, err := authn.NewAuthnInstance()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		return
+	}
+
+	credential, err := instance.FinishRegistration(currUser, sessionData, c.Request)
 
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))

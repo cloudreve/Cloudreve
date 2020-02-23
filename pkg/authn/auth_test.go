@@ -10,8 +10,7 @@ func TestInit(t *testing.T) {
 	asserts := assert.New(t)
 	cache.Set("setting_siteURL", "http://cloudreve.org", 0)
 	cache.Set("setting_siteName", "Cloudreve", 0)
-	asserts.NotPanics(func() {
-		Init()
-	})
-	asserts.NotNil(AuthnInstance)
+	res, err := NewAuthnInstance()
+	asserts.NotNil(res)
+	asserts.NoError(err)
 }
