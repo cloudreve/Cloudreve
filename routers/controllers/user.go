@@ -23,7 +23,10 @@ func StartLoginAuthn(c *gin.Context) {
 		return
 	}
 
+	authn.Lock.RLock()
 	options, sessionData, err := authn.AuthnInstance.BeginLogin(expectedUser)
+	authn.Lock.RUnlock()
+
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
@@ -55,7 +58,9 @@ func FinishLoginAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err = json.Unmarshal(sessionDataJSON, &sessionData)
 
+	authn.Lock.RLock()
 	_, err = authn.AuthnInstance.FinishLogin(expectedUser, sessionData, c.Request)
+	authn.Lock.RUnlock()
 
 	if err != nil {
 		c.JSON(200, serializer.Err(401, "登录验证失败", err))
@@ -71,7 +76,11 @@ func FinishLoginAuthn(c *gin.Context) {
 // StartRegAuthn 开始注册WebAuthn信息
 func StartRegAuthn(c *gin.Context) {
 	currUser := CurrentUser(c)
+
+	authn.Lock.RLock()
 	options, sessionData, err := authn.AuthnInstance.BeginRegistration(currUser)
+	authn.Lock.RUnlock()
+
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
@@ -97,7 +106,10 @@ func FinishRegAuthn(c *gin.Context) {
 	var sessionData webauthn.SessionData
 	err := json.Unmarshal(sessionDataJSON, &sessionData)
 
+	authn.Lock.RLock()
 	credential, err := authn.AuthnInstance.FinishRegistration(currUser, sessionData, c.Request)
+	authn.Lock.RUnlock()
+
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return

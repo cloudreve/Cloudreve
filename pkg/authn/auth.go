@@ -4,12 +4,16 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/duo-labs/webauthn/webauthn"
+	"sync"
 )
 
 var AuthnInstance *webauthn.WebAuthn
+var Lock sync.RWMutex
 
 // Init 初始化webauthn
 func Init() {
+	Lock.Lock()
+	defer Lock.Unlock()
 	var err error
 	base := model.GetSiteURL()
 	AuthnInstance, err = webauthn.New(&webauthn.Config{

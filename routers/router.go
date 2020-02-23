@@ -299,6 +299,8 @@ func InitMasterRouter() *gin.Engine {
 				admin.POST("setting", controllers.AdminGetSetting)
 				// 获取用户组列表
 				admin.GET("groups", controllers.AdminGetGroups)
+				// 重新加载子服务
+				admin.GET("reload/:service", controllers.AdminReloadService)
 			}
 
 			// 用户
