@@ -27,6 +27,9 @@ func Send(to, title, body string) error {
 		return nil
 	}
 
+	Lock.RLock()
+	defer Lock.RUnlock()
+
 	if Client == nil {
 		return ErrNoActiveDriver
 	}

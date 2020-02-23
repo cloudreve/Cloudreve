@@ -4,6 +4,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/email"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"time"
 )
@@ -26,6 +27,19 @@ type SettingChangeService struct {
 // BatchSettingGet 设定批量获取服务
 type BatchSettingGet struct {
 	Keys []string `json:"keys"`
+}
+
+// MailTestService 邮件测试服务
+type MailTestService struct {
+	Email string `json:"to" binding:"email"`
+}
+
+// Send 发送测试邮件
+func (service *MailTestService) Send() serializer.Response {
+	if err := email.Send(service.Email, "Cloudreve发信测试", "这是一封测试邮件，用于测试 Cloudreve 发信设置。"); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "发信失败, "+err.Error(), nil)
+	}
+	return serializer.Response{}
 }
 
 // Get 获取设定值

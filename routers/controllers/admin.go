@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/HFO4/cloudreve/pkg/email"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/admin"
@@ -63,7 +64,20 @@ func AdminGetGroups(c *gin.Context) {
 func AdminReloadService(c *gin.Context) {
 	service := c.Param("service")
 	switch service {
+	case "email":
+		email.Init()
 	}
 
 	c.JSON(200, serializer.Response{})
+}
+
+// AdminSendTestMail 发送测试邮件
+func AdminSendTestMail(c *gin.Context) {
+	var service admin.MailTestService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Send()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
 }

@@ -1,12 +1,23 @@
 package email
 
-import model "github.com/HFO4/cloudreve/models"
+import (
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/util"
+	"sync"
+)
 
 // Client 默认的邮件发送客户端
 var Client Driver
 
+// Lock 读写锁
+var Lock sync.RWMutex
+
 // Init 初始化
 func Init() {
+	util.Log().Debug("邮件队列初始化")
+	Lock.Lock()
+	defer Lock.Unlock()
+
 	if Client != nil {
 		Client.Close()
 	}

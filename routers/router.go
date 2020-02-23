@@ -301,6 +301,8 @@ func InitMasterRouter() *gin.Engine {
 				admin.GET("groups", controllers.AdminGetGroups)
 				// 重新加载子服务
 				admin.GET("reload/:service", controllers.AdminReloadService)
+				// 重新加载子服务
+				admin.POST("mailTest", controllers.AdminSendTestMail)
 			}
 
 			// 用户

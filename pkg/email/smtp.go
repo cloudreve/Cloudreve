@@ -45,7 +45,8 @@ func (client *SMTP) Send(to, title, body string) error {
 		return ErrChanNotOpen
 	}
 	m := mail.NewMessage()
-	m.SetHeader("From", client.Config.Address)
+	m.SetAddressHeader("From", client.Config.Address, client.Config.Name)
+	m.SetAddressHeader("Reply-To", client.Config.ReplyTo, client.Config.Name)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", title)
 	m.SetBody("text/html", body)
@@ -66,8 +67,8 @@ func (client *SMTP) Init() {
 		defer func() {
 			if err := recover(); err != nil {
 				client.chOpen = false
-				util.Log().Error("邮件发送队列出现异常, %s ,30 秒后重新连接", err)
-				time.Sleep(time.Duration(30) * time.Second)
+				util.Log().Error("邮件发送队列出现异常, %s ,10 秒后重置", err)
+				time.Sleep(time.Duration(10) * time.Second)
 				client.Init()
 			}
 		}()
@@ -83,6 +84,7 @@ func (client *SMTP) Init() {
 			select {
 			case m, ok := <-client.ch:
 				if !ok {
+					util.Log().Debug("邮件队列关闭")
 					client.chOpen = false
 					return
 				}
