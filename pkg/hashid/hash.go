@@ -2,6 +2,7 @@ package hashid
 
 import (
 	"errors"
+	"github.com/HFO4/cloudreve/bootstrap/constant"
 	"github.com/HFO4/cloudreve/pkg/conf"
 )
 import "github.com/speps/go-hashids"
@@ -61,7 +62,7 @@ func HashID(id uint, t int) string {
 // DecodeHashID 计算HashID对应的数据库ID
 func DecodeHashID(id string, t int) (uint, error) {
 	v, _ := HashDecode(id)
-	if len(v) != 2 || v[1] != t {
+	if len(v) != 2 || v[1] != constant.HashIDTable[t] {
 		return 0, ErrTypeNotMatch
 	}
 	return uint(v[0]), nil

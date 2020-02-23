@@ -2,6 +2,7 @@ package admin
 
 import (
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"time"
@@ -9,6 +10,29 @@ import (
 
 // NoParamService 无需参数的服务
 type NoParamService struct {
+}
+
+// BatchSettingChangeService 设定批量更改服务
+type BatchSettingChangeService struct {
+	Options []SettingChangeService `json:"options"`
+}
+
+// SettingChangeService  设定更改服务
+type SettingChangeService struct {
+	Key   string `json:"key" binding:"required"`
+	Value string `json:"value"`
+}
+
+// Change 批量更改站点设定
+func (service *BatchSettingChangeService) Change() serializer.Response {
+	for _, setting := range service.Options {
+		if err := model.DB.Model(&model.Setting{}).Where("name = ?", setting.Key).Update("value", setting.Value).Error; err != nil {
+			return serializer.DBErr("设置 "+setting.Key+" 更新失败", err)
+		}
+		cache.Deletes([]string{setting.Key}, "setting_")
+	}
+
+	return serializer.Response{}
 }
 
 // Summary 获取站点统计概况

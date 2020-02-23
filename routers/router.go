@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"github.com/HFO4/cloudreve/bootstrap"
 	"github.com/HFO4/cloudreve/middleware"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/hashid"
@@ -70,7 +71,9 @@ func InitCORS(router *gin.Engine) {
 // InitMasterRouter 初始化主机模式路由
 func InitMasterRouter() *gin.Engine {
 	r := gin.Default()
+	bootstrap.InitCustomRoute(r.Group("/custom"))
 	v3 := r.Group("/api/v3")
+
 	/*
 		中间件
 	*/
@@ -282,6 +285,10 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 获取站点概况
 				admin.GET("summary", controllers.AdminSummary)
+				// 获取社区新闻
+				admin.GET("news", controllers.AdminNews)
+				// 更改设置
+				admin.PATCH("setting", controllers.AdminChangeSetting)
 			}
 
 			// 用户

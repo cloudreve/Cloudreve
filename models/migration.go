@@ -164,7 +164,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "cron_garbage_collect", Value: "@hourly", Type: "cron"},
 		{Name: "cron_notify_user", Value: "@hourly", Type: "cron"},
 		{Name: "cron_ban_user", Value: "@hourly", Type: "cron"},
-		{Name: "authn_enabled", Value: "1", Type: "authn"},
+		{Name: "authn_enabled", Value: "0", Type: "authn"},
 		{Name: "captcha_height", Value: "60", Type: "captcha"},
 		{Name: "captcha_width", Value: "240", Type: "captcha"},
 		{Name: "captcha_mode", Value: "3", Type: "captcha"},
