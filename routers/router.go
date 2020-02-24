@@ -303,6 +303,18 @@ func InitMasterRouter() *gin.Engine {
 				admin.GET("reload/:service", controllers.AdminReloadService)
 				// 重新加载子服务
 				admin.POST("mailTest", controllers.AdminSendTestMail)
+
+				// 兑换码相关
+				redeem := admin.Group("redeem")
+				{
+					// 列出激活码
+					redeem.POST("list", controllers.AdminListRedeems)
+					// 生成激活码
+					redeem.POST("", controllers.AdminGenerateRedeems)
+					// 删除激活码
+					redeem.DELETE(":id", controllers.AdminDeleteRedeem)
+				}
+
 			}
 
 			// 用户

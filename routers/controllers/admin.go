@@ -81,3 +81,36 @@ func AdminSendTestMail(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListRedeems 列出激活码
+func AdminListRedeems(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Redeems()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGenerateRedeems 生成激活码
+func AdminGenerateRedeems(c *gin.Context) {
+	var service admin.GenerateRedeemsService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Generate()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteRedeem 删除激活码
+func AdminDeleteRedeem(c *gin.Context) {
+	var service admin.SingleIDService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.DeleteRedeem()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

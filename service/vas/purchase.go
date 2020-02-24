@@ -61,6 +61,11 @@ func (service *RedeemService) Redeem(c *gin.Context, user *model.User) serialize
 				break
 			}
 		}
+
+		if group == nil {
+			return serializer.Err(serializer.CodeNotFound, "商品已失效", err)
+		}
+
 	} else if redeem.Type == model.PackOrderType {
 		for _, v := range packs {
 			if v.ID == redeem.ProductID {
@@ -68,6 +73,11 @@ func (service *RedeemService) Redeem(c *gin.Context, user *model.User) serialize
 				break
 			}
 		}
+
+		if pack == nil {
+			return serializer.Err(serializer.CodeNotFound, "商品已失效", err)
+		}
+
 	}
 
 	err = payment.GiveProduct(user, pack, group, redeem.Num)
