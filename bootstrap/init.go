@@ -24,7 +24,7 @@ func Init(path string) {
 	if conf.SystemConfig.Mode == "master" {
 		model.Init()
 		task.Init()
-		aria2.Init()
+		aria2.Init(false)
 		email.Init()
 		crontab.Init()
 	}

@@ -46,6 +46,6 @@ func TestRPCService_CreateTask(t *testing.T) {
 	caller := &RPCService{}
 	asserts.NoError(caller.Init("http://127.0.0.1", "", 1, nil))
 	cache.Set("setting_aria2_temp_path", "test", 0)
-	err := caller.CreateTask(&model.Download{Parent: "test"}, []interface{}{map[string]string{"1": "1"}})
+	err := caller.CreateTask(&model.Download{Parent: "test"}, map[string]interface{}{"1": "1"})
 	asserts.Error(err)
 }

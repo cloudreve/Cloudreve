@@ -18,11 +18,11 @@ type RPCService struct {
 }
 
 type clientOptions struct {
-	Options []interface{} // 创建下载时额外添加的设置
+	Options map[string]interface{} // 创建下载时额外添加的设置
 }
 
 // Init 初始化
-func (client *RPCService) Init(server, secret string, timeout int, options []interface{}) error {
+func (client *RPCService) Init(server, secret string, timeout int, options map[string]interface{}) error {
 	// 客户端已存在，则关闭先前连接
 	if client.caller != nil {
 		client.caller.Close()
@@ -84,7 +84,7 @@ func (client *RPCService) Select(task *model.Download, files []int) error {
 }
 
 // CreateTask 创建新任务
-func (client *RPCService) CreateTask(task *model.Download, groupOptions []interface{}) error {
+func (client *RPCService) CreateTask(task *model.Download, groupOptions map[string]interface{}) error {
 	// 生成存储路径
 	path := filepath.Join(
 		model.GetSettingByName("aria2_temp_path"),
@@ -93,13 +93,17 @@ func (client *RPCService) CreateTask(task *model.Download, groupOptions []interf
 	)
 
 	// 创建下载任务
-	options := []interface{}{map[string]string{"dir": path}}
-	if len(client.options.Options) > 0 {
-		options = append(options, client.options.Options...)
+	options := map[string]interface{}{
+		"dir": path,
 	}
-	options = append(options, groupOptions...)
+	for k, v := range client.options.Options {
+		options[k] = v
+	}
+	for k, v := range groupOptions {
+		options[k] = v
+	}
 
-	gid, err := client.caller.AddURI(task.Source, options...)
+	gid, err := client.caller.AddURI(task.Source, options)
 	if err != nil || gid == "" {
 		return err
 	}

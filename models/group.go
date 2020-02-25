@@ -24,15 +24,15 @@ type Group struct {
 
 // GroupOption 用户组其他配置
 type GroupOption struct {
-	ArchiveDownload bool          `json:"archive_download,omitempty"` // 打包下载
-	ArchiveTask     bool          `json:"archive_task,omitempty"`     // 在线压缩
-	CompressSize    uint64        `json:"compress_size,omitempty"`    // 可压缩大小
-	DecompressSize  uint64        `json:"decompress_size,omitempty"`
-	OneTimeDownload bool          `json:"one_time_download,omitempty"`
-	ShareDownload   bool          `json:"share_download,omitempty"`
-	ShareFree       bool          `json:"share_free,omitempty"`
-	Aria2           bool          `json:"aria2,omitempty"`         // 离线下载
-	Aria2Options    []interface{} `json:"aria2_options,omitempty"` // 离线下载用户组配置
+	ArchiveDownload bool                   `json:"archive_download,omitempty"` // 打包下载
+	ArchiveTask     bool                   `json:"archive_task,omitempty"`     // 在线压缩
+	CompressSize    uint64                 `json:"compress_size,omitempty"`    // 可压缩大小
+	DecompressSize  uint64                 `json:"decompress_size,omitempty"`
+	OneTimeDownload bool                   `json:"one_time_download,omitempty"`
+	ShareDownload   bool                   `json:"share_download,omitempty"`
+	ShareFree       bool                   `json:"share_free,omitempty"`
+	Aria2           bool                   `json:"aria2,omitempty"`         // 离线下载
+	Aria2Options    map[string]interface{} `json:"aria2_options,omitempty"` // 离线下载用户组配置
 }
 
 // GetGroupByID 用ID获取用户组

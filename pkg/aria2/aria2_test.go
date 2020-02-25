@@ -45,14 +45,14 @@ func TestInit(t *testing.T) {
 	// 未指定RPC地址，跳过
 	{
 		cache.Set("setting_aria2_rpcurl", "", 0)
-		Init()
+		Init(false)
 		asserts.IsType(&DummyAria2{}, Instance)
 	}
 
 	// 无法解析服务器地址
 	{
 		cache.Set("setting_aria2_rpcurl", string(byte(0x7f)), 0)
-		Init()
+		Init(false)
 		asserts.IsType(&DummyAria2{}, Instance)
 	}
 
@@ -61,7 +61,7 @@ func TestInit(t *testing.T) {
 		Instance = &RPCService{}
 		cache.Set("setting_aria2_options", "?", 0)
 		cache.Set("setting_aria2_rpcurl", "ws://127.0.0.1:1234", 0)
-		Init()
+		Init(false)
 		asserts.IsType(&DummyAria2{}, Instance)
 	}
 
@@ -72,7 +72,7 @@ func TestInit(t *testing.T) {
 		cache.Set("setting_aria2_call_timeout", "1", 0)
 		cache.Set("setting_aria2_interval", "100", 0)
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"g_id"}).AddRow("1"))
-		Init()
+		Init(false)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.IsType(&RPCService{}, Instance)
 	}

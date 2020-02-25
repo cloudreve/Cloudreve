@@ -52,6 +52,8 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	}
 
 	// 取消任务
+	aria2.Lock.RLock()
+	defer aria2.Lock.RUnlock()
 	if err := aria2.Instance.Cancel(download); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}
@@ -75,6 +77,8 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 	}
 
 	// 选取下载
+	aria2.Lock.RLock()
+	defer aria2.Lock.RUnlock()
 	if err := aria2.Instance.Select(download, service.Indexes); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}

@@ -69,7 +69,10 @@ func (monitor *Monitor) Loop() {
 
 // Update 更新状态，返回值表示是否退出监控
 func (monitor *Monitor) Update() bool {
+	Lock.RLock()
 	status, err := Instance.Status(monitor.Task)
+	Lock.RUnlock()
+
 	if err != nil {
 		monitor.retried++
 		util.Log().Warning("无法获取下载任务[%s]的状态，%s", monitor.Task.GID, err)
@@ -160,7 +163,9 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 		// 文件大小更新后，对文件限制等进行校验
 		if err := monitor.ValidateFile(); err != nil {
 			// 验证失败时取消任务
+			Lock.RLock()
 			Instance.Cancel(monitor.Task)
+			Lock.RUnlock()
 			return err
 		}
 	}

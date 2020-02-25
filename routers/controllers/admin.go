@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/HFO4/cloudreve/pkg/aria2"
 	"github.com/HFO4/cloudreve/pkg/email"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
@@ -66,6 +67,8 @@ func AdminReloadService(c *gin.Context) {
 	switch service {
 	case "email":
 		email.Init()
+	case "aria2":
+		aria2.Init(true)
 	}
 
 	c.JSON(200, serializer.Response{})
