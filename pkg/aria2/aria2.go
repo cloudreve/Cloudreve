@@ -93,8 +93,10 @@ func Init(isReload bool) {
 
 	// 关闭上个初始连接
 	if previousClient, ok := Instance.(*RPCService); ok {
-		util.Log().Debug("关闭上个 aria2 连接")
-		previousClient.caller.Close()
+		if previousClient.Caller != nil {
+			util.Log().Debug("关闭上个 aria2 连接")
+			previousClient.Caller.Close()
+		}
 	}
 
 	options := model.GetSettingByNames("aria2_rpcurl", "aria2_token", "aria2_options")

@@ -117,3 +117,47 @@ func AdminDeleteRedeem(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminTestAria2 测试aria2连接
+func AdminTestAria2(c *gin.Context) {
+	var service admin.Aria2TestService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Test()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListPolicy 列出存储策略
+func AdminListPolicy(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Policies()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminTestPath 测试本地路径可用性
+func AdminTestPath(c *gin.Context) {
+	var service admin.PathTestService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Test()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminAddPolicy 新建存储策略
+func AdminAddPolicy(c *gin.Context) {
+	var service admin.AddPolicyService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

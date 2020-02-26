@@ -20,7 +20,7 @@ type InstanceMock struct {
 	testMock.Mock
 }
 
-func (m InstanceMock) CreateTask(task *model.Download, options []interface{}) error {
+func (m InstanceMock) CreateTask(task *model.Download, options map[string]interface{}) error {
 	args := m.Called(task, options)
 	return args.Error(0)
 }
@@ -307,13 +307,16 @@ func TestMonitor_Complete(t *testing.T) {
 	}
 
 	cache.Set("setting_max_worker_num", "1", 0)
+	mock.ExpectQuery("SELECT(.+)tasks").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	task.Init()
-	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT(.+)users").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectQuery("SELECT(.+)policies").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 	mock.ExpectBegin()
-	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("INSERT(.+)tasks").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
+
 	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("UPDATE(.+)downloads").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	asserts.True(monitor.Complete(rpc.StatusInfo{}))
 	asserts.NoError(mock.ExpectationsWereMet())

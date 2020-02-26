@@ -102,13 +102,20 @@ func (policy *Policy) SerializeOptions() (err error) {
 func (policy *Policy) GeneratePath(uid uint, origin string) string {
 	dirRule := policy.DirNameRule
 	replaceTable := map[string]string{
-		"{randomkey16}": util.RandStringRunes(16),
-		"{randomkey8}":  util.RandStringRunes(8),
-		"{timestamp}":   strconv.FormatInt(time.Now().Unix(), 10),
-		"{uid}":         strconv.Itoa(int(uid)),
-		"{datetime}":    time.Now().Format("20060102150405"),
-		"{date}":        time.Now().Format("20060102"),
-		"{path}":        origin + "/",
+		"{randomkey16}":    util.RandStringRunes(16),
+		"{randomkey8}":     util.RandStringRunes(8),
+		"{timestamp}":      strconv.FormatInt(time.Now().Unix(), 10),
+		"{timestamp_nano}": strconv.FormatInt(time.Now().UnixNano(), 10),
+		"{uid}":            strconv.Itoa(int(uid)),
+		"{datetime}":       time.Now().Format("20060102150405"),
+		"{date}":           time.Now().Format("20060102"),
+		"{year}":           time.Now().Format("2006"),
+		"{month}":          time.Now().Format("01"),
+		"{day}":            time.Now().Format("02"),
+		"{hour}":           time.Now().Format("15"),
+		"{minute}":         time.Now().Format("04"),
+		"{second}":         time.Now().Format("05"),
+		"{path}":           origin + "/",
 	}
 	dirRule = util.Replace(replaceTable, dirRule)
 	return path.Clean(dirRule)
@@ -124,12 +131,19 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	fileRule := policy.FileNameRule
 
 	replaceTable := map[string]string{
-		"{randomkey16}": util.RandStringRunes(16),
-		"{randomkey8}":  util.RandStringRunes(8),
-		"{timestamp}":   strconv.FormatInt(time.Now().Unix(), 10),
-		"{uid}":         strconv.Itoa(int(uid)),
-		"{datetime}":    time.Now().Format("20060102150405"),
-		"{date}":        time.Now().Format("20060102"),
+		"{randomkey16}":    util.RandStringRunes(16),
+		"{randomkey8}":     util.RandStringRunes(8),
+		"{timestamp}":      strconv.FormatInt(time.Now().Unix(), 10),
+		"{timestamp_nano}": strconv.FormatInt(time.Now().UnixNano(), 10),
+		"{uid}":            strconv.Itoa(int(uid)),
+		"{datetime}":       time.Now().Format("20060102150405"),
+		"{date}":           time.Now().Format("20060102"),
+		"{year}":           time.Now().Format("2006"),
+		"{month}":          time.Now().Format("01"),
+		"{day}":            time.Now().Format("02"),
+		"{hour}":           time.Now().Format("15"),
+		"{minute}":         time.Now().Format("04"),
+		"{second}":         time.Now().Format("05"),
 	}
 
 	replaceTable["{originname}"] = policy.getOriginNameRule(origin)

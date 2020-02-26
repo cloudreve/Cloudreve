@@ -124,6 +124,15 @@ func (handler Driver) Source(
 		return "", errors.New("无法获取文件记录上下文")
 	}
 
+	// 是否启用了CDN
+	if handler.Policy.BaseURL != "" {
+		cdnURL, err := url.Parse(handler.Policy.BaseURL)
+		if err != nil {
+			return "", err
+		}
+		baseURL = *cdnURL
+	}
+
 	var (
 		signedURI *url.URL
 		err       error

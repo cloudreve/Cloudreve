@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
@@ -23,6 +24,11 @@ func migration() {
 	}
 
 	util.Log().Info("开始进行数据库初始化...")
+
+	// 清除所有缓存
+	if instance, ok := cache.Store.(*cache.RedisStore); ok {
+		instance.DeleteAll()
+	}
 
 	// 自动迁移模式
 	if conf.DatabaseConfig.Type == "mysql" {
@@ -54,9 +60,7 @@ func addDefaultPolicy() {
 		defaultPolicy := Policy{
 			Name:               "默认存储策略",
 			Type:               "local",
-			Server:             "/api/v3/file/upload",
-			BaseURL:            "http://cloudreve.org/public/uploads/",
-			MaxSize:            10 * 1024 * 1024 * 1024,
+			MaxSize:            0,
 			AutoRename:         true,
 			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
@@ -137,7 +141,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "shopid", Value: ``, Type: "payment"},
 		{Name: "hot_share_num", Value: `10`, Type: "share"},
 		{Name: "group_sell_data", Value: `[]`, Type: "group_sell"},
-		{Name: "gravatar_server", Value: `https://gravatar.loli.net/`, Type: "avatar"},
+		{Name: "gravatar_server", Value: `https://www.gravatar.com/`, Type: "avatar"},
 		{Name: "defaultTheme", Value: `#3f51b5`, Type: "basic"},
 		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"main":"#3f51b5"},"secondary":{"main":"#f50057"}}},"#2196f3":{"palette":{"primary":{"main":"#2196f3"},"secondary":{"main":"#FFC107"}}},"#673AB7":{"palette":{"primary":{"main":"#673AB7"},"secondary":{"main":"#2196F3"}}},"#E91E63":{"palette":{"primary":{"main":"#E91E63"},"secondary":{"main":"#42A5F5","contrastText":"#fff"}}},"#FF5722":{"palette":{"primary":{"main":"#FF5722"},"secondary":{"main":"#3F51B5"}}},"#FFC107":{"palette":{"primary":{"main":"#FFC107"},"secondary":{"main":"#26C6DA"}}},"#8BC34A":{"palette":{"primary":{"main":"#8BC34A","contrastText":"#fff"},"secondary":{"main":"#FF8A65","contrastText":"#fff"}}},"#009688":{"palette":{"primary":{"main":"#009688"},"secondary":{"main":"#4DD0E1","contrastText":"#fff"}}},"#607D8B":{"palette":{"primary":{"main":"#607D8B"},"secondary":{"main":"#F06292"}}},"#795548":{"palette":{"primary":{"main":"#795548"},"secondary":{"main":"#4CAF50","contrastText":"#fff"}}}}`, Type: "basic"},
 		{Name: "aria2_token", Value: ``, Type: "aria2"},
@@ -169,9 +173,9 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "captcha_ComplexOfNoiseText", Value: "0", Type: "captcha"},
 		{Name: "captcha_ComplexOfNoiseDot", Value: "0", Type: "captcha"},
 		{Name: "captcha_IsShowHollowLine", Value: "0", Type: "captcha"},
-		{Name: "captcha_IsShowNoiseDot", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowNoiseDot", Value: "1", Type: "captcha"},
 		{Name: "captcha_IsShowNoiseText", Value: "0", Type: "captcha"},
-		{Name: "captcha_IsShowSlimeLine", Value: "0", Type: "captcha"},
+		{Name: "captcha_IsShowSlimeLine", Value: "1", Type: "captcha"},
 		{Name: "captcha_IsShowSineLine", Value: "0", Type: "captcha"},
 		{Name: "captcha_CaptchaLen", Value: "6", Type: "captcha"},
 		{Name: "thumb_width", Value: "400", Type: "thumb"},

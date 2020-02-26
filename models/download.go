@@ -48,7 +48,11 @@ func (task *Download) AfterFind() (err error) {
 
 // BeforeSave Save下载任务前的钩子
 func (task *Download) BeforeSave() (err error) {
-	return task.AfterFind()
+	// 解析状态
+	if task.Attrs != "" {
+		err = json.Unmarshal([]byte(task.Attrs), &task.StatusInfo)
+	}
+	return err
 }
 
 // Create 创建离线下载记录

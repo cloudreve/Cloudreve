@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/HFO4/cloudreve/bootstrap/constant"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/hashid"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ func TestHashID(t *testing.T) {
 	asserts := assert.New(t)
 	rec := httptest.NewRecorder()
 	TestFunc := HashID(hashid.FolderID)
+	constant.HashIDTable = []int{0, 1, 2, 3, 4, 5, 6}
 
 	// 未给定ID对象，跳过
 	{

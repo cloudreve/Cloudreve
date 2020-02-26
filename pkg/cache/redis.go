@@ -201,3 +201,16 @@ func (store *RedisStore) Delete(keys []string, prefix string) error {
 	}
 	return nil
 }
+
+// DeleteAll 批量所有键
+func (store *RedisStore) DeleteAll() error {
+	rc := store.pool.Get()
+	defer rc.Close()
+	if rc.Err() != nil {
+		return rc.Err()
+	}
+
+	_, err := rc.Do("FLUSHDB")
+
+	return err
+}

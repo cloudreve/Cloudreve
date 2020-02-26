@@ -315,6 +315,23 @@ func InitMasterRouter() *gin.Engine {
 					redeem.DELETE(":id", controllers.AdminDeleteRedeem)
 				}
 
+				// 离线下载相关
+				aria2 := admin.Group("aria2")
+				{
+					// 测试连接配置
+					aria2.POST("test", controllers.AdminTestAria2)
+				}
+
+				policy := admin.Group("policy")
+				{
+					// 列出存储策略
+					policy.POST("list", controllers.AdminListPolicy)
+					// 测试本地路径可用性
+					policy.POST("test/path", controllers.AdminTestPath)
+					// 创建存储策略
+					policy.POST("", controllers.AdminAddPolicy)
+				}
+
 			}
 
 			// 用户
