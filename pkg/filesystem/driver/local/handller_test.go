@@ -120,7 +120,9 @@ func TestHandler_Thumb(t *testing.T) {
 
 func TestHandler_Source(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Driver{}
+	handler := Driver{
+		Policy: &model.Policy{},
+	}
 	ctx := context.Background()
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
@@ -144,6 +146,42 @@ func TestHandler_Source(t *testing.T) {
 
 	// 无法获取上下文
 	{
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		asserts.Error(err)
+		asserts.Empty(sourceURL)
+	}
+
+	// 设定了CDN
+	{
+		handler.Policy.BaseURL = "https://cqu.edu.cn"
+		file := model.File{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name: "test.jpg",
+		}
+		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
+		baseURL, err := url.Parse("https://cloudreve.org")
+		asserts.NoError(err)
+		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		asserts.NoError(err)
+		asserts.NotEmpty(sourceURL)
+		asserts.Contains(sourceURL, "sign=")
+		asserts.Contains(sourceURL, "https://cqu.edu.cn")
+	}
+
+	// 设定了CDN，解析失败
+	{
+		handler.Policy.BaseURL = string(0x7f)
+		file := model.File{
+			Model: gorm.Model{
+				ID: 1,
+			},
+			Name: "test.jpg",
+		}
+		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
 		baseURL, err := url.Parse("https://cloudreve.org")
 		asserts.NoError(err)
 		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)

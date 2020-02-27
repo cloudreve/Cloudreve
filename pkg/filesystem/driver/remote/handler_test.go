@@ -84,6 +84,37 @@ func TestHandler_Source(t *testing.T) {
 		asserts.Contains(res, "api/v3/slave/download/0")
 	}
 
+	// 成功 自定义CDN
+	{
+		handler := Driver{
+			Policy:       &model.Policy{Server: "/", BaseURL: "https://cqu.edu.cn"},
+			AuthInstance: auth.HMACAuth{},
+		}
+		file := model.File{
+			SourceName: "1.txt",
+		}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
+		res, err := handler.Source(ctx, "", url.URL{}, 10, true, 0)
+		asserts.NoError(err)
+		asserts.Contains(res, "api/v3/slave/download/0")
+		asserts.Contains(res, "https://cqu.edu.cn")
+	}
+
+	// 解析失败 自定义CDN
+	{
+		handler := Driver{
+			Policy:       &model.Policy{Server: "/", BaseURL: string(0x7f)},
+			AuthInstance: auth.HMACAuth{},
+		}
+		file := model.File{
+			SourceName: "1.txt",
+		}
+		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
+		res, err := handler.Source(ctx, "", url.URL{}, 10, true, 0)
+		asserts.Error(err)
+		asserts.Empty(res)
+	}
+
 	// 成功 预览
 	{
 		handler := Driver{

@@ -63,14 +63,6 @@ func TestDownload_AfterFind(t *testing.T) {
 		asserts.Equal("", download.StatusInfo.Gid)
 	}
 
-	// 关联任务
-	{
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "error"}).AddRow(1, "error"))
-		download := Download{TaskID: 1}
-		download.BeforeSave()
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.Equal("error", download.Task.Error)
-	}
 }
 
 func TestDownload_Save(t *testing.T) {

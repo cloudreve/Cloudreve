@@ -1,6 +1,7 @@
 package hashid
 
 import (
+	"github.com/HFO4/cloudreve/bootstrap/constant"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -52,6 +53,7 @@ func TestHashDecode(t *testing.T) {
 
 func TestDecodeHashID(t *testing.T) {
 	asserts := assert.New(t)
+	constant.HashIDTable = []int{0, 1, 2, 3, 4, 5}
 
 	// 成功
 	{

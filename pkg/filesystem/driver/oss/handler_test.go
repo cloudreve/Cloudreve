@@ -39,6 +39,23 @@ func TestDriver_InitOSSClient(t *testing.T) {
 	}
 }
 
+func TestDriver_CORS(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Driver{
+		Policy: &model.Policy{
+			AccessKey:  "ak",
+			SecretKey:  "sk",
+			BucketName: "test",
+			Server:     "test.com",
+		},
+	}
+
+	// 失败
+	{
+		asserts.Error(handler.CORS())
+	}
+}
+
 func TestDriver_Token(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{
@@ -149,7 +166,18 @@ func TestDriver_Source(t *testing.T) {
 		asserts.NoError(err)
 		query := resURL.Query()
 		asserts.Empty(query.Get("Signature"))
-		asserts.Empty(query.Get("Expires"))
+	}
+
+	// 正常 指定了CDN域名
+	{
+		handler.Policy.BaseURL = "https://cqu.edu.cn"
+		res, err := handler.Source(context.Background(), "/123", url.URL{}, 10, false, 0)
+		asserts.NoError(err)
+		resURL, err := url.Parse(res)
+		asserts.NoError(err)
+		query := resURL.Query()
+		asserts.Empty(query.Get("Signature"))
+		asserts.Contains(resURL.String(), handler.Policy.BaseURL)
 	}
 }
 
