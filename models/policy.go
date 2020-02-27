@@ -217,7 +217,9 @@ func (policy *Policy) GetUploadURL() string {
 		return "/api/v3/file/upload"
 	case "remote":
 		controller, _ = url.Parse("/api/v3/slave/upload")
-	case "oss", "cos":
+	case "oss":
+		return "https://" + policy.BucketName + "." + policy.Server
+	case "cos":
 		return policy.BaseURL
 	case "upyun":
 		return "http://v0.api.upyun.com/" + policy.BucketName

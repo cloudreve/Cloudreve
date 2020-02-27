@@ -154,7 +154,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	// 是否需要预先生成存储路径
 	var savePath string
 	if fs.User.Policy.IsPathGenerateNeeded() {
-		savePath = fs.GenerateSavePath(ctx, local.FileStream{Name: name})
+		savePath = fs.GenerateSavePath(ctx, local.FileStream{Name: name, VirtualPath: path})
 		ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 	}
 	ctx = context.WithValue(ctx, fsctx.FileSizeCtx, size)

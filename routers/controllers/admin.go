@@ -172,3 +172,14 @@ func AdminAddPolicy(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminAddCORS 创建跨域策略
+func AdminAddCORS(c *gin.Context) {
+	var service admin.PolicyService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.AddCORS()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

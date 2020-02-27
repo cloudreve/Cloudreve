@@ -49,6 +49,30 @@ const (
 	VersionID key = iota
 )
 
+// CORS 创建跨域策略
+func (handler *Driver) CORS() error {
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return err
+	}
+
+	return handler.client.SetBucketCORS(handler.Policy.BucketName, []oss.CORSRule{
+		{
+			AllowedOrigin: []string{"*"},
+			AllowedMethod: []string{
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE",
+				"HEAD",
+			},
+			ExposeHeader:  []string{},
+			AllowedHeader: []string{"*"},
+			MaxAgeSeconds: 3600,
+		},
+	})
+}
+
 // InitOSSClient 初始化OSS鉴权客户端
 func (handler *Driver) InitOSSClient() error {
 	if handler.Policy == nil {
@@ -238,27 +262,6 @@ func (handler Driver) Source(
 }
 
 func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
-	cdnURL, err := url.Parse(handler.Policy.BaseURL)
-	if err != nil {
-		return "", err
-	}
-
-	// 公有空间不需要签名
-	if !handler.Policy.IsPrivate {
-		file, err := url.Parse(path)
-		if err != nil {
-			return "", err
-		}
-		sourceURL := cdnURL.ResolveReference(file)
-
-		// 如果有缩略图设置
-		if thumbSize, ok := ctx.Value(fsctx.ThumbSizeCtx).(string); ok {
-			sourceURL.RawQuery = "x-oss-process=" + thumbSize
-		}
-
-		return sourceURL.String(), nil
-	}
-
 	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
 	if err != nil {
 		return "", err
@@ -269,8 +272,26 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 	if err != nil {
 		return "", err
 	}
-	finalURL.Host = cdnURL.Host
-	finalURL.Scheme = cdnURL.Scheme
+
+	// 优先使用https
+	finalURL.Scheme = "https"
+
+	// 公有空间替换掉Key
+	if !handler.Policy.IsPrivate {
+		query := finalURL.Query()
+		query.Del("OSSAccessKeyId")
+		query.Del("Signature")
+		finalURL.RawQuery = query.Encode()
+	}
+
+	if handler.Policy.BaseURL != "" {
+		cdnURL, err := url.Parse(handler.Policy.BaseURL)
+		if err != nil {
+			return "", err
+		}
+		finalURL.Host = cdnURL.Host
+		finalURL.Scheme = cdnURL.Scheme
+	}
 
 	return finalURL.String(), nil
 }
@@ -301,8 +322,12 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
 			[]string{"starts-with", "$key", path.Dir(savePath)},
-			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize},
 		},
+	}
+
+	if handler.Policy.MaxSize > 0 {
+		postPolicy.Conditions = append(postPolicy.Conditions,
+			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
 	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, TTL)

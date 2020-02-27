@@ -7,6 +7,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -35,6 +36,34 @@ type SlavePingService struct {
 // AddPolicyService 存储策略添加服务
 type AddPolicyService struct {
 	Policy model.Policy `json:"policy" binding:"required"`
+}
+
+// PolicyService 存储策略ID服务
+type PolicyService struct {
+	ID uint `json:"id" binding:"required"`
+}
+
+// AddCORS 创建跨域策略
+func (service *PolicyService) AddCORS() serializer.Response {
+	policy, err := model.GetPolicyByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", nil)
+	}
+
+	switch policy.Type {
+	case "oss":
+		handler := oss.Driver{
+			Policy:     &policy,
+			HTTPClient: request.HTTPClient{},
+		}
+		if err := handler.CORS(); err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
+		}
+	default:
+		return serializer.ParamErr("不支持此策略", nil)
+	}
+
+	return serializer.Response{}
 }
 
 // Test 从机响应ping
@@ -107,7 +136,7 @@ func (service *AddPolicyService) Add() serializer.Response {
 	if err := model.DB.Create(&service.Policy).Error; err != nil {
 		return serializer.ParamErr("存储策略添加失败", err)
 	}
-	return serializer.Response{}
+	return serializer.Response{Data: service.Policy.ID}
 }
 
 // Test 测试本地路径
