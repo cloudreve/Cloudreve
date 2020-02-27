@@ -13,6 +13,7 @@ type UploadCredentialService struct {
 	Path string `form:"path" binding:"required"`
 	Size uint64 `form:"size" binding:"min=0"`
 	Name string `form:"name"`
+	Type string `form:"type"`
 }
 
 // Get 获取新的上传凭证
@@ -21,6 +22,13 @@ func (service *UploadCredentialService) Get(ctx context.Context, c *gin.Context)
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 存储策略是否一致
+	if service.Type != "" {
+		if service.Type != fs.User.Policy.Type {
+			return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略已变更，请刷新页面", nil)
+		}
 	}
 
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)

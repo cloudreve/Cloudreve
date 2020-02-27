@@ -31,7 +31,7 @@ type UploadPolicy struct {
 	Expiration         int64  `json:"expiration"`
 	CallbackURL        string `json:"notify-url"`
 	ContentLength      uint64 `json:"content-length"`
-	ContentLengthRange string `json:"content-length-range"`
+	ContentLengthRange string `json:"content-length-range,omitempty"`
 	AllowFileType      string `json:"allow-file-type,omitempty"`
 }
 
@@ -261,6 +261,8 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 	if !ok {
 		return serializer.UploadCredential{}, errors.New("无法获取文件大小")
 	}
+
+	// 检查文件大小
 
 	// 生成回调地址
 	siteURL := model.GetSiteURL()

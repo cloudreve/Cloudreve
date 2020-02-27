@@ -151,6 +151,13 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 
 	var err error
 
+	// 检查文件大小
+	if fs.User.Policy.MaxSize != 0 {
+		if size > fs.User.Policy.MaxSize {
+			return nil, ErrFileSizeTooBig
+		}
+	}
+
 	// 是否需要预先生成存储路径
 	var savePath string
 	if fs.User.Policy.IsPathGenerateNeeded() {
