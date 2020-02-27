@@ -67,8 +67,10 @@ func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem) error {
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
 
 	// 验证单文件尺寸
-	if file.GetSize() > policy.MaxSize {
-		return ErrFileSizeTooBig
+	if policy.MaxSize > 0 {
+		if file.GetSize() > policy.MaxSize {
+			return ErrFileSizeTooBig
+		}
 	}
 
 	// 验证文件名

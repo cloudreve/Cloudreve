@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/service/admin"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
 	"net/url"
@@ -141,6 +142,17 @@ func SlaveDelete(c *gin.Context) {
 	var service explorer.SlaveFilesService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Delete(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlavePing 从机测试
+func SlavePing(c *gin.Context) {
+	var service admin.SlavePingService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Test()
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

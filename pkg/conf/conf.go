@@ -22,7 +22,7 @@ type system struct {
 	Listen        string `validate:"required"`
 	Debug         bool
 	SessionSecret string
-	HashIDSalt    string `validate:"required"`
+	HashIDSalt    string
 }
 
 // slave 作为slave存储端配置
@@ -72,8 +72,7 @@ type cors struct {
 
 var cfg *ini.File
 
-const defaultConf = `
-[System]
+const defaultConf = `[System]
 Mode = master
 Listen = :5212
 SessionSecret = {SessionSecret}

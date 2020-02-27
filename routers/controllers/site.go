@@ -2,6 +2,7 @@ package controllers
 
 import (
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func SiteConfig(c *gin.Context) {
 func Ping(c *gin.Context) {
 	c.JSON(200, serializer.Response{
 		Code: 0,
-		Msg:  "Pong",
+		Data: conf.BackendVersion,
 	})
 }
 

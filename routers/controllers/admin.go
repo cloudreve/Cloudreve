@@ -151,6 +151,17 @@ func AdminTestPath(c *gin.Context) {
 	}
 }
 
+// AdminTestSlave 测试从机可用性
+func AdminTestSlave(c *gin.Context) {
+	var service admin.SlaveTestService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Test()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AdminAddPolicy 新建存储策略
 func AdminAddPolicy(c *gin.Context) {
 	var service admin.AddPolicyService

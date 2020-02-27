@@ -35,6 +35,8 @@ func InitSlaveRouter() *gin.Engine {
 		路由
 	*/
 	{
+		// Ping
+		v3.POST("ping", controllers.SlavePing)
 		// 上传
 		v3.POST("upload", controllers.SlaveUpload)
 		// 下载
@@ -328,6 +330,8 @@ func InitMasterRouter() *gin.Engine {
 					policy.POST("list", controllers.AdminListPolicy)
 					// 测试本地路径可用性
 					policy.POST("test/path", controllers.AdminTestPath)
+					// 测试从机通信
+					policy.POST("test/slave", controllers.AdminTestSlave)
 					// 创建存储策略
 					policy.POST("", controllers.AdminAddPolicy)
 				}

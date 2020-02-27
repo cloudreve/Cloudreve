@@ -34,7 +34,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
 	res, err := fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
-	if err == nil {
+	if err == nil && conf.SystemConfig.Mode == "master" {
 		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
 	}
 

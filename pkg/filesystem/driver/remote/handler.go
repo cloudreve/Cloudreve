@@ -215,6 +215,15 @@ func (handler Driver) Source(
 		return "", errors.New("无法解析远程服务端地址")
 	}
 
+	// 是否启用了CDN
+	if handler.Policy.BaseURL != "" {
+		cdnURL, err := url.Parse(handler.Policy.BaseURL)
+		if err != nil {
+			return "", err
+		}
+		serverURL = cdnURL
+	}
+
 	var (
 		signedURI  *url.URL
 		controller = "/api/v3/slave/download"
