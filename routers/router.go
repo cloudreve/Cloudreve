@@ -220,6 +220,11 @@ func InitMasterRouter() *gin.Engine {
 					middleware.OneDriveCallbackAuth(),
 					controllers.OneDriveCallback,
 				)
+				// 文件上传完成
+				onedrive.GET(
+					"auth",
+					controllers.OneDriveOAuth,
+				)
 			}
 			// 腾讯云COS策略上传回调
 			callback.GET(
@@ -338,6 +343,8 @@ func InitMasterRouter() *gin.Engine {
 					policy.POST("cors", controllers.AdminAddCORS)
 					// 创建COS回调函数
 					policy.POST("scf", controllers.AdminAddSCF)
+					// 获取 OneDrive OAuth URL
+					policy.GET(":id/oauth", controllers.AdminOneDriveOAuth)
 				}
 
 			}

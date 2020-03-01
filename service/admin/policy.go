@@ -2,16 +2,20 @@ package admin
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
 	"net/http"
 	"net/url"
@@ -43,8 +47,32 @@ type AddPolicyService struct {
 
 // PolicyService 存储策略ID服务
 type PolicyService struct {
-	ID     uint   `json:"id" binding:"required"`
+	ID     uint   `uri:"id" json:"id" binding:"required"`
 	Region string `json:"region"`
+}
+
+// GetOAuth 获取 OneDrive OAuth 地址
+func (service *PolicyService) GetOAuth(c *gin.Context) serializer.Response {
+	policy, err := model.GetPolicyByID(service.ID)
+	if err != nil || policy.Type != "onedrive" {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", nil)
+	}
+
+	client, err := onedrive.NewClient(&policy)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "无法初始化 OneDrive 客户端", err)
+	}
+
+	util.SetSession(c, map[string]interface{}{
+		"onedrive_oauth_policy": policy.ID,
+	})
+
+	cache.Deletes([]string{policy.BucketName}, "onedrive_")
+
+	return serializer.Response{Data: client.OAuthURL(context.Background(), []string{
+		"offline_access",
+		"files.readwrite.all",
+	})}
 }
 
 // AddSCF 创建回调云函数

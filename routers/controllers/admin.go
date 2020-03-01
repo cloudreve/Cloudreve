@@ -184,11 +184,22 @@ func AdminAddCORS(c *gin.Context) {
 	}
 }
 
-// AdminAddCORS 创建跨域策略
+// AdminAddSCF 创建回调函数
 func AdminAddSCF(c *gin.Context) {
 	var service admin.PolicyService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.AddSCF()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminOneDriveOAuth 获取 OneDrive OAuth URL
+func AdminOneDriveOAuth(c *gin.Context) {
+	var service admin.PolicyService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.GetOAuth(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

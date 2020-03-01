@@ -77,6 +77,17 @@ func OneDriveCallback(c *gin.Context) {
 	}
 }
 
+// OneDriveOAuth OneDrive 授权回调
+func OneDriveOAuth(c *gin.Context) {
+	var callbackBody callback.OneDriveOauthService
+	if err := c.ShouldBindQuery(&callbackBody); err == nil {
+		res := callbackBody.Auth(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // COSCallback COS上传完成客户端回调
 func COSCallback(c *gin.Context) {
 	var callbackBody callback.COSCallback
