@@ -334,8 +334,10 @@ func InitMasterRouter() *gin.Engine {
 					policy.POST("test/slave", controllers.AdminTestSlave)
 					// 创建存储策略
 					policy.POST("", controllers.AdminAddPolicy)
-					// 创建存储策略
+					// 创建跨域策略
 					policy.POST("cors", controllers.AdminAddCORS)
+					// 创建COS回调函数
+					policy.POST("scf", controllers.AdminAddSCF)
 				}
 
 			}

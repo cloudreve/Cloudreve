@@ -46,6 +46,27 @@ type Driver struct {
 	HTTPClient request.Client
 }
 
+// CORS 创建跨域策略
+func (handler Driver) CORS() error {
+	_, err := handler.Client.Bucket.PutCORS(context.Background(), &cossdk.BucketPutCORSOptions{
+		Rules: []cossdk.BucketCORSRule{{
+			AllowedMethods: []string{
+				"GET",
+				"POST",
+				"PUT",
+				"DELETE",
+				"HEAD",
+			},
+			AllowedOrigins: []string{"*"},
+			AllowedHeaders: []string{"*"},
+			MaxAgeSeconds:  3600,
+			ExposeHeaders:  []string{},
+		}},
+	})
+
+	return err
+}
+
 // Get 获取文件
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 获取文件源地址
@@ -221,11 +242,15 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 			map[string]string{"$key": savePath},
 			map[string]string{"x-cos-meta-callback": apiURL},
 			map[string]string{"x-cos-meta-key": key},
-			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize},
 			map[string]string{"q-sign-algorithm": "sha1"},
 			map[string]string{"q-ak": handler.Policy.AccessKey},
 			map[string]string{"q-sign-time": keyTime},
 		},
+	}
+
+	if handler.Policy.MaxSize > 0 {
+		postPolicy.Conditions = append(postPolicy.Conditions,
+			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
 	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime)

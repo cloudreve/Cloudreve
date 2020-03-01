@@ -6,6 +6,7 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/authn"
 	"github.com/HFO4/cloudreve/pkg/qq"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/thumb"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -298,6 +299,7 @@ func UploadAvatar(c *gin.Context) {
 	// 取得头像上传大小限制
 	maxSize := model.GetIntSetting("avatar_size", 2097152)
 	if c.Request.ContentLength == -1 || c.Request.ContentLength > int64(maxSize) {
+		request.BlackHole(c.Request.Body)
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, "头像尺寸太大", nil))
 		return
 	}

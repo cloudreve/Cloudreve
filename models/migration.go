@@ -108,6 +108,7 @@ solid #e9e9e9;"bgcolor="#fff"><tbody><tr style="font-family: 'Helvetica Neue',He
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
 		{Name: "aria2_call_timeout", Value: `5`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
+		{Name: "reset_after_upload_failed", Value: `0`, Type: "upload"},
 		{Name: "login_captcha", Value: `0`, Type: "login"},
 		{Name: "qq_login", Value: `0`, Type: "login"},
 		{Name: "qq_direct_login", Value: `0`, Type: "login"},

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -270,4 +271,14 @@ func (instance NopRSCloser) Seek(offset int64, whence int) (int64, error) {
 	}
 	return 0, errors.New("未实现")
 
+}
+
+// BlackHole 将客户端发来的数据放入黑洞
+func BlackHole(r io.Reader) {
+	if !model.IsTrueVal(model.GetSettingByName("reset_after_upload_failed")) {
+		_, err := io.Copy(ioutil.Discard, r)
+		if err != nil {
+			util.Log().Debug("黑洞数据出错，%s", err)
+		}
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/explorer"
 	"github.com/gin-gonic/gin"
@@ -276,6 +277,7 @@ func FileUploadStream(c *gin.Context) {
 
 	// 非可用策略时拒绝上传
 	if user, ok := c.Get("user"); ok && !user.(*model.User).Policy.IsTransitUpload(fileSize) {
+		request.BlackHole(c.Request.Body)
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
 		return
 	}

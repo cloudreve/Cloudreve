@@ -7,10 +7,13 @@ import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
+	cossdk "github.com/tencentyun/cos-go-sdk-v5"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -40,7 +43,22 @@ type AddPolicyService struct {
 
 // PolicyService 存储策略ID服务
 type PolicyService struct {
-	ID uint `json:"id" binding:"required"`
+	ID     uint   `json:"id" binding:"required"`
+	Region string `json:"region"`
+}
+
+// AddSCF 创建回调云函数
+func (service *PolicyService) AddSCF() serializer.Response {
+	policy, err := model.GetPolicyByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", nil)
+	}
+
+	if err := cos.CreateSCF(&policy, service.Region); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "云函数创建失败", err)
+	}
+
+	return serializer.Response{}
 }
 
 // AddCORS 创建跨域策略
@@ -55,6 +73,22 @@ func (service *PolicyService) AddCORS() serializer.Response {
 		handler := oss.Driver{
 			Policy:     &policy,
 			HTTPClient: request.HTTPClient{},
+		}
+		if err := handler.CORS(); err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
+		}
+	case "cos":
+		u, _ := url.Parse(policy.Server)
+		b := &cossdk.BaseURL{BucketURL: u}
+		handler := cos.Driver{
+			Policy:     &policy,
+			HTTPClient: request.HTTPClient{},
+			Client: cossdk.NewClient(b, &http.Client{
+				Transport: &cossdk.AuthorizationTransport{
+					SecretID:  policy.AccessKey,
+					SecretKey: policy.SecretKey,
+				},
+			}),
 		}
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)

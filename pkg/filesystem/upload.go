@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	// 上传前的钩子
 	err = fs.Trigger(ctx, "BeforeUpload")
 	if err != nil {
+		request.BlackHole(file)
 		return err
 	}
 
