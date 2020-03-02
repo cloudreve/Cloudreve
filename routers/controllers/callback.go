@@ -5,6 +5,8 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/callback"
 	"github.com/gin-gonic/gin"
+	"net/url"
+	"strconv"
 )
 
 // RemoteCallback 远程上传回调
@@ -82,7 +84,13 @@ func OneDriveOAuth(c *gin.Context) {
 	var callbackBody callback.OneDriveOauthService
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
 		res := callbackBody.Auth(c)
-		c.JSON(200, res)
+		redirect, _ := url.Parse("/admin/policy")
+		queries := redirect.Query()
+		queries.Add("code", strconv.Itoa(res.Code))
+		queries.Add("msg", res.Msg)
+		queries.Add("err", res.Error)
+		redirect.RawQuery = queries.Encode()
+		c.Redirect(301, "/#"+redirect.String())
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

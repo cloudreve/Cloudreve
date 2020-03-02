@@ -21,6 +21,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -49,6 +50,52 @@ type AddPolicyService struct {
 type PolicyService struct {
 	ID     uint   `uri:"id" json:"id" binding:"required"`
 	Region string `json:"region"`
+}
+
+// Delete 删除存储策略
+func (service *PolicyService) Delete() serializer.Response {
+	policy, err := model.GetPolicyByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+	}
+
+	// 检查是否有文件使用
+	total := 0
+	row := model.DB.Model(&model.File{}).Where("policy_id = ?", service.ID).
+		Select("count(id)").Row()
+	row.Scan(&total)
+	if total > 0 {
+		return serializer.ParamErr(fmt.Sprintf("有 %d 个文件仍在使用此存储策略，请先删除这些文件", total), nil)
+	}
+
+	// 检查用户组使用
+	var groups []model.Group
+	model.DB.Model(&model.Group{}).Where(
+		"policies like ?  OR policies like ? OR policies like ? OR policies like ?",
+		fmt.Sprintf("[%d,%%", service.ID),
+		fmt.Sprintf("%%,%d]", service.ID),
+		fmt.Sprintf("%%,%d,%%", service.ID),
+		fmt.Sprintf("%%[%d]%%", service.ID),
+	).Find(&groups)
+
+	if len(groups) > 0 {
+		return serializer.ParamErr(fmt.Sprintf("有 %d 个用户组绑定了此存储策略，请先解除绑定", len(groups)), nil)
+	}
+
+	model.DB.Delete(&policy)
+	policy.ClearCache()
+
+	return serializer.Response{}
+}
+
+// Get 获取存储策略详情
+func (service *PolicyService) Get() serializer.Response {
+	policy, err := model.GetPolicyByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+	}
+
+	return serializer.Response{Data: policy}
 }
 
 // GetOAuth 获取 OneDrive OAuth 地址
@@ -195,9 +242,20 @@ func (service *SlaveTestService) Test() serializer.Response {
 
 // Add 添加存储策略
 func (service *AddPolicyService) Add() serializer.Response {
-	if err := model.DB.Create(&service.Policy).Error; err != nil {
-		return serializer.ParamErr("存储策略添加失败", err)
+	service.Policy.DirNameRule = strings.TrimPrefix(service.Policy.DirNameRule, "/")
+
+	if service.Policy.ID > 0 {
+		if err := model.DB.Save(&service.Policy).Error; err != nil {
+			return serializer.ParamErr("存储策略保存失败", err)
+		}
+	} else {
+		if err := model.DB.Create(&service.Policy).Error; err != nil {
+			return serializer.ParamErr("存储策略添加失败", err)
+		}
 	}
+
+	service.Policy.ClearCache()
+
 	return serializer.Response{Data: service.Policy.ID}
 }
 

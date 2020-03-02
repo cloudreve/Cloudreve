@@ -345,6 +345,10 @@ func InitMasterRouter() *gin.Engine {
 					policy.POST("scf", controllers.AdminAddSCF)
 					// 获取 OneDrive OAuth URL
 					policy.GET(":id/oauth", controllers.AdminOneDriveOAuth)
+					// 获取 存储策略
+					policy.GET(":id", controllers.AdminGetPolicy)
+					// 删除 存储策略
+					policy.DELETE(":id", controllers.AdminDeletePolicy)
 				}
 
 			}

@@ -3,6 +3,7 @@ package callback
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
@@ -11,13 +12,21 @@ import (
 
 // OneDriveOauthService OneDrive 授权回调服务
 type OneDriveOauthService struct {
-	Code string `form:"code" binding:"required"`
+	Code     string `form:"code"`
+	Error    string `form:"error"`
+	ErrorMsg string `form:"error_description"`
 }
 
 // Auth 更新认证信息
 func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
-	policyId := util.GetSession(c, "onedrive_oauth_policy").(uint)
-	policy, err := model.GetPolicyByID(policyId)
+	if service.Error != "" {
+		return serializer.ParamErr(service.ErrorMsg, nil)
+	}
+
+	policyID := util.GetSession(c, "onedrive_oauth_policy").(uint)
+	util.DeleteSession(c, "onedrive_oauth_policy")
+
+	policy, err := model.GetPolicyByID(policyID)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", nil)
 	}
@@ -36,6 +45,8 @@ func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
 	if err := client.Policy.UpdateAccessKey(credential.RefreshToken); err != nil {
 		return serializer.DBErr("无法更新 RefreshToken", err)
 	}
+
+	cache.Deletes([]string{client.Policy.AccessKey}, "onedrive_")
 
 	return serializer.Response{}
 }

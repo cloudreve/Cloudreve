@@ -205,3 +205,25 @@ func AdminOneDriveOAuth(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminGetPolicy 获取存储策略详情
+func AdminGetPolicy(c *gin.Context) {
+	var service admin.PolicyService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeletePolicy 删除存储策略
+func AdminDeletePolicy(c *gin.Context) {
+	var service admin.PolicyService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
