@@ -32,8 +32,8 @@ type User struct {
 	Status          int
 	GroupID         uint
 	Storage         uint64
-	OpenID          string `json:"-"`
-	TwoFactor       string `json:"-"`
+	OpenID          string
+	TwoFactor       string
 	Avatar          string
 	Options         string `json:"-",gorm:"type:text"`
 	Authn           string `gorm:"type:text"`

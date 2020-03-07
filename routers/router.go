@@ -365,6 +365,12 @@ func InitMasterRouter() *gin.Engine {
 					group.DELETE(":id", controllers.AdminDeleteGroup)
 				}
 
+				user := admin.Group("user")
+				{
+					// 列出用户
+					user.POST("list", controllers.AdminListUser)
+				}
+
 			}
 
 			// 用户

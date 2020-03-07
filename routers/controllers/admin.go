@@ -271,3 +271,14 @@ func AdminGetGroup(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListUser 列出用户
+func AdminListUser(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Users()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
