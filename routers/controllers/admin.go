@@ -227,3 +227,47 @@ func AdminDeletePolicy(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListGroup 列出用户组
+func AdminListGroup(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Groups()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminAddGroup 新建用户组
+func AdminAddGroup(c *gin.Context) {
+	var service admin.AddGroupService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteGroup 删除用户组
+func AdminDeleteGroup(c *gin.Context) {
+	var service admin.GroupService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGetGroup 获取用户组详情
+func AdminGetGroup(c *gin.Context) {
+	var service admin.GroupService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

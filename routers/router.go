@@ -329,6 +329,7 @@ func InitMasterRouter() *gin.Engine {
 					aria2.POST("test", controllers.AdminTestAria2)
 				}
 
+				// 存储策略管理
 				policy := admin.Group("policy")
 				{
 					// 列出存储策略
@@ -349,6 +350,19 @@ func InitMasterRouter() *gin.Engine {
 					policy.GET(":id", controllers.AdminGetPolicy)
 					// 删除 存储策略
 					policy.DELETE(":id", controllers.AdminDeletePolicy)
+				}
+
+				// 用户组管理
+				group := admin.Group("group")
+				{
+					// 列出用户组
+					group.POST("list", controllers.AdminListGroup)
+					// 获取用户组
+					group.GET(":id", controllers.AdminGetGroup)
+					// 创建/保存用户组
+					group.POST("", controllers.AdminAddGroup)
+					// 删除
+					group.DELETE(":id", controllers.AdminDeleteGroup)
 				}
 
 			}

@@ -203,7 +203,6 @@ func addDefaultGroups() {
 			PolicyList:    []uint{1},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
-			Color:         "danger",
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
 				ArchiveDownload: true,
@@ -227,8 +226,10 @@ func addDefaultGroups() {
 			PolicyList:    []uint{1},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
-			Color:         "danger",
 			WebDAVEnabled: true,
+			OptionsSerialized: GroupOption{
+				ShareDownload: true,
+			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建初始注册会员用户组, %s", err)
@@ -240,8 +241,12 @@ func addDefaultGroups() {
 	// 未找到初始游客用户组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:     "游客",
-			Policies: "[]",
+			Name:       "游客",
+			PolicyList: []uint{},
+			Policies:   "[]",
+			OptionsSerialized: GroupOption{
+				ShareDownload: true,
+			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
 			util.Log().Panic("无法创建初始游客用户组, %s", err)

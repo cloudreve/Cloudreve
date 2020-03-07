@@ -13,7 +13,6 @@ type Group struct {
 	MaxStorage    uint64
 	ShareEnabled  bool
 	WebDAVEnabled bool
-	Color         string
 	SpeedLimit    int
 	Options       string `json:"-",gorm:"type:text"`
 
