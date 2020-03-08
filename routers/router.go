@@ -379,6 +379,14 @@ func InitMasterRouter() *gin.Engine {
 					user.PATCH("ban/:id", controllers.AdminBanUser)
 				}
 
+				file := admin.Group("file")
+				{
+					// 列出文件
+					file.POST("list", controllers.AdminListFile)
+					// 预览文件
+					file.GET("preview/:id", controllers.AdminGetFile)
+				}
+
 			}
 
 			// 用户

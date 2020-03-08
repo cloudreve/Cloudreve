@@ -326,3 +326,33 @@ func AdminBanUser(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListFile 列出文件
+func AdminListFile(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Files()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGetFile 获取文件
+func AdminGetFile(c *gin.Context) {
+	var service admin.FileService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get(c)
+		// 是否需要重定向
+		if res.Code == -301 {
+			c.Redirect(301, res.Data.(string))
+			return
+		}
+		// 是否有错误发生
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
