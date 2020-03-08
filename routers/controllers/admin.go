@@ -304,3 +304,25 @@ func AdminGetUser(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminDeleteUser 批量删除用户
+func AdminDeleteUser(c *gin.Context) {
+	var service admin.UserBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminBanUser 封禁/解封用户
+func AdminBanUser(c *gin.Context) {
+	var service admin.UserService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Ban()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

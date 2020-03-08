@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"strings"
 )
@@ -15,6 +17,77 @@ type AddUserService struct {
 // UserService 用户ID服务
 type UserService struct {
 	ID uint `uri:"id" json:"id" binding:"required"`
+}
+
+// UserBatchService 用户批量操作服务
+type UserBatchService struct {
+	ID []uint `json:"id" binding:"min=1"`
+}
+
+// Ban 封禁/解封用户
+func (service *UserService) Ban() serializer.Response {
+	user, err := model.GetUserByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+	}
+
+	if user.ID == 1 {
+		return serializer.Err(serializer.CodeNoPermissionErr, "无法封禁初始用户", err)
+	}
+
+	if user.Status == model.Active {
+		user.SetStatus(model.Baned)
+	} else {
+		user.SetStatus(model.Active)
+	}
+
+	return serializer.Response{Data: user.Status}
+}
+
+// Delete 删除用户
+func (service *UserBatchService) Delete() serializer.Response {
+	for _, uid := range service.ID {
+		user, err := model.GetUserByID(uid)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		}
+
+		// 不能删除初始用户
+		if uid == 1 {
+			return serializer.Err(serializer.CodeNoPermissionErr, "无法删除初始用户", err)
+		}
+
+		// 删除与此用户相关的所有资源
+
+		fs, err := filesystem.NewFileSystem(&user)
+		// 删除所有文件
+		root, err := fs.User.Root()
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, "无法找到用户根目录", err)
+		}
+		fs.Delete(context.Background(), []uint{root.ID}, []uint{})
+
+		// 删除相关任务
+		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})
+		model.DB.Where("user_id = ?", uid).Delete(&model.Task{})
+
+		// 删除订单记录
+		model.DB.Where("user_id = ?", uid).Delete(&model.Order{})
+
+		// 删除容量包
+		model.DB.Where("user_id = ?", uid).Delete(&model.StoragePack{})
+
+		// 删除标签
+		model.DB.Where("user_id = ?", uid).Delete(&model.Tag{})
+
+		// 删除WebDAV账号
+		model.DB.Where("user_id = ?", uid).Delete(&model.Webdav{})
+
+		// 删除此用户
+		model.DB.Unscoped().Delete(user)
+
+	}
+	return serializer.Response{}
 }
 
 // Get 获取用户详情

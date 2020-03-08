@@ -373,6 +373,10 @@ func InitMasterRouter() *gin.Engine {
 					user.GET(":id", controllers.AdminGetUser)
 					// 创建/保存用户
 					user.POST("", controllers.AdminAddUser)
+					// 删除
+					user.POST("delete", controllers.AdminDeleteUser)
+					// 封禁/解封用户
+					user.PATCH("ban/:id", controllers.AdminBanUser)
 				}
 
 			}
