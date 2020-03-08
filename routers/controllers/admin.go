@@ -282,3 +282,25 @@ func AdminListUser(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminAddUser 新建用户组
+func AdminAddUser(c *gin.Context) {
+	var service admin.AddUserService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGetUser 获取用户详情
+func AdminGetUser(c *gin.Context) {
+	var service admin.UserService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

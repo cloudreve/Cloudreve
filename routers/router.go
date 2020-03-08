@@ -369,6 +369,10 @@ func InitMasterRouter() *gin.Engine {
 				{
 					// 列出用户
 					user.POST("list", controllers.AdminListUser)
+					// 获取用户
+					user.GET(":id", controllers.AdminGetUser)
+					// 创建/保存用户
+					user.POST("", controllers.AdminAddUser)
 				}
 
 			}
