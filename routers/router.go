@@ -385,6 +385,14 @@ func InitMasterRouter() *gin.Engine {
 					file.POST("list", controllers.AdminListFile)
 					// 预览文件
 					file.GET("preview/:id", controllers.AdminGetFile)
+					// 删除
+					file.POST("delete", controllers.AdminDeleteFile)
+				}
+
+				share := admin.Group("share")
+				{
+					// 列出分享
+					share.POST("list", controllers.AdminListShare)
 				}
 
 			}

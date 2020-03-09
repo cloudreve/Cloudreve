@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/service/explorer"
@@ -13,6 +14,58 @@ import (
 // FileService 文件ID服务
 type FileService struct {
 	ID uint `uri:"id" json:"id" binding:"required"`
+}
+
+// FileBatchService 文件批量操作服务
+type FileBatchService struct {
+	ID []uint `json:"id" binding:"min=1"`
+}
+
+// Delete 删除文件
+func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
+	files, err := model.GetFilesByIDs(service.ID, 0)
+	if err != nil {
+		return serializer.DBErr("无法列出待删除文件", err)
+	}
+
+	// 根据用户分组
+	userFile := make(map[uint][]model.File)
+	for i := 0; i < len(files); i++ {
+		if _, ok := userFile[files[i].UserID]; !ok {
+			userFile[files[i].UserID] = []model.File{}
+		}
+		userFile[files[i].UserID] = append(userFile[files[i].UserID], files[i])
+	}
+
+	// 异步执行删除
+	go func(files map[uint][]model.File) {
+		for uid, file := range files {
+			user, err := model.GetUserByID(uid)
+			if err != nil {
+				continue
+			}
+
+			fs, err := filesystem.NewFileSystem(&user)
+			if err != nil {
+				fs.Recycle()
+				continue
+			}
+
+			// 汇总文件ID
+			ids := make([]uint, 0, len(file))
+			for i := 0; i < len(file); i++ {
+				ids = append(ids, file[i].ID)
+			}
+
+			// 执行删除
+			fs.Delete(context.Background(), []uint{}, ids)
+			fs.Recycle()
+		}
+	}(userFile)
+
+	// 分组执行删除
+	return serializer.Response{}
+
 }
 
 // Get 预览文件

@@ -356,3 +356,25 @@ func AdminGetFile(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminDeleteFile 批量删除文件
+func AdminDeleteFile(c *gin.Context) {
+	var service admin.FileBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListShare 列出分享
+func AdminListShare(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Shares()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
