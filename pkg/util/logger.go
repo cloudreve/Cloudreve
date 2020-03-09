@@ -17,7 +17,8 @@ const (
 	LevelDebug
 )
 
-var logger *Logger
+var GloablLogger *Logger
+var Level = LevelDebug
 
 // Logger 日志
 type Logger struct {
@@ -128,16 +129,16 @@ func BuildLogger(level string) {
 	l := Logger{
 		level: intLevel,
 	}
-	logger = &l
+	GloablLogger = &l
 }
 
 // Log 返回日志对象
 func Log() *Logger {
-	if logger == nil {
+	if GloablLogger == nil {
 		l := Logger{
-			level: LevelDebug,
+			level: Level,
 		}
-		logger = &l
+		GloablLogger = &l
 	}
-	return logger
+	return GloablLogger
 }

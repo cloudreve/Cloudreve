@@ -23,39 +23,39 @@ import (
 // ItemMoveService 处理多文件/目录移动
 type ItemMoveService struct {
 	SrcDir string        `json:"src_dir" binding:"required,min=1,max=65535"`
-	Src    ItemIDService `json:"src" binding:"exists"`
+	Src    ItemIDService `json:"src"`
 	Dst    string        `json:"dst" binding:"required,min=1,max=65535"`
 }
 
 // ItemRenameService 处理多文件/目录重命名
 type ItemRenameService struct {
-	Src     ItemIDService `json:"src" binding:"exists"`
+	Src     ItemIDService `json:"src"`
 	NewName string        `json:"new_name" binding:"required,min=1,max=255"`
 }
 
 // ItemService 处理多文件/目录相关服务
 type ItemService struct {
-	Items []uint `json:"items" binding:"exists"`
-	Dirs  []uint `json:"dirs" binding:"exists"`
+	Items []uint `json:"items"`
+	Dirs  []uint `json:"dirs"`
 }
 
 // ItemIDService 处理多文件/目录相关服务，字段值为HashID，可通过Raw()方法获取原始ID
 type ItemIDService struct {
-	Items  []string `json:"items" binding:"exists"`
-	Dirs   []string `json:"dirs" binding:"exists"`
+	Items  []string `json:"items"`
+	Dirs   []string `json:"dirs"`
 	Source *ItemService
 }
 
 // ItemCompressService 文件压缩任务服务
 type ItemCompressService struct {
-	Src  ItemIDService `json:"src" binding:"exists"`
+	Src  ItemIDService `json:"src"`
 	Dst  string        `json:"dst" binding:"required,min=1,max=65535"`
 	Name string        `json:"name" binding:"required,min=1,max=255"`
 }
 
 // ItemDecompressService 文件解压缩任务服务
 type ItemDecompressService struct {
-	Src string `json:"src" binding:"exists"`
+	Src string `json:"src"`
 	Dst string `json:"dst" binding:"required,min=1,max=65535"`
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"github.com/HFO4/cloudreve/bootstrap/constant"
+	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -19,6 +20,17 @@ var APPID string
 
 // InitApplication 初始化应用常量
 func InitApplication() {
+	fmt.Print(`
+   ___ _                 _                    
+  / __\ | ___  _   _  __| |_ __ _____   _____ 
+ / /  | |/ _ \| | | |/ _ | '__/ _ \ \ / / _ \	
+/ /___| | (_) | |_| | (_| | | |  __/\ V /  __/
+\____/|_|\___/ \__,_|\__,_|_|  \___| \_/ \___|
+
+V` + conf.BackendVersion + `  Commit #` + conf.LastCommit + `  Pro=` + conf.IsPro + `
+================================================
+
+`)
 	data, err := ioutil.ReadFile(string([]byte{107, 101, 121, 46, 98, 105, 110}))
 	if err != nil {
 		util.Log().Panic("%s", err)

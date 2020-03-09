@@ -89,7 +89,7 @@ func Init(path string) {
 			"{SessionSecret}": util.RandStringRunes(64),
 			"{HashIDSalt}":    util.RandStringRunes(64),
 		}, defaultConf)
-		f, err := util.CreatNestedFile("conf.ini")
+		f, err := util.CreatNestedFile(path)
 		if err != nil {
 			util.Log().Panic("无法创建配置文件, %s", err)
 		}
@@ -101,7 +101,6 @@ func Init(path string) {
 		}
 
 		f.Close()
-		path = "conf.ini"
 	}
 
 	cfg, err = ini.Load(path)
@@ -123,6 +122,13 @@ func Init(path string) {
 		if err != nil {
 			util.Log().Panic("配置文件 %s 分区解析失败: %s", sectionName, err)
 		}
+	}
+
+	// 重设log等级
+	if !SystemConfig.Debug {
+		util.Level = util.LevelInformational
+		util.GloablLogger = nil
+		util.Log()
 	}
 
 }

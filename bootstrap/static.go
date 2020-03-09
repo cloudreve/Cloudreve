@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	_ "github.com/HFO4/cloudreve/statik"
+	"github.com/gin-contrib/static"
 	"github.com/rakyll/statik/fs"
 	"net/http"
 )
@@ -12,7 +13,7 @@ type GinFS struct {
 }
 
 // StaticFS 内置静态文件资源
-var StaticFS = &GinFS{}
+var StaticFS static.ServeFileSystem
 
 // Open 打开文件
 func (b *GinFS) Open(name string) (http.File, error) {
@@ -32,8 +33,16 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 // InitStatic 初始化静态资源文件
 func InitStatic() {
 	var err error
-	StaticFS.FS, err = fs.New()
-	if err != nil {
-		util.Log().Panic("无法初始化静态资源, %s", err)
+
+	if util.Exists("statics") {
+		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
+		StaticFS = static.LocalFile("statics", false)
+	} else {
+		StaticFS = &GinFS{}
+		StaticFS.(*GinFS).FS, err = fs.New()
+		if err != nil {
+			util.Log().Panic("无法初始化静态资源, %s", err)
+		}
 	}
+
 }

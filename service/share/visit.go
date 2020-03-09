@@ -35,8 +35,8 @@ type Service struct {
 // ArchiveService 分享归档下载服务
 type ArchiveService struct {
 	Path  string   `json:"path" binding:"required,max=65535"`
-	Items []string `json:"items" binding:"exists"`
-	Dirs  []string `json:"dirs" binding:"exists"`
+	Items []string `json:"items"`
+	Dirs  []string `json:"dirs"`
 }
 
 // ShareListService 列出分享
