@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 
 REPO=$(cd $(dirname $0); pwd)
 COMMIT_SHA=$(git rev-parse --short HEAD)
