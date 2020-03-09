@@ -27,6 +27,7 @@ func Init(path string) {
 		aria2.Init(false)
 		email.Init()
 		crontab.Init()
+		InitStatic()
 	}
 	auth.Init()
 }

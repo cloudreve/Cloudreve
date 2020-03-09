@@ -3,7 +3,7 @@ package conf
 import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/go-ini/ini"
-	"gopkg.in/go-playground/validator.v8"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // database 数据库
@@ -135,7 +135,7 @@ func mapSection(section string, confStruct interface{}) error {
 	}
 
 	// 验证合法性
-	validate := validator.New(&validator.Config{TagName: "validate"})
+	validate := validator.New()
 	err = validate.Struct(confStruct)
 	if err != nil {
 		return err

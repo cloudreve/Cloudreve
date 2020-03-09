@@ -5,7 +5,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/go-playground/validator.v8"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 // ParamErrorMsg 根据Validator返回的错误信息给出错误提示
@@ -41,7 +41,7 @@ func ErrorResponse(err error) serializer.Response {
 	if ve, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range ve {
 			return serializer.ParamErr(
-				ParamErrorMsg(e.Field, e.Tag),
+				ParamErrorMsg(e.Field(), e.Tag()),
 				err,
 			)
 		}

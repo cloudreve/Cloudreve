@@ -12,7 +12,8 @@ require (
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-contrib/pprof v1.2.1
 	github.com/gin-contrib/sessions v0.0.1
-	github.com/gin-gonic/gin v1.4.0
+	github.com/gin-contrib/static v0.0.0-20191128031702-f81c604d8ac2
+	github.com/gin-gonic/gin v1.5.0
 	github.com/go-ini/ini v1.50.0
 	github.com/go-mail/mail v2.3.1+incompatible
 	github.com/gofrs/uuid v3.2.0+incompatible
@@ -30,7 +31,7 @@ require (
 	github.com/qingwg/payjs v0.0.0-20190928033402-c53dbe16b371
 	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
-	github.com/rakyll/statik v0.1.7 // indirect
+	github.com/rakyll/statik v0.1.7
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sec51/convert v0.0.0-20190309075348-ebe586d87951 // indirect
 	github.com/sec51/cryptoengine v0.0.0-20180911112225-2306d105a49e // indirect
@@ -46,5 +47,6 @@ require (
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	golang.org/x/text v0.3.2
 	gopkg.in/go-playground/validator.v8 v8.18.2
+	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/ini.v1 v1.51.0 // indirect
 )
