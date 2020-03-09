@@ -30,6 +30,7 @@ require (
 	github.com/qingwg/payjs v0.0.0-20190928033402-c53dbe16b371
 	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
+	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sec51/convert v0.0.0-20190309075348-ebe586d87951 // indirect
 	github.com/sec51/cryptoengine v0.0.0-20180911112225-2306d105a49e // indirect
