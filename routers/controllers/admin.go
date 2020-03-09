@@ -378,3 +378,14 @@ func AdminListShare(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminDeleteShare 批量删除分享
+func AdminDeleteShare(c *gin.Context) {
+	var service admin.ShareBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

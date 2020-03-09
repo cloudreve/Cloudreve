@@ -393,6 +393,8 @@ func InitMasterRouter() *gin.Engine {
 				{
 					// 列出分享
 					share.POST("list", controllers.AdminListShare)
+					// 删除
+					share.POST("delete", controllers.AdminDeleteShare)
 				}
 
 			}
