@@ -397,6 +397,30 @@ func InitMasterRouter() *gin.Engine {
 					share.POST("delete", controllers.AdminDeleteShare)
 				}
 
+				order := admin.Group("order")
+				{
+					// 列出订单
+					order.POST("list", controllers.AdminListOrder)
+					// 删除
+					order.POST("delete", controllers.AdminDeleteOrder)
+				}
+
+				download := admin.Group("download")
+				{
+					// 列出任务
+					download.POST("list", controllers.AdminListDownload)
+					// 删除
+					download.POST("delete", controllers.AdminDeleteDownload)
+				}
+
+				task := admin.Group("task")
+				{
+					// 列出任务
+					task.POST("list", controllers.AdminListTask)
+					// 删除
+					task.POST("delete", controllers.AdminDeleteTask)
+				}
+
 			}
 
 			// 用户

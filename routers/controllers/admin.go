@@ -389,3 +389,69 @@ func AdminDeleteShare(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListOrder 列出订单
+func AdminListOrder(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Orders()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteOrder 批量删除订单
+func AdminDeleteOrder(c *gin.Context) {
+	var service admin.OrderBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListDownload 列出离线下载任务
+func AdminListDownload(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Downloads()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteDownload 批量删除任务
+func AdminDeleteDownload(c *gin.Context) {
+	var service admin.TaskBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListTask 列出任务
+func AdminListTask(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Tasks()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteTask 批量删除任务
+func AdminDeleteTask(c *gin.Context) {
+	var service admin.TaskBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.DeleteGeneral(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
