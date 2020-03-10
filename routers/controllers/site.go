@@ -120,7 +120,7 @@ func Manifest(c *gin.Context) {
 				"sizes": "512x512",
 			},
 		},
-		"start_url":        "/",
+		"start_url":        ".",
 		"display":          options["pwa_display"],
 		"theme_color":      options["pwa_theme_color"],
 		"background_color": options["pwa_background_color"],
