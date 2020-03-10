@@ -46,7 +46,7 @@ var spaces = map[string]string{
 // Println 打印
 func (ll *Logger) Println(prefix string, msg string) {
 	// TODO Release时去掉
-	color.NoColor = false
+	// color.NoColor = false
 
 	c := color.New()
 	_, _ = c.Printf(

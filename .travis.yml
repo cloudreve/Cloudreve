@@ -3,7 +3,12 @@ go:
   - 1.13.x
 git:
   depth: 1
-script:
-  - go test -coverprofile=coverage.txt -covermode=atomic ./...
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+install:
+  - sudo apt install gcc-mingw-w64
+  - chmod +x ./build.sh
+script:  
+  - ./build.sh -r b
+# script:
+#   - go test -coverprofile=coverage.txt -covermode=atomic ./...
+# after_success:
+#   - bash <(curl -s https://codecov.io/bash)

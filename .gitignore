@@ -6,6 +6,7 @@
 *.dylib
 *.db
 *.bin
+/release/
 
 # Test binary, build with `go test -c`
 *.test

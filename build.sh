@@ -26,6 +26,7 @@ buildAssets () {
   yarn run build
 
   if ! [ -x "$(command -v statik)" ]; then
+    export CGO_ENABLED=0
     go get github.com/rakyll/statik
   fi
 
@@ -43,21 +44,34 @@ _build() {
     IFS=/ read -r -a arr <<<"$osarch"
     os="${arr[0]}"
     arch="${arr[1]}"
+    gcc="${arr[2]}"
 
     # Go build to build the binary.
     export GOOS=$os
     export GOARCH=$arch
+    export CC=$gcc
+    export CGO_ENABLED=1
 
-    go build -a -o cloudreve_$VERSION_$GOOS_$GOARCH -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+    out="release/cloudreve_${VERSION}_${os}_${arch}"
+    go build -a -o "${out}" -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+
+    if [ "$os" = "windows" ]; then
+      mv $out release/cloudreve.exe
+      zip -j -q "${out}.zip" release/cloudreve.exe
+      rm -f "release/cloudreve.exe"
+    else
+      mv $out release/cloudreve
+      tar -zcvf "${out}.tar.gz" -C release cloudreve
+      rm -f "release/cloudreve"
+    fi
 }
 
 release(){
   cd $REPO
-  export CGO_ENABLED=1
   ## List of architectures and OS to test coss compilation.
-  SUPPORTED_OSARCH="linux/arm64 darwin/amd64 windows/amd64 linux/arm linux/386 windows/386"
+  SUPPORTED_OSARCH="linux/amd64/gcc linux/arm/arm-linux-gnueabihf-gcc windows/amd64/x86_64-w64-mingw32-gcc"
 
-  echo "Release builds for OS/Arch: ${SUPPORTED_OSARCH}"
+  echo "Release builds for OS/Arch/CC: ${SUPPORTED_OSARCH}"
   for each_osarch in ${SUPPORTED_OSARCH}; do
       _build "${each_osarch}"
   done
@@ -81,7 +95,7 @@ while getopts "bacr:d" o; do
       BINARY="true"
       ;;
     r)
-      ASSETS="true"
+      # ASSETS="true"
       RELEASE="true"
       ;;
     d)
