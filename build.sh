@@ -95,7 +95,7 @@ while getopts "bacr:d" o; do
       BINARY="true"
       ;;
     r)
-      # ASSETS="true"
+      ASSETS="true"
       RELEASE="true"
       ;;
     d)
