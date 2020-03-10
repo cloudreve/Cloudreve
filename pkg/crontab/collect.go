@@ -30,7 +30,7 @@ func collectArchiveFile() {
 	// 列出文件
 	root := filepath.Join(tempPath, "archive")
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() &&
+		if err != nil && !info.IsDir() &&
 			strings.HasPrefix(filepath.Base(path), "archive_") &&
 			time.Now().Sub(info.ModTime()).Seconds() > float64(expires) {
 			util.Log().Debug("删除过期打包下载临时文件 [%s]", path)
