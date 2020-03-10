@@ -66,9 +66,6 @@ func addDefaultPolicy() {
 			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
 			IsOriginLinkEnable: false,
-			OptionsSerialized: PolicyOption{
-				FileType: []string{},
-			},
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
 			util.Log().Panic("无法创建初始存储策略, %s", err)
