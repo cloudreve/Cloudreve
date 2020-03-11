@@ -6,7 +6,7 @@ git:
 install:
   - go get github.com/rakyll/statik
   - sudo apt-get -y install gcc-mingw-w64-x86-64
-  - sudo apt-get -y install gcc-arm-linux-gnueabihf,libc6-armhf
+  - sudo apt-get -y install gcc-arm-linux-gnueabihf libc6-armhf libc6-dev-armhf
 before_script:
   - statik -src=models -f
   - chmod +x ./build.sh
