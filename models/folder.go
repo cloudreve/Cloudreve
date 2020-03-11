@@ -15,7 +15,6 @@ type Folder struct {
 	Name     string `gorm:"unique_index:idx_only_one_name"`
 	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
 	OwnerID  uint   `gorm:"index:owner_id"`
-	PolicyID uint   // Webdav下挂载的存储策略ID
 
 	// 数据库忽略字段
 	Position string `gorm:"-"`
@@ -28,13 +27,6 @@ func (folder *Folder) Create() (uint, error) {
 		return 0, err
 	}
 	return folder.ID, nil
-}
-
-// GetMountedFolders 列出已挂载存储策略的目录
-func GetMountedFolders(uid uint) []Folder {
-	var folders []Folder
-	DB.Where("owner_id = ? and policy_id <> ?", uid, 0).Find(&folders)
-	return folders
 }
 
 // GetChild 返回folder下名为name的子目录，不存在则返回错误
@@ -270,11 +262,6 @@ func (folder *Folder) Rename(new string) error {
 		return err
 	}
 	return nil
-}
-
-// Mount 目录挂载
-func (folder *Folder) Mount(new uint) error {
-	return DB.Model(&folder).Update("policy_id", new).Error
 }
 
 /*

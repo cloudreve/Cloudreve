@@ -8,7 +8,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"strings"
-	"time"
 )
 
 const (
@@ -26,21 +25,16 @@ const (
 type User struct {
 	// 表字段
 	gorm.Model
-	Email           string `gorm:"type:varchar(100);unique_index"`
-	Nick            string `gorm:"size:50"`
-	Password        string `json:"-"`
-	Status          int
-	GroupID         uint
-	Storage         uint64
-	OpenID          string
-	TwoFactor       string
-	Avatar          string
-	Options         string `json:"-",gorm:"type:text"`
-	Authn           string `gorm:"type:text"`
-	Score           int
-	PreviousGroupID uint       // 初始用户组
-	GroupExpires    *time.Time // 用户组过期日期
-	NotifyDate      *time.Time // 通知超出配额时的日期
+	Email     string `gorm:"type:varchar(100);unique_index"`
+	Nick      string `gorm:"size:50"`
+	Password  string `json:"-"`
+	Status    int
+	GroupID   uint
+	Storage   uint64
+	TwoFactor string
+	Avatar    string
+	Options   string `json:"-",gorm:"type:text"`
+	Authn     string `gorm:"type:text"`
 
 	// 关联模型
 	Group  Group  `gorm:"save_associations:false:false"`
@@ -52,9 +46,8 @@ type User struct {
 
 // UserOption 用户个性化配置字段
 type UserOption struct {
-	ProfileOff      bool   `json:"profile_off,omitempty"`
-	PreferredPolicy uint   `json:"preferred_policy,omitempty"`
-	PreferredTheme  string `json:"preferred_theme,omitempty"`
+	ProfileOff     bool   `json:"profile_off,omitempty"`
+	PreferredTheme string `json:"preferred_theme,omitempty"`
 }
 
 // Root 获取用户的根目录
@@ -94,25 +87,6 @@ func (user *User) IncreaseStorage(size uint64) bool {
 	return false
 }
 
-// PayScore 扣除积分，返回是否成功
-func (user *User) PayScore(score int) bool {
-	if score == 0 {
-		return true
-	}
-	if score <= user.Score {
-		user.Score -= score
-		DB.Model(user).Update("score", gorm.Expr("score - ?", score))
-		return true
-	}
-	return false
-}
-
-// AddScore 增加积分
-func (user *User) AddScore(score int) {
-	user.Score += score
-	DB.Model(user).Update("score", gorm.Expr("score + ?", score))
-}
-
 // IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
 func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 	if size == 0 {
@@ -125,7 +99,7 @@ func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 
 // GetRemainingCapacity 获取剩余配额
 func (user *User) GetRemainingCapacity() uint64 {
-	total := user.Group.MaxStorage + user.GetAvailablePackSize()
+	total := user.Group.MaxStorage
 	if total <= user.Storage {
 		return 0
 	}
@@ -134,26 +108,7 @@ func (user *User) GetRemainingCapacity() uint64 {
 
 // GetPolicyID 获取用户当前的存储策略ID
 func (user *User) GetPolicyID(prefer uint) uint {
-	if prefer == 0 {
-		prefer = user.OptionsSerialized.PreferredPolicy
-	}
-	// 用户未指定时，返回可用的第一个
-	if prefer == 0 {
-		if len(user.Group.PolicyList) != 0 {
-			return user.Group.PolicyList[0]
-		}
-		return 1
-	}
-	// 用户指定时，先检查是否为可用策略列表中的值
-	if util.ContainsUint(user.Group.PolicyList, prefer) {
-		return prefer
-	}
-	// 不可用时，返回第一个
-	if len(user.Group.PolicyList) != 0 {
-		return user.Group.PolicyList[0]
-	}
-	return 1
-
+	return user.Group.PolicyList[0]
 }
 
 // GetUserByID 用ID获取用户
@@ -281,20 +236,6 @@ func (user *User) IsAnonymous() bool {
 	return user.ID == 0
 }
 
-// Notified 更新用户容量超额通知日期
-func (user *User) Notified() {
-	if user.NotifyDate == nil {
-		timeNow := time.Now()
-		user.NotifyDate = &timeNow
-		DB.Model(&user).Update("notify_date", user.NotifyDate)
-	}
-}
-
-// ClearNotified 清除用户通知标记
-func (user *User) ClearNotified() {
-	DB.Model(&user).Update("notify_date", nil)
-}
-
 // SetStatus 设定用户状态
 func (user *User) SetStatus(status int) {
 	DB.Model(&user).Update("status", status)
@@ -311,42 +252,4 @@ func (user *User) UpdateOptions() error {
 		return err
 	}
 	return user.Update(map[string]interface{}{"options": user.Options})
-}
-
-// GetGroupExpiredUsers 获取用户组过期的用户
-func GetGroupExpiredUsers() []User {
-	var users []User
-	DB.Where("group_expires < ? and previous_group_id <> 0", time.Now()).Find(&users)
-	return users
-}
-
-// GetTolerantExpiredUser 获取超过宽容期的用户
-func GetTolerantExpiredUser() []User {
-	var users []User
-	DB.Set("gorm:auto_preload", true).Where("notify_date < ?", time.Now().Add(
-		time.Duration(-GetIntSetting("ban_time", 10))*time.Second),
-	).Find(&users)
-	return users
-}
-
-// GroupFallback 回退到初始用户组
-func (user *User) GroupFallback() {
-	if user.GroupExpires != nil && user.PreviousGroupID != 0 {
-		user.Group.ID = user.PreviousGroupID
-		DB.Model(&user).Updates(map[string]interface{}{
-			"group_expires":     nil,
-			"previous_group_id": 0,
-			"group_id":          user.PreviousGroupID,
-		})
-	}
-}
-
-// UpgradeGroup 升级用户组
-func (user *User) UpgradeGroup(id uint, expires *time.Time) error {
-	user.Group.ID = id
-	return DB.Model(&user).Updates(map[string]interface{}{
-		"group_expires":     expires,
-		"previous_group_id": user.GroupID,
-		"group_id":          id,
-	}).Error
 }

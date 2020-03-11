@@ -22,17 +22,6 @@ func (pay *ScorePayment) Create(order *model.Order, pack *serializer.PackProduct
 		return nil, ErrUnsupportedPaymentMethod
 	}
 
-	// 扣除用户积分
-	if !user.PayScore(order.Price * order.Num) {
-		return nil, ErrScoreNotEnough
-	}
-
-	// 商品“发货”
-	if err := GiveProduct(user, pack, group, order.Num); err != nil {
-		user.AddScore(order.Price * order.Num)
-		return nil, err
-	}
-
 	// 创建订单记录
 	order.Status = model.OrderPaid
 	if _, err := order.Create(); err != nil {

@@ -24,7 +24,6 @@ type User struct {
 	Avatar         string `json:"avatar"`
 	CreatedAt      int64  `json:"created_at"`
 	PreferredTheme string `json:"preferred_theme"`
-	Score          int    `json:"score"`
 	Anonymous      bool   `json:"anonymous"`
 	Policy         policy `json:"policy"`
 	Group          group  `json:"group"`
@@ -97,7 +96,6 @@ func BuildUser(user model.User) User {
 		Avatar:         user.Avatar,
 		CreatedAt:      user.CreatedAt.Unix(),
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
-		Score:          user.Score,
 		Anonymous:      user.IsAnonymous(),
 		Policy: policy{
 			SaveType:       user.Policy.Type,
@@ -112,7 +110,6 @@ func BuildUser(user model.User) User {
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  user.Group.OptionsSerialized.Aria2,
 			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownload,
-			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFree,
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 			WebDAVEnabled:        user.Group.WebDAVEnabled,

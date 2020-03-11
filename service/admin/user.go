@@ -114,7 +114,6 @@ func (service *AddUserService) Add() serializer.Response {
 		user.Email = service.User.Email
 		user.GroupID = service.User.GroupID
 		user.Status = service.User.Status
-		user.Score = service.User.Score
 
 		// 检查愚蠢操作
 		if user.ID == 1 && user.GroupID != 1 {

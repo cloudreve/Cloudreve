@@ -117,8 +117,6 @@ func (service *ShareListService) List(c *gin.Context, user *model.User) serializ
 func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
-	userCtx, _ := c.Get("user")
-	user := userCtx.(*model.User)
 
 	// 是否已解锁
 	unlocked := true
@@ -136,11 +134,6 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 
 	if unlocked {
 		share.Viewed()
-	}
-
-	// 如果已经下载过或者是自己的分享，不需要付积分
-	if share.UserID == user.ID || share.WasDownloadedBy(user, c) {
-		share.Score = 0
 	}
 
 	return serializer.Response{

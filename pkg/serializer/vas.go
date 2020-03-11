@@ -55,25 +55,6 @@ func BuildPolicySettingRes(policies []model.Policy, current *model.Policy) Respo
 	}
 }
 
-// BuildMountedFolderRes 构建已挂载目录响应，list为当前用户可用存储策略ID
-func BuildMountedFolderRes(folders []model.Folder, list []uint) []MountedFolders {
-	res := make([]MountedFolders, 0, len(folders))
-	for _, folder := range folders {
-		single := MountedFolders{
-			ID:         hashid.HashID(folder.ID, hashid.FolderID),
-			Name:       folder.Name,
-			PolicyName: "[已失效存储策略]",
-		}
-		if policy, err := model.GetPolicyByID(folder.PolicyID); err == nil && util.ContainsUint(list, policy.ID) {
-			single.PolicyName = policy.Name
-		}
-
-		res = append(res, single)
-	}
-
-	return res
-}
-
 // BuildUserQuotaResponse 序列化用户存储配额概况响应
 func BuildUserQuotaResponse(user *model.User, packs []model.StoragePack) Response {
 	packSize := user.GetAvailablePackSize()

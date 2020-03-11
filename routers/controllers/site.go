@@ -21,8 +21,6 @@ func SiteConfig(c *gin.Context) {
 		"email_active",
 		"themes",
 		"defaultTheme",
-		"score_enabled",
-		"share_score_rate",
 		"home_view_method",
 		"share_view_method",
 		"authn_enabled",

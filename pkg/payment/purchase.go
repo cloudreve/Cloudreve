@@ -57,7 +57,6 @@ func GiveGroup(user *model.User, groupInfo *serializer.GroupProducts, num int) e
 
 // GiveScore 积分充值
 func GiveScore(user *model.User, num int) error {
-	user.AddScore(num)
 	return nil
 }
 

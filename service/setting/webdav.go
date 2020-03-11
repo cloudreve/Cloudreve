@@ -115,11 +115,7 @@ func (service *WebDAVAccountService) Delete(c *gin.Context, user *model.User) se
 func (service *WebDAVListService) Accounts(c *gin.Context, user *model.User) serializer.Response {
 	accounts := model.ListWebDAVAccounts(user.ID)
 
-	// 查找挂载了存储策略的目录
-	folders := model.GetMountedFolders(user.ID)
-
 	return serializer.Response{Data: map[string]interface{}{
 		"accounts": accounts,
-		"folders":  serializer.BuildMountedFolderRes(folders, user.Group.PolicyList),
 	}}
 }

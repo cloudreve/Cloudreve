@@ -356,17 +356,6 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, *originFile)
 	} else {
-		// 检查父目录指定存储策略
-		if exist, folder := fs.IsPathExist(filePath); exist {
-			if folder.PolicyID != 0 {
-				// 尝试获取并重设存储策略
-				if policy, err := model.GetPolicyByID(fs.User.GetPolicyID(folder.PolicyID)); err == nil {
-					fs.User.Policy = policy
-					fs.DispatchHandler()
-				}
-			}
-		}
-
 		// 给文件系统分配钩子
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookValidateCapacity)

@@ -7,7 +7,7 @@ var BackendVersion = "3.0.0-alpha1"
 var RequiredDBVersion = "3.0.0-alpha1"
 
 // IsPro 是否为Pro版本
-var IsPro = "true"
+var IsPro = "false"
 
 // LastCommit 最后commit id
 var LastCommit = "a11f819"

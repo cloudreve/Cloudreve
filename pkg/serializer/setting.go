@@ -12,8 +12,6 @@ type SiteConfig struct {
 	QQLogin            bool   `json:"QQLogin"`
 	Themes             string `json:"themes"`
 	DefaultTheme       string `json:"defaultTheme"`
-	ScoreEnabled       bool   `json:"score_enabled"`
-	ShareScoreRate     string `json:"share_score_rate"`
 	HomepageViewMethod string `json:"home_view_method"`
 	ShareViewMethod    string `json:"share_view_method"`
 	Authn              bool   `json:"authn"'`
@@ -72,8 +70,6 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			QQLogin:            model.IsTrueVal(checkSettingValue(settings, "qq_login")),
 			Themes:             checkSettingValue(settings, "themes"),
 			DefaultTheme:       checkSettingValue(settings, "defaultTheme"),
-			ScoreEnabled:       model.IsTrueVal(checkSettingValue(settings, "score_enabled")),
-			ShareScoreRate:     checkSettingValue(settings, "share_score_rate"),
 			HomepageViewMethod: checkSettingValue(settings, "home_view_method"),
 			ShareViewMethod:    checkSettingValue(settings, "share_view_method"),
 			Authn:              model.IsTrueVal(checkSettingValue(settings, "authn_enabled")),

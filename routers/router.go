@@ -74,7 +74,6 @@ func InitCORS(router *gin.Engine) {
 // InitMasterRouter 初始化主机模式路由
 func InitMasterRouter() *gin.Engine {
 	r := gin.Default()
-	bootstrap.InitCustomRoute(r.Group("/custom"))
 
 	/*
 		静态资源
