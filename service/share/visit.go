@@ -223,39 +223,6 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	return subService.CreateDocPreviewSession(ctx, c)
 }
 
-// SaveToMyFile 将此分享转存到自己的网盘
-func (service *Service) SaveToMyFile(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-	userCtx, _ := c.Get("user")
-	user := userCtx.(*model.User)
-
-	// 不能转存自己的文件
-	if share.UserID == user.ID {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "不能转存自己的分享", nil)
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(user)
-	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
-	}
-	defer fs.Recycle()
-
-	// 重设文件系统处理目标为源文件
-	err = fs.SetTargetByInterface(share.Source())
-	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
-	}
-
-	err = fs.SaveTo(context.Background(), service.Path)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	return serializer.Response{}
-}
-
 // List 列出分享的目录下的对象
 func (service *Service) List(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")

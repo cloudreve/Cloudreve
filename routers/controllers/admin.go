@@ -87,39 +87,6 @@ func AdminSendTestMail(c *gin.Context) {
 	}
 }
 
-// AdminListRedeems 列出激活码
-func AdminListRedeems(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Redeems()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminGenerateRedeems 生成激活码
-func AdminGenerateRedeems(c *gin.Context) {
-	var service admin.GenerateRedeemsService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Generate()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteRedeem 删除激活码
-func AdminDeleteRedeem(c *gin.Context) {
-	var service admin.SingleIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.DeleteRedeem()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
 // AdminTestAria2 测试aria2连接
 func AdminTestAria2(c *gin.Context) {
 	var service admin.Aria2TestService
@@ -384,28 +351,6 @@ func AdminListShare(c *gin.Context) {
 // AdminDeleteShare 批量删除分享
 func AdminDeleteShare(c *gin.Context) {
 	var service admin.ShareBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Delete(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListOrder 列出订单
-func AdminListOrder(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Orders()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteOrder 批量删除订单
-func AdminDeleteOrder(c *gin.Context) {
-	var service admin.OrderBatchService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Delete(c)
 		c.JSON(200, res)

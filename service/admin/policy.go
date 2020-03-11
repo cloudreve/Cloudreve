@@ -71,10 +71,7 @@ func (service *PolicyService) Delete() serializer.Response {
 	// 检查用户组使用
 	var groups []model.Group
 	model.DB.Model(&model.Group{}).Where(
-		"policies like ?  OR policies like ? OR policies like ? OR policies like ?",
-		fmt.Sprintf("[%d,%%", service.ID),
-		fmt.Sprintf("%%,%d]", service.ID),
-		fmt.Sprintf("%%,%d,%%", service.ID),
+		"policies like ?",
 		fmt.Sprintf("%%[%d]%%", service.ID),
 	).Find(&groups)
 

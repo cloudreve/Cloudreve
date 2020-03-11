@@ -4,8 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/qq"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -14,8 +12,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 )
 
 // SettingService 通用设置服务
@@ -45,14 +41,6 @@ type OptionsChangeHandler interface {
 // ChangerNick 昵称更改服务
 type ChangerNick struct {
 	Nick string `json:"nick" binding:"required,min=1,max=255"`
-}
-
-// VIPUnsubscribe 用户组解约服务
-type VIPUnsubscribe struct {
-}
-
-// QQBind QQ互联服务
-type QQBind struct {
 }
 
 // PolicyChange 更改存储策略
@@ -173,77 +161,6 @@ func (service *HomePage) Update(c *gin.Context, user *model.User) serializer.Res
 	return serializer.Response{}
 }
 
-// Update 更改用户偏好的存储策略
-func (service *PolicyChange) Update(c *gin.Context, user *model.User) serializer.Response {
-	// 取得存储策略的ID
-	rawID, err := hashid.DecodeHashID(service.ID, hashid.PolicyID)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
-	}
-
-	// 用户是否可以切换到此存储策略
-	if !util.ContainsUint(user.Group.PolicyList, rawID) {
-		return serializer.Err(serializer.CodeNoPermissionErr, "存储策略不可用", nil)
-	}
-
-	// 查找存储策略
-	if _, err := model.GetPolicyByID(rawID); err != nil {
-		return serializer.Err(serializer.CodeNoPermissionErr, "存储策略不可用", nil)
-	}
-
-	// 切换存储策略
-	user.OptionsSerialized.PreferredPolicy = rawID
-	if err := user.UpdateOptions(); err != nil {
-		return serializer.DBErr("存储策略切换失败", err)
-	}
-
-	return serializer.Response{}
-}
-
-// Update 绑定或解绑QQ
-func (service *QQBind) Update(c *gin.Context, user *model.User) serializer.Response {
-	// 解除绑定
-	if user.OpenID != "" {
-		// 只通过QQ登录的用户无法解除绑定
-		if strings.HasSuffix(user.Email, "@login.qq.com") {
-			return serializer.Err(serializer.CodeNoPermissionErr, "无法解绑此账号", nil)
-		}
-
-		if err := user.Update(map[string]interface{}{"open_id": ""}); err != nil {
-			return serializer.DBErr("接除绑定失败", err)
-		}
-		return serializer.Response{
-			Data: "",
-		}
-	}
-
-	// 新建绑定
-	res, err := qq.NewLoginRequest()
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法使用QQ登录", err)
-	}
-
-	// 设定QQ登录会话Secret
-	util.SetSession(c, map[string]interface{}{"qq_login_secret": res.SecretKey})
-
-	return serializer.Response{
-		Data: res.URL,
-	}
-}
-
-// Update 用户组解约
-func (service *VIPUnsubscribe) Update(c *gin.Context, user *model.User) serializer.Response {
-	if user.GroupExpires != nil {
-		timeNow := time.Now()
-		if time.Now().Before(*user.GroupExpires) {
-			if err := user.Update(map[string]interface{}{"group_expires": &timeNow}); err != nil {
-				return serializer.DBErr("解约失败", err)
-			}
-		}
-	}
-	return serializer.Response{}
-}
-
 // Update 更改昵称
 func (service *ChangerNick) Update(c *gin.Context, user *model.User) serializer.Response {
 	if err := user.Update(map[string]interface{}{"nick": service.Nick}); err != nil {
@@ -322,46 +239,16 @@ func (service *SettingListService) ListTasks(c *gin.Context, user *model.User) s
 	return serializer.BuildTaskList(tasks, total)
 }
 
-// Policy 获取用户存储策略设置
-func (service *SettingService) Policy(c *gin.Context, user *model.User) serializer.Response {
-	// 取得用户可用存储策略
-	available := make([]model.Policy, 0, len(user.Group.PolicyList))
-	for _, id := range user.Group.PolicyList {
-		if policy, err := model.GetPolicyByID(id); err == nil {
-			available = append(available, policy)
-		}
-	}
-
-	// 取得用户当前策略
-	current := user.Policy
-
-	return serializer.BuildPolicySettingRes(available, &current)
-}
-
 // Settings 获取用户设定
 func (service *SettingService) Settings(c *gin.Context, user *model.User) serializer.Response {
-	// 取得存储策略设定
-	policy := service.Policy(c, user)
-
-	// 用户组有效期
-	var groupExpires int64
-	if user.GroupExpires != nil {
-		if expires := user.GroupExpires.Unix() - time.Now().Unix(); expires > 0 {
-			groupExpires = user.GroupExpires.Unix()
-		}
-	}
-
 	return serializer.Response{
 		Data: map[string]interface{}{
-			"policy":        policy.Data.(map[string]interface{}),
-			"uid":           user.ID,
-			"qq":            user.OpenID != "",
-			"homepage":      !user.OptionsSerialized.ProfileOff,
-			"two_factor":    user.TwoFactor != "",
-			"prefer_theme":  user.OptionsSerialized.PreferredTheme,
-			"themes":        model.GetSettingByName("themes"),
-			"group_expires": groupExpires,
-			"authn":         serializer.BuildWebAuthnList(user.WebAuthnCredentials()),
+			"uid":          user.ID,
+			"homepage":     !user.OptionsSerialized.ProfileOff,
+			"two_factor":   user.TwoFactor != "",
+			"prefer_theme": user.OptionsSerialized.PreferredTheme,
+			"themes":       model.GetSettingByName("themes"),
+			"authn":        serializer.BuildWebAuthnList(user.WebAuthnCredentials()),
 		},
 	}
 }

@@ -44,7 +44,6 @@ type group struct {
 	AllowShare           bool   `json:"allowShare"`
 	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
 	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
-	ShareFreeEnabled     bool   `json:"shareFree"`
 	ShareDownload        bool   `json:"shareDownload"`
 	CompressEnabled      bool   `json:"compress"`
 	WebDAVEnabled        bool   `json:"webdav"`
@@ -127,7 +126,7 @@ func BuildUserResponse(user model.User) Response {
 
 // BuildUserStorageResponse 序列化用户存储概况响应
 func BuildUserStorageResponse(user model.User) Response {
-	total := user.Group.MaxStorage + user.GetAvailablePackSize()
+	total := user.Group.MaxStorage
 	storageResp := storage{
 		Used:  user.Storage,
 		Free:  total - user.Storage,

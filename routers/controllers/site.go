@@ -14,7 +14,6 @@ func SiteConfig(c *gin.Context) {
 	siteConfig := model.GetSettingByNames(
 		"siteName",
 		"login_captcha",
-		"qq_login",
 		"reg_captcha",
 		"email_active",
 		"forget_captcha",

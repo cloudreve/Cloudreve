@@ -9,7 +9,6 @@ type SiteConfig struct {
 	RegCaptcha         bool   `json:"regCaptcha"`
 	ForgetCaptcha      bool   `json:"forgetCaptcha"`
 	EmailActive        bool   `json:"emailActive"`
-	QQLogin            bool   `json:"QQLogin"`
 	Themes             string `json:"themes"`
 	DefaultTheme       string `json:"defaultTheme"`
 	HomepageViewMethod string `json:"home_view_method"`
@@ -67,7 +66,6 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			RegCaptcha:         model.IsTrueVal(checkSettingValue(settings, "reg_captcha")),
 			ForgetCaptcha:      model.IsTrueVal(checkSettingValue(settings, "forget_captcha")),
 			EmailActive:        model.IsTrueVal(checkSettingValue(settings, "email_active")),
-			QQLogin:            model.IsTrueVal(checkSettingValue(settings, "qq_login")),
 			Themes:             checkSettingValue(settings, "themes"),
 			DefaultTheme:       checkSettingValue(settings, "defaultTheme"),
 			HomepageViewMethod: checkSettingValue(settings, "home_view_method"),

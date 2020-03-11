@@ -132,8 +132,6 @@ func InitMasterRouter() *gin.Engine {
 				middleware.HashID(hashid.UserID),
 				controllers.UserActivate,
 			)
-			// 初始化QQ登录
-			user.POST("qq", controllers.UserQQLogin)
 			// WebAuthn登陆初始化
 			user.GET("authn/:username",
 				middleware.IsFunctionEnabled("authn_enabled"),
@@ -174,21 +172,6 @@ func InitMasterRouter() *gin.Engine {
 		// 回调接口
 		callback := v3.Group("callback")
 		{
-			// QQ互联回调
-			callback.POST(
-				"qq",
-				controllers.QQCallback,
-			)
-			// PAYJS回调
-			callback.POST(
-				"payjs",
-				controllers.PayJSCallback,
-			)
-			// 支付宝回调
-			callback.POST(
-				"alipay",
-				controllers.AlipayCallback,
-			)
 			// 远程策略上传回调
 			callback.POST(
 				"remote/:key",
@@ -312,17 +295,6 @@ func InitMasterRouter() *gin.Engine {
 				// 重新加载子服务
 				admin.POST("mailTest", controllers.AdminSendTestMail)
 
-				// 兑换码相关
-				redeem := admin.Group("redeem")
-				{
-					// 列出激活码
-					redeem.POST("list", controllers.AdminListRedeems)
-					// 生成激活码
-					redeem.POST("", controllers.AdminGenerateRedeems)
-					// 删除激活码
-					redeem.DELETE(":id", controllers.AdminDeleteRedeem)
-				}
-
 				// 离线下载相关
 				aria2 := admin.Group("aria2")
 				{
@@ -398,14 +370,6 @@ func InitMasterRouter() *gin.Engine {
 					share.POST("delete", controllers.AdminDeleteShare)
 				}
 
-				order := admin.Group("order")
-				{
-					// 列出订单
-					order.POST("list", controllers.AdminListOrder)
-					// 删除
-					order.POST("delete", controllers.AdminDeleteOrder)
-				}
-
 				download := admin.Group("download")
 				{
 					// 列出任务
@@ -445,8 +409,6 @@ func InitMasterRouter() *gin.Engine {
 				// 用户设置
 				setting := user.Group("setting")
 				{
-					// 获取用户可选存储策略
-					setting.GET("policies", controllers.UserAvailablePolicies)
 					// 任务队列
 					setting.GET("tasks", controllers.UserTasks)
 					// 获取当前用户设定
@@ -541,13 +503,6 @@ func InitMasterRouter() *gin.Engine {
 				share.GET("", controllers.ListShare)
 				// 搜索公共分享
 				share.GET("search", controllers.SearchShare)
-				// 转存他人分享
-				share.POST("save/:id",
-					middleware.ShareAvailable(),
-					middleware.CheckShareUnlocked(),
-					middleware.BeforeShareDownload(),
-					controllers.SaveShare,
-				)
 				// 更新分享属性
 				share.PATCH(":id",
 					middleware.ShareAvailable(),
@@ -571,23 +526,6 @@ func InitMasterRouter() *gin.Engine {
 				tag.DELETE(":id", middleware.HashID(hashid.TagID), controllers.DeleteTag)
 			}
 
-			// 增值服务相关
-			vas := auth.Group("vas")
-			{
-				// 获取容量包及配额信息
-				vas.GET("pack", controllers.GetQuota)
-				// 获取商品信息，同时返回支付信息
-				vas.GET("product", controllers.GetProduct)
-				// 新建支付订单
-				vas.POST("order", controllers.NewOrder)
-				// 查询订单状态
-				vas.GET("order/:id", controllers.OrderStatus)
-				// 获取兑换码信息
-				vas.GET("redeem/:code", controllers.GetRedeemInfo)
-				// 执行兑换
-				vas.POST("redeem/:code", controllers.DoRedeem)
-			}
-
 			// WebDAV管理相关
 			webdav := auth.Group("webdav")
 			{
@@ -597,13 +535,6 @@ func InitMasterRouter() *gin.Engine {
 				webdav.POST("accounts", controllers.CreateWebDAVAccounts)
 				// 删除账号
 				webdav.DELETE("accounts/:id", controllers.DeleteWebDAVAccounts)
-				// 删除目录挂载
-				webdav.DELETE("mount/:id",
-					middleware.HashID(hashid.FolderID),
-					controllers.DeleteWebDAVMounts,
-				)
-				// 创建目录挂载
-				webdav.POST("mount", controllers.CreateWebDAVMounts)
 			}
 
 		}

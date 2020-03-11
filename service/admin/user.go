@@ -71,12 +71,6 @@ func (service *UserBatchService) Delete() serializer.Response {
 		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})
 		model.DB.Where("user_id = ?", uid).Delete(&model.Task{})
 
-		// 删除订单记录
-		model.DB.Where("user_id = ?", uid).Delete(&model.Order{})
-
-		// 删除容量包
-		model.DB.Where("user_id = ?", uid).Delete(&model.StoragePack{})
-
 		// 删除标签
 		model.DB.Where("user_id = ?", uid).Delete(&model.Tag{})
 
