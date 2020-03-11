@@ -21,6 +21,8 @@ buildAssets () {
   rm -rf assets/build
   rm -f statik/statik.go
 
+  export CI=false
+
   cd $REPO/assets
 
   yarn install

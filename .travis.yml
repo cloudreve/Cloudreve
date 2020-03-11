@@ -5,21 +5,20 @@ git:
   depth: 1
 install:
   - go get github.com/rakyll/statik
+  - sudo apt install gcc-mingw-w64
+  - sudo apt install gcc-arm-linux-gnueabi
 before_script:
   - statik -src=models -f
+  - chmod +x ./build.sh
 script:
   - ./build.sh -r b
-before_deploy:
-  - sudo apt install gcc-mingw-w64
-  - apt-get install gcc-arm-linux-gnueabi
-  - chmod +x ./build.sh
 deploy:
   provider: releases
   api_key: $GITHUB_TOKEN
   file_glob: true
   file: release/*
   draft: true
-  skip_cleanup: true
+  cleanup: true
 # script:
 #   - go test -coverprofile=coverage.txt -covermode=atomic ./...
 # after_success:
