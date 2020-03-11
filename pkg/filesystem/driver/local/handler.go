@@ -26,7 +26,7 @@ type Driver struct {
 // Get 获取文件内容
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 打开文件
-	file, err := os.Open(path)
+	file, err := os.Open(util.RelativePath(path))
 	if err != nil {
 		util.Log().Debug("无法打开文件：%s", err)
 		return nil, err
@@ -51,7 +51,7 @@ func closeReader(ctx context.Context, closer io.Closer) {
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	defer file.Close()
-	dst = filepath.FromSlash(dst)
+	dst = util.RelativePath(filepath.FromSlash(dst))
 
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
@@ -83,7 +83,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 	var retErr error
 
 	for _, value := range files {
-		err := os.Remove(filepath.FromSlash(value))
+		err := os.Remove(util.RelativePath(filepath.FromSlash(value)))
 		if err != nil {
 			util.Log().Warning("无法删除文件，%s", err)
 			retErr = err

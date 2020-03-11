@@ -34,9 +34,9 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 func InitStatic() {
 	var err error
 
-	if util.Exists("statics") {
+	if util.Exists(util.RelativePath("statics")) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
-		StaticFS = static.LocalFile("statics", false)
+		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
 	} else {
 		StaticFS = &GinFS{}
 		StaticFS.(*GinFS).FS, err = fs.New()

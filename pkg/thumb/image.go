@@ -83,7 +83,7 @@ func (image *Thumb) Save(path string) (err error) {
 // CreateAvatar 创建头像
 func (image *Thumb) CreateAvatar(uid uint) error {
 	// 读取头像相关设定
-	savePath := model.GetSettingByName("avatar_path")
+	savePath := util.RelativePath(model.GetSettingByName("avatar_path"))
 	s := model.GetIntSetting("avatar_size_s", 50)
 	m := model.GetIntSetting("avatar_size_m", 130)
 	l := model.GetIntSetting("avatar_size_l", 200)

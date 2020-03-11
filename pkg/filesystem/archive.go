@@ -78,7 +78,7 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		saveFolder = "compress"
 	}
 	zipFilePath := filepath.Join(
-		model.GetSettingByName("temp_path"),
+		util.RelativePath(model.GetSettingByName("temp_path")),
 		saveFolder,
 		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
 	)
@@ -217,7 +217,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 	}
 
 	tempZipFilePath = filepath.Join(
-		model.GetSettingByName("temp_path"),
+		util.RelativePath(model.GetSettingByName("temp_path")),
 		"decompress",
 		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
 	)
@@ -291,8 +291,8 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 
 		select {
 		case <-worker:
+			wg.Add(1)
 			go func(fileStream io.ReadCloser, size int64) {
-				wg.Add(1)
 				defer func() {
 					worker <- 1
 					wg.Done()

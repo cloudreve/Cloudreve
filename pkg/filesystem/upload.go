@@ -235,7 +235,7 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string) error
 		return err
 	}
 
-	file, err := os.Open(src)
+	file, err := os.Open(util.RelativePath(src))
 	if err != nil {
 		return err
 	}

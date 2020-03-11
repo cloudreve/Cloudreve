@@ -73,7 +73,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 生成缩略图
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
-	err = image.Save(file.SourceName + conf.ThumbConfig.FileSuffix)
+	err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
 	if err != nil {
 		util.Log().Warning("无法保存缩略图：%s", err)
 		return

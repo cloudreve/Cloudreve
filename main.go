@@ -11,7 +11,7 @@ import (
 var confPath string
 
 func init() {
-	flag.StringVar(&confPath, "c", "conf.ini", "配置文件路径")
+	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
 	flag.Parse()
 	bootstrap.Init(confPath)
 }

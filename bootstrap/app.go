@@ -31,7 +31,7 @@ V` + conf.BackendVersion + `  Commit #` + conf.LastCommit + `  Pro=` + conf.IsPr
 ================================================
 
 `)
-	data, err := ioutil.ReadFile(string([]byte{107, 101, 121, 46, 98, 105, 110}))
+	data, err := ioutil.ReadFile(util.RelativePath(string([]byte{107, 101, 121, 46, 98, 105, 110})))
 	if err != nil {
 		util.Log().Panic("%s", err)
 	}

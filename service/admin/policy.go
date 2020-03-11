@@ -264,7 +264,7 @@ func (service *PathTestService) Test() serializer.Response {
 	policy := model.Policy{DirNameRule: service.Path}
 	path := policy.GeneratePath(1, "/My File")
 	path = filepath.Join(path, "test.txt")
-	file, err := util.CreatNestedFile(path)
+	file, err := util.CreatNestedFile(util.RelativePath(path))
 	if err != nil {
 		return serializer.ParamErr(fmt.Sprintf("无法创建路径 %s , %s", path, err.Error()), nil)
 	}

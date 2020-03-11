@@ -294,7 +294,7 @@ func (service *AvatarService) Get(c *gin.Context) serializer.Response {
 
 	// 本地文件头像
 	if user.Avatar == "file" {
-		avatarRoot := model.GetSettingByName("avatar_path")
+		avatarRoot := util.RelativePath(model.GetSettingByName("avatar_path"))
 		sizeToInt := map[string]string{
 			"s": "0",
 			"m": "1",

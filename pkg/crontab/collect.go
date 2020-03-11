@@ -24,7 +24,7 @@ func garbageCollect() {
 
 func collectArchiveFile() {
 	// 读取有效期、目录设置
-	tempPath := model.GetSettingByName("temp_path")
+	tempPath := util.RelativePath(model.GetSettingByName("temp_path"))
 	expires := model.GetIntSetting("download_timeout", 30)
 
 	// 列出文件
