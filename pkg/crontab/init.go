@@ -28,10 +28,6 @@ func Init() {
 		switch k {
 		case "cron_garbage_collect":
 			handler = garbageCollect
-		case "cron_notify_user":
-			handler = notifyExpiredVAS
-		case "cron_ban_user":
-			handler = banOverusedUser
 		default:
 			util.Log().Warning("未知定时任务类型 [%s]，跳过", k)
 			continue
@@ -42,6 +38,5 @@ func Init() {
 		}
 
 	}
-	banOverusedUser()
 	Cron.Start()
 }
