@@ -21,7 +21,7 @@ func Reload() {
 func Init() {
 	util.Log().Info("初始化定时任务...")
 	// 读取cron日程设置
-	options := model.GetSettingByNames("cron_garbage_collect", "cron_notify_user", "cron_ban_user")
+	options := model.GetSettingByNames("cron_garbage_collect")
 	Cron := cron.New()
 	for k, v := range options {
 		var handler func()
