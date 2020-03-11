@@ -88,7 +88,6 @@ func (job *CompressTask) Do() {
 		job.SetErrorMsg(err.Error())
 		return
 	}
-	defer fs.Recycle()
 
 	util.Log().Debug("开始压缩文件")
 	job.TaskModel.SetProgress(CompressingProgress)

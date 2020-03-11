@@ -86,7 +86,6 @@ func (job *TransferTask) Do() {
 		job.SetErrorMsg(err.Error(), nil)
 		return
 	}
-	defer fs.Recycle()
 
 	for index, file := range job.TaskProps.Src {
 		job.TaskModel.SetProgress(index)
