@@ -5,8 +5,8 @@ git:
   depth: 1
 install:
   - go get github.com/rakyll/statik
-  - sudo apt install gcc-mingw-w64
-  - sudo apt install gcc-arm-linux-gnueabi
+  - sudo apt-get install -y install gcc-mingw-w64
+  - sudo apt-get install -y gcc-arm-linux-gnueabihf
 before_script:
   - statik -src=models -f
   - chmod +x ./build.sh
