@@ -17,6 +17,7 @@ deploy:
   api_key: $GITHUB_TOKEN
   file_glob: true
   file: release/*
+  draft: true
   skip_cleanup: true
 # script:
 #   - go test -coverprofile=coverage.txt -covermode=atomic ./...
