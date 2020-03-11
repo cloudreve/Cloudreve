@@ -7,11 +7,12 @@ install:
   - go get github.com/rakyll/statik
 before_script:
   - statik -src=models -f
+script:
+  - ./build.sh -r b
 before_deploy:
   - sudo apt install gcc-mingw-w64
   - apt-get install gcc-arm-linux-gnueabi
   - chmod +x ./build.sh
-  - ./build.sh -r b
 deploy:
   provider: releases
   api_key: $GITHUB_TOKEN
