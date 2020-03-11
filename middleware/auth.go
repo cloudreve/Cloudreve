@@ -315,7 +315,7 @@ func COSCallbackAuth() gin.HandlerFunc {
 func IsAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, _ := c.Get("user")
-		if user.(*model.User).Group.ID != 1 {
+		if user.(*model.User).Group.ID != 1 && user.(*model.User).ID != 1 {
 			c.JSON(200, serializer.Err(serializer.CodeAdminRequired, "您不是管理组成员", nil))
 			c.Abort()
 			return
