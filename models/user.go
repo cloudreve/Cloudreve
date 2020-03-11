@@ -108,7 +108,10 @@ func (user *User) GetRemainingCapacity() uint64 {
 
 // GetPolicyID 获取用户当前的存储策略ID
 func (user *User) GetPolicyID(prefer uint) uint {
-	return user.Group.PolicyList[0]
+	if len(user.Group.PolicyList) > 0 {
+		return user.Group.PolicyList[0]
+	}
+	return 0
 }
 
 // GetUserByID 用ID获取用户
