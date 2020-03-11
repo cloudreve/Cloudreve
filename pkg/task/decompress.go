@@ -78,7 +78,6 @@ func (job *DecompressTask) Do() {
 		job.SetErrorMsg("无法创建文件系统", err)
 		return
 	}
-	defer fs.Recycle()
 
 	job.TaskModel.SetProgress(DecompressingProgress)
 	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst)

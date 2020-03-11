@@ -25,7 +25,9 @@ func AdminSummary(c *gin.Context) {
 func AdminNews(c *gin.Context) {
 	r := request.HTTPClient{}
 	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3Anotice&sort=-startTime&", nil)
-	io.Copy(c.Writer, res.Response.Body)
+	if res.Err == nil {
+		io.Copy(c.Writer, res.Response.Body)
+	}
 }
 
 // AdminChangeSetting 获取站点设定项

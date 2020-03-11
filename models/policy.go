@@ -222,7 +222,7 @@ func (policy *Policy) GetUploadURL() string {
 	case "cos":
 		return policy.Server
 	case "upyun":
-		return "http://v0.api.upyun.com/" + policy.BucketName
+		return "https://v0.api.upyun.com/" + policy.BucketName
 	default:
 		controller, _ = url.Parse("")
 	}
