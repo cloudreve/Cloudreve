@@ -221,7 +221,7 @@ func TestFileSystem_Decompress(t *testing.T) {
 
 	// 无法重设上传策略
 	{
-		zipFile, _ := os.Open("tests/test.zip")
+		zipFile, _ := os.Open(util.RelativePath("filesystem/tests/test.zip"))
 		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
 		fs.FileTarget[0].Policy.ID = 1
 		testHandler := new(FileHeaderMock)
@@ -231,13 +231,13 @@ func TestFileSystem_Decompress(t *testing.T) {
 		zipFile.Close()
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
-		asserts.True(util.IsEmpty("tests/decompress"))
+		asserts.True(util.IsEmpty(util.RelativePath("tests/decompress")))
 	}
 
 	// 无法上传，容量不足
 	{
 		cache.Set("setting_max_parallel_transfer", "1", 0)
-		zipFile, _ := os.Open("tests/test.zip")
+		zipFile, _ := os.Open(util.RelativePath("filesystem/tests/test.zip"))
 		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
 		fs.FileTarget[0].Policy.ID = 1
 		fs.User.Policy.Type = "mock"
@@ -245,12 +245,11 @@ func TestFileSystem_Decompress(t *testing.T) {
 		testHandler.On("Get", testMock.Anything, "1.zip").Return(zipFile, nil)
 		fs.Handler = testHandler
 
-		err := fs.Decompress(ctx, "/1.zip", "/")
+		fs.Decompress(ctx, "/1.zip", "/")
 
 		zipFile.Close()
 
 		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.NoError(err)
 		testHandler.AssertExpectations(t)
 	}
 }

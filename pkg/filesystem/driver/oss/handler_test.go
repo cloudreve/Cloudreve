@@ -52,7 +52,9 @@ func TestDriver_CORS(t *testing.T) {
 
 	// 失败
 	{
-		asserts.Error(handler.CORS())
+		asserts.NotPanics(func() {
+			handler.CORS()
+		})
 	}
 }
 

@@ -115,7 +115,7 @@ func TestThumb_CreateAvatar(t *testing.T) {
 	cache.Set("setting_avatar_size_l", "200", 0)
 
 	asserts.NoError(thumb.CreateAvatar(1))
-	asserts.True(util.Exists("tests/avatar_1_1.png"))
-	asserts.True(util.Exists("tests/avatar_1_2.png"))
-	asserts.True(util.Exists("tests/avatar_1_0.png"))
+	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_1.png")))
+	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_2.png")))
+	asserts.True(util.Exists(util.RelativePath("tests/avatar_1_0.png")))
 }

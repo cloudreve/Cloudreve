@@ -128,7 +128,7 @@ func TestFileSystem_GetDownloadContent(t *testing.T) {
 			},
 		},
 	}
-	file, err := os.Create("TestFileSystem_GetDownloadContent.txt")
+	file, err := os.Create(util.RelativePath("TestFileSystem_GetDownloadContent.txt"))
 	asserts.NoError(err)
 	_ = file.Close()
 
@@ -236,7 +236,7 @@ func TestFileSystem_deleteGroupedFile(t *testing.T) {
 	}
 	// 部分失败
 	{
-		file, err := os.Create("1_1.txt")
+		file, err := os.Create(util.RelativePath("1_1.txt"))
 		asserts.NoError(err)
 		_ = file.Close()
 		failed := fs.deleteGroupedFile(ctx, fs.GroupFileByPolicy(ctx, files))
@@ -248,7 +248,7 @@ func TestFileSystem_deleteGroupedFile(t *testing.T) {
 	}
 	// 部分失败,包含整组未知存储策略导致的失败
 	{
-		file, err := os.Create("1_1.txt")
+		file, err := os.Create(util.RelativePath("1_1.txt"))
 		asserts.NoError(err)
 		_ = file.Close()
 
@@ -467,7 +467,7 @@ func TestFileSystem_GetPhysicalFileContent(t *testing.T) {
 
 	// 成功
 	{
-		testFile, err := os.Create("GetPhysicalFileContent.txt")
+		testFile, err := os.Create(util.RelativePath("GetPhysicalFileContent.txt"))
 		asserts.NoError(err)
 		asserts.NoError(testFile.Close())
 

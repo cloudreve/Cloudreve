@@ -192,7 +192,7 @@ func TestHandler_Source(t *testing.T) {
 
 func TestHandler_GetDownloadURL(t *testing.T) {
 	asserts := assert.New(t)
-	handler := Driver{}
+	handler := Driver{Policy: &model.Policy{}}
 	ctx := context.Background()
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
