@@ -445,6 +445,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 					}
 				}
 				util.Log().Debug("无法获取上传会话状态，继续下一轮，%s", err.Error())
+				continue
 			}
 
 			// 成功获取分片上传状态，检查文件大小
