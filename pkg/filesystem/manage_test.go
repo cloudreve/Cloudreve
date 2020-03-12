@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -350,8 +351,8 @@ func TestFileSystem_Delete(t *testing.T) {
 	//全部成功
 	{
 		fs.CleanTargets()
-		file, err := os.Create("1.txt")
-		file2, err := os.Create("2.txt")
+		file, err := os.Create(util.RelativePath("1.txt"))
+		file2, err := os.Create(util.RelativePath("2.txt"))
 		file.Close()
 		file2.Close()
 		asserts.NoError(err)

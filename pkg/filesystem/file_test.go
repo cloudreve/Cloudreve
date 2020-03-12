@@ -501,7 +501,8 @@ func TestFileSystem_Preview(t *testing.T) {
 		}
 		fs.FileTarget = []model.File{
 			{
-				PolicyID: 1,
+				SourceName: "tests/no.txt",
+				PolicyID:   1,
 				Policy: model.Policy{
 					Model: gorm.Model{ID: 1},
 					Type:  "local",
@@ -529,10 +530,8 @@ func TestFileSystem_Preview(t *testing.T) {
 			},
 		}
 		resp, err := fs.Preview(ctx, 1, false)
-		asserts.NoError(err)
-		asserts.NotNil(resp)
-		asserts.False(resp.Redirect)
-		asserts.NoError(resp.Content.Close())
+		asserts.Error(err)
+		asserts.Nil(resp)
 	}
 
 	// 需要重定向，成功

@@ -112,6 +112,7 @@ func TestFileSystem_Upload(t *testing.T) {
 		Size:        5,
 		VirtualPath: "/",
 		Name:        "1.txt",
+		File:        ioutil.NopCloser(strings.NewReader("")),
 	}
 	err = fs.Upload(ctx, file)
 	asserts.NoError(err)
