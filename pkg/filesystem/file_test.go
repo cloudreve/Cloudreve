@@ -9,6 +9,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -79,12 +80,12 @@ func TestFileSystem_GetContent(t *testing.T) {
 	fs.CleanTargets()
 
 	// 未知存储策略
-	file, err := os.Create("TestFileSystem_GetContent.txt")
+	file, err := os.Create(util.RelativePath("TestFileSystem_GetContent.txt"))
 	asserts.NoError(err)
 	_ = file.Close()
 
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent.txt", 1))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "source_name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent.txt", 1))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "unknown"))
 
 	rs, err = fs.GetContent(ctx, 1)
@@ -94,7 +95,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 
 	// 打开文件失败
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent.txt", 1))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "source_name", "policy_id"}).AddRow(1, "TestFileSystem_GetContent2.txt", 1))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type", "source_name"}).AddRow(1, "local", "not exist"))
 
 	rs, err = fs.GetContent(ctx, 1)
@@ -104,7 +105,7 @@ func TestFileSystem_GetContent(t *testing.T) {
 
 	// 打开成功
 	cache.Deletes([]string{"1"}, "policy_")
-	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "policy_id", "source_name"}).AddRow(1, "TestFileSystem_GetContent.txt", 1, "TestFileSystem_GetContent.txt"))
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "source_name", "policy_id", "source_name"}).AddRow(1, "TestFileSystem_GetContent.txt", 1, "TestFileSystem_GetContent.txt"))
 	mock.ExpectQuery("SELECT(.+)poli(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(1, "local"))
 
 	rs, err = fs.GetContent(ctx, 1)

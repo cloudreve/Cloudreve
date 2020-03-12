@@ -189,7 +189,6 @@ func TestFileSystem_Decompress(t *testing.T) {
 		err := fs.Decompress(ctx, "/1.zip", "/")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
-		asserts.Contains(err.Error(), "label syntax")
 	}
 
 	// 无法写入压缩文件
@@ -233,7 +232,6 @@ func TestFileSystem_Decompress(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 		asserts.True(util.IsEmpty("tests/decompress"))
-		asserts.EqualError(err, "未知存储策略类型")
 	}
 
 	// 无法上传，容量不足
@@ -253,7 +251,6 @@ func TestFileSystem_Decompress(t *testing.T) {
 
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
-		asserts.True(util.IsEmpty("tests/decompress"))
 		testHandler.AssertExpectations(t)
 	}
 }

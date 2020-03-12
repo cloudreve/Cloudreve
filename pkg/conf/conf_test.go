@@ -14,10 +14,10 @@ func TestInitPanic(t *testing.T) {
 
 	// 日志路径不存在时
 	asserts.NotPanics(func() {
-		Init("not/exist/path")
+		Init("not/exist/path/conf.ini")
 	})
 
-	asserts.True(util.Exists("conf.ini"))
+	asserts.True(util.Exists("not/exist/path/conf.ini"))
 
 }
 

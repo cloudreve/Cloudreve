@@ -61,7 +61,6 @@ func TestBuildShareResponse(t *testing.T) {
 		asserts.False(res.Locked)
 		asserts.NotEmpty(res.Expire)
 		asserts.NotNil(res.Creator)
-		asserts.NotNil(res.Score)
 	}
 
 	// 已解锁，是目录
@@ -81,6 +80,5 @@ func TestBuildShareResponse(t *testing.T) {
 		asserts.False(res.Locked)
 		asserts.NotEmpty(res.Expire)
 		asserts.NotNil(res.Creator)
-		asserts.NotNil(res.Score)
 	}
 }

@@ -23,17 +23,13 @@ func TestBuildSiteConfig(t *testing.T) {
 	res = BuildSiteConfig(map[string]string{"siteName": "123"}, &model.User{})
 	asserts.Equal("123", res.Data.(SiteConfig).SiteName)
 
-	res = BuildSiteConfig(map[string]string{"qq_login": "1"}, &model.User{})
-	asserts.Equal(true, res.Data.(SiteConfig).QQLogin)
-	asserts.Equal(uint(0), res.Data.(SiteConfig).User.ID)
-
 	// 非空用户
 	res = BuildSiteConfig(map[string]string{"qq_login": "1"}, &model.User{
 		Model: gorm.Model{
 			ID: 5,
 		},
 	})
-	asserts.Equal(uint(5), res.Data.(SiteConfig).User.ID)
+	asserts.Len(res.Data.(SiteConfig).User.ID, 4)
 }
 
 func TestBuildTaskList(t *testing.T) {
