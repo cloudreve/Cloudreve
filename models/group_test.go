@@ -23,7 +23,7 @@ func TestGetGroupByID(t *testing.T) {
 			ID: 1,
 		},
 		Name:       "管理员",
-		PolicyID:   1,
+		Policies:   "[1]",
 		PolicyList: []uint{1},
 	}, group)
 
@@ -42,7 +42,7 @@ func TestGroup_AfterFind(t *testing.T) {
 			ID: 1,
 		},
 		Name:     "管理员",
-		PolicyID: 1,
+		Policies: "[1]",
 	}
 	err := testCase.AfterFind()
 	asserts.NoError(err)

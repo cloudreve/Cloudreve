@@ -196,7 +196,6 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 				},
 			},
 		}
-		share.Score = 1
 		asserts.Error(share.CanBeDownloadBy(user))
 	}
 
@@ -210,7 +209,6 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 				},
 			},
 		}
-		share.Score = 1
 		asserts.NoError(share.CanBeDownloadBy(user))
 	}
 }
@@ -258,66 +256,6 @@ func TestShare_DownloadBy(t *testing.T) {
 	asserts.NoError(err)
 	_, ok := cache.Get("share_1_1")
 	asserts.True(ok)
-}
-
-func TestShare_Purchase(t *testing.T) {
-	asserts := assert.New(t)
-
-	// 不需要购买
-	{
-		share := Share{}
-		user := User{}
-		asserts.NoError(share.Purchase(&user))
-
-		share.Score = 1
-		user.Group.OptionsSerialized.ShareFree = true
-		asserts.NoError(share.Purchase(&user))
-
-		user.Group.OptionsSerialized.ShareFree = false
-		share.UserID = 1
-		user.ID = 1
-		asserts.NoError(share.Purchase(&user))
-	}
-
-	// 积分不足
-	{
-		share := Share{
-			Score:  1,
-			UserID: 2,
-		}
-		user := User{}
-		asserts.Error(share.Purchase(&user))
-	}
-
-	// 成功
-	{
-		cache.Set("setting_share_score_rate", "80", 0)
-		share := Share{
-			Score:  10,
-			UserID: 2,
-			User: User{
-				Model: gorm.Model{
-					ID: 1,
-				},
-			},
-		}
-		user := User{
-			Score: 10,
-		}
-
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").
-			WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		asserts.NoError(share.Purchase(&user))
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.EqualValues(0, user.Score)
-		asserts.EqualValues(8, share.User.Score)
-	}
 }
 
 func TestShare_Viewed(t *testing.T) {

@@ -5,12 +5,16 @@ git:
   depth: 1
 install:
   - go get github.com/rakyll/statik
-  - sudo apt-get -y install gcc-mingw-w64-x86-64
-  - sudo apt-get -y install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
 before_script:
   - statik -src=models -f
-  - chmod +x ./build.sh
 script:
+  - go test -coverprofile=coverage.txt -covermode=atomic ./...
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+before_deploy:
+  - sudo apt-get -y install gcc-mingw-w64-x86-64
+  - sudo apt-get -y install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+  - chmod +x ./build.sh
   - ./build.sh -r b
 deploy:
   provider: releases
@@ -19,6 +23,8 @@ deploy:
   file: release/*
   draft: true
   skip_cleanup: true
+  on:
+    tags: true
 # script:
 #   - go test -coverprofile=coverage.txt -covermode=atomic ./...
 # after_success:

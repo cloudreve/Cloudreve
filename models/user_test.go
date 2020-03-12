@@ -188,37 +188,15 @@ func TestUser_GetPolicyID(t *testing.T) {
 	asserts := assert.New(t)
 
 	newUser := NewUser()
+	newUser.Group.PolicyList = []uint{1}
 
-	testCases := []struct {
-		preferred uint
-		available []uint
-		expected  uint
-	}{
-		{
-			available: []uint{1},
-			expected:  1,
-		},
-		{
-			available: []uint{5, 2, 3},
-			expected:  5,
-		},
-		{
-			preferred: 1,
-			available: []uint{5, 1, 3},
-			expected:  1,
-		},
-		{
-			preferred: 9,
-			available: []uint{5, 1, 3},
-			expected:  5,
-		},
-	}
+	asserts.EqualValues(1, newUser.GetPolicyID(0))
 
-	for key, testCase := range testCases {
-		newUser.OptionsSerialized.PreferredPolicy = testCase.preferred
-		newUser.Group.PolicyList = testCase.available
-		asserts.Equal(testCase.expected, newUser.GetPolicyID(0), "测试用例 #%d 未通过", key)
-	}
+	newUser.Group.PolicyList = nil
+	asserts.EqualValues(0, newUser.GetPolicyID(0))
+
+	newUser.Group.PolicyList = []uint{}
+	asserts.EqualValues(0, newUser.GetPolicyID(0))
 }
 
 func TestUser_GetRemainingCapacity(t *testing.T) {
@@ -393,33 +371,6 @@ func TestUser_Root(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Error(err)
 	}
-}
-
-func TestUser_PayScore(t *testing.T) {
-	asserts := assert.New(t)
-	user := User{Score: 5}
-
-	asserts.True(user.PayScore(0))
-	asserts.False(user.PayScore(10))
-
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-	asserts.True(user.PayScore(5))
-	asserts.EqualValues(0, user.Score)
-	asserts.NoError(mock.ExpectationsWereMet())
-}
-
-func TestUser_AddScore(t *testing.T) {
-	asserts := assert.New(t)
-	user := User{Score: 5}
-
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
-	user.AddScore(5)
-	asserts.NoError(mock.ExpectationsWereMet())
-	asserts.EqualValues(10, user.Score)
 }
 
 func TestNewAnonymousUser(t *testing.T) {
