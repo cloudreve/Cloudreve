@@ -149,6 +149,14 @@ func TestPolicy_GenerateFileName(t *testing.T) {
 		testPolicy.Type = "upyun"
 		testPolicy.FileNameRule = "{uid}123{originname}"
 		asserts.Equal("1123{filename}{.suffix}", testPolicy.GenerateFileName(1, ""))
+
+		testPolicy.Type = "qiniu"
+		testPolicy.FileNameRule = "{uid}123{originname}"
+		asserts.Equal("1123$(fname)", testPolicy.GenerateFileName(1, ""))
+
+		testPolicy.Type = "local"
+		testPolicy.FileNameRule = "{uid}123{originname}"
+		asserts.Equal("1123", testPolicy.GenerateFileName(1, ""))
 	}
 
 }
@@ -179,8 +187,20 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 
 	// OSS
 	{
-		policy := Policy{Type: "oss", BaseURL: "base", Server: "http://127.0.0.1"}
-		asserts.Equal("base", policy.GetUploadURL())
+		policy := Policy{Type: "oss", BucketName: "base", Server: "127.0.0.1"}
+		asserts.Equal("https://base.127.0.0.1", policy.GetUploadURL())
+	}
+
+	// cos
+	{
+		policy := Policy{Type: "cos", BaseURL: "base", Server: "http://127.0.0.1"}
+		asserts.Equal("http://127.0.0.1", policy.GetUploadURL())
+	}
+
+	// upyun
+	{
+		policy := Policy{Type: "upyun", BucketName: "base", Server: "http://127.0.0.1"}
+		asserts.Equal("https://v0.api.upyun.com/base", policy.GetUploadURL())
 	}
 
 	// 未知

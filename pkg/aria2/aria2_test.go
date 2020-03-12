@@ -67,7 +67,7 @@ func TestInit(t *testing.T) {
 
 	// 连接失败
 	{
-		cache.Set("setting_aria2_options", "[]", 0)
+		cache.Set("setting_aria2_options", "{}", 0)
 		cache.Set("setting_aria2_rpcurl", "http://127.0.0.1:1234", 0)
 		cache.Set("setting_aria2_call_timeout", "1", 0)
 		cache.Set("setting_aria2_interval", "100", 0)

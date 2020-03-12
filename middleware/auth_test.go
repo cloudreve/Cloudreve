@@ -622,3 +622,128 @@ func TestUpyunCallbackAuth(t *testing.T) {
 		asserts.False(c.IsAborted())
 	}
 }
+
+func TestOneDriveCallbackAuth(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	AuthFunc := OneDriveCallbackAuth()
+
+	// Callback Key 相关验证失败
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testUpyunBackRemote"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testUpyunBackRemote", nil)
+		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    512,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[522]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.False(c.IsAborted())
+	}
+}
+
+func TestCOSCallbackAuth(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	AuthFunc := COSCallbackAuth()
+
+	// Callback Key 相关验证失败
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testUpyunBackRemote"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testUpyunBackRemote", nil)
+		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    512,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[522]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		AuthFunc(c)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.False(c.IsAborted())
+	}
+}
+
+func TestIsAdmin(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	testFunc := IsAdmin()
+
+	// 非管理员
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Set("user", &model.User{})
+		testFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 是管理员
+	{
+		c, _ := gin.CreateTestContext(rec)
+		user := &model.User{}
+		user.Group.ID = 1
+		c.Set("user", user)
+		testFunc(c)
+		asserts.False(c.IsAborted())
+	}
+
+	// 初始用户，非管理组
+	{
+		c, _ := gin.CreateTestContext(rec)
+		user := &model.User{}
+		user.Group.ID = 2
+		user.ID = 1
+		c.Set("user", user)
+		testFunc(c)
+		asserts.False(c.IsAborted())
+	}
+}
