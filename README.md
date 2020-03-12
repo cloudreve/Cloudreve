@@ -28,7 +28,7 @@
   <a href="https://docs.cloudreve.org/">文档</a> •
   <a href="https://github.com/cloudreve/Cloudreve/releases">下载</a> •
   <a href="https://t.me/cloudreve_official">Telegram 群组</a> •
-  <a href="#-许可证">许可证</a>
+  <a href="#scroll-许可证">许可证</a>
 </p>
 
 ![Screenshot](https://raw.githubusercontent.com/cloudreve/docs/master/images/homepage.png)
