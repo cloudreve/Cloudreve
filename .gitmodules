@@ -1,3 +1,3 @@
 [submodule "assets"]
 	path = assets
-	url = git@github.com:HFO4/frontend-pro.git
+	url = git@github.com:cloudreve/frontend.git
