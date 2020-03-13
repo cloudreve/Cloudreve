@@ -61,7 +61,7 @@ tar - czvf cloudreve_VERSION_OS_ARCH.tar.gz
 chmod +x ./cloudreve
 
 # 启动 Cloudreve
-./Cloudreve
+./cloudreve
 ```
 
 以上为最简单的部署示例，您可以参考 [文档 - 起步](https://docs.cloudreve.org/) 进行更为完善的部署。
