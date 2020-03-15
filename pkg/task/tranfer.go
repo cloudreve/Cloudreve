@@ -78,6 +78,8 @@ func (job *TransferTask) GetError() *JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
+	defer job.Recycle()
+
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(job.User)
 	if err != nil {
