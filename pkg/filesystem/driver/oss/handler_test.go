@@ -117,7 +117,7 @@ func TestDriver_Source(t *testing.T) {
 	// 限速 + 下载
 	{
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, model.File{Name: "123.txt"})
-		res, err := handler.Source(ctx, "/123", url.URL{}, 10, true, 819201)
+		res, err := handler.Source(ctx, "/123", url.URL{}, 10, true, 102401)
 		asserts.NoError(err)
 		resURL, err := url.Parse(res)
 		asserts.NoError(err)
@@ -125,7 +125,7 @@ func TestDriver_Source(t *testing.T) {
 		asserts.NotEmpty(query.Get("Signature"))
 		asserts.NotEmpty(query.Get("Expires"))
 		asserts.Equal("ak", query.Get("OSSAccessKeyId"))
-		asserts.EqualValues("819201", query.Get("x-oss-traffic-limit"))
+		asserts.EqualValues("819208", query.Get("x-oss-traffic-limit"))
 		asserts.NotEmpty(query.Get("response-content-disposition"))
 	}
 

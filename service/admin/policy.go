@@ -54,6 +54,11 @@ type PolicyService struct {
 
 // Delete 删除存储策略
 func (service *PolicyService) Delete() serializer.Response {
+	// 禁止删除默认策略
+	if service.ID == 1 {
+		return serializer.Err(serializer.CodeNoPermissionErr, "默认存储策略无法删除", nil)
+	}
+
 	policy, err := model.GetPolicyByID(service.ID)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)

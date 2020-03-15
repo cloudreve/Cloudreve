@@ -248,6 +248,9 @@ func (handler Driver) Source(
 		signOptions = append(signOptions, oss.ResponseContentDisposition("attachment; filename=\""+url.PathEscape(fileName)+"\""))
 	}
 	if speed > 0 {
+		// Byte 转换为 bit
+		speed *= 8
+
 		// OSS对速度值有范围限制
 		if speed < 819200 {
 			speed = 819200
