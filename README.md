@@ -55,7 +55,7 @@
 
 ```shell
 # 解压程序包
-tar - czvf cloudreve_VERSION_OS_ARCH.tar.gz
+tar -zxvf cloudreve_VERSION_OS_ARCH.tar.gz
 
 # 赋予执行权限
 chmod +x ./cloudreve
@@ -80,7 +80,7 @@ git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 
 ```shell
 # 进入前端子模块
-cd asserts
+cd assets
 # 安装依赖
 yarn install
 # 开始构建
