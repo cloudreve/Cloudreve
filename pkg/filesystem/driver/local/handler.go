@@ -91,7 +91,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		}
 
 		// 尝试删除文件的缩略图（如果有）
-		_ = os.Remove(value + conf.ThumbConfig.FileSuffix)
+		_ = os.Remove(util.RelativePath(value + conf.ThumbConfig.FileSuffix))
 	}
 
 	return deleteFailed, retErr
