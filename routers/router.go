@@ -107,7 +107,7 @@ func InitMasterRouter() *gin.Engine {
 			// 验证码
 			site.GET("captcha", controllers.Captcha)
 			// 站点全局配置
-			site.GET("config", controllers.SiteConfig)
+			site.GET("config", middleware.CSRFInit(), controllers.SiteConfig)
 		}
 
 		// 用户相关路由
@@ -231,6 +231,7 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// 预览分享文件
 			share.GET("preview/:id",
+				middleware.CSRFCheck(),
 				middleware.CheckShareUnlocked(),
 				middleware.ShareCanPreview(),
 				middleware.BeforeShareDownload(),

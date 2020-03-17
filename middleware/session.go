@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
@@ -31,4 +32,25 @@ func Session(secret string) gin.HandlerFunc {
 	// TODO:same-site policy
 	Store.Options(sessions.Options{HttpOnly: true, MaxAge: 7 * 86400, Path: "/"})
 	return sessions.Sessions("cloudreve-session", Store)
+}
+
+// CSRFInit 初始化CSRF标记
+func CSRFInit() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		util.SetSession(c, map[string]interface{}{"CSRF": true})
+		c.Next()
+	}
+}
+
+// CSRFCheck 检查CSRF标记
+func CSRFCheck() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if check, ok := util.GetSession(c, "CSRF").(bool); ok && check {
+			c.Next()
+			return
+		}
+
+		c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "来源非法", nil))
+		c.Abort()
+	}
 }
