@@ -654,7 +654,7 @@ func TestOneDriveCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[522]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[657]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
@@ -699,7 +699,7 @@ func TestCOSCallbackAuth(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)users(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[522]"))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[702]"))
 		mock.ExpectQuery("SELECT(.+)policies(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)

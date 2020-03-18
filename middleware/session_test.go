@@ -24,6 +24,7 @@ func TestSession(t *testing.T) {
 		asserts.Panics(func() {
 			Session("2333")
 		})
+		conf.RedisConfig.Server = ""
 	}
 
 }

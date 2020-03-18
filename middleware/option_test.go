@@ -62,7 +62,6 @@ func TestIsFunctionEnabled(t *testing.T) {
 		c.Params = []gin.Param{}
 		c.Request, _ = http.NewRequest("POST", "/api/v3/file/dellete/1", nil)
 		TestFunc(c)
-		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.True(c.IsAborted())
 	}
 	// 开启
@@ -72,7 +71,6 @@ func TestIsFunctionEnabled(t *testing.T) {
 		c.Params = []gin.Param{}
 		c.Request, _ = http.NewRequest("POST", "/api/v3/file/dellete/1", nil)
 		TestFunc(c)
-		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.False(c.IsAborted())
 	}
 
