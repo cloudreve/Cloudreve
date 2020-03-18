@@ -11,7 +11,8 @@ var RedisConfig = &redis{
 
 // DatabaseConfig 数据库配置
 var DatabaseConfig = &database{
-	Type: "UNSET",
+	Type:   "UNSET",
+	DBFile: "cloudreve.db",
 }
 
 // SystemConfig 系统公用配置

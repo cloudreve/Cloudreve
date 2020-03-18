@@ -14,6 +14,7 @@ type database struct {
 	Host        string
 	Name        string
 	TablePrefix string
+	DBFile      string
 }
 
 // system 系统通用配置

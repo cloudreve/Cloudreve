@@ -30,7 +30,7 @@ func Init() {
 	} else {
 		if conf.DatabaseConfig.Type == "UNSET" {
 			// 未指定数据库时，使用SQLite
-			db, err = gorm.Open("sqlite3", util.RelativePath("cloudreve.db"))
+			db, err = gorm.Open("sqlite3", util.RelativePath(conf.DatabaseConfig.DBFile))
 		} else {
 			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
