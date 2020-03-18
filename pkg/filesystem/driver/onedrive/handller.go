@@ -3,7 +3,9 @@ package onedrive
 import (
 	"context"
 	"errors"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/request"
@@ -101,8 +103,20 @@ func (handler Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
+	// 尝试从缓存中查找
+	if cachedURL, ok := cache.Get(fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)); ok {
+		return cachedURL.(string), nil
+	}
+
+	// 缓存不存在，重新获取
 	res, err := handler.Client.Meta(ctx, "", path)
 	if err == nil {
+		// 写入新的缓存
+		cache.Set(
+			fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path),
+			res.DownloadURL,
+			model.GetIntSetting("onedrive_source_timeout", 1800),
+		)
 		return res.DownloadURL, nil
 	}
 	return "", err

@@ -506,7 +506,7 @@ func TestClient_Upload(t *testing.T) {
 		asserts.Error(err)
 	}
 
-	// 大文件 分两个分片 成功
+	// 大文件 分两个分片 ，reader 返回EOF
 	{
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
 		clientMock := ClientMock{}
@@ -523,24 +523,11 @@ func TestClient_Upload(t *testing.T) {
 				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
 			},
 		})
-		clientMock.On(
-			"Request",
-			"PUT",
-			"123321",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"http://dev.com/2"}`)),
-			},
-		})
 		client.Request = clientMock
 
 		err := client.Upload(context.Background(), "123.jpg", 15*1024*1024, strings.NewReader("123"))
 		clientMock.AssertExpectations(t)
-		asserts.NoError(err)
+		asserts.Error(err)
 	}
 
 	// 大文件 分两个分片 失败
@@ -559,19 +546,6 @@ func TestClient_Upload(t *testing.T) {
 			Response: &http.Response{
 				StatusCode: 200,
 				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
-			},
-		})
-		clientMock.On(
-			"Request",
-			"PUT",
-			"123321",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 400,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"http://dev.com/2"}`)),
 			},
 		})
 		client.Request = clientMock

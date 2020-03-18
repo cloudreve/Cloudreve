@@ -129,12 +129,24 @@ func TestDriver_Source(t *testing.T) {
 	}
 	handler.Client, _ = NewClient(&model.Policy{})
 	handler.Client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+	cache.Set("setting_onedrive_source_timeout", "1800", 0)
 
 	// 失败
 	{
 		res, err := handler.Source(context.Background(), "123.jpg", url.URL{}, 0, true, 0)
 		asserts.Error(err)
 		asserts.Empty(res)
+	}
+
+	// 命中缓存 成功
+	{
+		handler.Client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		handler.Client.Credential.AccessToken = "1"
+		cache.Set("onedrive_source_0_123.jpg", "res", 0)
+		res, err := handler.Source(context.Background(), "123.jpg", url.URL{}, 0, true, 0)
+		cache.Deletes([]string{"0_123.jpg"}, "onedrive_source_")
+		asserts.NoError(err)
+		asserts.Equal("res", res)
 	}
 
 	// 成功
