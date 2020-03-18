@@ -347,10 +347,12 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 	}
 	for i, v := range files {
 		v = strings.TrimPrefix(v, "/")
+		filePath, _ := url.Parse("/me/drive/root:/")
+		filePath.Path = path.Join(filePath.Path, v)
 		req.Requests[i] = BatchRequest{
 			ID:     v,
 			Method: "DELETE",
-			URL:    "me/drive/root:/" + v,
+			URL:    filePath.EscapedPath(),
 		}
 	}
 
