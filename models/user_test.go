@@ -144,6 +144,27 @@ func TestUser_CheckPassword(t *testing.T) {
 	asserts.Error(err)
 	asserts.False(res)
 
+	// 未知密码类型
+	user = User{}
+	user.Password = "1:2:3"
+	res, err = user.CheckPassword("Cause Sega does what nintendon't")
+	asserts.Error(err)
+	asserts.False(res)
+
+	// V2密码，错误
+	user = User{}
+	user.Password = "md5:2:3"
+	res, err = user.CheckPassword("Cause Sega does what nintendon't")
+	asserts.NoError(err)
+	asserts.False(res)
+
+	// V2密码，正确
+	user = User{}
+	user.Password = "md5:d8446059f8846a2c111a7f53515665fb:sdshare"
+	res, err = user.CheckPassword("admin")
+	asserts.NoError(err)
+	asserts.True(res)
+
 }
 
 func TestNewUser(t *testing.T) {

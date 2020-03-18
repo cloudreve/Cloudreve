@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
@@ -191,11 +192,24 @@ func (user *User) CheckPassword(password string) (bool, error) {
 
 	// 根据存储密码拆分为 Salt 和 Digest
 	passwordStore := strings.Split(user.Password, ":")
-	if len(passwordStore) != 2 {
+	if len(passwordStore) != 2 && len(passwordStore) != 3 {
 		return false, errors.New("Unknown password type")
 	}
 
-	// todo 兼容V2/V1密码
+	// 兼容V2密码，升级后存储格式为: md5:$HASH:$SALT
+	if len(passwordStore) == 3 {
+		if passwordStore[0] != "md5" {
+			return false, errors.New("Unknown password type")
+		}
+		hash := md5.New()
+		_, err := hash.Write([]byte(passwordStore[2] + password))
+		bs := hex.EncodeToString(hash.Sum(nil))
+		if err != nil {
+			return false, err
+		}
+		return bs == passwordStore[1], nil
+	}
+
 	//计算 Salt 和密码组合的SHA1摘要
 	hash := sha1.New()
 	_, err := hash.Write([]byte(password + passwordStore[0]))
