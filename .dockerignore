@@ -1,0 +1,13 @@
+assets/
+Dockerfil*
+docker-compose.yml
+LICENSE
+.gitignore
+.idea
+.git
+README.md
+build.sh
+.travis.yml
+.gitmodules
+.dockerignore
+cloudrev*

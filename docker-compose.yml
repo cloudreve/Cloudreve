@@ -1,0 +1,25 @@
+version: '3.7'
+services:
+  mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+      - "33060:33060"
+    volumes:
+      - ~/data/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+    restart: unless-stopped
+  cloudreve:
+    image: registry.cn-qingdao.aliyuncs.com/qwwl/cloudreve
+    ports:
+      - "5212:5212"
+    links:
+      - mysql
+    depends_on:
+      - mysql
+    volumes:
+      - ~/data/cloudreve/conf.ini:/conf.ini
+    restart: unless-stopped
+
+

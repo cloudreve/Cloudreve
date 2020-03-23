@@ -1,13 +1,15 @@
-// +build !sqlite
+// +build sqlite
 
 package model
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
@@ -24,11 +26,21 @@ func Init() {
 		err error
 	)
 
-	db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",
-		conf.DatabaseConfig.User,
-		conf.DatabaseConfig.Password,
-		conf.DatabaseConfig.Host,
-		conf.DatabaseConfig.Name))
+	if gin.Mode() == gin.TestMode {
+		// 测试模式下，使用内存数据库
+		db, err = gorm.Open("sqlite3", ":memory:")
+	} else {
+		if conf.DatabaseConfig.Type == "UNSET" {
+			// 未指定数据库时，使用SQLite
+			db, err = gorm.Open("sqlite3", util.RelativePath(conf.DatabaseConfig.DBFile))
+		} else {
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",
+				conf.DatabaseConfig.User,
+				conf.DatabaseConfig.Password,
+				conf.DatabaseConfig.Host,
+				conf.DatabaseConfig.Name))
+		}
+	}
 
 	// 处理表前缀
 	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {

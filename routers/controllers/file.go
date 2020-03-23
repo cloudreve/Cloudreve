@@ -1,6 +1,6 @@
 package controllers
 
-import "C"
+
 import (
 	"context"
 	"fmt"

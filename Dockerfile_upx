@@ -1,0 +1,7 @@
+FROM golang:alpine
+MAINTAINER alphayan "alphayyq@163.com"
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories \
+    && apk update \
+    && apk add upx \
+    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/* $HOME/.cache
+CMD ["/bin/bash"]
