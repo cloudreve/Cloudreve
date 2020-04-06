@@ -8,6 +8,7 @@ import (
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/routers/controllers"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
@@ -78,6 +79,7 @@ func InitMasterRouter() *gin.Engine {
 	/*
 		静态资源
 	*/
+	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
 	r.Use(static.Serve("/", bootstrap.StaticFS))
 	r.GET("manifest.json", controllers.Manifest)
 
