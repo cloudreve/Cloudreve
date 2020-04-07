@@ -23,7 +23,11 @@ func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
 		return serializer.ParamErr(service.ErrorMsg, nil)
 	}
 
-	policyID := util.GetSession(c, "onedrive_oauth_policy").(uint)
+	policyID, ok := util.GetSession(c, "onedrive_oauth_policy").(uint)
+	if !ok {
+		return serializer.Err(serializer.CodeNotFound, "授权会话不存在，请重试", nil)
+	}
+
 	util.DeleteSession(c, "onedrive_oauth_policy")
 
 	policy, err := model.GetPolicyByID(policyID)
