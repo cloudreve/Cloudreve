@@ -216,9 +216,6 @@ func (client *Client) Upload(ctx context.Context, dst string, size int, file io.
 			// 因为后面需要错误重试，这里要把分片内容读到内存中
 			chunkContent := chunkData[:chunkSize]
 			_, err := io.ReadFull(file, chunkContent)
-			if err != nil {
-				return err
-			}
 
 			chunk := Chunk{
 				Offset:    offset,

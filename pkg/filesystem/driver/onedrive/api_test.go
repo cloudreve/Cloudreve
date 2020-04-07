@@ -506,55 +506,6 @@ func TestClient_Upload(t *testing.T) {
 		asserts.Error(err)
 	}
 
-	// 大文件 分两个分片 ，reader 返回EOF
-	{
-		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			testMock.Anything,
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
-			},
-		})
-		client.Request = clientMock
-
-		err := client.Upload(context.Background(), "123.jpg", 15*1024*1024, strings.NewReader("123"))
-		clientMock.AssertExpectations(t)
-		asserts.Error(err)
-	}
-
-	// 大文件 分两个分片 失败
-	{
-		cache.Set("setting_onedrive_chunk_retries", "0", 0)
-		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			testMock.Anything,
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
-			},
-		})
-		client.Request = clientMock
-
-		err := client.Upload(context.Background(), "123.jpg", 15*1024*1024, strings.NewReader("123"))
-		clientMock.AssertExpectations(t)
-		asserts.Error(err)
-	}
-
 	// 上下文取消
 	{
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
