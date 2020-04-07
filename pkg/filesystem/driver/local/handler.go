@@ -56,7 +56,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {
-		err := os.MkdirAll(basePath, 0700)
+		err := os.MkdirAll(basePath, 0644)
 		if err != nil {
 			util.Log().Warning("无法创建目录，%s", err)
 			return err
