@@ -279,11 +279,13 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 	// 优先使用https
 	finalURL.Scheme = "https"
 
-	// 公有空间替换掉Key
+	// 公有空间替换掉Key及不支持的头
 	if !handler.Policy.IsPrivate {
 		query := finalURL.Query()
 		query.Del("OSSAccessKeyId")
 		query.Del("Signature")
+		query.Del("response-content-disposition")
+		query.Del("x-oss-traffic-limit")
 		finalURL.RawQuery = query.Encode()
 	}
 
