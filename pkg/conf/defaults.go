@@ -13,6 +13,7 @@ var RedisConfig = &redis{
 var DatabaseConfig = &database{
 	Type:   "UNSET",
 	DBFile: "cloudreve.db",
+	Port:   3306,
 }
 
 // SystemConfig 系统公用配置
