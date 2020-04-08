@@ -32,10 +32,11 @@ func Init() {
 			// 未指定数据库时，使用SQLite
 			db, err = gorm.Open("sqlite3", util.RelativePath(conf.DatabaseConfig.DBFile))
 		} else {
-			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local",
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
 				conf.DatabaseConfig.Host,
+				conf.DatabaseConfig.Port,
 				conf.DatabaseConfig.Name))
 		}
 	}
