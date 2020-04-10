@@ -1,4 +1,5 @@
 # Binaries for programs and plugins
+cloudreve
 *.exe
 *.exe~
 *.dll
