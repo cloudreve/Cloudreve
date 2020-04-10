@@ -5,12 +5,14 @@ import (
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/email"
 	"github.com/HFO4/cloudreve/pkg/hashid"
+	"github.com/HFO4/cloudreve/pkg/recaptcha"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // UserRegisterService 管理用户注册的服务
@@ -27,11 +29,23 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 	options := model.GetSettingByNames("email_active", "reg_captcha")
 	// 检查验证码
 	isCaptchaRequired := model.IsTrueVal(options["reg_captcha"])
-	if isCaptchaRequired {
+	useRecaptcha := model.IsTrueVal(model.GetSettingByName("captcha_IsUseReCaptcha"))
+	recaptchaSecret := model.GetSettingByName("captcha_ReCaptchaSecret")
+	if isCaptchaRequired && !useRecaptcha {
 		captchaID := util.GetSession(c, "captchaID")
 		util.DeleteSession(c, "captchaID")
 		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
 			return serializer.ParamErr("验证码错误", nil)
+		}
+	} else if isCaptchaRequired && useRecaptcha {
+		captcha, err := recaptcha.NewReCAPTCHA(recaptchaSecret, recaptcha.V2, 10*time.Second)
+		if err != nil {
+			util.Log().Error(err.Error())
+		}
+		err = captcha.Verify(service.CaptchaCode)
+		if err != nil {
+			util.Log().Error(err.Error())
+			return serializer.ParamErr("验证失败，请刷新网页后再次验证", nil)
 		}
 	}
 

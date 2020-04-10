@@ -69,11 +69,23 @@ func (service *UserResetService) Reset(c *gin.Context) serializer.Response {
 func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response {
 	// 检查验证码
 	isCaptchaRequired := model.IsTrueVal(model.GetSettingByName("forget_captcha"))
-	if isCaptchaRequired {
+	useRecaptcha := model.IsTrueVal(model.GetSettingByName("captcha_IsUseReCaptcha"))
+	recaptchaSecret := model.GetSettingByName("captcha_ReCaptchaSecret")
+	if isCaptchaRequired && !useRecaptcha {
 		captchaID := util.GetSession(c, "captchaID")
 		util.DeleteSession(c, "captchaID")
 		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
 			return serializer.ParamErr("验证码错误", nil)
+		}
+	} else if isCaptchaRequired && useRecaptcha {
+		captcha, err := recaptcha.NewReCAPTCHA(recaptchaSecret, recaptcha.V2, 10*time.Second)
+		if err != nil {
+			util.Log().Error(err.Error())
+		}
+		err = captcha.Verify(service.CaptchaCode)
+		if err != nil {
+			util.Log().Error(err.Error())
+			return serializer.ParamErr("验证失败，请刷新网页后再次验证", nil)
 		}
 	}
 
@@ -132,13 +144,26 @@ func (service *Enable2FA) Login(c *gin.Context) serializer.Response {
 // Login 用户登录函数
 func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	isCaptchaRequired := model.GetSettingByName("login_captcha")
+	useRecaptcha := model.GetSettingByName("captcha_IsUseReCaptcha")
+	recaptchaSecret := model.GetSettingByName("captcha_ReCaptchaSecret")
 	expectedUser, err := model.GetUserByEmail(service.UserName)
 
-	if model.IsTrueVal(isCaptchaRequired) {
+	if (model.IsTrueVal(isCaptchaRequired)) && !(model.IsTrueVal(useRecaptcha)) {
+		// TODO 验证码校验
 		captchaID := util.GetSession(c, "captchaID")
 		util.DeleteSession(c, "captchaID")
 		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
 			return serializer.ParamErr("验证码错误", nil)
+		}
+	} else if (model.IsTrueVal(isCaptchaRequired)) && (model.IsTrueVal(useRecaptcha)) {
+		captcha, err := recaptcha.NewReCAPTCHA(recaptchaSecret, recaptcha.V2, 10*time.Second)
+		if err != nil {
+			util.Log().Error(err.Error())
+		}
+		err = captcha.Verify(service.CaptchaCode)
+		if err != nil {
+			util.Log().Error(err.Error())
+			return serializer.ParamErr("验证失败，请刷新网页后再次验证", nil)
 		}
 	}
 

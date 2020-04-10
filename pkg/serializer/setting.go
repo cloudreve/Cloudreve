@@ -15,6 +15,8 @@ type SiteConfig struct {
 	ShareViewMethod    string `json:"share_view_method"`
 	Authn              bool   `json:"authn"'`
 	User               User   `json:"user"`
+	UseReCaptcha       bool   `json:"captcha_IsUseReCaptcha"`
+	ReCaptchaKey       string `json:"captcha_ReCaptchaKey"`
 }
 
 type task struct {
@@ -72,6 +74,8 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			ShareViewMethod:    checkSettingValue(settings, "share_view_method"),
 			Authn:              model.IsTrueVal(checkSettingValue(settings, "authn_enabled")),
 			User:               userRes,
+			UseReCaptcha:       model.IsTrueVal(checkSettingValue(settings, "captcha_IsUseReCaptcha")),
+			ReCaptchaKey:       checkSettingValue(settings, "captcha_ReCaptchaKey"),
 		}}
 	return res
 }
