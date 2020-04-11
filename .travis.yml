@@ -15,7 +15,7 @@ before_deploy:
   - sudo apt-get update
   - sudo apt-get -y install gcc-mingw-w64-x86-64
   - sudo apt-get -y install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
-  - sudo apt-get -y install gcc-aarch64-linux-gnu
+  - sudo apt-get -y install gcc-aarch64-linux-gnu libc6-dev-i386
   - chmod +x ./build.sh
   - ./build.sh -r b
 deploy:
