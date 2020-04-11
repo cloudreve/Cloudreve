@@ -89,7 +89,7 @@ func GetFilesByKeywords(uid uint, keywords ...interface{}) ([]File, error) {
 
 	// 生成查询条件
 	for i := 0; i < len(keywords); i++ {
-		conditions += "LOWER(name) like ?"
+		conditions += "name like ?"
 		if i != len(keywords)-1 {
 			conditions += " or "
 		}
