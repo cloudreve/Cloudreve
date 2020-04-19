@@ -65,7 +65,7 @@ func (service *UserBatchService) Delete() serializer.Response {
 		if err != nil {
 			return serializer.Err(serializer.CodeNotFound, "无法找到用户根目录", err)
 		}
-		fs.Delete(context.Background(), []uint{root.ID}, []uint{})
+		fs.Delete(context.Background(), []uint{root.ID}, []uint{}, false)
 
 		// 删除相关任务
 		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})

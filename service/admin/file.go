@@ -58,7 +58,7 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 			}
 
 			// 执行删除
-			fs.Delete(context.Background(), []uint{}, ids)
+			fs.Delete(context.Background(), []uint{}, ids, false)
 			fs.Recycle()
 		}
 	}(userFile)

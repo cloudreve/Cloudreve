@@ -281,7 +281,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *files
 
 	// 尝试作为文件删除
 	if ok, file := fs.IsFileExist(reqPath); ok {
-		if err := fs.Delete(ctx, []uint{}, []uint{file.ID}); err != nil {
+		if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false); err != nil {
 			return http.StatusMethodNotAllowed, err
 		}
 		return http.StatusNoContent, nil
@@ -289,7 +289,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *files
 
 	// 尝试作为目录删除
 	if ok, folder := fs.IsPathExist(reqPath); ok {
-		if err := fs.Delete(ctx, []uint{folder.ID}, []uint{}); err != nil {
+		if err := fs.Delete(ctx, []uint{folder.ID}, []uint{}, false); err != nil {
 			return http.StatusMethodNotAllowed, err
 		}
 		return http.StatusNoContent, nil

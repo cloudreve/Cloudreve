@@ -342,11 +342,64 @@ func TestFileSystem_Delete(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 
-		err := fs.Delete(ctx, []uint{1}, []uint{1})
+		err := fs.Delete(ctx, []uint{1}, []uint{1}, false)
 		asserts.Error(err)
 		asserts.Equal(203, err.(serializer.AppError).Code)
 		asserts.Equal(uint64(3), fs.User.Storage)
 		asserts.NoError(mock.ExpectationsWereMet())
+	}
+	//全部未成功，强制
+	{
+		fs.CleanTargets()
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id"}).
+					AddRow(1).
+					AddRow(2).
+					AddRow(3),
+			)
+		mock.ExpectQuery("SELECT(.+)").
+			WithArgs(1, 2, 3).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).
+					AddRow(4, "1.txt", "1.txt", 365, 1),
+			)
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "2.txt", "2.txt", 365, 2))
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
+		// 查询上传策略
+		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(365, "local"))
+		// 删除文件记录
+		mock.ExpectBegin()
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 归还容量
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 删除目录
+		mock.ExpectBegin()
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+		// 删除对应分享
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)shares").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+		mock.ExpectCommit()
+
+		fs.FileTarget = []model.File{}
+		fs.DirTarget = []model.Folder{}
+		err := fs.Delete(ctx, []uint{1}, []uint{1}, true)
+		asserts.NoError(err)
+		asserts.Equal(uint64(0), fs.User.Storage)
 	}
 	//全部成功
 	{
@@ -402,7 +455,7 @@ func TestFileSystem_Delete(t *testing.T) {
 
 		fs.FileTarget = []model.File{}
 		fs.DirTarget = []model.Folder{}
-		err = fs.Delete(ctx, []uint{1}, []uint{1})
+		err = fs.Delete(ctx, []uint{1}, []uint{1}, false)
 		asserts.NoError(err)
 		asserts.Equal(uint64(0), fs.User.Storage)
 	}

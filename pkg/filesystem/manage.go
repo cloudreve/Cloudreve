@@ -131,8 +131,8 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst str
 	return err
 }
 
-// Delete 递归删除对象
-func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
+// Delete 递归删除对象, force 为 true 时强制删除文件记录，忽略物理删除是否成功
+func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool) error {
 	// 已删除的总容量,map用于去重
 	var deletedStorage = make(map[uint]uint64)
 	var totalStorage = make(map[uint]uint64)
@@ -182,7 +182,12 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint) error {
 		totalStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
 		allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
 	}
-	// TODO 用户自主选择是否强制删除
+
+	// 如果强制删除，则将全部文件视为删除成功
+	if force {
+		deletedFileIDs = allFileIDs
+		deletedStorage = totalStorage
+	}
 
 	// 删除文件记录
 	err = model.DeleteFileByIDs(deletedFileIDs)
