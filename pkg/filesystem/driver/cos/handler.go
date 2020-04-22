@@ -143,7 +143,34 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	var (
+		thumbSize = [2]uint{400, 300}
+		ok        = false
+	)
+	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
+		return nil, errors.New("无法获取缩略图尺寸设置")
+	}
+	thumbParam := fmt.Sprintf("imageMogr2/thumbnail/%dx%d", thumbSize[0], thumbSize[1])
+
+	source, err := handler.signSourceURL(
+		ctx,
+		path,
+		int64(model.GetIntSetting("preview_timeout", 60)),
+		&urlOption{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	thumbURL, _ := url.Parse(source)
+	thumbQuery := thumbURL.Query()
+	thumbQuery.Add(thumbParam, "")
+	thumbURL.RawQuery = thumbQuery.Encode()
+
+	return &response.ContentResponse{
+		Redirect: true,
+		URL:      thumbURL.String(),
+	}, nil
 }
 
 // Source 获取外链URL
