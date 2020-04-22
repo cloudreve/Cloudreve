@@ -297,8 +297,6 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	// 异步尝试生成缩略图
 	if fs.User.Policy.IsThumbGenerateNeeded() {
 		go fs.GenerateThumbnail(ctx, file)
-	} else if fs.User.Policy.IsMockThumbNeeded() {
-		file.UpdatePicInfo("1,1")
 	}
 
 	return nil

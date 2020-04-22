@@ -63,6 +63,11 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 		FolderID:   parent.ID,
 		PolicyID:   fs.User.Policy.ID,
 	}
+
+	if fs.User.Policy.IsThumbExist(file.GetFileName()) {
+		newFile.PicInfo = "1,1"
+	}
+
 	_, err = newFile.Create()
 
 	if err != nil {
