@@ -13,7 +13,7 @@ type SiteConfig struct {
 	DefaultTheme       string `json:"defaultTheme"`
 	HomepageViewMethod string `json:"home_view_method"`
 	ShareViewMethod    string `json:"share_view_method"`
-	Authn              bool   `json:"authn"'`
+	Authn              bool   `json:"authn"`
 	User               User   `json:"user"`
 	UseReCaptcha       bool   `json:"captcha_IsUseReCaptcha"`
 	ReCaptchaKey       string `json:"captcha_ReCaptchaKey"`
