@@ -242,13 +242,62 @@ func TestPolicy_UpdateAccessKey(t *testing.T) {
 func TestPolicy_Props(t *testing.T) {
 	asserts := assert.New(t)
 	policy := Policy{Type: "onedrive"}
-	asserts.True(policy.IsMockThumbNeeded())
 	asserts.False(policy.IsThumbGenerateNeeded())
 	asserts.True(policy.IsPathGenerateNeeded())
 	asserts.True(policy.IsTransitUpload(4))
 	asserts.False(policy.IsTransitUpload(5 * 1024 * 1024))
 	policy.Type = "local"
-	asserts.False(policy.IsMockThumbNeeded())
 	asserts.True(policy.IsThumbGenerateNeeded())
 	asserts.True(policy.IsPathGenerateNeeded())
+}
+
+func TestPolicy_IsThumbExist(t *testing.T) {
+	asserts := assert.New(t)
+
+	testCases := []struct {
+		name   string
+		expect bool
+		policy string
+	}{
+		{
+			"1.png",
+			false,
+			"unknown",
+		},
+		{
+			"1.png",
+			false,
+			"local",
+		},
+		{
+			"1.png",
+			true,
+			"cos",
+		},
+		{
+			"1",
+			false,
+			"cos",
+		},
+		{
+			"1.txt.png",
+			true,
+			"cos",
+		},
+		{
+			"1.png.txt",
+			false,
+			"cos",
+		},
+		{
+			"1",
+			true,
+			"onedrive",
+		},
+	}
+
+	for _, testCase := range testCases {
+		policy := Policy{Type: testCase.policy}
+		asserts.Equal(testCase.expect, policy.IsThumbExist(testCase.name))
+	}
 }

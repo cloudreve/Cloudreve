@@ -20,7 +20,7 @@ func TestFileSystem_AddFile(t *testing.T) {
 	asserts := assert.New(t)
 	file := local.FileStream{
 		Size: 5,
-		Name: "1.txt",
+		Name: "1.png",
 	}
 	folder := model.Folder{
 		Model: gorm.Model{
@@ -33,6 +33,7 @@ func TestFileSystem_AddFile(t *testing.T) {
 				ID: 1,
 			},
 			Policy: model.Policy{
+				Type: "cos",
 				Model: gorm.Model{
 					ID: 1,
 				},
@@ -40,7 +41,7 @@ func TestFileSystem_AddFile(t *testing.T) {
 		},
 	}
 	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, file)
-	ctx = context.WithValue(ctx, fsctx.SavePathCtx, "/Uploads/1_sad.txt")
+	ctx = context.WithValue(ctx, fsctx.SavePathCtx, "/Uploads/1_sad.png")
 
 	_, err := fs.AddFile(ctx, &folder)
 
@@ -54,7 +55,8 @@ func TestFileSystem_AddFile(t *testing.T) {
 
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
-	asserts.Equal("/Uploads/1_sad.txt", f.SourceName)
+	asserts.Equal("/Uploads/1_sad.png", f.SourceName)
+	asserts.NotEmpty(f.PicInfo)
 }
 
 func TestFileSystem_GetContent(t *testing.T) {
