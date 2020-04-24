@@ -46,6 +46,10 @@ type Driver struct {
 	HTTPClient request.Client
 }
 
+func (handler Driver) List(ctx context.Context, path string) ([]response.Object, error) {
+	panic("implement me")
+}
+
 // CORS 创建跨域策略
 func (handler Driver) CORS() error {
 	_, err := handler.Client.Bucket.PutCORS(context.Background(), &cossdk.BucketPutCORSOptions{

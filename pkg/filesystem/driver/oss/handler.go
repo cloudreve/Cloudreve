@@ -42,6 +42,10 @@ type Driver struct {
 	HTTPClient request.Client
 }
 
+func (handler *Driver) List(ctx context.Context, path string) ([]response.Object, error) {
+	panic("implement me")
+}
+
 type key int
 
 const (

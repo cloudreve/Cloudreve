@@ -23,6 +23,47 @@ type Driver struct {
 	Policy *model.Policy
 }
 
+// List 递归列取给定物理路径下所有文件
+func (handler Driver) List(ctx context.Context, path string) ([]response.Object, error) {
+	var res []response.Object
+
+	// 取得起始路径
+	root := util.RelativePath(filepath.FromSlash(path))
+
+	// 开始遍历路径下的文件、目录
+	err := filepath.Walk(root,
+		func(path string, info os.FileInfo, err error) error {
+			// 跳过根目录
+			if path == root {
+				return nil
+			}
+
+			if err != nil {
+				util.Log().Warning("无法遍历目录 %s, %s", path, err)
+				return filepath.SkipDir
+			}
+
+			// 将遍历对象的绝对路径转换为相对路径
+			rel, err := filepath.Rel(root, path)
+			if err != nil {
+				return err
+			}
+
+			res = append(res, response.Object{
+				Name:         info.Name(),
+				RelativePath: filepath.ToSlash(rel),
+				Source:       path,
+				Size:         uint64(info.Size()),
+				IsDir:        info.IsDir(),
+				LastModify:   info.ModTime(),
+			})
+
+			return nil
+		})
+
+	return res, err
+}
+
 // Get 获取文件内容
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 打开文件

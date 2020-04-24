@@ -27,6 +27,10 @@ type Driver struct {
 	AuthInstance auth.Auth
 }
 
+func (handler Driver) List(ctx context.Context, path string) ([]response.Object, error) {
+	panic("implement me")
+}
+
 // getAPIUrl 获取接口请求地址
 func (handler Driver) getAPIUrl(scope string, routes ...string) string {
 	serverURL, err := url.Parse(handler.Policy.Server)

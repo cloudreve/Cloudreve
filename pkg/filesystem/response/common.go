@@ -1,6 +1,9 @@
 package response
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 // ContentResponse 获取文件内容类方法的通用返回值。
 // 有些上传策略需要重定向，
@@ -16,4 +19,14 @@ type ContentResponse struct {
 type RSCloser interface {
 	io.ReadSeeker
 	io.Closer
+}
+
+// Object 列出文件、目录时返回的对象
+type Object struct {
+	Name         string
+	RelativePath string
+	Source       string
+	Size         uint64
+	IsDir        bool
+	LastModify   time.Time
 }

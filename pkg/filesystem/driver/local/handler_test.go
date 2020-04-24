@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
@@ -229,4 +230,13 @@ func TestHandler_Token(t *testing.T) {
 	ctx := context.Background()
 	_, err := handler.Token(ctx, 10, "123")
 	asserts.NoError(err)
+}
+
+func TestDriver_List(t *testing.T) {
+	//asserts := assert.New(t)
+	handler := Driver{}
+	ctx := context.Background()
+
+	res, err := handler.List(ctx, "KKV")
+	fmt.Println(res, err)
 }

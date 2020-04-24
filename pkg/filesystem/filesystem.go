@@ -41,7 +41,7 @@ type FileHeader interface {
 	GetVirtualPath() string
 }
 
-// Driver 存储策略适配器
+// Handler 存储策略适配器
 type Handler interface {
 	// 上传文件, dst为文件存储路径，size 为文件大小。上下文关闭
 	// 时，应取消上传并清理临时文件
@@ -64,6 +64,9 @@ type Handler interface {
 
 	// Token 获取有效期为ttl的上传凭证和签名，同时回调会话有效期为sessionTTL
 	Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error)
+
+	// List 递归列取远程端path路径下文件、目录，不包含path本身，返回的对象路径以path作为起始根目录
+	List(ctx context.Context, path string) ([]response.Object, error)
 }
 
 // FileSystem 管理文件的文件系统
