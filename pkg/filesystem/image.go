@@ -38,7 +38,11 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
 	}
 
-	// TODO 出错时重新生成缩略图
+	// 出错时重新生成缩略图
+	if err != nil {
+		fs.GenerateThumbnail(ctx, &fs.FileTarget[0])
+	}
+
 	return res, err
 }
 
