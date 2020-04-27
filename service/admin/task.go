@@ -3,6 +3,7 @@ package admin
 import (
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/serializer"
+	"github.com/HFO4/cloudreve/pkg/task"
 	"github.com/gin-gonic/gin"
 	"strings"
 )
@@ -10,6 +11,26 @@ import (
 // TaskBatchService 任务批量操作服务
 type TaskBatchService struct {
 	ID []uint `json:"id" binding:"min=1"`
+}
+
+// ImportTaskService 导入任务
+type ImportTaskService struct {
+	UID       uint   `json:"uid" binding:"required"`
+	PolicyID  uint   `json:"policy_id" binding:"required"`
+	Src       string `json:"src" binding:"required,min=1,max=65535"`
+	Dst       string `json:"dst" binding:"required,min=1,max=65535"`
+	Recursive bool   `json:"recursive"`
+}
+
+// Create 新建导入任务
+func (service *ImportTaskService) Create(c *gin.Context, user *model.User) serializer.Response {
+	// 创建任务
+	job, err := task.NewImportTask(service.UID, service.PolicyID, service.Src, service.Dst, service.Recursive)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
+	}
+	task.TaskPoll.Submit(job)
+	return serializer.Response{}
 }
 
 // Delete 删除任务

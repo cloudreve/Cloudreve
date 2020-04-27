@@ -387,6 +387,8 @@ func InitMasterRouter() *gin.Engine {
 					task.POST("list", controllers.AdminListTask)
 					// 删除
 					task.POST("delete", controllers.AdminDeleteTask)
+					// 新建文件导入任务
+					task.POST("import", controllers.AdminCreateImportTask)
 				}
 
 			}

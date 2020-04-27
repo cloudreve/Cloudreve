@@ -13,6 +13,8 @@ const (
 	DecompressTaskType
 	// TransferTaskType 中转任务
 	TransferTaskType
+	// ImportTaskType 导入任务
+	ImportTaskType
 )
 
 // 任务状态
@@ -41,6 +43,10 @@ const (
 	DownloadingProgress
 	// Transferring 转存中
 	TransferringProgress
+	// ListingProgress 索引中
+	ListingProgress
+	// InsertingProgress 插入中
+	InsertingProgress
 )
 
 // Job 任务接口
@@ -103,6 +109,8 @@ func GetJobFromModel(task *model.Task) (Job, error) {
 		return NewDecompressTaskFromModel(task)
 	case TransferTaskType:
 		return NewTransferTaskFromModel(task)
+	case ImportTaskType:
+		return NewImportTaskFromModel(task)
 	default:
 		return nil, ErrUnknownTaskType
 	}
