@@ -400,6 +400,11 @@ func (h *Handler) handleMkcol(w http.ResponseWriter, r *http.Request, fs *filesy
 	if r.ContentLength > 0 {
 		return http.StatusUnsupportedMediaType, nil
 	}
+	if strings.Contains(r.UserAgent(), "rclone") {
+		if _, ok := ctx.Value(fsctx.IgnoreConflictCtx).(bool); !ok {
+			ctx = context.WithValue(ctx, fsctx.IgnoreConflictCtx, true)
+		}
+	}
 	if _, err := fs.CreateDirectory(ctx, reqPath); err != nil {
 		return http.StatusConflict, err
 	}
