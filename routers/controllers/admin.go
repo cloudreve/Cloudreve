@@ -402,3 +402,14 @@ func AdminDeleteTask(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminCreateImportTask 新建文件导入任务
+func AdminCreateImportTask(c *gin.Context) {
+	var service admin.ImportTaskService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
