@@ -24,7 +24,7 @@ type Driver struct {
 }
 
 // List 递归列取给定物理路径下所有文件
-func (handler Driver) List(ctx context.Context, path string) ([]response.Object, error) {
+func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
 	var res []response.Object
 
 	// 取得起始路径
@@ -57,6 +57,11 @@ func (handler Driver) List(ctx context.Context, path string) ([]response.Object,
 				IsDir:        info.IsDir(),
 				LastModify:   info.ModTime(),
 			})
+
+			// 如果非递归，则不步入目录
+			if !recursive && info.IsDir() {
+				return filepath.SkipDir
+			}
 
 			return nil
 		})

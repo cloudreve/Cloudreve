@@ -26,7 +26,7 @@ type FileHeaderMock struct {
 	testMock.Mock
 }
 
-func (m FileHeaderMock) List(ctx context.Context, path string) ([]response.Object, error) {
+func (m FileHeaderMock) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
 	panic("implement me")
 }
 

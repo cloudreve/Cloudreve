@@ -65,8 +65,10 @@ type Handler interface {
 	// Token 获取有效期为ttl的上传凭证和签名，同时回调会话有效期为sessionTTL
 	Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error)
 
-	// List 递归列取远程端path路径下文件、目录，不包含path本身，返回的对象路径以path作为起始根目录
-	List(ctx context.Context, path string) ([]response.Object, error)
+	// List 递归列取远程端path路径下文件、目录，不包含path本身，
+	// 返回的对象路径以path作为起始根目录.
+	// recursive - 是否递归列出
+	List(ctx context.Context, path string, recursive bool) ([]response.Object, error)
 }
 
 // FileSystem 管理文件的文件系统

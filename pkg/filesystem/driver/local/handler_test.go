@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"fmt"
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
@@ -233,10 +232,32 @@ func TestHandler_Token(t *testing.T) {
 }
 
 func TestDriver_List(t *testing.T) {
-	//asserts := assert.New(t)
+	asserts := assert.New(t)
 	handler := Driver{}
 	ctx := context.Background()
 
-	res, err := handler.List(ctx, "KKV")
-	fmt.Println(res, err)
+	// 创建测试目录结构
+	for _, path := range []string{
+		"test/TestDriver_List/parent.txt",
+		"test/TestDriver_List/parent_folder2/sub2.txt",
+		"test/TestDriver_List/parent_folder1/sub_folder/sub1.txt",
+		"test/TestDriver_List/parent_folder1/sub_folder/sub2.txt",
+	} {
+		f, _ := util.CreatNestedFile(util.RelativePath(path))
+		f.Close()
+	}
+
+	// 非递归列出
+	{
+		res, err := handler.List(ctx, "test/TestDriver_List", false)
+		asserts.NoError(err)
+		asserts.Len(res, 3)
+	}
+
+	// 递归列出
+	{
+		res, err := handler.List(ctx, "test/TestDriver_List", true)
+		asserts.NoError(err)
+		asserts.Len(res, 7)
+	}
 }
