@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -100,39 +101,72 @@ func (handler *Driver) InitOSSClient() error {
 	return nil
 }
 
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
+// List 列出OSS上的文件
+func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
 	// 初始化客户端
 	if err := handler.InitOSSClient(); err != nil {
 		return nil, err
 	}
 
 	// 列取文件
-	options := []oss.Option{
-		oss.Prefix(strings.TrimPrefix(path, "/")),
+	base = strings.TrimPrefix(base, "/")
+	delimiter := ""
+	if !recursive {
+		delimiter = "/"
 	}
-	if recursive {
-		options = append(options, oss.Delimiter("/"))
-	}
-	listRes, err := handler.bucket.ListObjects(options...)
-	if err != nil {
-		return nil, err
+	marker := ""
+	var (
+		objects []oss.ObjectProperties
+		commons []string
+	)
+
+	for {
+		subRes, err := handler.bucket.ListObjects(oss.Marker(marker), oss.Prefix(base),
+			oss.MaxKeys(1000), oss.Delimiter(delimiter))
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, subRes.Objects...)
+		commons = append(commons, subRes.CommonPrefixes...)
+		marker = subRes.NextMarker
+		if marker == "" {
+			break
+		}
 	}
 
 	// 处理列取结果
-	res := make([]response.Object, len(listRes.CommonPrefixes)+len(listRes.Objects))
+	res := make([]response.Object, 0, len(objects)+len(commons))
 	// 处理目录
-	//for _,object := range listRes.CommonPrefixes{
-	//	res = append(res,response.Object{
-	//		Name:         "",
-	//		RelativePath: "",
-	//		Source:       "",
-	//		Size:         0,
-	//		IsDir:        false,
-	//		LastModify:   time.Time{},
-	//	})
-	//}
+	for _, object := range commons {
+		rel, err := filepath.Rel(base, object)
+		if err != nil {
+			continue
+		}
+		res = append(res, response.Object{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	// 处理文件
+	for _, object := range objects {
+		rel, err := filepath.Rel(base, object.Key)
+		if err != nil {
+			continue
+		}
+		res = append(res, response.Object{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         uint64(object.Size),
+			IsDir:        false,
+			LastModify:   object.LastModified,
+		})
+	}
 
-	return res, err
+	return res, nil
 }
 
 // Get 获取文件

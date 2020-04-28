@@ -142,6 +142,8 @@ func TestImportTask_Do(t *testing.T) {
 		mock.ExpectCommit()
 		// 查找父目录，但是不存在
 		mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		// 仍然不存在
+		mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 		// 创建文件时查找父目录，仍然不存在
 		mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
