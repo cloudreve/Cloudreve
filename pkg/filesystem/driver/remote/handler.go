@@ -27,8 +27,45 @@ type Driver struct {
 	AuthInstance auth.Auth
 }
 
+// List 列取文件
 func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-	panic("implement me")
+	var res []response.Object
+
+	reqBody := serializer.ListRequest{
+		Path:      path,
+		Recursive: recursive,
+	}
+	reqBodyEncoded, err := json.Marshal(reqBody)
+	if err != nil {
+		return res, err
+	}
+
+	// 发送列表请求
+	bodyReader := strings.NewReader(string(reqBodyEncoded))
+	signTTL := model.GetIntSetting("slave_api_timeout", 60)
+	resp, err := handler.Client.Request(
+		"POST",
+		handler.getAPIUrl("list"),
+		bodyReader,
+		request.WithCredential(handler.AuthInstance, int64(signTTL)),
+	).CheckHTTPResponse(200).DecodeResponse()
+	if err != nil {
+		return res, err
+	}
+
+	// 处理列取结果
+	if resp.Code != 0 {
+		return res, errors.New(resp.Error)
+	}
+
+	if resStr, ok := resp.Data.(string); ok {
+		err = json.Unmarshal([]byte(resStr), &res)
+		if err != nil {
+			return res, err
+		}
+	}
+
+	return res, nil
 }
 
 // getAPIUrl 获取接口请求地址
@@ -44,6 +81,8 @@ func (handler Driver) getAPIUrl(scope string, routes ...string) string {
 		controller, _ = url.Parse("/api/v3/slave/delete")
 	case "thumb":
 		controller, _ = url.Parse("/api/v3/slave/thumb")
+	case "list":
+		controller, _ = url.Parse("/api/v3/slave/list")
 	default:
 		controller = serverURL
 	}

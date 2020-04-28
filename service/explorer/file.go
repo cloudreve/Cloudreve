@@ -56,6 +56,30 @@ type SlaveFilesService struct {
 	Files []string `json:"files" binding:"required,gt=0"`
 }
 
+// SlaveListService 从机列表服务
+type SlaveListService struct {
+	Path      string `json:"path" binding:"required,min=1,max=65535"`
+	Recursive bool   `json:"recursive"`
+}
+
+// List 列出从机上的文件
+func (service *SlaveListService) List(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
+	if err != nil {
+		return serializer.Err(serializer.CodeIOFailed, "无法列取文件", err)
+	}
+
+	res, _ := json.Marshal(objects)
+	return serializer.Response{Data: string(res)}
+}
+
 // DownloadArchived 下載已打包的多文件
 func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统

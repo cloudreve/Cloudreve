@@ -23,10 +23,10 @@ type RSCloser interface {
 
 // Object 列出文件、目录时返回的对象
 type Object struct {
-	Name         string
-	RelativePath string
-	Source       string
-	Size         uint64
-	IsDir        bool
-	LastModify   time.Time
+	Name         string    `json:"name"`
+	RelativePath string    `json:"relative_path"`
+	Source       string    `json:"source"`
+	Size         uint64    `json:"size"`
+	IsDir        bool      `json:"is_dir"`
+	LastModify   time.Time `json:"last_modify"`
 }

@@ -158,3 +158,14 @@ func SlavePing(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveList 从机列出文件
+func SlaveList(c *gin.Context) {
+	var service explorer.SlaveListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

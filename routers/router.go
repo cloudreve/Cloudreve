@@ -49,6 +49,8 @@ func InitSlaveRouter() *gin.Engine {
 		v3.GET("thumb/:path", controllers.SlaveThumb)
 		// 删除文件
 		v3.POST("delete", controllers.SlaveDelete)
+		// 列出文件
+		v3.POST("list", controllers.SlaveList)
 	}
 	return r
 }
