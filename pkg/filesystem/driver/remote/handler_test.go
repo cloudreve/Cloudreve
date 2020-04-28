@@ -223,6 +223,89 @@ func TestHandler_Delete(t *testing.T) {
 	}
 }
 
+func TestDriver_List(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Driver{
+		Policy: &model.Policy{
+			SecretKey: "test",
+			Server:    "http://test.com",
+		},
+		AuthInstance: auth.HMACAuth{},
+	}
+	ctx := context.Background()
+	cache.Set("setting_slave_api_timeout", "60", 0)
+
+	// 成功
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/list",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0,"data":"[{}]"}`)),
+			},
+		})
+		handler.Client = clientMock
+		res, err := handler.List(ctx, "/", true)
+		clientMock.AssertExpectations(t)
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+
+	}
+
+	// 响应解析失败
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/list",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0,"data":"233"}`)),
+			},
+		})
+		handler.Client = clientMock
+		res, err := handler.List(ctx, "/", true)
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+		asserts.Len(res, 0)
+	}
+
+	// 从机返回错误
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://test.com/api/v3/slave/list",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"code":203}`)),
+			},
+		})
+		handler.Client = clientMock
+		res, err := handler.List(ctx, "/", true)
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+		asserts.Len(res, 0)
+	}
+}
+
 func TestHandler_Get(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{
