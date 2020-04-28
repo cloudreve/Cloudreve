@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -40,10 +41,6 @@ type Driver struct {
 	client     *oss.Client
 	bucket     *oss.Bucket
 	HTTPClient request.Client
-}
-
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-	panic("implement me")
 }
 
 type key int
@@ -101,6 +98,41 @@ func (handler *Driver) InitOSSClient() error {
 	}
 
 	return nil
+}
+
+func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
+	// 初始化客户端
+	if err := handler.InitOSSClient(); err != nil {
+		return nil, err
+	}
+
+	// 列取文件
+	options := []oss.Option{
+		oss.Prefix(strings.TrimPrefix(path, "/")),
+	}
+	if recursive {
+		options = append(options, oss.Delimiter("/"))
+	}
+	listRes, err := handler.bucket.ListObjects(options...)
+	if err != nil {
+		return nil, err
+	}
+
+	// 处理列取结果
+	res := make([]response.Object, len(listRes.CommonPrefixes)+len(listRes.Objects))
+	// 处理目录
+	//for _,object := range listRes.CommonPrefixes{
+	//	res = append(res,response.Object{
+	//		Name:         "",
+	//		RelativePath: "",
+	//		Source:       "",
+	//		Size:         0,
+	//		IsDir:        false,
+	//		LastModify:   time.Time{},
+	//	})
+	//}
+
+	return res, err
 }
 
 // Get 获取文件
