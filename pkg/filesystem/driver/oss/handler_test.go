@@ -311,3 +311,23 @@ func TestDriver_Get(t *testing.T) {
 		asserts.Equal("123", string(content))
 	}
 }
+
+func TestDriver_List(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Driver{
+		Policy: &model.Policy{
+			AccessKey:  "ak",
+			SecretKey:  "sk",
+			BucketName: "test",
+			Server:     "test.com",
+			IsPrivate:  true,
+		},
+	}
+
+	// 连接失败
+	{
+		res, err := handler.List(context.Background(), "/", true)
+		asserts.Error(err)
+		asserts.Empty(res)
+	}
+}
