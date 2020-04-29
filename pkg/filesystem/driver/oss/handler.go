@@ -110,15 +110,19 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 
 	// 列取文件
 	base = strings.TrimPrefix(base, "/")
-	delimiter := ""
+	if base != "" {
+		base += "/"
+	}
+
+	var (
+		delimiter string
+		marker    string
+		objects   []oss.ObjectProperties
+		commons   []string
+	)
 	if !recursive {
 		delimiter = "/"
 	}
-	marker := ""
-	var (
-		objects []oss.ObjectProperties
-		commons []string
-	)
 
 	for {
 		subRes, err := handler.bucket.ListObjects(oss.Marker(marker), oss.Prefix(base),
