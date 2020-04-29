@@ -14,6 +14,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -22,8 +25,77 @@ type Driver struct {
 	Policy *model.Policy
 }
 
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-	panic("implement me")
+// List 列出给定路径下的文件
+func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
+	base = strings.TrimPrefix(base, "/")
+	if base != "" {
+		base += "/"
+	}
+
+	var (
+		delimiter string
+		marker    string
+		objects   []storage.ListItem
+		commons   []string
+	)
+	if !recursive {
+		delimiter = "/"
+	}
+
+	mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
+	cfg := storage.Config{
+		UseHTTPS: true,
+	}
+	bucketManager := storage.NewBucketManager(mac, &cfg)
+
+	for {
+		entries, folders, nextMarker, hashNext, err := bucketManager.ListFiles(
+			handler.Policy.BucketName,
+			base, delimiter, marker, 1000)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, entries...)
+		commons = append(commons, folders...)
+		if !hashNext {
+			break
+		}
+		marker = nextMarker
+	}
+
+	// 处理列取结果
+	res := make([]response.Object, 0, len(objects)+len(commons))
+	// 处理目录
+	for _, object := range commons {
+		rel, err := filepath.Rel(base, object)
+		if err != nil {
+			continue
+		}
+		res = append(res, response.Object{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	// 处理文件
+	for _, object := range objects {
+		rel, err := filepath.Rel(base, object.Key)
+		if err != nil {
+			continue
+		}
+		res = append(res, response.Object{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         uint64(object.Fsize),
+			IsDir:        false,
+			LastModify:   time.Now(),
+		})
+	}
+
+	return res, nil
 }
 
 // Get 获取文件
