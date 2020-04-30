@@ -18,6 +18,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -40,8 +41,65 @@ type Driver struct {
 	Policy *model.Policy
 }
 
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-	panic("implement me")
+func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
+	base = strings.TrimPrefix(base, "/")
+
+	// 用于接受SDK返回对象的chan
+	objChan := make(chan *upyun.FileInfo)
+	objects := []*upyun.FileInfo{}
+
+	// 列取配置
+	listConf := &upyun.GetObjectsConfig{
+		Path:         "/" + base,
+		ObjectsChan:  objChan,
+		MaxListTries: 1,
+	}
+	// 递归列取时不限制递归次数
+	if recursive {
+		listConf.MaxListLevel = -1
+	}
+
+	// 启动一个goroutine收集列取的对象信
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func(input chan *upyun.FileInfo, output *[]*upyun.FileInfo, wg *sync.WaitGroup) {
+		defer wg.Done()
+		for {
+			file, ok := <-input
+			if !ok {
+				return
+			}
+			*output = append(*output, file)
+		}
+	}(objChan, &objects, wg)
+
+	up := upyun.NewUpYun(&upyun.UpYunConfig{
+		Bucket:   handler.Policy.BucketName,
+		Operator: handler.Policy.AccessKey,
+		Password: handler.Policy.SecretKey,
+	})
+
+	err := up.List(listConf)
+	if err != nil {
+		return nil, err
+	}
+
+	wg.Wait()
+
+	// 汇总处理列取结果
+	res := make([]response.Object, 0, len(objects))
+	for _, object := range objects {
+		res = append(res, response.Object{
+			Name:         path.Base(object.Name),
+			RelativePath: object.Name,
+			Source:       path.Join(base, object.Name),
+			Size:         uint64(object.Size),
+			IsDir:        object.IsDir,
+			LastModify:   object.Time,
+		})
+	}
+
+	return res, nil
 }
 
 // Get 获取文件
