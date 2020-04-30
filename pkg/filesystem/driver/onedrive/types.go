@@ -32,6 +32,16 @@ type FileInfo struct {
 	Image           imageInfo       `json:"image"`
 	ParentReference parentReference `json:"parentReference"`
 	DownloadURL     string          `json:"@microsoft.graph.downloadUrl"`
+	File            *file           `json:"file"`
+	Folder          *folder         `json:"folder"`
+}
+
+type file struct {
+	MimeType string `json:"mimeType"`
+}
+
+type folder struct {
+	ChildCount int `json:"childCount"`
 }
 
 type imageInfo struct {
@@ -81,6 +91,12 @@ type BatchResponse struct {
 type ThumbResponse struct {
 	Value []map[string]interface{} `json:"value"`
 	URL   string                   `json:"url"`
+}
+
+// ListResponse 列取子项目响应
+type ListResponse struct {
+	Value   []FileInfo `json:"value"`
+	Context string     `json:"@odata.context"`
 }
 
 // Chunk 文件分片

@@ -12,6 +12,9 @@ import (
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"io"
 	"net/url"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -22,8 +25,49 @@ type Driver struct {
 	HTTPClient request.Client
 }
 
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-	panic("implement me")
+// List 列取项目
+func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
+	base = strings.TrimPrefix(base, "/")
+	// 列取子项目
+	objects, _ := handler.Client.ListChildren(ctx, base)
+
+	// 获取真实的列取起始根目录
+	rootPath := base
+	if realBase, ok := ctx.Value(fsctx.PathCtx).(string); ok {
+		rootPath = realBase
+	} else {
+		ctx = context.WithValue(ctx, fsctx.PathCtx, base)
+	}
+
+	// 整理结果
+	res := make([]response.Object, 0, len(objects))
+	for _, object := range objects {
+		source := path.Join(base, object.Name)
+		rel, err := filepath.Rel(rootPath, source)
+		if err != nil {
+			continue
+		}
+		res = append(res, response.Object{
+			Name:         object.Name,
+			RelativePath: filepath.ToSlash(rel),
+			Source:       source,
+			Size:         object.Size,
+			IsDir:        object.Folder != nil,
+			LastModify:   time.Now(),
+		})
+	}
+
+	// 递归列取子目录
+	if recursive {
+		for _, object := range objects {
+			if object.Folder != nil {
+				sub, _ := handler.List(ctx, path.Join(base, object.Name), recursive)
+				res = append(res, sub...)
+			}
+		}
+	}
+
+	return res, nil
 }
 
 // Get 获取文件

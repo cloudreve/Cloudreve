@@ -26,6 +26,8 @@ const (
 	SmallFileSize uint64 = 4 * 1024 * 1024
 	// ChunkSize 分片上传分片大小
 	ChunkSize uint64 = 10 * 1024 * 1024
+	// ListRetry 列取请求重试次数
+	ListRetry = 1
 )
 
 // GetSourcePath 获取文件的绝对路径
@@ -57,6 +59,43 @@ func (client *Client) getRequestURL(api string) string {
 	}
 	base.Path = path.Join(base.Path, api)
 	return base.String()
+}
+
+// ListChildren 根据路径列取子对象
+func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo, error) {
+	var requestURL string
+	dst := strings.TrimPrefix(path, "/")
+	if dst == "" {
+		requestURL = client.getRequestURL("me/drive/root/children")
+	} else {
+		requestURL = client.getRequestURL("me/drive/root:/" + dst + ":/children")
+	}
+
+	res, err := client.requestWithStr(ctx, "GET", requestURL+"?$top=999999999", "", 200)
+	if err != nil {
+		retried := 0
+		if v, ok := ctx.Value(fsctx.RetryCtx).(int); ok {
+			retried = v
+		}
+		if retried < ListRetry {
+			retried++
+			util.Log().Debug("路径[%s]列取请求失败[%s]，5秒钟后重试", path, err)
+			time.Sleep(time.Duration(5) * time.Second)
+			return client.ListChildren(context.WithValue(ctx, fsctx.RetryCtx, retried), path)
+		}
+		return nil, err
+	}
+
+	var (
+		decodeErr error
+		fileInfo  ListResponse
+	)
+	decodeErr = json.Unmarshal([]byte(res), &fileInfo)
+	if decodeErr != nil {
+		return nil, decodeErr
+	}
+
+	return fileInfo.Value, nil
 }
 
 // Meta 根据资源ID或文件路径获取文件元信息
