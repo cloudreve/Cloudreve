@@ -174,6 +174,78 @@ func TestDriver_Source(t *testing.T) {
 	}
 }
 
+func TestDriver_List(t *testing.T) {
+	asserts := assert.New(t)
+	handler := Driver{
+		Policy: &model.Policy{
+			AccessKey:  "ak",
+			SecretKey:  "sk",
+			BucketName: "test",
+			Server:     "test.com",
+		},
+	}
+	handler.Client, _ = NewClient(&model.Policy{})
+	handler.Client.Credential.AccessToken = "AccessToken"
+	handler.Client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+
+	// 非递归
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{}]}`)),
+			},
+		})
+		handler.Client.Request = clientMock
+		res, err := handler.List(context.Background(), "/", false)
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+	}
+
+	// 递归一次
+	{
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			"me/drive/root/children?$top=999999999",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{"name":"1","folder":{}}]}`)),
+			},
+		})
+		clientMock.On(
+			"Request",
+			"GET",
+			"me/drive/root:/1:/children?$top=999999999",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{"name":"2"}]}`)),
+			},
+		})
+		handler.Client.Request = clientMock
+		res, err := handler.List(context.Background(), "/", true)
+		asserts.NoError(err)
+		asserts.Len(res, 2)
+	}
+}
+
 func TestDriver_Thumb(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{

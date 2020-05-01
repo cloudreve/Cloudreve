@@ -752,6 +752,66 @@ func TestClient_Delete(t *testing.T) {
 	}
 }
 
+func TestClient_ListChildren(t *testing.T) {
+	asserts := assert.New(t)
+	client, _ := NewClient(&model.Policy{})
+	client.Credential.AccessToken = "AccessToken"
+
+	// 根目录，请求失败,重测试
+	{
+		client.Credential.ExpiresIn = 0
+		res, err := client.ListChildren(context.Background(), "/")
+		asserts.Error(err)
+		asserts.Empty(res)
+	}
+
+	// 非根目录，未知响应
+	{
+		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`???`)),
+			},
+		})
+		client.Request = clientMock
+		res, err := client.ListChildren(context.Background(), "/uploads")
+		asserts.Error(err)
+		asserts.Empty(res)
+	}
+
+	// 非根目录，成功
+	{
+		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{}]}`)),
+			},
+		})
+		client.Request = clientMock
+		res, err := client.ListChildren(context.Background(), "/uploads")
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+	}
+}
+
 func TestClient_GetThumbURL(t *testing.T) {
 	asserts := assert.New(t)
 	client, _ := NewClient(&model.Policy{})
