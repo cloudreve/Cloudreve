@@ -13,6 +13,7 @@ import (
 func SiteConfig(c *gin.Context) {
 	siteConfig := model.GetSettingByNames(
 		"siteName",
+		"siteICPId",
 		"login_captcha",
 		"reg_captcha",
 		"email_active",
