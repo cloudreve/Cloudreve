@@ -22,6 +22,71 @@ type FileBatchService struct {
 	Force bool   `json:"force"`
 }
 
+// ListFolderService 列目录结构
+type ListFolderService struct {
+	Path string `uri:"path" binding:"required,max=65535"`
+	ID   uint   `uri:"id" binding:"required"`
+	Type string `uri:"type" binding:"eq=policy|eq=user"`
+}
+
+// List 列出指定路径下的目录
+func (service *ListFolderService) List(c *gin.Context) serializer.Response {
+	if service.Type == "policy" {
+		// 列取存储策略中的目录
+		policy, err := model.GetPolicyByID(service.ID)
+		if err != nil {
+			return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+		}
+
+		// 创建文件系统
+		fs, err := filesystem.NewAnonymousFileSystem()
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "无法创建文件系统", err)
+		}
+		defer fs.Recycle()
+
+		// 列取存储策略中的文件
+		fs.Policy = &policy
+		res, err := fs.ListPhysical(c.Request.Context(), service.Path)
+		if err != nil {
+			return serializer.Err(serializer.CodeIOFailed, "无法列取目录", err)
+		}
+
+		return serializer.Response{
+			Data: map[string]interface{}{
+				"objects": res,
+			},
+		}
+
+	}
+
+	// 列取用户空间目录
+	// 查找用户
+	user, err := model.GetUserByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(&user)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "无法创建文件系统", err)
+	}
+	defer fs.Recycle()
+
+	// 列取目录
+	res, err := fs.List(c.Request.Context(), service.Path, nil)
+	if err != nil {
+		return serializer.Err(serializer.CodeIOFailed, "无法列取目录", err)
+	}
+
+	return serializer.Response{
+		Data: map[string]interface{}{
+			"objects": res,
+		},
+	}
+}
+
 // Delete 删除文件
 func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 	files, err := model.GetFilesByIDs(service.ID, 0)

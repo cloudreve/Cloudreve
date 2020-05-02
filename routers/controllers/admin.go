@@ -413,3 +413,14 @@ func AdminCreateImportTask(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminListFolders 列出用户或外部文件系统目录
+func AdminListFolders(c *gin.Context) {
+	var service admin.ListFolderService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

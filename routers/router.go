@@ -367,6 +367,9 @@ func InitMasterRouter() *gin.Engine {
 					file.GET("preview/:id", controllers.AdminGetFile)
 					// 删除
 					file.POST("delete", controllers.AdminDeleteFile)
+					// 列出用户或外部文件系统目录
+					file.GET("folders/:type/:id/*path",
+						controllers.AdminListFolders)
 				}
 
 				share := admin.Group("share")

@@ -246,9 +246,11 @@ func TestPolicy_Props(t *testing.T) {
 	asserts.True(policy.IsPathGenerateNeeded())
 	asserts.True(policy.IsTransitUpload(4))
 	asserts.False(policy.IsTransitUpload(5 * 1024 * 1024))
+	asserts.True(policy.CanStructureBeListed())
 	policy.Type = "local"
 	asserts.True(policy.IsThumbGenerateNeeded())
 	asserts.True(policy.IsPathGenerateNeeded())
+	asserts.False(policy.CanStructureBeListed())
 }
 
 func TestPolicy_IsThumbExist(t *testing.T) {

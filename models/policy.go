@@ -222,6 +222,11 @@ func (policy *Policy) IsThumbGenerateNeeded() bool {
 	return policy.Type == "local"
 }
 
+// CanStructureBeListed 返回存储策略是否能被前台列物理目录
+func (policy *Policy) CanStructureBeListed() bool {
+	return policy.Type != "local" && policy.Type != "remote"
+}
+
 // GetUploadURL 获取文件上传服务API地址
 func (policy *Policy) GetUploadURL() string {
 	server, err := url.Parse(policy.Server)

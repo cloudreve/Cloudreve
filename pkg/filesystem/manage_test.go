@@ -8,13 +8,61 @@ import (
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 	"os"
 	"testing"
 )
+
+func TestFileSystem_ListPhysical(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{
+		User: &model.User{
+			Model: gorm.Model{
+				ID: 1,
+			},
+		},
+		Policy: &model.Policy{Type: "mock"},
+	}
+	ctx := context.Background()
+
+	// 未知存储策略
+	{
+		fs.Policy.Type = "unknown"
+		res, err := fs.ListPhysical(ctx, "/")
+		asserts.Equal(ErrUnknownPolicyType, err)
+		asserts.Empty(res)
+		fs.Policy.Type = "mock"
+	}
+
+	// 无法列取目录
+	{
+		testHandler := new(FileHeaderMock)
+		testHandler.On("List", testMock.Anything, "/", testMock.Anything).Return([]response.Object{}, errors.New("error"))
+		fs.Handler = testHandler
+		res, err := fs.ListPhysical(ctx, "/")
+		asserts.EqualError(err, "error")
+		asserts.Empty(res)
+	}
+
+	// 成功
+	{
+		testHandler := new(FileHeaderMock)
+		testHandler.On("List", testMock.Anything, "/", testMock.Anything).Return(
+			[]response.Object{{IsDir: true, Name: "1"}, {IsDir: false, Name: "2"}},
+			nil,
+		)
+		fs.Handler = testHandler
+		res, err := fs.ListPhysical(ctx, "/")
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+		asserts.Equal("1", res[0].Name)
+	}
+}
 
 func TestFileSystem_List(t *testing.T) {
 	asserts := assert.New(t)
