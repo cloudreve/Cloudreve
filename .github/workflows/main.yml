@@ -1,0 +1,89 @@
+name: Cloudreve-CI
+
+on:
+  push:
+    branches: 
+      - master
+      
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    
+      - name: 检出代码
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: 安装go
+        uses: actions/setup-go@v2-beta
+        with:
+          go-version: '1.14'
+      - run: go version
+        
+      - name: 安装node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '10.x'
+      - run: node -v
+      - run: npm -v
+          
+      - name: 安装Yarn
+        run: |
+          npm install yarn -g
+      - run: yarn -v
+      
+      - name: 构建静态资源
+        run: |
+          git clone https://github.com/cloudreve/frontend.git assets
+          cd assets
+          yarn install
+          CI=false yarn run build
+          cd ../
+          
+      - name: 打包静态资源
+        uses: actions/upload-artifact@master
+        with:
+          name: statik.zip
+          path: ./assets/build/
+          
+      - name: 嵌入静态资源
+        run: |
+          go get github.com/rakyll/statik
+          statik -src=./assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
+      
+      - name: 设置编译环境
+        run: |
+          export COMMIT_SHA=$(git rev-parse --short HEAD)
+          export VERSION=$(git describe --tags)
+          export CGO_ENABLED=1
+
+      #x86_amd64
+      - name: 编译linux_amd64
+        run: |
+          export GOARCH=amd64
+          export GOOS=linux
+          go build -a -o ./bin/cloudreve_$VERSION_$GOOS_$GOARCH -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+          
+      #- name: 编译windows_amd64
+      #  run: |
+      #    export GOARCH=amd64
+      #    export CGO_ENABLED=1
+      #    export GOOS=windows
+      #    go build -a -o ./bin/cloudreve_$VERSION_$GOOS_$GOARCH -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+          
+      #- name: 编译darwin_amd64
+      #  run: |
+      #    export GOARCH=amd64
+      #    export CGO_ENABLED=1
+      #    export GOOS=darwin
+      #    go build -a -o ./bin/cloudreve_$VERSION_$GOOS_$GOARCH -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$VERSION' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+          
+      - name: 打包二进制文件
+        uses: actions/upload-artifact@master
+        with:
+          name: build.zip
+          path: ./bin/
