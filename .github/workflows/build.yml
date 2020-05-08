@@ -7,7 +7,7 @@ on:
 jobs:
 
   test:
-    name: Test
+    name: TT
     runs-on: ubuntu-latest
     steps:
 
