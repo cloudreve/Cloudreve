@@ -53,7 +53,7 @@ jobs:
       - name: 嵌入静态资源
         run: |
           go get github.com/rakyll/statik
-          ~/statik -src=./assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
+          statik -src=./assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
       
       - name: 设置编译环境
         run: |
