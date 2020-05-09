@@ -353,3 +353,14 @@ func SearchFile(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// CreateFile 创建空白文件
+func CreateFile(c *gin.Context) {
+	var service explorer.SingleFileService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
