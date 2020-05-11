@@ -30,19 +30,21 @@ func Init() {
 		"replyTo",
 		"smtpUser",
 		"smtpPass",
+		"smtpEncryption",
 	)
 	port := model.GetIntSetting("smtpPort", 25)
 	keepAlive := model.GetIntSetting("mail_keepalive", 30)
 
 	client := NewSMTPClient(SMTPConfig{
-		Name:      options["fromName"],
-		Address:   options["fromAdress"],
-		ReplyTo:   options["replyTo"],
-		Host:      options["smtpHost"],
-		Port:      port,
-		User:      options["smtpUser"],
-		Password:  options["smtpPass"],
-		Keepalive: keepAlive,
+		Name:       options["fromName"],
+		Address:    options["fromAdress"],
+		ReplyTo:    options["replyTo"],
+		Host:       options["smtpHost"],
+		Port:       port,
+		User:       options["smtpUser"],
+		Password:   options["smtpPass"],
+		Keepalive:  keepAlive,
+		Encryption: model.IsTrueVal(options["smtpEncryption"]),
 	})
 
 	Client = client

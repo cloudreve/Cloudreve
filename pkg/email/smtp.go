@@ -22,7 +22,7 @@ type SMTPConfig struct {
 	Port       int    // 服务器端口
 	User       string // 用户名
 	Password   string // 密码
-	Encryption string // 是否启用加密
+	Encryption bool   // 是否启用加密
 	Keepalive  int    // SMTP 连接保留时长
 }
 
@@ -76,6 +76,11 @@ func (client *SMTP) Init() {
 		d := mail.NewDialer(client.Config.Host, client.Config.Port, client.Config.User, client.Config.Password)
 		d.Timeout = time.Duration(client.Config.Keepalive+5) * time.Second
 		client.chOpen = true
+
+		// 是否启用 SSL
+		if client.Config.Encryption {
+			d.SSL = true
+		}
 
 		var s mail.SendCloser
 		var err error

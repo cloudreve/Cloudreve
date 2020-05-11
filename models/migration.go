@@ -90,6 +90,7 @@ func addDefaultSettings() {
 		{Name: "replyTo", Value: `abslant@126.com`, Type: "mail"},
 		{Name: "smtpUser", Value: `no-reply@acg.blue`, Type: "mail"},
 		{Name: "smtpPass", Value: ``, Type: "mail"},
+		{Name: "smtpEncryption", Value: `0`, Type: "mail"},
 		{Name: "maxEditSize", Value: `4194304`, Type: "file_edit"},
 		{Name: "archive_timeout", Value: `60`, Type: "timeout"},
 		{Name: "download_timeout", Value: `60`, Type: "timeout"},
