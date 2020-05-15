@@ -4,7 +4,7 @@ package conf
 var BackendVersion = "3.0.0-beta1"
 
 // RequiredDBVersion 与当前版本匹配的数据库版本
-var RequiredDBVersion = "3.0.0"
+var RequiredDBVersion = "3.0.0-33-g5885661"
 
 // RequiredStaticVersion 与当前版本匹配的静态资源版本
 var RequiredStaticVersion = "3.0.0"

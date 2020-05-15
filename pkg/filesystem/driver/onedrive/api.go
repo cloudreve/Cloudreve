@@ -24,7 +24,7 @@ import (
 const (
 	// SmallFileSize 单文件上传接口最大尺寸
 	SmallFileSize uint64 = 4 * 1024 * 1024
-	// ChunkSize 分片上传分片大小
+	// ChunkSize 服务端中转分片上传分片大小
 	ChunkSize uint64 = 10 * 1024 * 1024
 	// ListRetry 列取请求重试次数
 	ListRetry = 1
