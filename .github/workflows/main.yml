@@ -36,6 +36,7 @@ jobs:
           npm install yarn -g
       - run: yarn -v
       
+      
       - name: 构建静态资源
         run: |
           git clone https://github.com/cloudreve/frontend.git assets
