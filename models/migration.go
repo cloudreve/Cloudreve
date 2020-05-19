@@ -82,6 +82,7 @@ func addDefaultSettings() {
 		{Name: "siteKeywords", Value: `网盘，网盘`, Type: "basic"},
 		{Name: "siteDes", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteTitle", Value: `平步云端`, Type: "basic"},
+		{Name: "siteScript", Value: ``, Type: "basic"},
 		{Name: "fromName", Value: `Cloudreve`, Type: "mail"},
 		{Name: "mail_keepalive", Value: `30`, Type: "mail"},
 		{Name: "fromAdress", Value: `no-reply@acg.blue`, Type: "mail"},
