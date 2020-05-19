@@ -707,11 +707,38 @@ func TestFileSystem_Rename(t *testing.T) {
 		asserts.Equal(ErrPathNotExist, err)
 	}
 
-	// 新名字不合法
+	// 新名字是目录，不合法
 	{
 		err := fs.Rename(ctx, []uint{10}, []uint{}, "ne/w")
 		asserts.Error(err)
 		asserts.Equal(ErrIllegalObjectName, err)
+	}
+
+	// 新名字是文件，不合法
+	{
+		err := fs.Rename(ctx, []uint{}, []uint{10}, "ne/w")
+		asserts.Error(err)
+		asserts.Equal(ErrIllegalObjectName, err)
+	}
+
+	// 新名字是文件，扩展名不合法
+	{
+		fs.User.Policy.OptionsSerialized.FileType = []string{"txt"}
+		err := fs.Rename(ctx, []uint{}, []uint{10}, "1.jpg")
+		asserts.Error(err)
+		asserts.Equal(ErrIllegalObjectName, err)
+	}
+
+	// 新名字是目录，不应该检测扩展名
+	{
+		fs.User.Policy.OptionsSerialized.FileType = []string{"txt"}
+		mock.ExpectQuery("SELECT(.+)folders(.+)").
+			WithArgs(10, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+		asserts.Equal(ErrPathNotExist, err)
 	}
 }
 

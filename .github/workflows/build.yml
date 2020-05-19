@@ -48,6 +48,8 @@ jobs:
       with:
         clean: false
         submodules: 'recursive'
+    - run: |
+        git fetch --prune --unshallow --tags
 
     - name: Get dependencies and build
       run: |
