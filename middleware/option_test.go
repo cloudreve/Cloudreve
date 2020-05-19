@@ -99,6 +99,17 @@ func TestInjectSiteInfo(t *testing.T) {
 	asserts := assert.New(t)
 	rec := httptest.NewRecorder()
 
+	// 静态资源未加载
+	{
+		TestFunc := InjectSiteInfo()
+
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{}
+		c.Request, _ = http.NewRequest("GET", "/", nil)
+		TestFunc(c)
+		asserts.False(c.IsAborted())
+	}
+
 	// index.html 不存在
 	{
 		testStatic := &StaticMock{}

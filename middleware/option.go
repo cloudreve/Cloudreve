@@ -47,6 +47,10 @@ func InjectSiteInfo() gin.HandlerFunc {
 	ignoreFunc := func(c *gin.Context) {
 		c.Next()
 	}
+	if bootstrap.StaticFS == nil {
+		return ignoreFunc
+	}
+
 	// 读取index.html
 	file, err := bootstrap.StaticFS.Open("/index.html")
 	if err != nil {
