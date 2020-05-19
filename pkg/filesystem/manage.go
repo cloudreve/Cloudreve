@@ -32,7 +32,7 @@ type Object struct {
 // Rename 重命名对象
 func (fs *FileSystem) Rename(ctx context.Context, dir, file []uint, new string) (err error) {
 	// 验证新名字
-	if !fs.ValidateLegalName(ctx, new) || !fs.ValidateExtension(ctx, new) {
+	if !fs.ValidateLegalName(ctx, new) || (len(file) > 0 && !fs.ValidateExtension(ctx, new)) {
 		return ErrIllegalObjectName
 	}
 

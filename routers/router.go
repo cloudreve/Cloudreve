@@ -82,6 +82,7 @@ func InitMasterRouter() *gin.Engine {
 		静态资源
 	*/
 	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
+	r.Use(middleware.InjectSiteInfo())
 	r.Use(static.Serve("/", bootstrap.StaticFS))
 	r.GET("manifest.json", controllers.Manifest)
 
