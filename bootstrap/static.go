@@ -7,9 +7,13 @@ import (
 	_ "github.com/HFO4/cloudreve/statik"
 	"github.com/gin-contrib/static"
 	"github.com/rakyll/statik/fs"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
 )
+
+const StaticFolder = "statics"
 
 type GinFS struct {
 	FS http.FileSystem
@@ -42,7 +46,7 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 func InitStatic() {
 	var err error
 
-	if util.Exists(util.RelativePath("statics")) {
+	if util.Exists(util.RelativePath(StaticFolder)) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
 		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
 
@@ -88,4 +92,66 @@ func InitStatic() {
 		}
 	}
 
+}
+
+// Eject 抽离内置静态资源
+func Eject() {
+	staticFS, err := fs.New()
+	if err != nil {
+		util.Log().Panic("无法初始化静态资源, %s", err)
+	}
+
+	root, err := staticFS.Open("/")
+	if err != nil {
+		util.Log().Panic("根目录不存在, %s", err)
+	}
+
+	var walk func(relPath string, object http.File)
+	walk = func(relPath string, object http.File) {
+		stat, err := object.Stat()
+		if err != nil {
+			util.Log().Error("无法获取[%s]的信息, %s, 跳过...", relPath, err)
+			return
+		}
+
+		if !stat.IsDir() {
+			// 写入文件
+			out, err := util.CreatNestedFile(util.RelativePath(StaticFolder + relPath))
+			defer out.Close()
+
+			if err != nil {
+				util.Log().Error("无法创建文件[%s], %s, 跳过...", relPath, err)
+				return
+			}
+
+			util.Log().Info("导出 [%s]...", relPath)
+			if _, err := io.Copy(out, object); err != nil {
+				util.Log().Error("无法写入文件[%s], %s, 跳过...", relPath, err)
+				return
+			}
+		} else {
+			// 列出目录
+			objects, err := object.Readdir(0)
+			if err != nil {
+				util.Log().Error("无法步入子目录[%s], %s, 跳过...", relPath, err)
+				return
+			}
+
+			// 递归遍历子目录
+			for _, newObject := range objects {
+				newPath := path.Join(relPath, newObject.Name())
+				newRoot, err := staticFS.Open(newPath)
+				if err != nil {
+					util.Log().Error("无法打开对象[%s], %s, 跳过...", newPath, err)
+					continue
+				}
+				walk(newPath, newRoot)
+			}
+
+		}
+	}
+
+	util.Log().Info("开始导出内置静态资源...")
+	walk("/", root)
+	util.Log().Info("内置静态资源导出完成")
 }
