@@ -59,3 +59,9 @@ var SlaveConfig = &slave{
 	CallbackTimeout: 20,
 	SignatureTTL:    60,
 }
+
+var SSLConfig = &ssl{
+	Listen:   ":443",
+	CertPath: "",
+	KeyPath:  "",
+}

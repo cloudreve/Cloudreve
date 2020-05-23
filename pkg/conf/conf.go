@@ -27,6 +27,12 @@ type system struct {
 	HashIDSalt    string
 }
 
+type ssl struct {
+	CertPath string `validate:"omitempty,required"`
+	KeyPath  string `validate:"omitempty,required"`
+	Listen   string `validate:"required"`
+}
+
 // slave 作为slave存储端配置
 type slave struct {
 	Secret          string `validate:"omitempty,gte=64"`
@@ -113,6 +119,7 @@ func Init(path string) {
 	sections := map[string]interface{}{
 		"Database":  DatabaseConfig,
 		"System":    SystemConfig,
+		"SSL":       SSLConfig,
 		"Captcha":   CaptchaConfig,
 		"Redis":     RedisConfig,
 		"Thumbnail": ThumbConfig,
