@@ -63,8 +63,26 @@ jobs:
         chmod +x ./build.sh
         ./build.sh -r b
 
-    - name: Upload binary files
-      uses: actions/upload-artifact@v1
+    - name: Upload binary files (windows_amd64)
+      uses: actions/upload-artifact@v2
       with:
-        name: release
-        path: release/
+        name: cloudreve_windows_amd64
+        path: release/cloudreve*windows_amd64.*
+
+    - name: Upload binary files (linux_amd64)
+      uses: actions/upload-artifact@v2
+      with:
+        name: cloudreve_linux_amd64
+        path: release/cloudreve*linux_amd64.*
+
+    - name: Upload binary files (linux_arm)
+      uses: actions/upload-artifact@v2
+      with:
+        name: cloudreve_linux_arm
+        path: release/cloudreve*linux_arm.*
+
+    - name: Upload binary files (linux_arm64)
+      uses: actions/upload-artifact@v2
+      with:
+        name: cloudreve_linux_arm64
+        path: release/cloudreve*linux_arm64.*

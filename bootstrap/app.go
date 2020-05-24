@@ -37,11 +37,13 @@ func CheckUpdate() {
 	res, err := client.Request("GET", "https://api.github.com/repos/cloudreve/cloudreve/releases", nil).GetResponse()
 	if err != nil {
 		util.Log().Warning("更新检查失败, %s", err)
+		return
 	}
 
 	var list []GitHubRelease
 	if err := json.Unmarshal([]byte(res), &list); err != nil {
 		util.Log().Warning("更新检查失败, %s", err)
+		return
 	}
 
 	if len(list) > 0 {

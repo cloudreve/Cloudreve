@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"github.com/fatih/color"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,7 @@ var Level = LevelDebug
 // Logger 日志
 type Logger struct {
 	level int
+	mu    sync.Mutex
 }
 
 // 日志颜色
@@ -49,6 +51,10 @@ func (ll *Logger) Println(prefix string, msg string) {
 	// color.NoColor = false
 
 	c := color.New()
+
+	ll.mu.Lock()
+	defer ll.mu.Unlock()
+
 	_, _ = c.Printf(
 		"%s%s %s %s\n",
 		colors[prefix]("["+prefix+"]"),
