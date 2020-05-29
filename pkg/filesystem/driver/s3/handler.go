@@ -59,7 +59,7 @@ func (handler *Driver) InitS3Client() error {
 		sess, err := session.NewSession(&aws.Config{
 			Credentials:      credentials.NewStaticCredentials(handler.Policy.AccessKey, handler.Policy.SecretKey, ""),
 			Endpoint:         &handler.Policy.Server,
-			Region:           aws.String(strings.Split(handler.Policy.Server, ".")[0]), //表没有这个字段
+			Region:           &handler.Policy.OptionsSerialized.Region,
 			S3ForcePathStyle: aws.Bool(false),
 		})
 		if err != nil {
@@ -392,7 +392,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	longDate := time.Now().UTC().Format("20060102T150405Z")
 	shortDate := time.Now().UTC().Format("20060102")
 
-	credential := handler.Policy.AccessKey + "/" + shortDate + "/" + handler.Policy.Server + "/s3/aws4_request"
+	credential := handler.Policy.AccessKey + "/" + shortDate + "/" + handler.Policy.OptionsSerialized.Region + "/s3/aws4_request"
 	policy.Conditions = append(policy.Conditions, map[string]string{"x-amz-credential": credential})
 	policy.Conditions = append(policy.Conditions, map[string]string{"x-amz-date": longDate})
 
@@ -405,7 +405,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 
 	//签名
 	signature := getHMAC([]byte("AWS4"+handler.Policy.SecretKey), []byte(shortDate))
-	signature = getHMAC(signature, []byte(handler.Policy.Server))
+	signature = getHMAC(signature, []byte(handler.Policy.OptionsSerialized.Region))
 	signature = getHMAC(signature, []byte("s3"))
 	signature = getHMAC(signature, []byte("aws4_request"))
 	signature = getHMAC(signature, []byte(policyEncoded))

@@ -49,6 +49,9 @@ type PolicyOption struct {
 
 	// OdRedirect Onedrive重定向地址
 	OdRedirect string `json:"od_redirect,omitempty"`
+
+	// Region 区域代码
+	Region string `json:"region"`
 }
 
 var thumbSuffix = map[string][]string{
