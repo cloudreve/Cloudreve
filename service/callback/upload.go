@@ -3,15 +3,17 @@ package callback
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/s3"
 	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
-	"strings"
 )
 
 // CallbackProcessService 上传请求回调正文接口
@@ -59,6 +61,13 @@ type COSCallback struct {
 	Etag   string `form:"etag"`
 }
 
+// S3Callback S3 客户端回调正文
+type S3Callback struct {
+	Bucket string `form:"bucket"`
+	Etag   string `form:"etag"`
+	Key    string `form:"key"`
+}
+
 // GetBody 返回回调正文
 func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	res := serializer.UploadCallback{
@@ -99,6 +108,16 @@ func (service OneDriveCallback) GetBody(session *serializer.UploadSession) seria
 
 // GetBody 返回回调正文
 func (service COSCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+	return serializer.UploadCallback{
+		Name:       session.Name,
+		SourceName: session.SavePath,
+		PicInfo:    "",
+		Size:       session.Size,
+	}
+}
+
+// GetBody 返回回调正文
+func (service S3Callback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return serializer.UploadCallback{
 		Name:       session.Name,
 		SourceName: session.SavePath,
@@ -217,6 +236,33 @@ func (service *COSCallback) PreProcess(c *gin.Context) serializer.Response {
 
 	// 验证实际文件信息与回调会话中是否一致
 	if callbackSession.Size != info.Size || callbackSession.Key != info.CallbackKey {
+		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+	}
+
+	return ProcessCallback(service, c)
+}
+
+// PreProcess 对S3客户端回调进行预处理
+func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromCallback(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 获取回调会话
+	callbackSessionRaw, _ := c.Get("callbackSession")
+	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+
+	// 获取文件信息
+	info, err := fs.Handler.(s3.Driver).Meta(context.Background(), callbackSession.SavePath)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+	}
+
+	// 验证实际文件信息与回调会话中是否一致
+	if callbackSession.Size != info.Size || service.Etag != info.Etag {
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
 

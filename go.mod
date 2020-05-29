@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
+	github.com/aws/aws-sdk-go v1.31.5
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/duo-labs/webauthn v0.0.0-20191119193225-4bf9a0f776d4
 	github.com/fatih/color v1.7.0
@@ -25,7 +26,7 @@ require (
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/qingwg/payjs v0.0.0-20190928033402-c53dbe16b371
 	github.com/qiniu/api.v7/v7 v7.4.0
@@ -35,7 +36,7 @@ require (
 	github.com/smartwalle/alipay/v3 v3.0.13
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.125+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20200120023323-87ff3bc489ac
 	github.com/upyun/go-sdk v2.1.0+incompatible

@@ -3,15 +3,16 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/jinzhu/gorm"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/jinzhu/gorm"
 )
 
 // Policy 存储策略
@@ -56,6 +57,7 @@ var thumbSuffix = map[string][]string{
 	"oss":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"cos":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"upyun":    {".svg", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
+	"s3":       {},
 	"remote":   {},
 	"onedrive": {"*"},
 }
