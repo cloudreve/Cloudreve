@@ -316,9 +316,29 @@ func (handler Driver) Source(
 		ttl = 3600
 	}
 
-	url, _ := req.Presign(time.Duration(ttl) * time.Second)
+	signedURL, _ := req.Presign(time.Duration(ttl) * time.Second)
 
-	return url, nil
+	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
+	finalURL, err := url.Parse(signedURL)
+	if err != nil {
+		return "", err
+	}
+
+	// 公有空间替换掉Key及不支持的头
+	if !handler.Policy.IsPrivate {
+		finalURL.RawQuery = ""
+	}
+
+	if handler.Policy.BaseURL != "" {
+		cdnURL, err := url.Parse(handler.Policy.BaseURL)
+		if err != nil {
+			return "", err
+		}
+		finalURL.Host = cdnURL.Host
+		finalURL.Scheme = cdnURL.Scheme
+	}
+
+	return finalURL.String(), nil
 }
 
 // Token 获取上传策略和认证Token
