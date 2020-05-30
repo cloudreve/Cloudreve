@@ -66,9 +66,13 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 	var requestURL string
 	dst := strings.TrimPrefix(path, "/")
 	if dst == "" {
-		requestURL = client.getRequestURL("me/drive/root/children")
+		//sharepoint支持 server后台配置加上删除的字段 me/drive/   有一个bug无法删除文件
+		//https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/
+		//https://microsoftgraph.chinacloudapi.cn/v1.0/sites/alphaone.sharepoint.cn,a0031d38-3ee4-4e22-87e3-c5ca1825419a,eda2d4bf-9dd2-4703-a606-5ff84bbd1c5b/drive/
+		
+		requestURL = client.getRequestURL("root/children")
 	} else {
-		requestURL = client.getRequestURL("me/drive/root:/" + dst + ":/children")
+		requestURL = client.getRequestURL("root:/" + dst + ":/children")
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?$top=999999999", "", 200)
@@ -102,10 +106,12 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 func (client *Client) Meta(ctx context.Context, id string, path string) (*FileInfo, error) {
 	var requestURL string
 	if id != "" {
-		requestURL = client.getRequestURL("/me/drive/items/" + id)
+		 //sharepoint支持 server后台配置加上删除的字段 me/drive/   有一个bug无法删除文件
+		//https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/
+		requestURL = client.getRequestURL("items/" + id)
 	} else {
 		dst := strings.TrimPrefix(path, "/")
-		requestURL = client.getRequestURL("me/drive/root:/" + dst)
+		requestURL = client.getRequestURL("root:/" + dst)
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?expand=thumbnails", "", 200)
@@ -135,7 +141,9 @@ func (client *Client) CreateUploadSession(ctx context.Context, dst string, opts 
 	}
 
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/createUploadSession")
+	////sharepoint支持 server后台配置加上删除的字段 me/drive/   有一个bug无法删除文件
+		//https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/
+	requestURL := client.getRequestURL("root:/" + dst + ":/createUploadSession")
 	body := map[string]map[string]interface{}{
 		"item": {
 			"@microsoft.graph.conflictBehavior": options.conflictBehavior,
@@ -288,7 +296,9 @@ func (client *Client) DeleteUploadSession(ctx context.Context, uploadURL string)
 // SimpleUpload 上传小文件到dst
 func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Reader, size int64) (*UploadResult, error) {
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/content")
+	//sharepoint支持 server后台配置加上删除的字段 me/drive/   有一个bug无法删除文件
+		//https://microsoftgraph.chinacloudapi.cn/v1.0/me/drive/
+	requestURL := client.getRequestURL("root:/" + dst + ":/content")
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(150)*time.Second),
@@ -383,7 +393,8 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 	}
 	for i, v := range files {
 		v = strings.TrimPrefix(v, "/")
-		filePath, _ := url.Parse("/me/drive/root:/")
+		//
+		filePath, _ := url.Parse("root:/")
 		filePath.Path = path.Join(filePath.Path, v)
 		req.Requests[i] = BatchRequest{
 			ID:     v,
@@ -405,10 +416,10 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 	)
 	if client.Endpoints.isInChina {
 		cropOption = "large"
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails/0") + "/" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails/0") + "/" + cropOption
 	} else {
 		cropOption = fmt.Sprintf("c%dx%d_Crop", w, h)
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails") + "?select=" + cropOption
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)
