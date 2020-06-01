@@ -271,7 +271,7 @@ func (handler Driver) Source(
 		return "", err
 	}
 
-	fileKey, err := url.Parse(path)
+	fileKey, err := url.Parse(url.PathEscape(path))
 	if err != nil {
 		return "", err
 	}

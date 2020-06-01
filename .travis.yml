@@ -1,8 +1,7 @@
 language: go
 go:
   - 1.13.x
-node_js:
-  - 12.16.3
+node_js: "12.16.3"
 git:
   depth: 1
 install:
