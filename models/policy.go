@@ -58,6 +58,7 @@ var thumbSuffix = map[string][]string{
 	"upyun":    {".svg", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"remote":   {},
 	"onedrive": {"*"},
+	"bos":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 }
 
 func init() {
@@ -203,7 +204,7 @@ func (policy *Policy) IsThumbExist(name string) bool {
 
 // IsTransitUpload 返回此策略上传给定size文件时是否需要服务端中转
 func (policy *Policy) IsTransitUpload(size uint64) bool {
-	if policy.Type == "local" {
+	if policy.Type == "local" || policy.Type == "bos" {
 		return true
 	}
 	if policy.Type == "onedrive" && size < 4*1024*1024 {
@@ -236,7 +237,7 @@ func (policy *Policy) GetUploadURL() string {
 
 	var controller *url.URL
 	switch policy.Type {
-	case "local", "onedrive":
+	case "local", "onedrive", "bos":
 		return "/api/v3/file/upload"
 	case "remote":
 		controller, _ = url.Parse("/api/v3/slave/upload")

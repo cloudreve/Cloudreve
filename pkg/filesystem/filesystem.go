@@ -6,6 +6,7 @@ import (
 	"github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/bos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
@@ -219,6 +220,10 @@ func (fs *FileSystem) DispatchHandler() error {
 			HTTPClient: request.HTTPClient{},
 		}
 		return nil
+	case "bos":
+		fs.Handler = bos.Driver{
+			Policy: currentPolicy,
+		}
 	default:
 		return ErrUnknownPolicyType
 	}
