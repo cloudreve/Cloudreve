@@ -224,6 +224,7 @@ func (fs *FileSystem) DispatchHandler() error {
 		fs.Handler = bos.Driver{
 			Policy: currentPolicy,
 		}
+		return nil
 	default:
 		return ErrUnknownPolicyType
 	}
