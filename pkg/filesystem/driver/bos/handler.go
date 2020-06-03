@@ -227,9 +227,6 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 }
 
 // Meta 获取文件信息用于回调验证
-// Cloudreve 本身不允许同名文件存在，所以通过Cloudreve上传到
-// Lambda BOS存储的文件原则上也不会有重名，所以用文件名称和大
-// 小做验证信息，比较粗劣，后续优化
 //func (handler Driver) Meta(path string) (uint64, error) {
 //	// 刷新Buckets
 //	if err := handler.init(); nil != err {
