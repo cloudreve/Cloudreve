@@ -3,15 +3,16 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/jinzhu/gorm"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/jinzhu/gorm"
 )
 
 // Policy 存储策略
@@ -48,6 +49,9 @@ type PolicyOption struct {
 
 	// OdRedirect Onedrive重定向地址
 	OdRedirect string `json:"od_redirect,omitempty"`
+
+	// Region 区域代码
+	Region string `json:"region"`
 }
 
 var thumbSuffix = map[string][]string{
@@ -56,6 +60,7 @@ var thumbSuffix = map[string][]string{
 	"oss":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"cos":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
 	"upyun":    {".svg", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
+	"s3":       {},
 	"remote":   {},
 	"onedrive": {"*"},
 }

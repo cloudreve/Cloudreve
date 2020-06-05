@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"net/url"
+	"strconv"
+
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/HFO4/cloudreve/service/callback"
 	"github.com/gin-gonic/gin"
-	"net/url"
-	"strconv"
 )
 
 // RemoteCallback 远程上传回调
@@ -99,6 +100,17 @@ func OneDriveOAuth(c *gin.Context) {
 // COSCallback COS上传完成客户端回调
 func COSCallback(c *gin.Context) {
 	var callbackBody callback.COSCallback
+	if err := c.ShouldBindQuery(&callbackBody); err == nil {
+		res := callbackBody.PreProcess(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// S3Callback S3上传完成客户端回调
+func S3Callback(c *gin.Context) {
+	var callbackBody callback.S3Callback
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
 		res := callbackBody.PreProcess(c)
 		c.JSON(200, res)

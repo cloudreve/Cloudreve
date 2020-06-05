@@ -221,6 +221,12 @@ func InitMasterRouter() *gin.Engine {
 				middleware.COSCallbackAuth(),
 				controllers.COSCallback,
 			)
+			// AWS S3策略上传回调
+			callback.GET(
+				"s3/:key",
+				middleware.S3CallbackAuth(),
+				controllers.S3Callback,
+			)
 		}
 
 		// 分享相关

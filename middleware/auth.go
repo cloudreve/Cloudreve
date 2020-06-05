@@ -5,7 +5,10 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"github.com/HFO4/cloudreve/models"
+	"io/ioutil"
+	"net/http"
+
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
@@ -16,8 +19,6 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
-	"io/ioutil"
-	"net/http"
 )
 
 // SignRequired 验证请求签名
@@ -298,6 +299,21 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 // COSCallbackAuth 腾讯云COS回调签名验证
 // TODO 解耦 测试
 func COSCallbackAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 验证key并查找用户
+		resp, _ := uploadCallbackCheck(c)
+		if resp.Code != 0 {
+			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// S3CallbackAuth Amazon S3回调签名验证
+func S3CallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 验证key并查找用户
 		resp, _ := uploadCallbackCheck(c)

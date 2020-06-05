@@ -3,7 +3,12 @@ package filesystem
 import (
 	"context"
 	"errors"
-	"github.com/HFO4/cloudreve/models"
+	"io"
+	"net/http"
+	"net/url"
+	"sync"
+
+	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
@@ -12,16 +17,13 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/qiniu"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/remote"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/s3"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/upyun"
 	"github.com/HFO4/cloudreve/pkg/filesystem/response"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
-	"io"
-	"net/http"
-	"net/url"
-	"sync"
 )
 
 // FSPool 文件系统资源池
@@ -217,6 +219,11 @@ func (fs *FileSystem) DispatchHandler() error {
 				},
 			}),
 			HTTPClient: request.HTTPClient{},
+		}
+		return nil
+	case "s3":
+		fs.Handler = s3.Driver{
+			Policy: currentPolicy,
 		}
 		return nil
 	default:

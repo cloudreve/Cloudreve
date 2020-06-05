@@ -5,6 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	model "github.com/HFO4/cloudreve/models"
 	"github.com/HFO4/cloudreve/pkg/auth"
 	"github.com/HFO4/cloudreve/pkg/cache"
@@ -12,17 +19,12 @@ import (
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
 	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
+	"github.com/HFO4/cloudreve/pkg/filesystem/driver/s3"
 	"github.com/HFO4/cloudreve/pkg/request"
 	"github.com/HFO4/cloudreve/pkg/serializer"
 	"github.com/HFO4/cloudreve/pkg/util"
 	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 // PathTestService 本地路径测试服务
@@ -166,6 +168,13 @@ func (service *PolicyService) AddCORS() serializer.Response {
 					SecretKey: policy.SecretKey,
 				},
 			}),
+		}
+		if err := handler.CORS(); err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
+		}
+	case "s3":
+		handler := s3.Driver{
+			Policy: &policy,
 		}
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
