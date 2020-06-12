@@ -15,7 +15,7 @@ func Init() {
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		Store = NewRedisStore(
 			10,
-			"tcp",
+			conf.RedisConfig.Network,
 			conf.RedisConfig.Server,
 			conf.RedisConfig.Password,
 			conf.RedisConfig.DB,
