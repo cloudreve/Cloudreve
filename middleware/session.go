@@ -18,7 +18,7 @@ func Session(secret string) gin.HandlerFunc {
 	// Redis设置不为空，且非测试模式时使用Redis
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		var err error
-		Store, err = redis.NewStoreWithDB(10, "tcp", conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
+		Store, err = redis.NewStoreWithDB(10, conf.RedisConfig.Network, conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
 		if err != nil {
 			util.Log().Panic("无法连接到 Redis：%s", err)
 		}
