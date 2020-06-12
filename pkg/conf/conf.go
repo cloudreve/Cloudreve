@@ -57,6 +57,7 @@ type captcha struct {
 
 // redis 配置
 type redis struct {
+	Network  string
 	Server   string
 	Password string
 	DB       string
