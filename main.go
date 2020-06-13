@@ -40,6 +40,16 @@ func main() {
 		}()
 	}
 
+	// 如果启用了Unix
+	if conf.UnixConfig.Listen != "" {
+		go func() {
+			util.Log().Info("开始监听 %s", conf.UnixConfig.Listen)
+			if err := api.RunUnix(conf.UnixConfig.Listen); err != nil {
+				util.Log().Error("无法监听[%s]，%s", conf.UnixConfig.Listen, err)
+			}
+		}()
+	}
+
 	util.Log().Info("开始监听 %s", conf.SystemConfig.Listen)
 	if err := api.Run(conf.SystemConfig.Listen); err != nil {
 		util.Log().Error("无法监听[%s]，%s", conf.SystemConfig.Listen, err)
