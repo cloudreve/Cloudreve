@@ -66,3 +66,7 @@ var SSLConfig = &ssl{
 	CertPath: "",
 	KeyPath:  "",
 }
+
+var UnixConfig = &unix{
+    Listen: "",
+}
