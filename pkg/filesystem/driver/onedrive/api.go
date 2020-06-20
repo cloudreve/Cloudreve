@@ -6,11 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -19,6 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	model "github.com/HFO4/cloudreve/models"
+	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
+	"github.com/HFO4/cloudreve/pkg/request"
+	"github.com/HFO4/cloudreve/pkg/util"
 )
 
 const (
@@ -54,6 +55,14 @@ func (err RespError) Error() string {
 
 func (client *Client) getRequestURL(api string) string {
 	base, _ := url.Parse(client.Endpoints.EndpointURL)
+	if strings.Contains(api, "$batch") {
+		urls := client.Endpoints.EndpointURL
+		comma := strings.Index(urls, "v1.0")
+		rurls := []rune(urls)
+		urls = string(rurls[0 : comma+4])
+		base, _ = url.Parse(urls)
+	}
+
 	if base == nil {
 		return ""
 	}
@@ -66,9 +75,9 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 	var requestURL string
 	dst := strings.TrimPrefix(path, "/")
 	if dst == "" {
-		requestURL = client.getRequestURL("me/drive/root/children")
+		requestURL = client.getRequestURL("root/children")
 	} else {
-		requestURL = client.getRequestURL("me/drive/root:/" + dst + ":/children")
+		requestURL = client.getRequestURL("root:/" + dst + ":/children")
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?$top=999999999", "", 200)
@@ -102,10 +111,10 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 func (client *Client) Meta(ctx context.Context, id string, path string) (*FileInfo, error) {
 	var requestURL string
 	if id != "" {
-		requestURL = client.getRequestURL("/me/drive/items/" + id)
+		requestURL = client.getRequestURL("/items/" + id)
 	} else {
 		dst := strings.TrimPrefix(path, "/")
-		requestURL = client.getRequestURL("me/drive/root:/" + dst)
+		requestURL = client.getRequestURL("root:/" + dst)
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?expand=thumbnails", "", 200)
@@ -135,7 +144,7 @@ func (client *Client) CreateUploadSession(ctx context.Context, dst string, opts 
 	}
 
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/createUploadSession")
+	requestURL := client.getRequestURL("root:/" + dst + ":/createUploadSession")
 	body := map[string]map[string]interface{}{
 		"item": {
 			"@microsoft.graph.conflictBehavior": options.conflictBehavior,
@@ -288,7 +297,7 @@ func (client *Client) DeleteUploadSession(ctx context.Context, uploadURL string)
 // SimpleUpload 上传小文件到dst
 func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Reader, size int64) (*UploadResult, error) {
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/content")
+	requestURL := client.getRequestURL("root:/" + dst + ":/content")
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(150)*time.Second),
@@ -383,7 +392,13 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 	}
 	for i, v := range files {
 		v = strings.TrimPrefix(v, "/")
-		filePath, _ := url.Parse("/me/drive/root:/")
+
+		urls := client.Endpoints.EndpointURL
+		comma := strings.Index(urls, "v1.0")
+		rurls := []rune(urls)
+		urls = string(rurls[comma+4:])
+
+		filePath, _ := url.Parse(urls + "root:/")
 		filePath.Path = path.Join(filePath.Path, v)
 		req.Requests[i] = BatchRequest{
 			ID:     v,
@@ -405,10 +420,10 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 	)
 	if client.Endpoints.isInChina {
 		cropOption = "large"
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails/0") + "/" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails/0") + "/" + cropOption
 	} else {
 		cropOption = fmt.Sprintf("c%dx%d_Crop", w, h)
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails") + "?select=" + cropOption
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)
