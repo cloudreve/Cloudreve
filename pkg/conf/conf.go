@@ -33,6 +33,10 @@ type ssl struct {
 	Listen   string `validate:"required"`
 }
 
+type unix struct {
+    Listen string
+}
+
 // slave 作为slave存储端配置
 type slave struct {
 	Secret          string `validate:"omitempty,gte=64"`
@@ -57,6 +61,7 @@ type captcha struct {
 
 // redis 配置
 type redis struct {
+	Network  string
 	Server   string
 	Password string
 	DB       string
@@ -120,6 +125,7 @@ func Init(path string) {
 		"Database":  DatabaseConfig,
 		"System":    SystemConfig,
 		"SSL":       SSLConfig,
+		"Unix":      UnixConfig,
 		"Captcha":   CaptchaConfig,
 		"Redis":     RedisConfig,
 		"Thumbnail": ThumbConfig,
