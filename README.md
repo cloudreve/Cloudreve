@@ -96,6 +96,9 @@ cd ../
 # 安装 statik, 用于嵌入静态资源
 go get github.com/rakyll/statik
 
+#如果在嵌入时找不到statik 命令，请尝试执行：
+export PATH=$PATH:$(go env GOPATH)/bin
+
 # 开始嵌入
 statik -src=assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
 ```
