@@ -44,7 +44,7 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 	for _, object := range objects {
 		source := path.Join(base, object.Name)
 		rel, err := filepath.Rel(rootPath, source)
-		if err != nil {
+		if err != nil || (object.Folder==nil && object.Size==0) {
 			continue
 		}
 		res = append(res, response.Object{
