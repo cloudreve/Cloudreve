@@ -14,7 +14,6 @@ RUN set -ex \
 FROM golang:1.15.0-alpine3.12 AS be-builder
 
 ENV GO111MODULE on
-ENV GOPROXY https://goproxy.cn
 
 COPY . /go/src/github.com/HFO4/cloudreve
 COPY --from=fe-builder /assets/build/ /go/src/github.com/HFO4/cloudreve/assets/build/
