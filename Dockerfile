@@ -1,3 +1,4 @@
+# build frontend
 FROM node:lts-alpine3.12 AS fe-builder
 
 COPY ./assets /assets
@@ -9,6 +10,7 @@ RUN set -ex \
     && yarn install \
     && yarn run build
 
+# build backend
 FROM golang:1.15.0-alpine3.12 AS be-builder
 
 ENV GO111MODULE on
@@ -21,7 +23,7 @@ WORKDIR /go/src/github.com/HFO4/cloudreve
 
 RUN set -ex \
     && apk upgrade \
-    && apk add git \
+    && apk add gcc libc-dev git \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
     && export VERSION=$(git describe --tags) \
     && (cd && go get github.com/rakyll/statik) \
@@ -30,14 +32,16 @@ RUN set -ex \
                             -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=${COMMIT_SHA}'\
                             -w -s"
 
+# build final image
 FROM alpine:3.12 AS dist
 
 LABEL maintainer="mritd <mritd@linux.com>"
 
-RUN apk upgrade \
-    && apk add tzdata \
-    && rm -rf /var/cache/apk/*
+COPY --from=be-builder /go/bin/cloudreve /cloudreve/cloudreve
 
-COPY --from=be-builder /go/bin/cloudreve /usr/bin/cloudreve
+RUN apk upgrade \
+    && apk add bash tzdata \
+    && ln -s /cloudreve/cloudreve /usr/bin/cloudreve \
+    && rm -rf /var/cache/apk/*
 
 ENTRYPOINT ["cloudreve"]
