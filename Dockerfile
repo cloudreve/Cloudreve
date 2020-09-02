@@ -6,7 +6,6 @@ WORKDIR /assets
 
 RUN set -ex \
     && apk upgrade \
-    && npm install -g yarn \
     && yarn install \
     && yarn run build
 
@@ -27,7 +26,7 @@ RUN set -ex \
     && export VERSION=$(git describe --tags) \
     && (cd && go get github.com/rakyll/statik) \
     && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
-    && go install -ldflags "-X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=${VERSION}'
+    && go install -ldflags "-X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=${VERSION}' \
                             -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=${COMMIT_SHA}'\
                             -w -s"
 
