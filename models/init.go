@@ -48,6 +48,11 @@ func Init() {
 		}
 	}
 
+	//db.SetLogger(util.Log())
+	if err != nil {
+		util.Log().Panic("连接数据库不成功, %s", err)
+	}
+
 	// 处理表前缀
 	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
 		return conf.DatabaseConfig.TablePrefix + defaultTableName
@@ -58,11 +63,6 @@ func Init() {
 		db.LogMode(true)
 	} else {
 		db.LogMode(false)
-	}
-
-	//db.SetLogger(util.Log())
-	if err != nil {
-		util.Log().Panic("连接数据库不成功, %s", err)
 	}
 
 	//设置连接池
