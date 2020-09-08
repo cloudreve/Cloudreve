@@ -53,6 +53,6 @@ func RelativePath(name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
-	e, _ := os.Executable()
-	return filepath.Join(filepath.Dir(e), name)
+	e, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	return filepath.Join(e, name)
 }

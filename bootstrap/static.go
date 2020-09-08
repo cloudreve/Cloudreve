@@ -2,15 +2,16 @@ package bootstrap
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"path"
+
 	"github.com/HFO4/cloudreve/pkg/conf"
 	"github.com/HFO4/cloudreve/pkg/util"
 	_ "github.com/HFO4/cloudreve/statik"
 	"github.com/gin-contrib/static"
 	"github.com/rakyll/statik/fs"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"path"
 )
 
 const StaticFolder = "statics"
@@ -33,13 +34,11 @@ func (b *GinFS) Open(name string) (http.File, error) {
 }
 
 // Exists 文件是否存在
-func (b *GinFS) Exists(prefix string, filepath string) bool {
-
+func (b *GinFS) Exists(_ string, filepath string) bool {
 	if _, err := b.FS.Open(filepath); err != nil {
 		return false
 	}
 	return true
-
 }
 
 // InitStatic 初始化静态资源文件
@@ -48,7 +47,7 @@ func InitStatic() {
 
 	if util.Exists(util.RelativePath(StaticFolder)) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
-		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
+		StaticFS = static.LocalFile(util.RelativePath(StaticFolder), false)
 
 		// 检查静态资源的版本
 		f, err := StaticFS.Open("version.json")
@@ -117,12 +116,11 @@ func Eject() {
 		if !stat.IsDir() {
 			// 写入文件
 			out, err := util.CreatNestedFile(util.RelativePath(StaticFolder + relPath))
-			defer out.Close()
-
 			if err != nil {
 				util.Log().Error("无法创建文件[%s], %s, 跳过...", relPath, err)
 				return
 			}
+			defer out.Close()
 
 			util.Log().Info("导出 [%s]...", relPath)
 			if _, err := io.Copy(out, object); err != nil {
