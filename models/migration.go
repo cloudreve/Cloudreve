@@ -32,7 +32,7 @@ func migration() {
 
 	// 自动迁移模式
 	if conf.DatabaseConfig.Type == "mysql" {
-		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
+		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8")
 	}
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
 		&Task{}, &Download{}, &Tag{}, &Webdav{})
