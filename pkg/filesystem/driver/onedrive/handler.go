@@ -153,9 +153,12 @@ func (handler Driver) Source(
 ) (string, error) {
 	// 尝试从缓存中查找
 	if cachedURL, ok := cache.Get(fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)); ok {
-		return cachedURL.(string), nil
+	    finalURL, err := handler.getFinalURL(cachedURL.(string))
+		if err != nil {
+	        return "", err
+        }
+		return finalURL, nil
 	}
-
 	// 缓存不存在，重新获取
 	res, err := handler.Client.Meta(ctx, "", path)
 	if err == nil {
@@ -165,10 +168,32 @@ func (handler Driver) Source(
 			res.DownloadURL,
 			model.GetIntSetting("onedrive_source_timeout", 1800),
 		)
-		return res.DownloadURL, nil
+		finalURL, err := handler.getFinalURL(res.DownloadURL)
+		if err != nil {
+	        return "", err
+        }
+		return finalURL, nil
 	}
 	return "", err
 }
+//增加国际版反向代理自定义前缀
+func (handler Driver) getFinalURL(key string)(string, error){
+    cdnURL, err := url.Parse(handler.Policy.BaseURL)
+	if err != nil {
+	    return "", err
+    }
+    if cdnURL.String() != "" {
+        finalURL, err := url.Parse(key)
+	    if err != nil {
+	        return "", err
+        }
+        finalURL.Host = cdnURL.Host
+     	finalURL.Scheme = cdnURL.Scheme
+    	return finalURL.String(), err
+    }
+    return key, err
+}
+
 
 // Token 获取上传会话URL
 func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
