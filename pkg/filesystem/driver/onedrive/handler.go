@@ -156,7 +156,7 @@ func (handler Driver) Source(
 	    finalURL, err := handler.getFinalURL(cachedURL.(string))
 		if err != nil {
 	        return "", err
-        }
+       }
 		return finalURL, nil
 	}
 	// 缓存不存在，重新获取
@@ -176,11 +176,18 @@ func (handler Driver) Source(
 	}
 	return "", err
 }
-//增加国际版反向代理自定义前缀
 func (handler Driver) getFinalURL(key string)(string, error){
+    
     cdnURL, err := url.Parse(handler.Policy.BaseURL)
 	if err != nil {
 	    return "", err
+    }
+    
+    if  cdnURL.String() == "https://login.chinacloudapi.cn/common/oauth2" {
+         return key, err
+    }
+    if  cdnURL.String() == "https://login.microsoftonline.com/common/oauth2" {
+         return key, err
     }
     if cdnURL.String() != "" {
         finalURL, err := url.Parse(key)
@@ -191,6 +198,7 @@ func (handler Driver) getFinalURL(key string)(string, error){
      	finalURL.Scheme = cdnURL.Scheme
     	return finalURL.String(), err
     }
+    
     return key, err
 }
 
