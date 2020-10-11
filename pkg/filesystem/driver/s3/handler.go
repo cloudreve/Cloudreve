@@ -62,6 +62,7 @@ func (handler *Driver) InitS3Client() error {
 			Region:           &handler.Policy.OptionsSerialized.Region,
 			S3ForcePathStyle: aws.Bool(false),
 		})
+
 		if err != nil {
 			return err
 		}

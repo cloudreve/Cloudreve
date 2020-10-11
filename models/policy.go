@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -239,7 +240,7 @@ func (policy *Policy) GetUploadURL() string {
 		return policy.Server
 	}
 
-	var controller *url.URL
+	controller, _ := url.Parse("")
 	switch policy.Type {
 	case "local", "onedrive":
 		return "/api/v3/file/upload"
@@ -251,9 +252,17 @@ func (policy *Policy) GetUploadURL() string {
 		return policy.Server
 	case "upyun":
 		return "https://v0.api.upyun.com/" + policy.BucketName
-	default:
-		controller, _ = url.Parse("")
+	case "s3":
+		if policy.Server == "" {
+			return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/", policy.BucketName,
+				policy.OptionsSerialized.Region)
+		}
+
+		if !strings.Contains(policy.Server, policy.BucketName) {
+			controller, _ = url.Parse("/" + policy.BucketName)
+		}
 	}
+
 	return server.ResolveReference(controller).String()
 }
 
