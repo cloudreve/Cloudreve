@@ -87,10 +87,9 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 	}
 
 	opt := &s3.ListObjectsInput{
-		Bucket:       &handler.Policy.BucketName,
-		Prefix:       &base,
-		EncodingType: aws.String(""),
-		MaxKeys:      aws.Int64(1000),
+		Bucket:  &handler.Policy.BucketName,
+		Prefix:  &base,
+		MaxKeys: aws.Int64(1000),
 	}
 
 	// 是否为递归列出

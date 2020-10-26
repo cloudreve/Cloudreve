@@ -52,7 +52,7 @@ type PolicyOption struct {
 	OdRedirect string `json:"od_redirect,omitempty"`
 
 	// Region 区域代码
-	Region string `json:"region"`
+	Region string `json:"region,omitempty"`
 }
 
 var thumbSuffix = map[string][]string{
