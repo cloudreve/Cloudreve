@@ -209,6 +209,28 @@ func TestPolicy_GetUploadURL(t *testing.T) {
 		asserts.Equal("http://127.0.0.1", policy.GetUploadURL())
 	}
 
+	// S3 未填写自动生成
+	{
+		policy := Policy{
+			Type:              "s3",
+			Server:            "",
+			BucketName:        "bucket",
+			OptionsSerialized: PolicyOption{Region: "us-east"},
+		}
+		asserts.Equal("https://bucket.s3.us-east.amazonaws.com/", policy.GetUploadURL())
+	}
+
+	// s3 自己指定
+	{
+		policy := Policy{
+			Type:              "s3",
+			Server:            "https://s3.us-east.amazonaws.com/",
+			BucketName:        "bucket",
+			OptionsSerialized: PolicyOption{Region: "us-east"},
+		}
+		asserts.Equal("https://s3.us-east.amazonaws.com/bucket", policy.GetUploadURL())
+	}
+
 }
 
 func TestPolicy_IsPathGenerateNeeded(t *testing.T) {

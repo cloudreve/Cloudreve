@@ -175,7 +175,7 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, user := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}
@@ -185,12 +185,12 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 		ok, err := mac.VerifyCallback(c.Request)
 		if err != nil {
 			util.Log().Debug("无法验证回调请求，%s", err)
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: "无法验证回调请求"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
 			c.Abort()
 			return
 		}
 		if !ok {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: "回调签名无效"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
 			c.Abort()
 			return
 		}
@@ -205,7 +205,7 @@ func OSSCallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, _ := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}
@@ -213,7 +213,7 @@ func OSSCallbackAuth() gin.HandlerFunc {
 		err := oss.VerifyCallbackSignature(c.Request)
 		if err != nil {
 			util.Log().Debug("回调签名验证失败，%s", err)
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: "回调签名验证失败"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
 			c.Abort()
 			return
 		}
@@ -228,7 +228,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, user := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}
@@ -237,7 +237,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 		body, err := ioutil.ReadAll(c.Request.Body)
 		c.Request.Body.Close()
 		if err != nil {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: err.Error()})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: err.Error()})
 			c.Abort()
 			return
 		}
@@ -253,7 +253,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 		// 计算正文MD5
 		actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
 		if actualContentMD5 != contentMD5 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: "MD5不一致"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
 			c.Abort()
 			return
 		}
@@ -268,7 +268,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 
 		// 对比签名
 		if signature != actualSignature {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: "鉴权失败"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
 			c.Abort()
 			return
 		}
@@ -284,7 +284,7 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, _ := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}
@@ -303,7 +303,7 @@ func COSCallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, _ := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}
@@ -318,7 +318,7 @@ func S3CallbackAuth() gin.HandlerFunc {
 		// 验证key并查找用户
 		resp, _ := uploadCallbackCheck(c)
 		if resp.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: resp.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
 			c.Abort()
 			return
 		}

@@ -102,6 +102,10 @@ func TestDispatchHandler(t *testing.T) {
 	fs.Policy = &model.Policy{Type: "onedrive"}
 	err = fs.DispatchHandler()
 	asserts.NoError(err)
+
+	fs.Policy = &model.Policy{Type: "s3"}
+	err = fs.DispatchHandler()
+	asserts.NoError(err)
 }
 
 func TestNewFileSystemFromCallback(t *testing.T) {

@@ -27,7 +27,7 @@ func QiniuCallback(c *gin.Context) {
 	if err := c.ShouldBindJSON(&callbackBody); err == nil {
 		res := callback.ProcessCallback(callbackBody, c)
 		if res.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: res.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: res.Msg})
 		} else {
 			c.JSON(200, res)
 		}
