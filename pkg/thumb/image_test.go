@@ -2,13 +2,14 @@ package thumb
 
 import (
 	"fmt"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/stretchr/testify/assert"
 	"image"
 	"image/jpeg"
 	"os"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func CreateTestImage() *os.File {

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/HFO4/cloudreve/service/explorer"
+	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 

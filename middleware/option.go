@@ -1,13 +1,14 @@
 package middleware
 
 import (
-	"github.com/HFO4/cloudreve/bootstrap"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
+
+	"github.com/cloudreve/Cloudreve/v3/bootstrap"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gin-gonic/gin"
 )
 
 // HashID 将给定对象的HashID转换为真实ID

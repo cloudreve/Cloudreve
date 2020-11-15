@@ -2,11 +2,12 @@ package task
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/HFO4/cloudreve/models"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDecompressTask_Props(t *testing.T) {

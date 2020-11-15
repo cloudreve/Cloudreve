@@ -1,4 +1,4 @@
-module github.com/HFO4/cloudreve
+module github.com/cloudreve/Cloudreve/v3
 
 go 1.13
 

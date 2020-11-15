@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	"github.com/HFO4/cloudreve/bootstrap"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/HFO4/cloudreve/routers"
+
+	"github.com/cloudreve/Cloudreve/v3/bootstrap"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/routers"
 )
 
 var (

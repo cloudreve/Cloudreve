@@ -1,6 +1,6 @@
 package task
 
-import "github.com/HFO4/cloudreve/pkg/util"
+import "github.com/cloudreve/Cloudreve/v3/pkg/util"
 
 // Worker 处理任务的对象
 type Worker interface {

@@ -2,10 +2,11 @@ package model
 
 import (
 	"errors"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/jinzhu/gorm"
 	"path"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/jinzhu/gorm"
 )
 
 // Folder 目录

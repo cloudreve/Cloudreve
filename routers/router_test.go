@@ -1,12 +1,13 @@
 package routers
 
 import (
-	"github.com/HFO4/cloudreve/models"
-	"github.com/jinzhu/gorm"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPing(t *testing.T) {

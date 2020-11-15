@@ -1,6 +1,6 @@
 package serializer
 
-import model "github.com/HFO4/cloudreve/models"
+import model "github.com/cloudreve/Cloudreve/v3/models"
 
 // SiteConfig 站点全局设置序列
 type SiteConfig struct {

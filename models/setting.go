@@ -1,10 +1,11 @@
 package model
 
 import (
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/jinzhu/gorm"
 	"net/url"
 	"strconv"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/jinzhu/gorm"
 )
 
 // Setting 系统设置模型

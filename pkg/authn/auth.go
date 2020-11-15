@@ -1,7 +1,7 @@
 package authn
 
 import (
-	model "github.com/HFO4/cloudreve/models"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/duo-labs/webauthn/webauthn"
 )
 

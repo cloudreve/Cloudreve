@@ -1,13 +1,14 @@
 package oss
 
 import (
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetPublicKey(t *testing.T) {

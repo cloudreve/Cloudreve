@@ -5,9 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/duo-labs/webauthn/webauthn"
 	"net/url"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 /*
