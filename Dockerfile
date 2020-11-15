@@ -15,10 +15,10 @@ FROM golang:1.15.1-alpine3.12 AS be-builder
 
 ENV GO111MODULE on
 
-COPY . /go/src/github.com/HFO4/cloudreve
-COPY --from=fe-builder /assets/build/ /go/src/github.com/HFO4/cloudreve/assets/build/
+COPY . /go/src/github.com/cloudreve/Cloudreve/v3
+COPY --from=fe-builder /assets/build/ /go/src/github.com/cloudreve/Cloudreve/v3/assets/build/
 
-WORKDIR /go/src/github.com/HFO4/cloudreve
+WORKDIR /go/src/github.com/cloudreve/Cloudreve/v3
 
 RUN set -ex \
     && apk upgrade \
@@ -27,8 +27,8 @@ RUN set -ex \
     && export VERSION=$(git describe --tags) \
     && (cd && go get github.com/rakyll/statik) \
     && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
-    && go install -ldflags "-X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=${VERSION}' \
-                            -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=${COMMIT_SHA}'\
+    && go install -ldflags "-X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=${VERSION}' \
+                            -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=${COMMIT_SHA}'\
                             -w -s"
 
 # build final image
