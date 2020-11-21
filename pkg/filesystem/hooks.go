@@ -228,7 +228,9 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 
 	// 尝试清空原有缩略图并重新生成
 	if originFile.GetPolicy().IsThumbGenerateNeeded() {
+		fs.recycleLock.Lock()
 		go func() {
+			defer fs.recycleLock.Unlock()
 			if originFile.PicInfo != "" {
 				_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
 				fs.GenerateThumbnail(ctx, &originFile)
@@ -297,7 +299,11 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 
 	// 异步尝试生成缩略图
 	if fs.User.Policy.IsThumbGenerateNeeded() {
-		go fs.GenerateThumbnail(ctx, file)
+		fs.recycleLock.Lock()
+		go func() {
+			defer fs.recycleLock.Unlock()
+			fs.GenerateThumbnail(ctx, file)
+		}()
 	}
 
 	return nil
