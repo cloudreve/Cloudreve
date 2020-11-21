@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/HFO4/cloudreve/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/gin-gonic/gin"
 )
 

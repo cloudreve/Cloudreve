@@ -2,9 +2,10 @@ package hashid
 
 import (
 	"errors"
-	"github.com/HFO4/cloudreve/pkg/conf"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/speps/go-hashids"
 )
-import "github.com/speps/go-hashids"
 
 // ID类型
 const (

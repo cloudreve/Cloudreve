@@ -2,12 +2,13 @@ package model
 
 import (
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/jinzhu/gorm"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFolder_Create(t *testing.T) {

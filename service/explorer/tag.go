@@ -2,11 +2,12 @@ package explorer
 
 import (
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/gin-gonic/gin"
 	"strings"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/gin-gonic/gin"
 )
 
 // FilterTagCreateService 文件分类标签创建服务

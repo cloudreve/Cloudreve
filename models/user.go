@@ -5,10 +5,11 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/util"
+	"strings"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"strings"
 )
 
 const (

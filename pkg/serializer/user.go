@@ -2,8 +2,9 @@ package serializer
 
 import (
 	"fmt"
-	"github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/hashid"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/duo-labs/webauthn/webauthn"
 )
 

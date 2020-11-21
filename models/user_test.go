@@ -2,12 +2,13 @@ package model
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/HFO4/cloudreve/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestGetUserByID(t *testing.T) {

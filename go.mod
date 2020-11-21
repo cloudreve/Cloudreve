@@ -1,4 +1,4 @@
-module github.com/HFO4/cloudreve
+module github.com/cloudreve/Cloudreve/v3
 
 go 1.13
 
@@ -16,7 +16,6 @@ require (
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-ini/ini v1.50.0
 	github.com/go-mail/mail v2.3.1+incompatible
-	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/go-querystring v1.0.0
 	github.com/gorilla/websocket v1.4.1
@@ -28,12 +27,10 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
-	github.com/qingwg/payjs v0.0.0-20190928033402-c53dbe16b371
 	github.com/qiniu/api.v7/v7 v7.4.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/rakyll/statik v0.1.7
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/smartwalle/alipay/v3 v3.0.13
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/stretchr/testify v1.5.1
