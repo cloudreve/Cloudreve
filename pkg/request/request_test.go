@@ -3,15 +3,16 @@ package request
 import (
 	"context"
 	"errors"
-	"github.com/HFO4/cloudreve/pkg/auth"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 type ClientMock struct {

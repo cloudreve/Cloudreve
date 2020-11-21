@@ -3,13 +3,14 @@ package filesystem
 import (
 	"context"
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/filesystem/response"
-	"github.com/HFO4/cloudreve/pkg/thumb"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"strconv"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 /* ================

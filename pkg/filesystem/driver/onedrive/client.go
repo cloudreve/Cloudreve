@@ -2,8 +2,9 @@ package onedrive
 
 import (
 	"errors"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/request"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 )
 
 var (

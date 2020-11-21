@@ -2,8 +2,9 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
-	"github.com/HFO4/cloudreve/pkg/util"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 )
 

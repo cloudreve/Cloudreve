@@ -3,13 +3,14 @@ package model
 import (
 	"errors"
 	"fmt"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 )
 
 // Share 分享模型

@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/HFO4/cloudreve/pkg/webdav"
-	"github.com/HFO4/cloudreve/service/setting"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
+	"github.com/cloudreve/Cloudreve/v3/service/setting"
 	"github.com/gin-gonic/gin"
 )
 

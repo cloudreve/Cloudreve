@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 )
 

@@ -3,19 +3,20 @@ package filesystem
 import (
 	"context"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/jinzhu/gorm"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 	"io"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestFileSystem_Compress(t *testing.T) {

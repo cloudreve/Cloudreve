@@ -1,11 +1,12 @@
 package conf
 
 import (
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/stretchr/testify/assert"
 )
 
 // 测试Init日志路径错误

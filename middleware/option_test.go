@@ -2,17 +2,18 @@ package middleware
 
 import (
 	"errors"
-	"github.com/HFO4/cloudreve/bootstrap"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/bootstrap"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestHashID(t *testing.T) {

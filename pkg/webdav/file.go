@@ -6,11 +6,12 @@ package webdav
 
 import (
 	"context"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
 	"net/http"
 	"path"
 	"path/filepath"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 )
 
 // slashClean is equivalent to but slightly more efficient than

@@ -1,12 +1,12 @@
 package routers
 
 import (
-	"github.com/HFO4/cloudreve/bootstrap"
-	"github.com/HFO4/cloudreve/middleware"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/HFO4/cloudreve/routers/controllers"
+	"github.com/cloudreve/Cloudreve/v3/bootstrap"
+	"github.com/cloudreve/Cloudreve/v3/middleware"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"

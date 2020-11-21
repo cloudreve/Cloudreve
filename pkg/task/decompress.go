@@ -3,8 +3,9 @@ package task
 import (
 	"context"
 	"encoding/json"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 )
 
 // DecompressTask 文件压缩任务

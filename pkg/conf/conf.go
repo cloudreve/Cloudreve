@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/go-ini/ini"
 	"gopkg.in/go-playground/validator.v9"
 )

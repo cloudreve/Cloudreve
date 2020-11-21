@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"context"
-	ariaCall "github.com/HFO4/cloudreve/pkg/aria2"
-	"github.com/HFO4/cloudreve/service/aria2"
-	"github.com/HFO4/cloudreve/service/explorer"
+
+	ariaCall "github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/service/aria2"
+	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 

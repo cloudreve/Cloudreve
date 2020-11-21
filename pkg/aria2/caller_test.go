@@ -1,10 +1,11 @@
 package aria2
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRPCService_Init(t *testing.T) {
