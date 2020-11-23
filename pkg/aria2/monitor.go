@@ -251,6 +251,7 @@ func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 		file,
 		monitor.Task.Dst,
 		monitor.Task.Parent,
+		true,
 	)
 	if err != nil {
 		monitor.setErrorStatus(err)
