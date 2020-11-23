@@ -161,3 +161,19 @@ func TestGetDownloadsByStatusAndUser(t *testing.T) {
 		asserts.Len(res, 2)
 	}
 }
+
+func TestDownload_Delete(t *testing.T) {
+	asserts := assert.New(t)
+	share := Download{}
+
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := share.Delete()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+}

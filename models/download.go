@@ -109,3 +109,8 @@ func (task *Download) GetOwner() *User {
 	}
 	return task.User
 }
+
+// Delete 删除离线下载记录
+func (download *Download) Delete() error {
+	return DB.Model(download).Delete(download).Error
+}

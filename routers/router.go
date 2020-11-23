@@ -485,7 +485,7 @@ func InitMasterRouter() *gin.Engine {
 				aria2.POST("torrent/:id", middleware.HashID(hashid.FileID), controllers.AddAria2Torrent)
 				// 重新选择要下载的文件
 				aria2.PUT("select/:gid", controllers.SelectAria2File)
-				// 取消下载任务
+				// 取消或删除下载任务
 				aria2.DELETE("task/:gid", controllers.CancelAria2Download)
 				// 获取正在下载中的任务
 				aria2.GET("downloading", controllers.ListDownloading)
