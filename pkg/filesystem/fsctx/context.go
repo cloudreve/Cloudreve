@@ -33,4 +33,6 @@ const (
 	IgnoreConflictCtx
 	// RetryCtx 失败重试次数
 	RetryCtx
+	// ForceUsePublicEndpoint 强制使用公网 Endpoint
+	ForceUsePublicEndpoint
 )
