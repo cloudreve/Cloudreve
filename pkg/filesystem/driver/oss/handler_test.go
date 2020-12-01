@@ -193,7 +193,7 @@ func TestDriver_Source(t *testing.T) {
 	{
 		handler.Policy.BaseURL = ""
 		handler.Policy.OptionsSerialized.ServerSideEndpoint = "endpoint.com"
-		res, err := handler.Source(context.WithValue(context.Background(), fsctx.ForceUsePublicEndpoint, false), "/123", url.URL{}, 10, false, 0)
+		res, err := handler.Source(context.WithValue(context.Background(), fsctx.ForceUsePublicEndpointCtx, false), "/123", url.URL{}, 10, false, 0)
 		asserts.NoError(err)
 		resURL, err := url.Parse(res)
 		asserts.NoError(err)

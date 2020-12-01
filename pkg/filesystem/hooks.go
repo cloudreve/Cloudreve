@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"strings"
+	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -186,12 +187,30 @@ func HookClearFileSize(ctx context.Context, fs *FileSystem) error {
 	return originFile.UpdateSize(0)
 }
 
+// HookCancelContext 取消上下文
+func HookCancelContext(ctx context.Context, fs *FileSystem) error {
+	cancelFunc, ok := ctx.Value(fsctx.CancelFuncCtx).(context.CancelFunc)
+	if ok {
+		cancelFunc()
+	}
+	return nil
+}
+
 // HookGiveBackCapacity 归还用户容量
 func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	once, ok := ctx.Value(fsctx.ValidateCapacityOnceCtx).(*sync.Once)
+	if !ok {
+		once = &sync.Once{}
+	}
 
 	// 归还用户容量
-	if !fs.User.DeductionStorage(file.GetSize()) {
+	res := true
+	once.Do(func() {
+		res = fs.User.DeductionStorage(file.GetSize())
+	})
+
+	if !res {
 		return errors.New("无法继续降低用户已用存储")
 	}
 	return nil

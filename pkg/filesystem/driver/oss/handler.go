@@ -186,7 +186,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
 
 	// 尽可能使用私有 Endpoint
-	ctx = context.WithValue(ctx, fsctx.ForceUsePublicEndpoint, false)
+	ctx = context.WithValue(ctx, fsctx.ForceUsePublicEndpointCtx, false)
 
 	// 获取文件源地址
 	downloadURL, err := handler.Source(
@@ -317,7 +317,7 @@ func (handler Driver) Source(
 ) (string, error) {
 	// 初始化客户端
 	usePublicEndpoint := true
-	if forceUsePublicEndpoint, ok := ctx.Value(fsctx.ForceUsePublicEndpoint).(bool); ok {
+	if forceUsePublicEndpoint, ok := ctx.Value(fsctx.ForceUsePublicEndpointCtx).(bool); ok {
 		usePublicEndpoint = forceUsePublicEndpoint
 	}
 	if err := handler.InitOSSClient(usePublicEndpoint); err != nil {

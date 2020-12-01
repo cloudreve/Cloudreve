@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -652,5 +653,58 @@ func TestFileSystem_CleanHooks(t *testing.T) {
 	{
 		fs.CleanHooks("")
 		asserts.Len(fs.Hooks, 0)
+	}
+}
+
+func TestHookCancelContext(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// empty ctx
+	{
+		asserts.NoError(HookCancelContext(ctx, fs))
+		select {
+		case <-ctx.Done():
+			t.Errorf("Channel should not be closed")
+		default:
+
+		}
+	}
+
+	// with cancel ctx
+	{
+		ctx = context.WithValue(ctx, fsctx.CancelFuncCtx, cancel)
+		asserts.NoError(HookCancelContext(ctx, fs))
+		_, ok := <-ctx.Done()
+		asserts.False(ok)
+	}
+}
+
+func TestHookGiveBackCapacity(t *testing.T) {
+	asserts := assert.New(t)
+	fs := &FileSystem{
+		User: &model.User{
+			Model:   gorm.Model{ID: 1},
+			Storage: 10,
+		},
+	}
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 1})
+
+	// without once limit
+	{
+		asserts.NoError(HookGiveBackCapacity(ctx, fs))
+		asserts.EqualValues(9, fs.User.Storage)
+		asserts.NoError(HookGiveBackCapacity(ctx, fs))
+		asserts.EqualValues(8, fs.User.Storage)
+	}
+
+	// with once limit
+	{
+		ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
+		asserts.NoError(HookGiveBackCapacity(ctx, fs))
+		asserts.EqualValues(7, fs.User.Storage)
+		asserts.NoError(HookGiveBackCapacity(ctx, fs))
+		asserts.EqualValues(7, fs.User.Storage)
 	}
 }
