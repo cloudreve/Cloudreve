@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
@@ -317,6 +318,7 @@ func FileUploadStream(c *gin.Context) {
 	fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
 
 	// 执行上传
+	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {
