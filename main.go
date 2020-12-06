@@ -10,13 +10,15 @@ import (
 )
 
 var (
-	isEject  bool
-	confPath string
+	isEject    bool
+	confPath   string
+	scriptName string
 )
 
 func init() {
 	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
 	flag.BoolVar(&isEject, "eject", false, "导出内置静态资源")
+	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
 	flag.Parse()
 	bootstrap.Init(confPath)
 }
@@ -25,6 +27,12 @@ func main() {
 	if isEject {
 		// 开始导出内置静态资源文件
 		bootstrap.Eject()
+		return
+	}
+
+	if scriptName != "" {
+		// 开始运行助手数据库脚本
+		bootstrap.RunScript(scriptName)
 		return
 	}
 
