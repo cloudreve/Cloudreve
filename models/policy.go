@@ -47,8 +47,10 @@ type PolicyOption struct {
 	FileType []string `json:"file_type"`
 	// MimeType
 	MimeType string `json:"mimetype"`
-	// OdRedirect Onedrive重定向地址
+	// OdRedirect Onedrive 重定向地址
 	OdRedirect string `json:"od_redirect,omitempty"`
+	// OdProxy Onedrive 反代地址
+	OdProxy string `json:"od_proxy,omitempty"`
 	// Region 区域代码
 	Region string `json:"region,omitempty"`
 	// ServerSideEndpoint 服务端请求使用的 Endpoint，为空时使用 Policy.Server 字段

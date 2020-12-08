@@ -154,7 +154,7 @@ func (handler Driver) Source(
 ) (string, error) {
 	// 尝试从缓存中查找
 	if cachedURL, ok := cache.Get(fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)); ok {
-		return cachedURL.(string), nil
+		return handler.replaceSourceHost(cachedURL.(string))
 	}
 
 	// 缓存不存在，重新获取
@@ -166,9 +166,30 @@ func (handler Driver) Source(
 			res.DownloadURL,
 			model.GetIntSetting("onedrive_source_timeout", 1800),
 		)
-		return res.DownloadURL, nil
+		return handler.replaceSourceHost(res.DownloadURL)
 	}
 	return "", err
+}
+
+func (handler Driver) replaceSourceHost(origin string) (string, error) {
+	if handler.Policy.OptionsSerialized.OdProxy != "" {
+		source, err := url.Parse(origin)
+		if err != nil {
+			return "", err
+		}
+
+		cdn, err := url.Parse(handler.Policy.OptionsSerialized.OdProxy)
+		if err != nil {
+			return "", err
+		}
+
+		// 替换反代地址
+		source.Scheme = cdn.Scheme
+		source.Host = cdn.Host
+		return source.String(), nil
+	}
+
+	return origin, nil
 }
 
 // Token 获取上传会话URL
