@@ -20,7 +20,7 @@ func StartLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
 	expectedUser, err := model.GetUserByEmail(userName)
 	if err != nil {
-		c.JSON(200, serializer.Err(401, "用户不存在", err))
+		c.JSON(200, serializer.Err(serializer.CodeNotFound, "用户不存在", err))
 		return
 	}
 
@@ -54,7 +54,7 @@ func FinishLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
 	expectedUser, err := model.GetUserByEmail(userName)
 	if err != nil {
-		c.JSON(200, serializer.Err(401, "用户邮箱或密码错误", err))
+		c.JSON(200, serializer.Err(serializer.CodeCredentialInvalid, "用户邮箱或密码错误", err))
 		return
 	}
 
@@ -72,7 +72,7 @@ func FinishLoginAuthn(c *gin.Context) {
 	_, err = instance.FinishLogin(expectedUser, sessionData, c.Request)
 
 	if err != nil {
-		c.JSON(200, serializer.Err(401, "登录验证失败", err))
+		c.JSON(200, serializer.Err(serializer.CodeCredentialInvalid, "登录验证失败", err))
 		return
 	}
 

@@ -35,7 +35,7 @@ func SignRequired() gin.HandlerFunc {
 		}
 
 		if err != nil {
-			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, err.Error(), err))
+			c.JSON(200, serializer.Err(serializer.CodeCredentialInvalid, err.Error(), err))
 			c.Abort()
 			return
 		}
