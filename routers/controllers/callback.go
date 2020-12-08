@@ -91,7 +91,7 @@ func OneDriveOAuth(c *gin.Context) {
 		queries.Add("msg", res.Msg)
 		queries.Add("err", res.Error)
 		redirect.RawQuery = queries.Encode()
-		c.Redirect(301, "/#"+redirect.String())
+		c.Redirect(301, "/"+redirect.String())
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

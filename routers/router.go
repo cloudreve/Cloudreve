@@ -1,7 +1,6 @@
 package routers
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/bootstrap"
 	"github.com/cloudreve/Cloudreve/v3/middleware"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
@@ -9,7 +8,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -82,8 +80,7 @@ func InitMasterRouter() *gin.Engine {
 		静态资源
 	*/
 	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
-	r.Use(middleware.InjectSiteInfo())
-	r.Use(static.Serve("/", bootstrap.StaticFS))
+	r.Use(middleware.FrontendFileHandler())
 	r.GET("manifest.json", controllers.Manifest)
 
 	v3 := r.Group("/api/v3")

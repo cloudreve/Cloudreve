@@ -95,7 +95,7 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 
 		// 返送激活邮件
 		title, body := email.NewActivationEmail(user.Email,
-			strings.ReplaceAll(finalURL.String(), "/activate", "/#/activate"),
+			finalURL.String(),
 		)
 		if err := email.Send(user.Email, title, body); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "无法发送激活邮件", err)

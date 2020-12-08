@@ -139,7 +139,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 	uid := hashid.HashID(id, hashid.ShareID)
 	// 最终得到分享链接
 	siteURL := model.GetSiteURL()
-	sharePath, _ := url.Parse("/#/s/" + uid)
+	sharePath, _ := url.Parse("/s/" + uid)
 	shareURL := siteURL.ResolveReference(sharePath)
 
 	return serializer.Response{

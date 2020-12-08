@@ -3,7 +3,6 @@ package user
 import (
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -108,7 +107,7 @@ func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response 
 		finalURL.RawQuery = queries.Encode()
 
 		// 发送密码重设邮件
-		title, body := email.NewResetEmail(user.Nick, strings.ReplaceAll(finalURL.String(), "/reset", "/#/reset"))
+		title, body := email.NewResetEmail(user.Nick, finalURL.String())
 		if err := email.Send(user.Email, title, body); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "无法发送密码重设邮件", err)
 		}
