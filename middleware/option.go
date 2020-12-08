@@ -1,13 +1,9 @@
 package middleware
 
 import (
-	"io/ioutil"
-
-	"github.com/cloudreve/Cloudreve/v3/bootstrap"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,50 +35,6 @@ func IsFunctionEnabled(key string) gin.HandlerFunc {
 			return
 		}
 
-		c.Next()
-	}
-}
-
-// InjectSiteInfo 向首页html中插入站点信息
-func InjectSiteInfo() gin.HandlerFunc {
-	ignoreFunc := func(c *gin.Context) {
-		c.Next()
-	}
-	if bootstrap.StaticFS == nil {
-		return ignoreFunc
-	}
-
-	// 读取index.html
-	file, err := bootstrap.StaticFS.Open("/index.html")
-	if err != nil {
-		util.Log().Warning("静态文件[index.html]不存在，可能会影响首页展示")
-		return ignoreFunc
-	}
-
-	fileContentBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		util.Log().Warning("静态文件[index.html]读取失败，可能会影响首页展示")
-		return ignoreFunc
-	}
-	fileContent := string(fileContentBytes)
-
-	return func(c *gin.Context) {
-		if c.Request.URL.Path == "/" || c.Request.URL.Path == "/index.html" {
-			// 读取、替换站点设置
-			options := model.GetSettingByNames("siteName", "siteKeywords", "siteScript",
-				"pwa_small_icon")
-			finalHTML := util.Replace(map[string]string{
-				"{siteName}":       options["siteName"],
-				"{siteDes}":        options["siteDes"],
-				"{siteScript}":     options["siteScript"],
-				"{pwa_small_icon}": options["pwa_small_icon"],
-			}, fileContent)
-
-			c.Header("Content-Type", "text/html")
-			c.String(200, finalHTML)
-			c.Abort()
-			return
-		}
 		c.Next()
 	}
 }

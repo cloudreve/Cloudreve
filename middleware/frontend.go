@@ -39,13 +39,13 @@ func FrontendFileHandler() gin.HandlerFunc {
 		path := c.Request.URL.Path
 
 		// API 跳过
-		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/custom") || strings.HasPrefix(path, "/custom") || path == "manifest.json" {
+		if strings.HasPrefix(path, "/api") || strings.HasPrefix(path, "/custom") || strings.HasPrefix(path, "/dav") || path == "/manifest.json" {
 			c.Next()
 			return
 		}
 
 		// 不存在的路径和index.html均返回index.html
-		if !bootstrap.StaticFS.Exists("/", path) || (path == "/index.html") || (path == "/") {
+		if (path == "/index.html") || (path == "/") || !bootstrap.StaticFS.Exists("/", path) {
 			// 读取、替换站点设置
 			options := model.GetSettingByNames("siteName", "siteKeywords", "siteScript",
 				"pwa_small_icon")
