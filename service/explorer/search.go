@@ -30,7 +30,7 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 	case "keywords":
 		return service.SearchKeywords(c, fs, "%"+service.Keywords+"%")
 	case "image":
-		return service.SearchKeywords(c, fs, "%.bmp", "%.flac", "%.iff", "%.png", "%.gif", "%.jpg", "%.jpge", "%.psd", "%.svg", "%.webp")
+		return service.SearchKeywords(c, fs, "%.bmp", "%.iff", "%.png", "%.gif", "%.jpg", "%.jpeg", "%.psd", "%.svg", "%.webp")
 	case "video":
 		return service.SearchKeywords(c, fs, "%.mp4", "%.flv", "%.avi", "%.wmv", "%.mkv", "%.rm", "%.rmvb", "%.mov", "%.ogv")
 	case "audio":
