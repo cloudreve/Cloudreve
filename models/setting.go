@@ -78,7 +78,12 @@ func GetSiteURL() *url.URL {
 }
 
 // GetIntSetting 获取整形设置值，如果转换失败则返回默认值defaultVal
-func GetIntSetting(key string, defaultVal int) int {
+func GetIntSetting(key string, defaultVal int) (ret int) {
+	defer func() {
+		if v := recover(); v != nil {
+			ret = defaultVal
+		}
+	}()
 	res, err := strconv.Atoi(GetSettingByName(key))
 	if err != nil {
 		return defaultVal
