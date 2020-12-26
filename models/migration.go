@@ -77,6 +77,7 @@ func addDefaultSettings() {
 		{Name: "siteURL", Value: `http://localhost`, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteICPId", Value: ``, Type: "basic"},
+		{Name: "siteGONGANId", Value: ``, Type: "basic"},
 		{Name: "register_enabled", Value: `1`, Type: "register"},
 		{Name: "default_group", Value: `2`, Type: "register"},
 		{Name: "siteKeywords", Value: `网盘，网盘`, Type: "basic"},
