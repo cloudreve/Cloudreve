@@ -6,6 +6,7 @@ import model "github.com/cloudreve/Cloudreve/v3/models"
 type SiteConfig struct {
 	SiteName           string `json:"title"`
 	SiteICPId          string `json:"siteICPId"`
+	SiteGONGANId       string `json:"siteGONGANId"`
 	LoginCaptcha       bool   `json:"loginCaptcha"`
 	RegCaptcha         bool   `json:"regCaptcha"`
 	ForgetCaptcha      bool   `json:"forgetCaptcha"`
@@ -66,6 +67,7 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 		Data: SiteConfig{
 			SiteName:           checkSettingValue(settings, "siteName"),
 			SiteICPId:          checkSettingValue(settings, "siteICPId"),
+			SiteGONGANId:       checkSettingValue(settings, "siteGONGANId"),
 			LoginCaptcha:       model.IsTrueVal(checkSettingValue(settings, "login_captcha")),
 			RegCaptcha:         model.IsTrueVal(checkSettingValue(settings, "reg_captcha")),
 			ForgetCaptcha:      model.IsTrueVal(checkSettingValue(settings, "forget_captcha")),
