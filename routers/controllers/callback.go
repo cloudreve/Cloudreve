@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"net/url"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"path"
 	"strconv"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -85,13 +86,14 @@ func OneDriveOAuth(c *gin.Context) {
 	var callbackBody callback.OneDriveOauthService
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
 		res := callbackBody.Auth(c)
-		redirect, _ := url.Parse("/admin/policy")
+		redirect := model.GetSiteURL()
+		redirect.Path = path.Join(redirect.Path, "/admin/policy")
 		queries := redirect.Query()
 		queries.Add("code", strconv.Itoa(res.Code))
 		queries.Add("msg", res.Msg)
 		queries.Add("err", res.Error)
 		redirect.RawQuery = queries.Encode()
-		c.Redirect(301, "/"+redirect.String())
+		c.Redirect(303, redirect.String())
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
