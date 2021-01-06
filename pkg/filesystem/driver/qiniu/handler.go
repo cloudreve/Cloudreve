@@ -92,7 +92,7 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 			RelativePath: filepath.ToSlash(rel),
 			Size:         uint64(object.Fsize),
 			IsDir:        false,
-			LastModify:   time.Now(),
+			LastModify:   time.Unix(object.PutTime/10000000, 0),
 		})
 	}
 
