@@ -592,7 +592,7 @@ func TestFileSystem_ResetFileIDIfNotExist(t *testing.T) {
 			},
 		},
 	}
-	asserts.Equal(ErrObjectNotExist, fs.resetFileIDIfNotExist(ctx, 1))
+	asserts.Equal(ErrObjectNotExist, fs.ResetFileIDIfNotExist(ctx, 1))
 }
 
 func TestFileSystem_Search(t *testing.T) {

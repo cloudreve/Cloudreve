@@ -168,6 +168,12 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	// 查找文件记录
+	err = fs.ResetFileIDIfNotExist(ctx, service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
 	if fs.Policy.Type == "onedrive" {
 		// 获取文件临时下载地址
 		downloadURL, err := fs.GetDownloadURL(ctx, 0, "download_timeout")

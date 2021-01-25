@@ -24,7 +24,7 @@ var HandledExtension = []string{"jpg", "jpeg", "png", "gif"}
 // GetThumb 获取文件的缩略图
 func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentResponse, error) {
 	// 根据 ID 查找文件
-	err := fs.resetFileIDIfNotExist(ctx, id)
+	err := fs.ResetFileIDIfNotExist(ctx, id)
 	if err != nil || fs.FileTarget[0].PicInfo == "" {
 		return &response.ContentResponse{
 			Redirect: false,
