@@ -168,6 +168,19 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	if fs.Policy.Type == "onedrive" {
+		// 获取文件临时下载地址
+		downloadURL, err := fs.GetDownloadURL(ctx, 0, "download_timeout")
+		if err != nil {
+			return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+		}
+		c.Redirect(302, downloadURL)
+
+		return serializer.Response{
+			Code: 0,
+		}
+	}
+
 	// 获取文件流
 	rs, err := fs.GetDownloadContent(ctx, 0)
 	defer rs.Close()
