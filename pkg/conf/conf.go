@@ -1,7 +1,7 @@
 package conf
 
 import (
-	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/go-ini/ini"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -33,6 +33,10 @@ type ssl struct {
 	Listen   string `validate:"required"`
 }
 
+type unix struct {
+	Listen string
+}
+
 // slave 作为slave存储端配置
 type slave struct {
 	Secret          string `validate:"omitempty,gte=64"`
@@ -57,6 +61,7 @@ type captcha struct {
 
 // redis 配置
 type redis struct {
+	Network  string
 	Server   string
 	Password string
 	DB       string
@@ -117,14 +122,15 @@ func Init(path string) {
 	}
 
 	sections := map[string]interface{}{
-		"Database":  DatabaseConfig,
-		"System":    SystemConfig,
-		"SSL":       SSLConfig,
-		"Captcha":   CaptchaConfig,
-		"Redis":     RedisConfig,
-		"Thumbnail": ThumbConfig,
-		"CORS":      CORSConfig,
-		"Slave":     SlaveConfig,
+		"Database":   DatabaseConfig,
+		"System":     SystemConfig,
+		"SSL":        SSLConfig,
+		"UnixSocket": UnixConfig,
+		"Captcha":    CaptchaConfig,
+		"Redis":      RedisConfig,
+		"Thumbnail":  ThumbConfig,
+		"CORS":       CORSConfig,
+		"Slave":      SlaveConfig,
 	}
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)

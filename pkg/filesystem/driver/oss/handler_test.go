@@ -2,18 +2,19 @@ package oss
 
 import (
 	"context"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestDriver_InitOSSClient(t *testing.T) {
@@ -29,13 +30,19 @@ func TestDriver_InitOSSClient(t *testing.T) {
 
 	// 成功
 	{
-		asserts.NoError(handler.InitOSSClient())
+		asserts.NoError(handler.InitOSSClient(false))
+	}
+
+	// 使用内网Endpoint
+	{
+		handler.Policy.OptionsSerialized.ServerSideEndpoint = "endpoint2"
+		asserts.NoError(handler.InitOSSClient(false))
 	}
 
 	// 未指定存储策略
 	{
 		handler := Driver{}
-		asserts.Error(handler.InitOSSClient())
+		asserts.Error(handler.InitOSSClient(false))
 	}
 }
 
@@ -180,6 +187,19 @@ func TestDriver_Source(t *testing.T) {
 		query := resURL.Query()
 		asserts.Empty(query.Get("Signature"))
 		asserts.Contains(resURL.String(), handler.Policy.BaseURL)
+	}
+
+	// 强制使用公网 Endpoint
+	{
+		handler.Policy.BaseURL = ""
+		handler.Policy.OptionsSerialized.ServerSideEndpoint = "endpoint.com"
+		res, err := handler.Source(context.WithValue(context.Background(), fsctx.ForceUsePublicEndpointCtx, false), "/123", url.URL{}, 10, false, 0)
+		asserts.NoError(err)
+		resURL, err := url.Parse(res)
+		asserts.NoError(err)
+		query := resURL.Query()
+		asserts.Empty(query.Get("Signature"))
+		asserts.Contains(resURL.String(), "endpoint.com")
 	}
 }
 

@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"context"
-	ariaCall "github.com/HFO4/cloudreve/pkg/aria2"
-	"github.com/HFO4/cloudreve/service/aria2"
-	"github.com/HFO4/cloudreve/service/explorer"
+
+	ariaCall "github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/service/aria2"
+	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,7 +63,7 @@ func AddAria2Torrent(c *gin.Context) {
 	}
 }
 
-// CancelAria2Download 取消aria2离线下载任务
+// CancelAria2Download 取消或删除aria2离线下载任务
 func CancelAria2Download(c *gin.Context) {
 	var selectService aria2.DownloadTaskService
 	if err := c.ShouldBindUri(&selectService); err == nil {

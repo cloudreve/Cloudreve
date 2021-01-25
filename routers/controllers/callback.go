@@ -1,12 +1,13 @@
 package controllers
 
 import (
-	"net/url"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"path"
 	"strconv"
 
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/HFO4/cloudreve/service/callback"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/service/callback"
 	"github.com/gin-gonic/gin"
 )
 
@@ -27,7 +28,7 @@ func QiniuCallback(c *gin.Context) {
 	if err := c.ShouldBindJSON(&callbackBody); err == nil {
 		res := callback.ProcessCallback(callbackBody, c)
 		if res.Code != 0 {
-			c.JSON(401, serializer.QiniuCallbackFailed{Error: res.Msg})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: res.Msg})
 		} else {
 			c.JSON(200, res)
 		}
@@ -85,13 +86,14 @@ func OneDriveOAuth(c *gin.Context) {
 	var callbackBody callback.OneDriveOauthService
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
 		res := callbackBody.Auth(c)
-		redirect, _ := url.Parse("/admin/policy")
+		redirect := model.GetSiteURL()
+		redirect.Path = path.Join(redirect.Path, "/admin/policy")
 		queries := redirect.Query()
 		queries.Add("code", strconv.Itoa(res.Code))
 		queries.Add("msg", res.Msg)
 		queries.Add("err", res.Error)
 		redirect.RawQuery = queries.Encode()
-		c.Redirect(301, "/#"+redirect.String())
+		c.Redirect(303, redirect.String())
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
@@ -110,6 +112,7 @@ func COSCallback(c *gin.Context) {
 
 // S3Callback S3上传完成客户端回调
 func S3Callback(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	var callbackBody callback.S3Callback
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
 		res := callbackBody.PreProcess(c)

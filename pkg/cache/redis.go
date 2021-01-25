@@ -3,10 +3,11 @@ package cache
 import (
 	"bytes"
 	"encoding/gob"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gomodule/redigo/redis"
 	"strconv"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gomodule/redigo/redis"
 )
 
 // RedisStore redis存储驱动

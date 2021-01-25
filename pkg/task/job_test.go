@@ -2,10 +2,11 @@ package task
 
 import (
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRecord(t *testing.T) {

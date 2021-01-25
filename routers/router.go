@@ -1,15 +1,13 @@
 package routers
 
 import (
-	"github.com/HFO4/cloudreve/bootstrap"
-	"github.com/HFO4/cloudreve/middleware"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/HFO4/cloudreve/routers/controllers"
+	"github.com/cloudreve/Cloudreve/v3/middleware"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 )
 
@@ -82,8 +80,7 @@ func InitMasterRouter() *gin.Engine {
 		静态资源
 	*/
 	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
-	r.Use(middleware.InjectSiteInfo())
-	r.Use(static.Serve("/", bootstrap.StaticFS))
+	r.Use(middleware.FrontendFileHandler())
 	r.GET("manifest.json", controllers.Manifest)
 
 	v3 := r.Group("/api/v3")
@@ -485,7 +482,7 @@ func InitMasterRouter() *gin.Engine {
 				aria2.POST("torrent/:id", middleware.HashID(hashid.FileID), controllers.AddAria2Torrent)
 				// 重新选择要下载的文件
 				aria2.PUT("select/:gid", controllers.SelectAria2File)
-				// 取消下载任务
+				// 取消或删除下载任务
 				aria2.DELETE("task/:gid", controllers.CancelAria2Download)
 				// 获取正在下载中的任务
 				aria2.GET("downloading", controllers.ListDownloading)

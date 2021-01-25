@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-contrib/sessions/redis"
@@ -18,7 +18,7 @@ func Session(secret string) gin.HandlerFunc {
 	// Redis设置不为空，且非测试模式时使用Redis
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		var err error
-		Store, err = redis.NewStoreWithDB(10, "tcp", conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
+		Store, err = redis.NewStoreWithDB(10, conf.RedisConfig.Network, conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
 		if err != nil {
 			util.Log().Panic("无法连接到 Redis：%s", err)
 		}

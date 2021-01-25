@@ -4,6 +4,7 @@ import "github.com/mojocn/base64Captcha"
 
 // RedisConfig Redis服务器配置
 var RedisConfig = &redis{
+	Network:  "tcp",
 	Server:   "",
 	Password: "",
 	DB:       "0",
@@ -64,4 +65,8 @@ var SSLConfig = &ssl{
 	Listen:   ":443",
 	CertPath: "",
 	KeyPath:  "",
+}
+
+var UnixConfig = &unix{
+    Listen: "",
 }

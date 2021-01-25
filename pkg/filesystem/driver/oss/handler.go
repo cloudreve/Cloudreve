@@ -8,19 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/filesystem/response"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"io"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // UploadPolicy 阿里云OSS上传策略
@@ -54,7 +55,7 @@ const (
 // CORS 创建跨域策略
 func (handler *Driver) CORS() error {
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	if err := handler.InitOSSClient(false); err != nil {
 		return err
 	}
 
@@ -76,14 +77,20 @@ func (handler *Driver) CORS() error {
 }
 
 // InitOSSClient 初始化OSS鉴权客户端
-func (handler *Driver) InitOSSClient() error {
+func (handler *Driver) InitOSSClient(forceUsePublicEndpoint bool) error {
 	if handler.Policy == nil {
 		return errors.New("存储策略为空")
 	}
 
 	if handler.client == nil {
+		// 决定是否使用内网 Endpoint
+		endpoint := handler.Policy.Server
+		if handler.Policy.OptionsSerialized.ServerSideEndpoint != "" && !forceUsePublicEndpoint {
+			endpoint = handler.Policy.OptionsSerialized.ServerSideEndpoint
+		}
+
 		// 初始化客户端
-		client, err := oss.New(handler.Policy.Server, handler.Policy.AccessKey, handler.Policy.SecretKey)
+		client, err := oss.New(endpoint, handler.Policy.AccessKey, handler.Policy.SecretKey)
 		if err != nil {
 			return err
 		}
@@ -104,7 +111,7 @@ func (handler *Driver) InitOSSClient() error {
 // List 列出OSS上的文件
 func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	if err := handler.InitOSSClient(false); err != nil {
 		return nil, err
 	}
 
@@ -178,6 +185,9 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 	// 通过VersionID禁止缓存
 	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
 
+	// 尽可能使用私有 Endpoint
+	ctx = context.WithValue(ctx, fsctx.ForceUsePublicEndpointCtx, false)
+
 	// 获取文件源地址
 	downloadURL, err := handler.Source(
 		ctx,
@@ -218,7 +228,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	defer file.Close()
 
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	if err := handler.InitOSSClient(false); err != nil {
 		return err
 	}
 
@@ -242,7 +252,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 // 返回未删除的文件
 func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	if err := handler.InitOSSClient(false); err != nil {
 		return files, err
 	}
 
@@ -265,7 +275,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	if err := handler.InitOSSClient(true); err != nil {
 		return nil, err
 	}
 
@@ -306,7 +316,11 @@ func (handler Driver) Source(
 	speed int,
 ) (string, error) {
 	// 初始化客户端
-	if err := handler.InitOSSClient(); err != nil {
+	usePublicEndpoint := true
+	if forceUsePublicEndpoint, ok := ctx.Value(fsctx.ForceUsePublicEndpointCtx).(bool); ok {
+		usePublicEndpoint = forceUsePublicEndpoint
+	}
+	if err := handler.InitOSSClient(usePublicEndpoint); err != nil {
 		return "", err
 	}
 

@@ -1,9 +1,10 @@
 package authn
 
 import (
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInit(t *testing.T) {

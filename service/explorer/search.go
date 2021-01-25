@@ -2,12 +2,13 @@ package explorer
 
 import (
 	"context"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/gin-gonic/gin"
 	"strings"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/gin-gonic/gin"
 )
 
 // ItemSearchService 文件搜索服务
@@ -29,7 +30,7 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 	case "keywords":
 		return service.SearchKeywords(c, fs, "%"+service.Keywords+"%")
 	case "image":
-		return service.SearchKeywords(c, fs, "%.bmp", "%.flac", "%.iff", "%.png", "%.gif", "%.jpg", "%.jpge", "%.psd", "%.svg", "%.webp")
+		return service.SearchKeywords(c, fs, "%.bmp", "%.iff", "%.png", "%.gif", "%.jpg", "%.jpeg", "%.psd", "%.svg", "%.webp")
 	case "video":
 		return service.SearchKeywords(c, fs, "%.mp4", "%.flv", "%.avi", "%.wmv", "%.mkv", "%.rm", "%.rmvb", "%.mov", "%.ogv")
 	case "audio":

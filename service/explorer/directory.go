@@ -2,9 +2,10 @@ package explorer
 
 import (
 	"context"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/serializer"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 

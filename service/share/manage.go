@@ -1,12 +1,13 @@
 package share
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/hashid"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/gin-gonic/gin"
 	"net/url"
 	"time"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/gin-gonic/gin"
 )
 
 // ShareCreateService 创建新分享服务
@@ -138,7 +139,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 	uid := hashid.HashID(id, hashid.ShareID)
 	// 最终得到分享链接
 	siteURL := model.GetSiteURL()
-	sharePath, _ := url.Parse("/#/s/" + uid)
+	sharePath, _ := url.Parse("/s/" + uid)
 	shareURL := siteURL.ResolveReference(sharePath)
 
 	return serializer.Response{

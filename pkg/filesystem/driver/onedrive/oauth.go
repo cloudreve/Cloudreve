@@ -3,14 +3,15 @@ package onedrive
 import (
 	"context"
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // Error 实现error接口

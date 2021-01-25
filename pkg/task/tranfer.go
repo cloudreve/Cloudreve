@@ -3,12 +3,14 @@ package task
 import (
 	"context"
 	"encoding/json"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // TransferTask 文件中转任务
@@ -23,9 +25,11 @@ type TransferTask struct {
 
 // TransferProps 中转任务属性
 type TransferProps struct {
-	Src    []string `json:"src"`    // 原始目录
+	Src    []string `json:"src"`    // 原始文件
 	Parent string   `json:"parent"` // 父目录
 	Dst    string   `json:"dst"`    // 目的目录ID
+	// 将会保留原始文件的目录结构，Src 除去 Parent 开头作为最终路径
+	TrimPath bool `json:"trim_path"`
 }
 
 // Props 获取任务属性
@@ -89,7 +93,16 @@ func (job *TransferTask) Do() {
 
 	for index, file := range job.TaskProps.Src {
 		job.TaskModel.SetProgress(index)
-		err = fs.UploadFromPath(context.Background(), file, path.Join(job.TaskProps.Dst, filepath.Base(file)))
+
+		dst := path.Join(job.TaskProps.Dst, filepath.Base(file))
+		if job.TaskProps.TrimPath {
+			// 保留原始目录
+			trim := util.FormSlash(job.TaskProps.Parent)
+			src := util.FormSlash(file)
+			dst = path.Join(job.TaskProps.Dst, strings.TrimPrefix(src, trim))
+		}
+
+		err = fs.UploadFromPath(context.Background(), file, dst)
 		if err != nil {
 			job.SetErrorMsg("文件转存失败", err)
 		}
@@ -107,7 +120,7 @@ func (job *TransferTask) Recycle() {
 }
 
 // NewTransferTask 新建中转任务
-func NewTransferTask(user uint, src []string, dst, parent string) (Job, error) {
+func NewTransferTask(user uint, src []string, dst, parent string, trim bool) (Job, error) {
 	creator, err := model.GetActiveUserByID(user)
 	if err != nil {
 		return nil, err
@@ -116,9 +129,10 @@ func NewTransferTask(user uint, src []string, dst, parent string) (Job, error) {
 	newTask := &TransferTask{
 		User: &creator,
 		TaskProps: TransferProps{
-			Src:    src,
-			Parent: parent,
-			Dst:    dst,
+			Src:      src,
+			Parent:   parent,
+			Dst:      dst,
+			TrimPath: trim,
 		},
 	}
 

@@ -9,17 +9,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 type Handler struct {
@@ -314,6 +316,8 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ctx = context.WithValue(ctx, fsctx.HTTPCtx, r.Context())
+	ctx = context.WithValue(ctx, fsctx.CancelFuncCtx, cancel)
+	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
 
 	fileSize, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
@@ -350,6 +354,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
 		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
 		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+		fs.Use("AfterUploadCanceled", filesystem.HookCancelContext)
 		fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
 		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
 		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
@@ -361,6 +366,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
 		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+		fs.Use("AfterUploadCanceled", filesystem.HookCancelContext)
 		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)

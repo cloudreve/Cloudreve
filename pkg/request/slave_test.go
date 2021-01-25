@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestRemoteCallback(t *testing.T) {

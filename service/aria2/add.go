@@ -1,10 +1,10 @@
 package aria2
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/aria2"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/serializer"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 

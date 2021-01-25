@@ -8,20 +8,20 @@ import (
 	"net/url"
 	"sync"
 
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/auth"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/oss"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/qiniu"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/remote"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/s3"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/upyun"
-	"github.com/HFO4/cloudreve/pkg/filesystem/response"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/serializer"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/cos"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/qiniu"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/remote"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/s3"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
 )
@@ -97,6 +97,9 @@ type FileSystem struct {
 	   文件系统处理适配器
 	*/
 	Handler Handler
+
+	// 回收锁
+	recycleLock sync.Mutex
 }
 
 // getEmptyFS 从pool中获取新的FileSystem
@@ -107,6 +110,7 @@ func getEmptyFS() *FileSystem {
 
 // Recycle 回收FileSystem资源
 func (fs *FileSystem) Recycle() {
+	fs.recycleLock.Lock()
 	fs.reset()
 	FSPool.Put(fs)
 }
@@ -120,6 +124,7 @@ func (fs *FileSystem) reset() {
 	fs.Handler = nil
 	fs.Root = nil
 	fs.Lock = sync.Mutex{}
+	fs.recycleLock = sync.Mutex{}
 }
 
 // NewFileSystem 初始化一个文件系统

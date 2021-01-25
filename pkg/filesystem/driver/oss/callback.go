@@ -10,12 +10,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/request"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 )
 
 // GetPublicKey 从回调请求或缓存中获取OSS的回调签名公钥

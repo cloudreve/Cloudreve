@@ -1,9 +1,10 @@
 package serializer
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
 	"path"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 )
 
 // DownloadListResponse 下载列表响应条目
@@ -22,6 +23,7 @@ type DownloadListResponse struct {
 // FinishedListResponse 已完成任务条目
 type FinishedListResponse struct {
 	Name       string         `json:"name"`
+	GID        string         `json:"gid"`
 	Status     int            `json:"status"`
 	Dst        string         `json:"dst"`
 	Error      string         `json:"error"`
@@ -50,6 +52,7 @@ func BuildFinishedListResponse(tasks []model.Download) Response {
 
 		download := FinishedListResponse{
 			Name:       fileName,
+			GID:        tasks[i].GID,
 			Status:     tasks[i].Status,
 			Error:      tasks[i].Error,
 			Dst:        tasks[i].Dst,

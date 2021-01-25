@@ -46,8 +46,8 @@ type UploadCallback struct {
 	Size       uint64 `json:"size"`
 }
 
-// QiniuCallbackFailed 七牛存储策略上传回调失败响应
-type QiniuCallbackFailed struct {
+// GeneralUploadCallbackFailed 存储策略上传回调失败响应
+type GeneralUploadCallbackFailed struct {
 	Error string `json:"error"`
 }
 

@@ -52,6 +52,8 @@ const (
 	CodeNotFound = 404
 	// CodeUploadFailed 上传出错
 	CodeUploadFailed = 40002
+	// CodeCredentialInvalid 凭证无效
+	CodeCredentialInvalid = 40001
 	// CodeCreateFolderFailed 目录创建失败
 	CodeCreateFolderFailed = 40003
 	// CodeObjectExist 对象已存在

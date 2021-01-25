@@ -1,9 +1,10 @@
 package onedrive
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewClient(t *testing.T) {

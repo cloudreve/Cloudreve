@@ -3,21 +3,22 @@ package middleware
 import (
 	"database/sql"
 	"errors"
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/auth"
-	"github.com/HFO4/cloudreve/pkg/cache"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
-	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
-	"github.com/qiniu/api.v7/v7/auth/qbox"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/stretchr/testify/assert"
 )
 
 var mock sqlmock.Sqlmock
@@ -744,6 +745,50 @@ func TestIsAdmin(t *testing.T) {
 		user.ID = 1
 		c.Set("user", user)
 		testFunc(c)
+		asserts.False(c.IsAborted())
+	}
+}
+
+func TestS3CallbackAuth(t *testing.T) {
+	asserts := assert.New(t)
+	rec := httptest.NewRecorder()
+	AuthFunc := S3CallbackAuth()
+
+	// Callback Key 相关验证失败
+	{
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testUpyunBackRemote"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testUpyunBackRemote", nil)
+		AuthFunc(c)
+		asserts.True(c.IsAborted())
+	}
+
+	// 成功
+	{
+		cache.Set(
+			"callback_testCallBackUpyun",
+			serializer.UploadSession{
+				UID:         1,
+				PolicyID:    512,
+				VirtualPath: "/",
+			},
+			0,
+		)
+		cache.Deletes([]string{"1"}, "policy_")
+		mock.ExpectQuery("SELECT(.+)users(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
+		mock.ExpectQuery("SELECT(.+)groups(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[702]"))
+		mock.ExpectQuery("SELECT(.+)policies(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
+		c, _ := gin.CreateTestContext(rec)
+		c.Params = []gin.Param{
+			{"key", "testCallBackUpyun"},
+		}
+		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
+		AuthFunc(c)
 		asserts.False(c.IsAborted())
 	}
 }

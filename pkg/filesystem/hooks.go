@@ -3,14 +3,16 @@ package filesystem
 import (
 	"context"
 	"errors"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/request"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"io/ioutil"
 	"strings"
+	"sync"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // Hook 钩子函数
@@ -185,12 +187,30 @@ func HookClearFileSize(ctx context.Context, fs *FileSystem) error {
 	return originFile.UpdateSize(0)
 }
 
+// HookCancelContext 取消上下文
+func HookCancelContext(ctx context.Context, fs *FileSystem) error {
+	cancelFunc, ok := ctx.Value(fsctx.CancelFuncCtx).(context.CancelFunc)
+	if ok {
+		cancelFunc()
+	}
+	return nil
+}
+
 // HookGiveBackCapacity 归还用户容量
 func HookGiveBackCapacity(ctx context.Context, fs *FileSystem) error {
 	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
+	once, ok := ctx.Value(fsctx.ValidateCapacityOnceCtx).(*sync.Once)
+	if !ok {
+		once = &sync.Once{}
+	}
 
 	// 归还用户容量
-	if !fs.User.DeductionStorage(file.GetSize()) {
+	res := true
+	once.Do(func() {
+		res = fs.User.DeductionStorage(file.GetSize())
+	})
+
+	if !res {
 		return errors.New("无法继续降低用户已用存储")
 	}
 	return nil
@@ -227,7 +247,9 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem) error {
 
 	// 尝试清空原有缩略图并重新生成
 	if originFile.GetPolicy().IsThumbGenerateNeeded() {
+		fs.recycleLock.Lock()
 		go func() {
+			defer fs.recycleLock.Unlock()
 			if originFile.PicInfo != "" {
 				_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
 				fs.GenerateThumbnail(ctx, &originFile)
@@ -296,7 +318,11 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 
 	// 异步尝试生成缩略图
 	if fs.User.Policy.IsThumbGenerateNeeded() {
-		go fs.GenerateThumbnail(ctx, file)
+		fs.recycleLock.Lock()
+		go func() {
+			defer fs.recycleLock.Unlock()
+			fs.GenerateThumbnail(ctx, file)
+		}()
 	}
 
 	return nil

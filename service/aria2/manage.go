@@ -1,9 +1,9 @@
 package aria2
 
 import (
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/aria2"
-	"github.com/HFO4/cloudreve/pkg/serializer"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,7 +36,7 @@ func (service *DownloadListService) Downloading(c *gin.Context, user *model.User
 	return serializer.BuildDownloadingResponse(downloads)
 }
 
-// Delete 取消下载任务
+// Delete 取消或删除下载任务
 func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	userCtx, _ := c.Get("user")
 	user := userCtx.(*model.User)
@@ -47,8 +47,12 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
 	}
 
-	if download.Status != aria2.Downloading && download.Status != aria2.Paused {
-		return serializer.Err(serializer.CodeNoPermissionErr, "此下载任务无法取消", err)
+	if download.Status >= aria2.Error {
+		// 如果任务已完成，则删除任务记录
+		if err := download.Delete(); err != nil {
+			return serializer.Err(serializer.CodeDBError, "任务记录删除失败", err)
+		}
+		return serializer.Response{}
 	}
 
 	// 取消任务

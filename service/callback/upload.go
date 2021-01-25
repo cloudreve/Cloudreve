@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/cos"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/onedrive"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/s3"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/serializer"
-	"github.com/HFO4/cloudreve/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/cos"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/s3"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 

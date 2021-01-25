@@ -2,15 +2,16 @@ package bootstrap
 
 import (
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/conf"
-	"github.com/HFO4/cloudreve/pkg/util"
-	_ "github.com/HFO4/cloudreve/statik"
-	"github.com/gin-contrib/static"
-	"github.com/rakyll/statik/fs"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"path"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	_ "github.com/cloudreve/Cloudreve/v3/statik"
+	"github.com/gin-contrib/static"
+	"github.com/rakyll/statik/fs"
 )
 
 const StaticFolder = "statics"

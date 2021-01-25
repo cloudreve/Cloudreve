@@ -2,8 +2,9 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
-	"github.com/HFO4/cloudreve/pkg/util"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 )
 
@@ -17,10 +18,10 @@ type Download struct {
 	DownloadedSize uint64 // 文件大小
 	GID            string `gorm:"size:32,index:gid"` // 任务ID
 	Speed          int    // 下载速度
-	Parent         string `gorm:"type:text"` // 存储目录
-	Attrs          string `gorm:"type:text"` // 任务状态属性
-	Error          string `gorm:"type:text"` // 错误描述
-	Dst            string `gorm:"type:text"` // 用户文件系统存储父目录路径
+	Parent         string `gorm:"type:text"`  // 存储目录
+	Attrs          string `gorm:"size:65535"` // 任务状态属性
+	Error          string `gorm:"type:text"`  // 错误描述
+	Dst            string `gorm:"type:text"`  // 用户文件系统存储父目录路径
 	UserID         uint   // 发起者UID
 	TaskID         uint   // 对应的转存任务ID
 
@@ -107,4 +108,9 @@ func (task *Download) GetOwner() *User {
 		}
 	}
 	return task.User
+}
+
+// Delete 删除离线下载记录
+func (download *Download) Delete() error {
+	return DB.Model(download).Delete(download).Error
 }

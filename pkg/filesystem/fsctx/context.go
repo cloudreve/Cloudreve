@@ -33,4 +33,10 @@ const (
 	IgnoreConflictCtx
 	// RetryCtx 失败重试次数
 	RetryCtx
+	// ForceUsePublicEndpointCtx 强制使用公网 Endpoint
+	ForceUsePublicEndpointCtx
+	// CancelFuncCtx Context 取消函數
+	CancelFuncCtx
+	// ValidateCapacityOnceCtx 限定归还容量的操作只執行一次
+	ValidateCapacityOnceCtx
 )

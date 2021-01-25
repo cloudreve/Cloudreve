@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/aria2/rpc"
-	"github.com/HFO4/cloudreve/pkg/filesystem"
-	"github.com/HFO4/cloudreve/pkg/filesystem/driver/local"
-	"github.com/HFO4/cloudreve/pkg/filesystem/fsctx"
-	"github.com/HFO4/cloudreve/pkg/task"
-	"github.com/HFO4/cloudreve/pkg/util"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/task"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // Monitor 离线下载状态监控
@@ -250,6 +251,7 @@ func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 		file,
 		monitor.Task.Dst,
 		monitor.Task.Parent,
+		true,
 	)
 	if err != nil {
 		monitor.setErrorStatus(err)

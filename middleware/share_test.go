@@ -1,14 +1,15 @@
 package middleware
 
 import (
+	"net/http/httptest"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/HFO4/cloudreve/models"
-	"github.com/HFO4/cloudreve/pkg/conf"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestShareAvailable(t *testing.T) {

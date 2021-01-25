@@ -2,11 +2,12 @@ package task
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
-	model "github.com/HFO4/cloudreve/models"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestTransferTask_Props(t *testing.T) {
@@ -101,6 +102,31 @@ func TestTransferTask_Do(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NotEmpty(task.GetError().Msg)
 	}
+
+	// 替换目录前缀
+	{
+		task.User = &model.User{
+			Policy: model.Policy{
+				Type: "mock",
+			},
+		}
+		task.TaskProps.Src = []string{"test/not_exist"}
+		task.TaskProps.Parent = "test/not_exist"
+		task.TaskProps.TrimPath = true
+		// 更新进度
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
+			1))
+		mock.ExpectCommit()
+		// 更新错误
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
+			1))
+		mock.ExpectCommit()
+		task.Do()
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NotEmpty(task.GetError().Msg)
+	}
 }
 
 func TestNewTransferTask(t *testing.T) {
@@ -112,7 +138,7 @@ func TestNewTransferTask(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		job, err := NewTransferTask(1, []string{}, "/", "/")
+		job, err := NewTransferTask(1, []string{}, "/", "/", false)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NotNil(job)
 		asserts.NoError(err)
@@ -124,7 +150,7 @@ func TestNewTransferTask(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
-		job, err := NewTransferTask(1, []string{}, "/", "/")
+		job, err := NewTransferTask(1, []string{}, "/", "/", false)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Nil(job)
 		asserts.Error(err)
