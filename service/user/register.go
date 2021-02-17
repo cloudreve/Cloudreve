@@ -71,6 +71,7 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 		expectedUser, err := model.GetUserByEmail(service.UserName)
 		if expectedUser.Status == model.NotActivicated {
 			userNotActivated = true
+			user = expectedUser
 		} else {
 			return serializer.DBErr("此邮箱已被使用", err)
 		}
