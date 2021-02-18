@@ -109,7 +109,7 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 		}
 		if userNotActivated == true {
 			//原本在上面要抛出的DBErr，放来这边抛出
-			return serializer.DBErr("用户未激活，已重新发送激活码", nil)
+			return serializer.DBErr("用户未激活，已重新发送激活邮件", nil)
 		} else {
 			return serializer.Response{Code: 203}
 		}
