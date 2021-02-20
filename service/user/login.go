@@ -62,7 +62,10 @@ func (service *UserResetService) Reset(c *gin.Context) serializer.Response {
 	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
 		return serializer.DBErr("无法重设密码", err)
 	}
-
+	// 重设二步验证设定
+	if err := user.Update(map[string]interface{}{"two_factor": ""}); err != nil {
+		return serializer.DBErr("无法更新二步验证设定", err)
+	}
 	cache.Deletes([]string{fmt.Sprintf("%d", uid)}, "user_reset_")
 	return serializer.Response{}
 }
