@@ -370,7 +370,7 @@ func (client *Client) Delete(ctx context.Context, dst []string) ([]string, error
 func getDeleteFailed(res *BatchResponses) []string {
 	var failed = make([]string, 0, len(res.Responses))
 	for _, v := range res.Responses {
-		if v.Status != 204 {
+		if v.Status != 204 && v.Status != 404 {
 			failed = append(failed, v.ID)
 		}
 	}

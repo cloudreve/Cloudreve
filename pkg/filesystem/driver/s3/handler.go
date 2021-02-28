@@ -8,13 +8,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -60,7 +60,7 @@ func (handler *Driver) InitS3Client() error {
 			Credentials:      credentials.NewStaticCredentials(handler.Policy.AccessKey, handler.Policy.SecretKey, ""),
 			Endpoint:         &handler.Policy.Server,
 			Region:           &handler.Policy.OptionsSerialized.Region,
-			S3ForcePathStyle: aws.Bool(false),
+			S3ForcePathStyle: aws.Bool(true),
 		})
 
 		if err != nil {
@@ -229,53 +229,35 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		return files, err
 	}
 
-	var (
-		failed       = make([]string, 0, len(files))
-		lastErr      error
-		currentIndex = 0
-		indexLock    sync.Mutex
-		failedLock   sync.Mutex
-		wg           sync.WaitGroup
-		routineNum   = 4
-	)
-	wg.Add(routineNum)
+	failed := make([]string, 0, len(files))
+	deleted := make([]string, 0, len(files))
 
-	// S3不支持批量操作，这里开四个协程并行操作
-	for i := 0; i < routineNum; i++ {
-		go func() {
-			for {
-				// 取得待删除文件
-				indexLock.Lock()
-				if currentIndex >= len(files) {
-					// 所有文件处理完成
-					wg.Done()
-					indexLock.Unlock()
-					return
-				}
-				path := files[currentIndex]
-				currentIndex++
-				indexLock.Unlock()
-
-				// 发送异步删除请求
-				_, err := handler.svc.DeleteObject(
-					&s3.DeleteObjectInput{
-						Bucket: &handler.Policy.BucketName,
-						Key:    &path,
-					})
-
-				// 处理错误
-				if err != nil {
-					failedLock.Lock()
-					lastErr = err
-					failed = append(failed, path)
-					failedLock.Unlock()
-				}
-			}
-		}()
+	keys := make([]*s3.ObjectIdentifier, 0, len(files))
+	for _, file := range files {
+		filePath := file
+		keys = append(keys, &s3.ObjectIdentifier{Key: &filePath})
 	}
 
-	wg.Wait()
-	return failed, lastErr
+	// 发送异步删除请求
+	res, err := handler.svc.DeleteObjects(
+		&s3.DeleteObjectsInput{
+			Bucket: &handler.Policy.BucketName,
+			Delete: &s3.Delete{
+				Objects: keys,
+			},
+		})
+
+	if err != nil {
+		return files, err
+	}
+
+	// 统计未删除的文件
+	for _, deleteRes := range res.Deleted {
+		deleted = append(deleted, *deleteRes.Key)
+	}
+	failed = util.SliceDifference(failed, deleted)
+
+	return failed, nil
 
 }
 

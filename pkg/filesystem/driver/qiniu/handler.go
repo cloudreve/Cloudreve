@@ -206,7 +206,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 	if err != nil {
 		failed := make([]string, 0, len(rets))
 		for k, ret := range rets {
-			if ret.Code != 200 {
+			if ret.Code != 200 && ret.Code != 612 {
 				failed = append(failed, files[k])
 			}
 		}
