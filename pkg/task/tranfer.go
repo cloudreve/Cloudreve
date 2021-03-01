@@ -10,6 +10,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -102,7 +103,8 @@ func (job *TransferTask) Do() {
 			dst = path.Join(job.TaskProps.Dst, strings.TrimPrefix(src, trim))
 		}
 
-		err = fs.UploadFromPath(context.Background(), file, dst)
+		ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
+		err = fs.UploadFromPath(ctx, file, dst)
 		if err != nil {
 			job.SetErrorMsg("文件转存失败", err)
 		}

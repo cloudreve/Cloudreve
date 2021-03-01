@@ -100,6 +100,14 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	defer file.Close()
 	dst = util.RelativePath(filepath.FromSlash(dst))
 
+	// 如果禁止了 Overwrite，则检查是否有重名冲突
+	if ctx.Value(fsctx.DisableOverwrite) != nil {
+		if util.Exists(dst) {
+			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
+			return errors.New("物理同名文件已存在或不可用")
+		}
+	}
+
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {

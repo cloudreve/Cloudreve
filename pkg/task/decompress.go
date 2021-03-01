@@ -6,6 +6,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 )
 
 // DecompressTask 文件压缩任务
@@ -81,7 +82,12 @@ func (job *DecompressTask) Do() {
 	}
 
 	job.TaskModel.SetProgress(DecompressingProgress)
-	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst)
+
+	// 禁止重名覆盖
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
+
+	err = fs.Decompress(ctx, job.TaskProps.Src, job.TaskProps.Dst)
 	if err != nil {
 		job.SetErrorMsg("解压缩失败", err)
 		return

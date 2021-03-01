@@ -403,8 +403,8 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 	isExist, parent := fs.IsPathExist(base)
 	if !isExist {
 		// 递归创建父目录
-		if _, ok := ctx.Value(fsctx.IgnoreConflictCtx).(bool); !ok {
-			ctx = context.WithValue(ctx, fsctx.IgnoreConflictCtx, true)
+		if _, ok := ctx.Value(fsctx.IgnoreDirectoryConflictCtx).(bool); !ok {
+			ctx = context.WithValue(ctx, fsctx.IgnoreDirectoryConflictCtx, true)
 		}
 		newParent, err := fs.CreateDirectory(ctx, base)
 		if err != nil {
@@ -427,7 +427,7 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 	_, err := newFolder.Create()
 
 	if err != nil {
-		if _, ok := ctx.Value(fsctx.IgnoreConflictCtx).(bool); !ok {
+		if _, ok := ctx.Value(fsctx.IgnoreDirectoryConflictCtx).(bool); !ok {
 			return nil, ErrFolderExisted
 		}
 

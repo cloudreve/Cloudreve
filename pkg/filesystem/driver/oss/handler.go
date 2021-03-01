@@ -235,8 +235,15 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	// 凭证有效期
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 
+	// 是否允许覆盖
+	overwrite := true
+	if ctx.Value(fsctx.DisableOverwrite) != nil {
+		overwrite = false
+	}
+
 	options := []oss.Option{
 		oss.Expires(time.Now().Add(time.Duration(credentialTTL) * time.Second)),
+		oss.ForbidOverWrite(!overwrite),
 	}
 
 	// 上传文件

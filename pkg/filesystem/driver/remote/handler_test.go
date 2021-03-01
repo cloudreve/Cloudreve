@@ -34,7 +34,7 @@ func TestHandler_Token(t *testing.T) {
 		},
 		AuthInstance: auth.HMACAuth{},
 	}
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
 	// 成功
@@ -48,6 +48,7 @@ func TestHandler_Token(t *testing.T) {
 		asserts.Equal(uint64(10), policy.MaxSize)
 		asserts.Equal(true, policy.AutoRename)
 		asserts.Equal("dir", policy.SavePath)
+		asserts.Equal("file", policy.FileName)
 		asserts.Equal("file", policy.FileName)
 		asserts.Equal([]string{"txt"}, policy.AllowedExtension)
 	}

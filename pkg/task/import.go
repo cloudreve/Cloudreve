@@ -102,7 +102,7 @@ func (job *ImportTask) Do() {
 
 	// 列取目录、对象
 	job.TaskModel.SetProgress(ListingProgress)
-	coxIgnoreConflict := context.WithValue(context.Background(), fsctx.IgnoreConflictCtx,
+	coxIgnoreConflict := context.WithValue(context.Background(), fsctx.IgnoreDirectoryConflictCtx,
 		true)
 	objects, err := fs.Handler.List(ctx, job.TaskProps.Src, job.TaskProps.Recursive)
 	if err != nil {

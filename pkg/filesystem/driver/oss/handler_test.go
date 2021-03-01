@@ -265,10 +265,11 @@ func TestDriver_Put(t *testing.T) {
 		},
 	}
 	cache.Set("setting_upload_credential_timeout", "3600", 0)
+	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 
 	// 失败
 	{
-		err := handler.Put(context.Background(), ioutil.NopCloser(strings.NewReader("123")), "/123.txt", 3)
+		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("123")), "/123.txt", 3)
 		asserts.Error(err)
 	}
 }

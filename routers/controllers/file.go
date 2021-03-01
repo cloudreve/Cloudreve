@@ -319,6 +319,7 @@ func FileUploadStream(c *gin.Context) {
 
 	// 执行上传
 	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
+	ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 	err = fs.Upload(uploadCtx, fileData)
 	if err != nil {

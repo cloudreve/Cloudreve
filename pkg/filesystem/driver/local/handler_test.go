@@ -21,7 +21,8 @@ import (
 func TestHandler_Put(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{}
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
+	os.Remove(util.RelativePath("test/test/txt"))
 
 	testCases := []struct {
 		file io.ReadCloser
@@ -32,6 +33,11 @@ func TestHandler_Put(t *testing.T) {
 			file: ioutil.NopCloser(strings.NewReader("test input file")),
 			dst:  "test/test/txt",
 			err:  false,
+		},
+		{
+			file: ioutil.NopCloser(strings.NewReader("test input file")),
+			dst:  "test/test/txt",
+			err:  true,
 		},
 		{
 			file: ioutil.NopCloser(strings.NewReader("test input file")),
