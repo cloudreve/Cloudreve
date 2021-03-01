@@ -12,6 +12,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
@@ -499,11 +500,12 @@ func TestClient_Upload(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 
 	// 小文件，简单上传，失败
 	{
 		client.Credential.ExpiresIn = 0
-		err := client.Upload(context.Background(), "123.jpg", 3, strings.NewReader("123"))
+		err := client.Upload(ctx, "123.jpg", 3, strings.NewReader("123"))
 		asserts.Error(err)
 	}
 

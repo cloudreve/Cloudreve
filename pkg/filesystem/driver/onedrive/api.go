@@ -220,15 +220,21 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 
 // Upload 上传文件
 func (client *Client) Upload(ctx context.Context, dst string, size int, file io.Reader) error {
+	// 决定是否覆盖文件
+	overwrite := "replace"
+	if ctx.Value(fsctx.DisableOverwrite) != nil {
+		overwrite = "fail"
+	}
+
 	// 小文件，使用简单上传接口上传
 	if size <= int(SmallFileSize) {
-		_, err := client.SimpleUpload(ctx, dst, file, int64(size))
+		_, err := client.SimpleUpload(ctx, dst, file, int64(size), WithConflictBehavior(overwrite))
 		return err
 	}
 
 	// 大文件，进行分片
 	// 创建上传会话
-	uploadURL, err := client.CreateUploadSession(ctx, dst, WithConflictBehavior("replace"))
+	uploadURL, err := client.CreateUploadSession(ctx, dst, WithConflictBehavior(overwrite))
 	if err != nil {
 		return err
 	}
@@ -287,9 +293,15 @@ func (client *Client) DeleteUploadSession(ctx context.Context, uploadURL string)
 }
 
 // SimpleUpload 上传小文件到dst
-func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Reader, size int64) (*UploadResult, error) {
+func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Reader, size int64, opts ...Option) (*UploadResult, error) {
+	options := newDefaultOption()
+	for _, o := range opts {
+		o.apply(options)
+	}
+
 	dst = strings.TrimPrefix(dst, "/")
 	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/content")
+	requestURL += ("?@microsoft.graph.conflictBehavior=" + options.conflictBehavior)
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(150)*time.Second),
@@ -303,7 +315,7 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 			retried++
 			util.Log().Debug("文件[%s]上传失败[%s]，5秒钟后重试", dst, err)
 			time.Sleep(time.Duration(5) * time.Second)
-			return client.SimpleUpload(context.WithValue(ctx, fsctx.RetryCtx, retried), dst, body, size)
+			return client.SimpleUpload(context.WithValue(ctx, fsctx.RetryCtx, retried), dst, body, size, opts...)
 		}
 		return nil, err
 	}
@@ -456,7 +468,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 		case <-time.After(time.Duration(ttl) * time.Second):
 			// 上传会话到期，仍未完成上传，创建占位符
 			client.DeleteUploadSession(context.Background(), uploadURL)
-			_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0)
+			_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0, WithConflictBehavior("replace"))
 			if err != nil {
 				util.Log().Debug("无法创建占位文件，%s", err)
 			}
@@ -504,7 +516,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 				// 取消上传会话，实测OneDrive取消上传会话后，客户端还是可以上传，
 				// 所以上传一个空文件占位，阻止客户端上传
 				client.DeleteUploadSession(context.Background(), uploadURL)
-				_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0)
+				_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0, WithConflictBehavior("replace"))
 				if err != nil {
 					util.Log().Debug("无法创建占位文件，%s", err)
 				}
