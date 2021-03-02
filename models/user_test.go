@@ -352,10 +352,20 @@ func TestUser_IncreaseStorageWithoutCheck(t *testing.T) {
 	}
 }
 
-func TestGetUserByEmail(t *testing.T) {
+func TestGetActiveUserByEmail(t *testing.T) {
 	asserts := assert.New(t)
 
 	mock.ExpectQuery("SELECT(.+)").WithArgs(Active, "abslant@foxmail.com").WillReturnRows(sqlmock.NewRows([]string{"id", "email"}))
+	_, err := GetActiveUserByEmail("abslant@foxmail.com")
+
+	asserts.Error(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+}
+
+func TestGetUserByEmail(t *testing.T) {
+	asserts := assert.New(t)
+
+	mock.ExpectQuery("SELECT(.+)").WithArgs("abslant@foxmail.com").WillReturnRows(sqlmock.NewRows([]string{"id", "email"}))
 	_, err := GetUserByEmail("abslant@foxmail.com")
 
 	asserts.Error(err)
