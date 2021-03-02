@@ -94,6 +94,12 @@ func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response 
 	// 查找用户
 	if user, err := model.GetUserByEmail(service.UserName); err == nil {
 
+		if user.Status == model.Baned || user.Status == model.OveruseBaned {
+			return serializer.Err(403, "该账号已被封禁", nil)
+		}
+		if user.Status == model.NotActivicated {
+			return serializer.Err(403, "该账号未激活", nil)
+		}
 		// 创建密码重设会话
 		secret := util.RandStringRunes(32)
 		cache.Set(fmt.Sprintf("user_reset_%d", user.ID), secret, 3600)
