@@ -321,6 +321,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 		fs.recycleLock.Lock()
 		go func() {
 			defer fs.recycleLock.Unlock()
+			file.Name = strings.Trim(file.Name, ".tacitpart")
 			fs.GenerateThumbnail(ctx, file)
 		}()
 	}
