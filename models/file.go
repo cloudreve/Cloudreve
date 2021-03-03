@@ -196,7 +196,7 @@ func (file *File) UpdateSize(value uint64) error {
 
 // UpdateSourceName 更新文件的源文件名
 func (file *File) UpdateSourceName(value string) error {
-	return DB.Model(&file).Update("source_name", value).Error
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
 }
 
 /*
