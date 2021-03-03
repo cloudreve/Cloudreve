@@ -18,7 +18,7 @@ import (
 // StartLoginAuthn 开始注册WebAuthn登录
 func StartLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
-	expectedUser, err := model.GetUserByEmail(userName)
+	expectedUser, err := model.GetActiveUserByEmail(userName)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeNotFound, "用户不存在", err))
 		return
@@ -52,7 +52,7 @@ func StartLoginAuthn(c *gin.Context) {
 // FinishLoginAuthn 完成注册WebAuthn登录
 func FinishLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
-	expectedUser, err := model.GetUserByEmail(userName)
+	expectedUser, err := model.GetActiveUserByEmail(userName)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeCredentialInvalid, "用户邮箱或密码错误", err))
 		return

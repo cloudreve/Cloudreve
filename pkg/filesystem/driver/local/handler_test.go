@@ -2,13 +2,6 @@ package local
 
 import (
 	"context"
-	"io"
-	"io/ioutil"
-	"net/url"
-	"os"
-	"strings"
-	"testing"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -16,6 +9,12 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"io"
+	"io/ioutil"
+	"net/url"
+	"os"
+	"strings"
+	"testing"
 )
 
 func TestHandler_Put(t *testing.T) {
@@ -61,24 +60,34 @@ func TestHandler_Delete(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{}
 	ctx := context.Background()
+	filePath := util.RelativePath("test.file")
 
-	file, err := os.Create(util.RelativePath("test.file"))
+	file, err := os.Create(filePath)
 	asserts.NoError(err)
 	_ = file.Close()
 	list, err := handler.Delete(ctx, []string{"test.file"})
 	asserts.Equal([]string{}, list)
 	asserts.NoError(err)
 
-	file, err = os.Create(util.RelativePath("test.file"))
-	asserts.NoError(err)
+	file, err = os.Create(filePath)
 	_ = file.Close()
+	file, _ = os.OpenFile(filePath, os.O_RDWR, os.FileMode(0))
+	asserts.NoError(err)
 	list, err = handler.Delete(ctx, []string{"test.file", "test.notexist"})
-	asserts.Equal([]string{"test.notexist"}, list)
-	asserts.Error(err)
+	file.Close()
+	asserts.Equal([]string{}, list)
+	asserts.NoError(err)
 
 	list, err = handler.Delete(ctx, []string{"test.notexist"})
-	asserts.Equal([]string{"test.notexist"}, list)
-	asserts.Error(err)
+	asserts.Equal([]string{}, list)
+	asserts.NoError(err)
+
+	file, err = os.Create(filePath)
+	asserts.NoError(err)
+	list, err = handler.Delete(ctx, []string{"test.file"})
+	_ = file.Close()
+	asserts.Equal([]string{}, list)
+	asserts.NoError(err)
 }
 
 func TestHandler_Get(t *testing.T) {

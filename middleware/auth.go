@@ -90,7 +90,7 @@ func WebDAVAuth() gin.HandlerFunc {
 			return
 		}
 
-		expectedUser, err := model.GetUserByEmail(username)
+		expectedUser, err := model.GetActiveUserByEmail(username)
 		if err != nil {
 			c.Status(http.StatusUnauthorized)
 			c.Abort()

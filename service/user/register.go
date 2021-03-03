@@ -64,10 +64,17 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 		user.Status = model.NotActivicated
 	}
 	user.GroupID = uint(defaultGroup)
-
+	userNotActivated := false
 	// 创建用户
 	if err := model.DB.Create(&user).Error; err != nil {
-		return serializer.DBErr("此邮箱已被使用", err)
+		//检查已存在使用者是否尚未激活
+		expectedUser, err := model.GetUserByEmail(service.UserName)
+		if expectedUser.Status == model.NotActivicated {
+			userNotActivated = true
+			user = expectedUser
+		} else {
+			return serializer.DBErr("此邮箱已被使用", err)
+		}
 	}
 
 	// 发送激活邮件
@@ -100,8 +107,12 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 		if err := email.Send(user.Email, title, body); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "无法发送激活邮件", err)
 		}
-
-		return serializer.Response{Code: 203}
+		if userNotActivated == true {
+			//原本在上面要抛出的DBErr，放来这边抛出
+			return serializer.DBErr("用户未激活，已重新发送激活邮件", nil)
+		} else {
+			return serializer.Response{Code: 203}
+		}
 	}
 
 	return serializer.Response{}
