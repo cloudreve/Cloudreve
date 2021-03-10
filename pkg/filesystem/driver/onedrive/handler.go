@@ -152,8 +152,13 @@ func (handler Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
+	cacheKey := fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)
+	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		cacheKey = fmt.Sprintf("onedrive_source_file_%d_%d", file.UpdatedAt.Unix(), file.ID)
+	}
+
 	// 尝试从缓存中查找
-	if cachedURL, ok := cache.Get(fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)); ok {
+	if cachedURL, ok := cache.Get(cacheKey); ok {
 		return handler.replaceSourceHost(cachedURL.(string))
 	}
 
@@ -162,7 +167,7 @@ func (handler Driver) Source(
 	if err == nil {
 		// 写入新的缓存
 		cache.Set(
-			fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path),
+			cacheKey,
 			res.DownloadURL,
 			model.GetIntSetting("onedrive_source_timeout", 1800),
 		)
