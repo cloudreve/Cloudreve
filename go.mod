@@ -31,6 +31,7 @@ require (
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/rakyll/statik v0.1.7
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/stretchr/testify v1.5.1

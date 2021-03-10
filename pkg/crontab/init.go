@@ -21,13 +21,15 @@ func Reload() {
 func Init() {
 	util.Log().Info("初始化定时任务...")
 	// 读取cron日程设置
-	options := model.GetSettingByNames("cron_garbage_collect")
+	options := model.GetSettingByNames("cron_garbage_collect","cron_sync_photo_lat_long_to_address")
 	Cron := cron.New()
 	for k, v := range options {
 		var handler func()
 		switch k {
 		case "cron_garbage_collect":
 			handler = garbageCollect
+		case "cron_sync_photo_lat_long_to_address":
+			handler = syncPhotoAddress
 		default:
 			util.Log().Warning("未知定时任务类型 [%s]，跳过", k)
 			continue
