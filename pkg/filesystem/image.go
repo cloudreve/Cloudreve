@@ -11,6 +11,8 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+
+	"github.com/rwcarlsen/goexif/exif"
 )
 
 /* ================
@@ -54,7 +56,6 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	if !IsInExtensionList(HandledExtension, file.Name) {
 		return
 	}
-
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -65,7 +66,6 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		return
 	}
 	defer source.Close()
-
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
 		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
@@ -74,7 +74,6 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	// 获取原始图像尺寸
 	w, h := image.GetSize()
-
 	// 生成缩略图
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
@@ -83,13 +82,46 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		util.Log().Warning("无法保存缩略图：%s", err)
 		return
 	}
-
 	// 更新文件的图像信息
 	if file.Model.ID > 0 {
 		err = file.UpdatePicInfo(fmt.Sprintf("%d,%d", w, h))
 	} else {
 		file.PicInfo = fmt.Sprintf("%d,%d", w, h)
 	}
+
+	// 更新文件的图像信息
+	// 记录文件句柄位置并还原, 获取 exif 信息
+	currentPosition, err := source.Seek(0, 1)
+	source.Seek(0,0)
+	x, err := exif.Decode(source)
+	source.Seek(currentPosition, 0)
+	if err != nil {
+		util.Log().Warning("照片解析EXIF失败：%s", err)
+	}else{
+		ExifCamModel, _ := x.Get(exif.Model)
+		file.ExifModel,_ = ExifCamModel.StringVal()
+
+		ExifDateTime, _ := x.DateTime()
+		if !ExifDateTime.IsZero() {
+			file.ExifDateTime =  ExifDateTime
+		}
+
+		lat, long, _ := x.LatLong()
+		if lat > 0  && long > 0 {
+			file.ExifLatLong = fmt.Sprintf("%f,%f", lat, long)
+		}
+		util.Log().Debug("照片的经纬度：%f,%f", lat,long)
+		if file.Model.ID > 0 {
+			file.UpdatePicExifModel(file.ExifModel)
+			if !ExifDateTime.IsZero() {
+				file.UpdatePicExifDateTime(file.ExifDateTime)
+			}
+			if lat > 0  && long > 0 {
+				file.UpdatePicExifLatLong(file.ExifLatLong)
+			}
+		}
+	}
+
 
 	// 失败时删除缩略图文件
 	if err != nil {

@@ -26,6 +26,12 @@ type File struct {
 
 	// 数据库忽略字段
 	Position string `gorm:"-"`
+
+	// exif 信息
+	ExifModel string
+	ExifDateTime time.Time
+	ExifLatLong string
+	ExifAddress string
 }
 
 func init() {
@@ -76,6 +82,16 @@ func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 	} else {
 		result = DB.Where("id in (?) AND user_id = ?", ids, uid).Find(&files)
 	}
+	return files, result.Error
+}
+
+// GetEmptyLocationFilesByPage 分页获取所有经纬度未更新文件
+func GetEmptyLocationFilesByPage(page uint, pageSize uint) ([]File, error) {
+	var files []File
+	var result *gorm.DB
+	var offset = int(page) * int(pageSize) - int(pageSize)
+	result = DB.Where("exif_lat_long != '' AND (exif_address is null or exif_address = '')").Limit(pageSize).
+		Offset(offset).Find(&files)
 	return files, result.Error
 }
 
@@ -197,6 +213,23 @@ func (file *File) UpdateSize(value uint64) error {
 // UpdateSourceName 更新文件的源文件名
 func (file *File) UpdateSourceName(value string) error {
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
+}
+
+// UpdatePicExifModel 更新文件的设备信息
+func (file *File) UpdatePicExifModel(value string) error {
+	return DB.Model(&file).Update("exif_model", value).Error
+}
+// UpdatePicExifDateTime 更新图片EXIF时间
+func (file *File) UpdatePicExifDateTime(value time.Time) error {
+	return DB.Model(&file).Update("exif_date_time", value).Error
+}
+// UpdatePicExifLatLong 更新图片EXIF坐标
+func (file *File) UpdatePicExifLatLong(value string) error {
+	return DB.Model(&file).Update("exif_lat_long", value).Error
+}
+// UpdatePicExifAddress 更新图片EXIF位置信息
+func (file *File) UpdatePicExifAddress(value string) error {
+	return DB.Model(&file).Update("exif_address", value).Error
 }
 
 /*

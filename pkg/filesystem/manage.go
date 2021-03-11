@@ -28,6 +28,10 @@ type Object struct {
 	Type string `json:"type"`
 	Date string `json:"date"`
 	Key  string `json:"key,omitempty"`
+	ExifModel string `json:"exif_model"`
+	ExifDateTime string `json:"exif_date_time"`
+	ExifLatLong string `json:"exif_lat_long"`
+	ExifAddress string `json:"exit_address"`
 }
 
 // Rename 重命名对象
@@ -350,6 +354,10 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Size: 0,
 			Type: "dir",
 			Date: subFolder.CreatedAt.Format("2006-01-02 15:04:05"),
+			ExifModel: "",
+			ExifDateTime: "",
+			ExifLatLong: "",
+			ExifAddress: "",
 		})
 	}
 
@@ -361,7 +369,10 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 				processedPath = parent
 			}
 		}
-
+		ExifDateTimeText := ""
+		if !file.ExifDateTime.IsZero(){
+			ExifDateTimeText = file.ExifDateTime.Format("2006-01-02 15:04:05")
+		}
 		newFile := Object{
 			ID:   hashid.HashID(file.ID, hashid.FileID),
 			Name: file.Name,
@@ -370,6 +381,10 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Size: file.Size,
 			Type: "file",
 			Date: file.CreatedAt.Format("2006-01-02 15:04:05"),
+			ExifModel: file.ExifModel,
+			ExifDateTime: ExifDateTimeText,
+			ExifLatLong: file.ExifLatLong,
+			ExifAddress: file.ExifAddress,
 		}
 		if shareKey != "" {
 			newFile.Key = shareKey
