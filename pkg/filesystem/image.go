@@ -89,8 +89,13 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		file.PicInfo = fmt.Sprintf("%d,%d", w, h)
 	}
 
-	// 更新文件的图像信息
+	// 更新文件的图像 exif 信息 开始
 	// 记录文件句柄位置并还原, 获取 exif 信息
+	defer func() {
+		if err := recover(); err != nil{
+			util.Log().Warning("照片解析EXIF失败：%s", err)
+		}
+	}()
 	currentPosition, err := source.Seek(0, 1)
 	source.Seek(0,0)
 	x, err := exif.Decode(source)
@@ -121,6 +126,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 			}
 		}
 	}
+	// 更新文件的图像 exif 信息 结束
 
 
 	// 失败时删除缩略图文件
