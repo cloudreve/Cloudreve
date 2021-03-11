@@ -88,6 +88,11 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	} else {
 		file.PicInfo = fmt.Sprintf("%d,%d", w, h)
 	}
+	
+	// 失败时删除缩略图文件
+	if err != nil {
+		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + conf.ThumbConfig.FileSuffix})
+	}
 
 	// 更新文件的图像 exif 信息 开始
 	// 记录文件句柄位置并还原, 获取 exif 信息
@@ -127,12 +132,6 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		}
 	}
 	// 更新文件的图像 exif 信息 结束
-
-
-	// 失败时删除缩略图文件
-	if err != nil {
-		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + conf.ThumbConfig.FileSuffix})
-	}
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸
