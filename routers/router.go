@@ -510,6 +510,8 @@ func InitMasterRouter() *gin.Engine {
 				object.POST("copy", controllers.Copy)
 				// 重命名对象
 				object.POST("rename", controllers.Rename)
+				// 获取对象属性
+				object.GET("property/:id", controllers.GetProperty)
 			}
 
 			// 分享
