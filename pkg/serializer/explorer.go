@@ -19,5 +19,5 @@ type ObjectProps struct {
 	ChildFileNum   int       `json:"child_file_num"`
 	Path           string    `json:"path"`
 
-	QueryDate time.Time
+	QueryDate time.Time `json:"query_date"`
 }
