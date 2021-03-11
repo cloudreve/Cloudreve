@@ -44,6 +44,26 @@ func (folder *Folder) GetChild(name string) (*Folder, error) {
 	return &resFolder, err
 }
 
+// TraceRoot 向上递归查找父目录
+func (folder *Folder) TraceRoot() error {
+	if folder.ParentID == nil {
+		return nil
+	}
+
+	var parentFolder Folder
+	err := DB.
+		Where("id = ? AND owner_id = ?", folder.ParentID, folder.OwnerID).
+		First(&parentFolder).Error
+
+	if err == nil {
+		err := parentFolder.TraceRoot()
+		folder.Position = path.Join(parentFolder.Position, parentFolder.Name)
+		return err
+	}
+
+	return err
+}
+
 // GetChildFolder 查找子目录
 func (folder *Folder) GetChildFolder() ([]Folder, error) {
 	var folders []Folder

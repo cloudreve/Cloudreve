@@ -66,3 +66,19 @@ func Rename(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// Rename 重命名文件或目录
+func GetProperty(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ItemPropertyService
+	service.ID = c.Param("id")
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.GetProperty(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
