@@ -94,24 +94,31 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	currentPosition, err := source.Seek(0, 1)
 	source.Seek(0,0)
 	x, err := exif.Decode(source)
+	source.Seek(currentPosition, 0)
 	if err != nil {
 		util.Log().Warning("照片解析EXIF失败：%s", err)
-	}
-	source.Seek(currentPosition, 0)
-	ExifCamModel, _ := x.Get(exif.Model) // normally, don't ignore errors!
-	file.ExifModel,_ = ExifCamModel.StringVal()
-	ExifDateTime, _ := x.DateTime()
-	file.ExifDateTime = ExifDateTime
-	lat, long, _ := x.LatLong()
-	if lat > 0  && long > 0 {
-		file.ExifLatLong = fmt.Sprintf("%f,%f", lat, long)
-	}
-	util.Log().Debug("照片的经纬度：%f,%f", lat,long)
-	if file.Model.ID > 0 {
-		file.UpdatePicExifModel(file.ExifModel)
-		file.UpdatePicExifDateTime(file.ExifDateTime)
+	}else{
+		ExifCamModel, _ := x.Get(exif.Model)
+		file.ExifModel,_ = ExifCamModel.StringVal()
+
+		ExifDateTime, _ := x.DateTime()
+		if !ExifDateTime.IsZero() {
+			file.ExifDateTime =  ExifDateTime
+		}
+
+		lat, long, _ := x.LatLong()
 		if lat > 0  && long > 0 {
-			file.UpdatePicExifLatLong(file.ExifLatLong)
+			file.ExifLatLong = fmt.Sprintf("%f,%f", lat, long)
+		}
+		util.Log().Debug("照片的经纬度：%f,%f", lat,long)
+		if file.Model.ID > 0 {
+			file.UpdatePicExifModel(file.ExifModel)
+			if !ExifDateTime.IsZero() {
+				file.UpdatePicExifDateTime(file.ExifDateTime)
+			}
+			if lat > 0  && long > 0 {
+				file.UpdatePicExifLatLong(file.ExifLatLong)
+			}
 		}
 	}
 

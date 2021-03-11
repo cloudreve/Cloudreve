@@ -369,7 +369,10 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 				processedPath = parent
 			}
 		}
-
+		ExifDateTimeText := ""
+		if !file.ExifDateTime.IsZero(){
+			ExifDateTimeText = file.ExifDateTime.Format("2006-01-02 15:04:05")
+		}
 		newFile := Object{
 			ID:   hashid.HashID(file.ID, hashid.FileID),
 			Name: file.Name,
@@ -379,7 +382,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Type: "file",
 			Date: file.CreatedAt.Format("2006-01-02 15:04:05"),
 			ExifModel: file.ExifModel,
-			ExifDateTime: file.ExifDateTime.Format("2006-01-02 15:04:05"),
+			ExifDateTime: ExifDateTimeText,
 			ExifLatLong: file.ExifLatLong,
 			ExifAddress: file.ExifAddress,
 		}

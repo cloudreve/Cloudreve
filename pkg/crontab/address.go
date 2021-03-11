@@ -55,7 +55,7 @@ func syncPhotoLatLongToAddress() {
 	page := 1
 	pageSize := 10
 	for true{
-		files , _ := model.GetFilesWithPage(uint(page), uint(pageSize))
+		files , _ := model.GetEmptyLocationFilesByPage(uint(page), uint(pageSize))
 		if len(files) <= 0 {
 			break
 		}

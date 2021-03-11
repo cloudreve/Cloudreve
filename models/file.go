@@ -85,8 +85,8 @@ func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
 	return files, result.Error
 }
 
-// GetFilesWithPage 分页获取所有经纬度未更新文件
-func GetFilesWithPage(page uint, pageSize uint) ([]File, error) {
+// GetEmptyLocationFilesByPage 分页获取所有经纬度未更新文件
+func GetEmptyLocationFilesByPage(page uint, pageSize uint) ([]File, error) {
 	var files []File
 	var result *gorm.DB
 	var offset = int(page) * int(pageSize) - int(pageSize)
