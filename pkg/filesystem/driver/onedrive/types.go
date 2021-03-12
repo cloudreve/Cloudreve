@@ -131,6 +131,15 @@ type OAuthError struct {
 	CorrelationID    string `json:"correlation_id"`
 }
 
+// Site SharePoint 站点信息
+type Site struct {
+	Description string `json:"description"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"displayName"`
+	WebUrl      string `json:"webUrl"`
+}
+
 func init() {
 	gob.Register(Credential{})
 }

@@ -2,6 +2,7 @@ package callback
 
 import (
 	"context"
+	"fmt"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -41,17 +42,42 @@ func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeInternalSetting, "无法初始化 OneDrive 客户端", err)
 	}
 
-	credential, err := client.ObtainToken(context.Background(), onedrive.WithCode(service.Code))
+	credential, err := client.ObtainToken(c, onedrive.WithCode(service.Code))
 	if err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "AccessToken 获取失败", err)
 	}
 
 	// 更新存储策略的 RefreshToken
-	if err := client.Policy.UpdateAccessKey(credential.RefreshToken); err != nil {
+	client.Policy.AccessKey = credential.RefreshToken
+	if err := client.Policy.SaveAndClearCache(); err != nil {
 		return serializer.DBErr("无法更新 RefreshToken", err)
 	}
 
 	cache.Deletes([]string{client.Policy.AccessKey}, "onedrive_")
+	if client.Policy.OptionsSerialized.OdDriver != "" {
+		if err := querySharePointSiteID(c, client.Policy); err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "无法查询 SharePoint 站点 ID", err)
+		}
+	}
 
 	return serializer.Response{}
+}
+
+func querySharePointSiteID(ctx context.Context, policy *model.Policy) error {
+	client, err := onedrive.NewClient(policy)
+	if err != nil {
+		return err
+	}
+
+	id, err := client.GetSiteIDByURL(ctx, client.Policy.OptionsSerialized.OdDriver)
+	if err != nil {
+		return err
+	}
+
+	client.Policy.OptionsSerialized.OdDriver = fmt.Sprintf("sites/%s/drive", id)
+	if err := client.Policy.SaveAndClearCache(); err != nil {
+		return err
+	}
+
+	return nil
 }

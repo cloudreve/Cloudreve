@@ -51,6 +51,8 @@ type PolicyOption struct {
 	OdRedirect string `json:"od_redirect,omitempty"`
 	// OdProxy Onedrive 反代地址
 	OdProxy string `json:"od_proxy,omitempty"`
+	// OdDriver OneDrive 驱动器定位符
+	OdDriver string `json:"od_driver,omitempty"`
 	// Region 区域代码
 	Region string `json:"region,omitempty"`
 	// ServerSideEndpoint 服务端请求使用的 Endpoint，为空时使用 Policy.Server 字段
@@ -268,9 +270,8 @@ func (policy *Policy) GetUploadURL() string {
 	return server.ResolveReference(controller).String()
 }
 
-// UpdateAccessKey 更新 AccessKey
-func (policy *Policy) UpdateAccessKey(key string) error {
-	policy.AccessKey = key
+// SaveAndClearCache 更新并清理缓存
+func (policy *Policy) SaveAndClearCache() error {
 	err := DB.Save(policy).Error
 	policy.ClearCache()
 	return err

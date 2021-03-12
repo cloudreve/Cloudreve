@@ -8,11 +8,12 @@ type Option interface {
 }
 
 type options struct {
-	redirect         string
-	code             string
-	refreshToken     string
-	conflictBehavior string
-	expires          time.Time
+	redirect          string
+	code              string
+	refreshToken      string
+	conflictBehavior  string
+	expires           time.Time
+	useDriverResource bool
 }
 
 type optionFunc func(*options)
@@ -38,13 +39,21 @@ func WithConflictBehavior(t string) Option {
 	})
 }
 
+// WithConflictBehavior 设置文件重名后的处理方式
+func WithDriverResource(t bool) Option {
+	return optionFunc(func(o *options) {
+		o.useDriverResource = t
+	})
+}
+
 func (f optionFunc) apply(o *options) {
 	f(o)
 }
 
 func newDefaultOption() *options {
 	return &options{
-		conflictBehavior: "fail",
-		expires:          time.Now().UTC().Add(time.Duration(1) * time.Hour),
+		conflictBehavior:  "fail",
+		useDriverResource: true,
+		expires:           time.Now().UTC().Add(time.Duration(1) * time.Hour),
 	}
 }

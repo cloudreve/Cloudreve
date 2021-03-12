@@ -37,14 +37,16 @@ type Endpoints struct {
 	OAuthEndpoints *oauthEndpoint
 	EndpointURL    string // 接口请求的基URL
 	isInChina      bool   // 是否为世纪互联
+	DriverResource string // 要使用的驱动器
 }
 
 // NewClient 根据存储策略获取新的client
 func NewClient(policy *model.Policy) (*Client, error) {
 	client := &Client{
 		Endpoints: &Endpoints{
-			OAuthURL:    policy.BaseURL,
-			EndpointURL: policy.Server,
+			OAuthURL:       policy.BaseURL,
+			EndpointURL:    policy.Server,
+			DriverResource: policy.OptionsSerialized.OdDriver,
 		},
 		Credential: &Credential{
 			RefreshToken: policy.AccessKey,
@@ -54,6 +56,10 @@ func NewClient(policy *model.Policy) (*Client, error) {
 		ClientSecret: policy.SecretKey,
 		Redirect:     policy.OptionsSerialized.OdRedirect,
 		Request:      request.HTTPClient{},
+	}
+
+	if client.Endpoints.DriverResource == "" {
+		client.Endpoints.DriverResource = "me/drive"
 	}
 
 	oauthBase := client.getOAuthEndpoint()

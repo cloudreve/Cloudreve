@@ -53,12 +53,23 @@ func (err RespError) Error() string {
 	return err.APIError.Message
 }
 
-func (client *Client) getRequestURL(api string) string {
+func (client *Client) getRequestURL(api string, opts ...Option) string {
+	options := newDefaultOption()
+	for _, o := range opts {
+		o.apply(options)
+	}
+
 	base, _ := url.Parse(client.Endpoints.EndpointURL)
 	if base == nil {
 		return ""
 	}
-	base.Path = path.Join(base.Path, api)
+
+	if options.useDriverResource {
+		base.Path = path.Join(base.Path, client.Endpoints.DriverResource, api)
+	} else {
+		base.Path = path.Join(base.Path, api)
+	}
+
 	return base.String()
 }
 
@@ -67,9 +78,9 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 	var requestURL string
 	dst := strings.TrimPrefix(path, "/")
 	if dst == "" {
-		requestURL = client.getRequestURL("me/drive/root/children")
+		requestURL = client.getRequestURL("root/children")
 	} else {
-		requestURL = client.getRequestURL("me/drive/root:/" + dst + ":/children")
+		requestURL = client.getRequestURL("root:/" + dst + ":/children")
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?$top=999999999", "", 200)
@@ -103,10 +114,10 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 func (client *Client) Meta(ctx context.Context, id string, path string) (*FileInfo, error) {
 	var requestURL string
 	if id != "" {
-		requestURL = client.getRequestURL("/me/drive/items/" + id)
+		requestURL = client.getRequestURL("items/" + id)
 	} else {
 		dst := strings.TrimPrefix(path, "/")
-		requestURL = client.getRequestURL("me/drive/root:/" + dst)
+		requestURL = client.getRequestURL("root:/" + dst)
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL+"?expand=thumbnails", "", 200)
@@ -129,14 +140,13 @@ func (client *Client) Meta(ctx context.Context, id string, path string) (*FileIn
 
 // CreateUploadSession 创建分片上传会话
 func (client *Client) CreateUploadSession(ctx context.Context, dst string, opts ...Option) (string, error) {
-
 	options := newDefaultOption()
 	for _, o := range opts {
 		o.apply(options)
 	}
 
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/createUploadSession")
+	requestURL := client.getRequestURL("root:/" + dst + ":/createUploadSession")
 	body := map[string]map[string]interface{}{
 		"item": {
 			"@microsoft.graph.conflictBehavior": options.conflictBehavior,
@@ -159,6 +169,33 @@ func (client *Client) CreateUploadSession(ctx context.Context, dst string, opts 
 	}
 
 	return uploadSession.UploadURL, nil
+}
+
+// GetSiteIDByURL 通过 SharePoint 站点 URL 获取站点ID
+func (client *Client) GetSiteIDByURL(ctx context.Context, siteUrl string) (string, error) {
+	siteUrlParsed, err := url.Parse(siteUrl)
+	if err != nil {
+		return "", err
+	}
+
+	hostName := siteUrlParsed.Hostname()
+	relativePath := strings.Trim(siteUrlParsed.Path, "/")
+	requestURL := client.getRequestURL(fmt.Sprintf("sites/%s:/%s", hostName, relativePath), WithDriverResource(false))
+	res, reqErr := client.requestWithStr(ctx, "GET", requestURL, "", 200)
+	if reqErr != nil {
+		return "", reqErr
+	}
+
+	var (
+		decodeErr error
+		siteInfo  Site
+	)
+	decodeErr = json.Unmarshal([]byte(res), &siteInfo)
+	if decodeErr != nil {
+		return "", decodeErr
+	}
+
+	return siteInfo.ID, nil
 }
 
 // GetUploadSessionStatus 查询上传会话状态
@@ -300,7 +337,7 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 	}
 
 	dst = strings.TrimPrefix(dst, "/")
-	requestURL := client.getRequestURL("me/drive/root:/" + dst + ":/content")
+	requestURL := client.getRequestURL("root:/" + dst + ":/content")
 	requestURL += ("?@microsoft.graph.conflictBehavior=" + options.conflictBehavior)
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
@@ -357,7 +394,8 @@ func (client *Client) BatchDelete(ctx context.Context, dst []string) ([]string, 
 // 由于API限制，最多删除20个
 func (client *Client) Delete(ctx context.Context, dst []string) ([]string, error) {
 	body := client.makeBatchDeleteRequestsBody(dst)
-	res, err := client.requestWithStr(ctx, "POST", client.getRequestURL("$batch"), body, 200)
+	res, err := client.requestWithStr(ctx, "POST", client.getRequestURL("$batch",
+		WithDriverResource(false)), body, 200)
 	if err != nil {
 		return dst, err
 	}
@@ -396,7 +434,7 @@ func (client *Client) makeBatchDeleteRequestsBody(files []string) string {
 	}
 	for i, v := range files {
 		v = strings.TrimPrefix(v, "/")
-		filePath, _ := url.Parse("/me/drive/root:/")
+		filePath, _ := url.Parse("/" + client.Endpoints.DriverResource + "/root:/")
 		filePath.Path = path.Join(filePath.Path, v)
 		req.Requests[i] = BatchRequest{
 			ID:     v,
@@ -418,10 +456,10 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 	)
 	if client.Endpoints.isInChina {
 		cropOption = "large"
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails/0") + "/" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails/0") + "/" + cropOption
 	} else {
 		cropOption = fmt.Sprintf("c%dx%d_Crop", w, h)
-		requestURL = client.getRequestURL("me/drive/root:/"+dst+":/thumbnails") + "?select=" + cropOption
+		requestURL = client.getRequestURL("root:/"+dst+":/thumbnails") + "?select=" + cropOption
 	}
 
 	res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)

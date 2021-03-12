@@ -160,7 +160,8 @@ func (client *Client) UpdateCredential(ctx context.Context) error {
 	client.Credential = credential
 
 	// 更新存储策略的 RefreshToken
-	client.Policy.UpdateAccessKey(credential.RefreshToken)
+	client.Policy.AccessKey = credential.RefreshToken
+	client.Policy.SaveAndClearCache()
 
 	// 更新缓存
 	cache.Set("onedrive_"+client.ClientID, *credential, int(expires))

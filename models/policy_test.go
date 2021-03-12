@@ -257,7 +257,8 @@ func TestPolicy_UpdateAccessKey(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	err := policy.UpdateAccessKey("123")
+	policy.AccessKey = "123"
+	err := policy.SaveAndClearCache()
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.NoError(err)
 }
