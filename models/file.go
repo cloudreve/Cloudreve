@@ -186,12 +186,12 @@ func (file *File) Rename(new string) error {
 
 // UpdatePicInfo 更新文件的图像信息
 func (file *File) UpdatePicInfo(value string) error {
-	return DB.Model(&file).Update("pic_info", value).Error
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("pic_info", value).Error
 }
 
 // UpdateSize 更新文件的大小信息
 func (file *File) UpdateSize(value uint64) error {
-	return DB.Model(&file).Update("size", value).Error
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("size", value).Error
 }
 
 // UpdateSourceName 更新文件的源文件名

@@ -966,7 +966,7 @@ func TestClient_GetThumbURL(t *testing.T) {
 			Err: nil,
 			Response: &http.Response{
 				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{"c1x1_Crop":{"url":"thumb"}}]}`)),
+				Body:       ioutil.NopCloser(strings.NewReader(`{"value":[{"large":{"url":"thumb"}}]}`)),
 			},
 		})
 		client.Request = clientMock

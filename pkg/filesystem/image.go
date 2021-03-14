@@ -39,8 +39,8 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
 	}
 
-	// 出错时重新生成缩略图
-	if err != nil {
+	// 本地存储策略出错时重新生成缩略图
+	if err != nil && fs.Policy.Type == "local" {
 		fs.GenerateThumbnail(ctx, &fs.FileTarget[0])
 	}
 
