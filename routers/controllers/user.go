@@ -349,6 +349,8 @@ func UpdateOption(c *gin.Context) {
 			subService = &user.DeleteWebAuthn{}
 		case "theme":
 			subService = &user.ThemeChose{}
+		default:
+			subService = &user.ChangerNick{}
 		}
 
 		subErr = c.ShouldBindJSON(subService)

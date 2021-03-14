@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 // OneDriveOauthService OneDrive 授权回调服务
@@ -54,7 +55,7 @@ func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
 	}
 
 	cache.Deletes([]string{client.Policy.AccessKey}, "onedrive_")
-	if client.Policy.OptionsSerialized.OdDriver != "" {
+	if client.Policy.OptionsSerialized.OdDriver != "" && strings.Contains(client.Policy.OptionsSerialized.OdDriver, "http") {
 		if err := querySharePointSiteID(c, client.Policy); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "无法查询 SharePoint 站点 ID", err)
 		}
