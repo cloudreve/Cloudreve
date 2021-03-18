@@ -34,7 +34,7 @@ jobs:
   build:
     name: Build
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     steps:
 
     - name: Set up Go 1.13
