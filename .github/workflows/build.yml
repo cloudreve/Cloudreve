@@ -8,7 +8,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-16.04
     steps:
 
     - name: Set up Go 1.13
