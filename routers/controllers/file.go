@@ -88,6 +88,29 @@ func AnonymousGetContent(c *gin.Context) {
 	}
 }
 
+// AnonymousPermLink 文件签名后的永久链接
+func AnonymousPermLink(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.FileAnonymousGetService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Source(ctx, c)
+		// 是否需要重定向
+		if res.Code == -302 {
+			c.Redirect(302, res.Data.(string))
+			return
+		}
+		// 是否有错误发生
+		if res.Code != 0 {
+			c.JSON(200, res)
+		}
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
 	// 创建上下文

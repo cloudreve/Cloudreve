@@ -126,7 +126,7 @@ func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*respo
 
 	// 否则重定向到签名的预览URL
 	ttl := model.GetIntSetting("preview_timeout", 60)
-	previewURL, err := fs.signURL(ctx, &fs.FileTarget[0], int64(ttl), false)
+	previewURL, err := fs.SignURL(ctx, &fs.FileTarget[0], int64(ttl), false)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (fs *FileSystem) GetDownloadURL(ctx context.Context, id uint, timeout strin
 
 	// 生成下載地址
 	ttl := model.GetIntSetting(timeout, 60)
-	source, err := fs.signURL(
+	source, err := fs.SignURL(
 		ctx,
 		fileTarget,
 		int64(ttl),
@@ -264,7 +264,7 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 		)
 	}
 
-	source, err := fs.signURL(ctx, &fs.FileTarget[0], 0, false)
+	source, err := fs.SignURL(ctx, &fs.FileTarget[0], 0, false)
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
 	}
@@ -272,7 +272,8 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 	return source, nil
 }
 
-func (fs *FileSystem) signURL(ctx context.Context, file *model.File, ttl int64, isDownload bool) (string, error) {
+// SignURL 签名文件原始 URL
+func (fs *FileSystem) SignURL(ctx context.Context, file *model.File, ttl int64, isDownload bool) (string, error) {
 	fs.FileTarget = []model.File{*file}
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, *file)
 

@@ -162,8 +162,10 @@ func InitMasterRouter() *gin.Engine {
 		{
 			file := sign.Group("file")
 			{
-				// 文件外链
+				// 文件外链（直接输出文件数据）
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+				// 文件外链(301跳转)
+				file.GET("source/:id/:name", controllers.AnonymousPermLink)
 				// 下載已经打包好的文件
 				file.GET("archive/:id/archive.zip", controllers.DownloadArchive)
 				// 下载文件

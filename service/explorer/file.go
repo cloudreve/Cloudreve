@@ -184,6 +184,33 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 	}
 }
 
+// Source 重定向到文件的有效原始链接
+func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Context) serializer.Response {
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodeGroupNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 查找文件
+	err = fs.SetTargetFileByIDs([]uint{service.ID})
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	// 获取文件流
+	res, err := fs.SignURL(ctx, &fs.FileTarget[0],
+		int64(model.GetIntSetting("preview_timeout", 60)), false)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Code: -302,
+		Data: res,
+	}
+}
+
 // CreateDocPreviewSession 创建DOC文件预览会话，返回预览地址
 func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
