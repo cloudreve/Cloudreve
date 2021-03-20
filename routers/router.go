@@ -55,6 +55,7 @@ func InitSlaveRouter() *gin.Engine {
 	aria2.Use(middleware.SignRequired())
 	{
 		aria2.POST("add", controllers.SlaveAria2Add)
+		aria2.POST("cancel/:taskId", controllers.SlaveAria2Cancel)
 	}
 	return r
 }
