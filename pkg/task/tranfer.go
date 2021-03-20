@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"os"
 	"path"
 	"path/filepath"
@@ -84,6 +85,13 @@ func (job *TransferTask) GetError() *JobError {
 // Do 开始执行任务
 func (job *TransferTask) Do() {
 	defer job.Recycle()
+	if model.IsTrueVal(model.GetSettingByName("aria2_remote_enabled")) && conf.SystemConfig.Mode != "slave" {
+		return
+	}
+
+	if conf.SlaveConfig.SlaveId == 0 || model.GetIntSetting("aria2_remote_id", 0) != int(conf.SlaveConfig.SlaveId) {
+		return
+	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(job.User)
