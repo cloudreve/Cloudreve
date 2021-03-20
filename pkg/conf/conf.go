@@ -42,6 +42,8 @@ type slave struct {
 	Secret          string `validate:"omitempty,gte=64"`
 	CallbackTimeout int    `validate:"omitempty,gte=1"`
 	SignatureTTL    int    `validate:"omitempty,gte=1"`
+	SlaveId         uint   `validate:"omitempty"`
+	Aria2           bool   `validate:"omitempty"`
 }
 
 // captcha 验证码配置

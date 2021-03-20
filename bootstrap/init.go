@@ -28,6 +28,11 @@ func Init(path string) {
 		email.Init()
 		crontab.Init()
 		InitStatic()
+	} else {
+		if conf.SlaveConfig.Aria2 {
+			model.Init()
+			aria2.Init(false)
+		}
 	}
 	auth.Init()
 }

@@ -50,6 +50,12 @@ func InitSlaveRouter() *gin.Engine {
 		// 列出文件
 		v3.POST("list", controllers.SlaveList)
 	}
+
+	aria2 := v3.Group("aria2")
+	aria2.Use(middleware.SignRequired())
+	{
+		aria2.POST("add", controllers.SlaveAria2Add)
+	}
 	return r
 }
 

@@ -100,6 +100,13 @@ func GetDownloadByGid(gid string, uid uint) (*Download, error) {
 	return download, result.Error
 }
 
+// GetDownloadById 根据ID查找下载
+func GetDownloadById(id uint) (*Download, error) {
+	var download Download
+	result := DB.First(&download, id)
+	return &download, result.Error
+}
+
 // GetOwner 获取下载任务所属用户
 func (task *Download) GetOwner() *User {
 	if task.User == nil {
