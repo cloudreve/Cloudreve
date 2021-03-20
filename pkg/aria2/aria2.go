@@ -152,7 +152,15 @@ func SlaveInit(isReload bool) {
 
 	Instance = client
 
-	//	monitor
+	if !isReload {
+		// 从数据库中读取未完成任务，创建监控
+		unfinished := model.GetDownloadsByStatus(Ready, Paused, Downloading)
+
+		for i := 0; i < len(unfinished); i++ {
+			// 创建任务监控
+			NewMonitor(&unfinished[i])
+		}
+	}
 }
 
 // MasterInit 主机初始化

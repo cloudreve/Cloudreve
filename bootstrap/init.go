@@ -31,6 +31,7 @@ func Init(path string) {
 	} else {
 		if conf.SlaveConfig.Aria2 {
 			model.Init()
+			task.Init()
 			aria2.Init(false)
 		}
 	}
