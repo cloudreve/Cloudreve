@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
 	"os"
 	"path"
@@ -41,6 +42,26 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 		savePath = fs.GenerateSavePath(ctx, file)
 	}
 	ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
+
+	if conf.SystemConfig.Mode == "slave" && fs.Policy.Type == "remote" && fs.Policy.ID == conf.SlaveConfig.SlaveId {
+		fs.Handler = &local.Driver{}
+		fs.Policy.Type = "remote-local"
+		// 生成上传策略
+		policy := serializer.UploadPolicy{
+			SavePath:   path.Dir(savePath),
+			FileName:   path.Base(savePath),
+			AutoRename: false,
+			MaxSize:    file.GetSize(),
+		}
+		ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, policy)
+
+		// 执行上传
+		err = fs.Upload(ctx, file)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
