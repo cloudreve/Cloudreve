@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -36,7 +37,6 @@ func (client *RemoteService) CreateTask(task *model.Download, options map[string
 		return err
 	}
 
-	// 发送列表请求
 	bodyReader := strings.NewReader(string(reqBodyEncoded))
 	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 	resp, err := client.Client.Request(
@@ -49,31 +49,35 @@ func (client *RemoteService) CreateTask(task *model.Download, options map[string
 		return err
 	}
 
-	// 处理列取结果
 	if resp.Code != 0 {
-		return errors.New(resp.Error)
-	}
-
-	if resStr, ok := resp.Data.(string); ok {
-		var res serializer.Response
-		err = json.Unmarshal([]byte(resStr), &res)
-		if err != nil {
-			return err
-		}
-		if res.Code != 0 {
-			return errors.New(res.Msg)
-		}
+		return errors.New(resp.Msg)
 	}
 
 	return nil
 }
 
 func (client *RemoteService) Status(task *model.Download) (rpc.StatusInfo, error) {
-	panic("implement me")
+	// 远程 Aria2 不会使用此方法
+	return rpc.StatusInfo{}, nil
 }
 
 func (client *RemoteService) Cancel(task *model.Download) error {
-	panic("implement me")
+	signTTL := model.GetIntSetting("slave_api_timeout", 60)
+	resp, err := client.Client.Request(
+		"POST",
+		client.getAPIUrl("cancel", strconv.Itoa(int(task.ID))),
+		nil,
+		request.WithCredential(client.AuthInstance, int64(signTTL)),
+	).CheckHTTPResponse(200).DecodeResponse()
+	if err != nil {
+		return err
+	}
+
+	if resp.Code != 0 {
+		return errors.New(resp.Error)
+	}
+
+	return nil
 }
 
 func (client *RemoteService) Select(task *model.Download, files []int) error {
@@ -91,6 +95,8 @@ func (client *RemoteService) getAPIUrl(scope string, routes ...string) string {
 	switch scope {
 	case "add":
 		controller, _ = url.Parse("/api/v3/slave/aria2/add")
+	case "cancel":
+		controller, _ = url.Parse("/api/v3/slave/aria2/cancel")
 	default:
 		controller = serverURL
 	}
