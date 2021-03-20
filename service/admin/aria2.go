@@ -43,7 +43,6 @@ func (service *Aria2TestService) Test() serializer.Response {
 
 		return serializer.Response{Data: info.Version}
 	} else {
-		// TODO
-		return serializer.Response{Data: "TODO"}
+		return serializer.Response{Data: "从机离线无法进行测试"}
 	}
 }
