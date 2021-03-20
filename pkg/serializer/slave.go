@@ -10,3 +10,8 @@ type ListRequest struct {
 	Path      string `json:"path"`
 	Recursive bool   `json:"recursive"`
 }
+
+type RemoteAria2AddRequest struct {
+	TaskId  uint                   `json:"task_id"`
+	Options map[string]interface{} `json:"options"`
+}

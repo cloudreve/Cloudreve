@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/cloudreve/Cloudreve/v3/service/slave"
 	"net/url"
 	"strconv"
 
@@ -170,6 +171,17 @@ func SlaveList(c *gin.Context) {
 	var service explorer.SlaveListService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveAria2Add 从机创建远程下载任务
+func SlaveAria2Add(c *gin.Context) {
+	var service slave.Aria2AddService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

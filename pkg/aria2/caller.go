@@ -111,7 +111,7 @@ func (client *RPCService) CreateTask(task *model.Download, groupOptions map[stri
 
 	// 保存到数据库
 	task.GID = gid
-	_, err = task.Create()
+	err = task.Save()
 	if err != nil {
 		return err
 	}

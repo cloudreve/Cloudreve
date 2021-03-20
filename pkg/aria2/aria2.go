@@ -2,6 +2,7 @@ package aria2
 
 import (
 	"encoding/json"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"net/url"
 	"sync"
 
@@ -89,6 +90,21 @@ func (instance *DummyAria2) Select(task *model.Download, files []int) error {
 
 // Init 初始化
 func Init(isReload bool) {
+	if conf.SystemConfig.Mode == "master" {
+		MasterInit(isReload)
+	} else {
+		SlaveInit(isReload)
+	}
+}
+
+// SlaveInit 从机初始化
+func SlaveInit(isReload bool) {
+	if !model.IsTrueVal(model.GetSettingByName("aria2_remote_enabled")) {
+		return
+	}
+	if conf.SlaveConfig.SlaveId == 0 || model.GetIntSetting("aria2_remote_id", 0) != int(conf.SlaveConfig.SlaveId) {
+		return
+	}
 	Lock.Lock()
 	defer Lock.Unlock()
 
@@ -136,16 +152,82 @@ func Init(isReload bool) {
 
 	Instance = client
 
-	if !isReload {
-		// 从数据库中读取未完成任务，创建监控
-		unfinished := model.GetDownloadsByStatus(Ready, Paused, Downloading)
+	//	monitor
+}
 
-		for i := 0; i < len(unfinished); i++ {
-			// 创建任务监控
-			NewMonitor(&unfinished[i])
+// MasterInit 主机初始化
+func MasterInit(isReload bool) {
+	Lock.Lock()
+	defer Lock.Unlock()
+
+	if !model.IsTrueVal(model.GetSettingByName("aria2_remote_enabled")) {
+		// 关闭上个初始连接
+		if previousClient, ok := Instance.(*RPCService); ok {
+			if previousClient.Caller != nil {
+				util.Log().Debug("关闭上个 aria2 连接")
+				previousClient.Caller.Close()
+			}
 		}
-	}
 
+		options := model.GetSettingByNames("aria2_rpcurl", "aria2_token", "aria2_options")
+		timeout := model.GetIntSetting("aria2_call_timeout", 5)
+		if options["aria2_rpcurl"] == "" {
+			Instance = &DummyAria2{}
+			return
+		}
+
+		util.Log().Info("初始化 aria2 RPC 服务[%s]", options["aria2_rpcurl"])
+		client := &RPCService{}
+
+		// 解析RPC服务地址
+		server, err := url.Parse(options["aria2_rpcurl"])
+		if err != nil {
+			util.Log().Warning("无法解析 aria2 RPC 服务地址，%s", err)
+			Instance = &DummyAria2{}
+			return
+		}
+		server.Path = "/jsonrpc"
+
+		// 加载自定义下载配置
+		var globalOptions map[string]interface{}
+		err = json.Unmarshal([]byte(options["aria2_options"]), &globalOptions)
+		if err != nil {
+			util.Log().Warning("无法解析 aria2 全局配置，%s", err)
+			Instance = &DummyAria2{}
+			return
+		}
+
+		if err := client.Init(server.String(), options["aria2_token"], timeout, globalOptions); err != nil {
+			util.Log().Warning("初始化 aria2 RPC 服务失败，%s", err)
+			Instance = &DummyAria2{}
+			return
+		}
+
+		Instance = client
+
+		if !isReload {
+			// 从数据库中读取未完成任务，创建监控
+			unfinished := model.GetDownloadsByStatus(Ready, Paused, Downloading)
+
+			for i := 0; i < len(unfinished); i++ {
+				// 创建任务监控
+				NewMonitor(&unfinished[i])
+			}
+		}
+	} else {
+		util.Log().Info("初始化 从机 aria2 RPC 服务")
+		remote, err := model.GetPolicyByID(uint(model.GetIntSetting("aria2_remote_id", 0)))
+		if err != nil {
+			util.Log().Warning("初始化 从机 aria2 RPC 服务失败，%s", err)
+			Instance = &DummyAria2{}
+			return
+		}
+
+		client := &RemoteService{}
+
+		client.Init(&remote)
+		Instance = client
+	}
 }
 
 // getStatus 将给定的状态字符串转换为状态标识数字
