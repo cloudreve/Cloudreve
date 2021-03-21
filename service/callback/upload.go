@@ -207,7 +207,15 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 
 	// 验证与回调会话中是否一致
 	actualPath := strings.TrimPrefix(callbackSession.SavePath, "/")
-	if callbackSession.Size != info.Size || info.GetSourcePath() != actualPath {
+	isSizeCheckFailed := callbackSession.Size != info.Size
+
+	// SharePoint 会对 Office 文档增加 meta data 导致文件大小不一致，这里增加 10 KB 宽容
+	// See: https://github.com/OneDrive/onedrive-api-docs/issues/935
+	if strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.com") && isSizeCheckFailed && (info.Size > callbackSession.Size) && (info.Size-callbackSession.Size <= 10240) {
+		isSizeCheckFailed = false
+	}
+
+	if isSizeCheckFailed || info.GetSourcePath() != actualPath {
 		fs.Handler.(onedrive.Driver).Client.Delete(context.Background(), []string{info.GetSourcePath()})
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
