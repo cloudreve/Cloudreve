@@ -116,16 +116,17 @@ func InitMasterRouter() *gin.Engine {
 		user := v3.Group("user")
 		{
 			// 用户登录
-			user.POST("session", controllers.UserLogin)
+			user.POST("session", middleware.CaptchaRequired("login_captcha"), controllers.UserLogin)
 			// 用户注册
 			user.POST("",
 				middleware.IsFunctionEnabled("register_enabled"),
+				middleware.CaptchaRequired("reg_captcha"),
 				controllers.UserRegister,
 			)
 			// 用二步验证户登录
 			user.POST("2fa", controllers.User2FALogin)
 			// 发送密码重设邮件
-			user.POST("reset", controllers.UserSendReset)
+			user.POST("reset", middleware.CaptchaRequired("forget_captcha"), controllers.UserSendReset)
 			// 通过邮件里的链接重设密码
 			user.PATCH("reset", controllers.UserReset)
 			// 邮件激活

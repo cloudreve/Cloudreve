@@ -2,33 +2,27 @@ package user
 
 import (
 	"fmt"
-	"net/url"
-	"time"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/recaptcha"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
-	"github.com/mojocn/base64Captcha"
 	"github.com/pquerna/otp/totp"
+	"net/url"
 )
 
 // UserLoginService 管理用户登录的服务
 type UserLoginService struct {
 	//TODO 细致调整验证规则
-	UserName    string `form:"userName" json:"userName" binding:"required,email"`
-	Password    string `form:"Password" json:"Password" binding:"required,min=4,max=64"`
-	CaptchaCode string `form:"captchaCode" json:"captchaCode"`
+	UserName string `form:"userName" json:"userName" binding:"required,email"`
+	Password string `form:"Password" json:"Password" binding:"required,min=4,max=64"`
 }
 
 // UserResetEmailService 发送密码重设邮件服务
 type UserResetEmailService struct {
-	UserName    string `form:"userName" json:"userName" binding:"required,email"`
-	CaptchaCode string `form:"captchaCode" json:"captchaCode"`
+	UserName string `form:"userName" json:"userName" binding:"required,email"`
 }
 
 // UserResetService 密码重设服务
@@ -69,28 +63,6 @@ func (service *UserResetService) Reset(c *gin.Context) serializer.Response {
 
 // Reset 发送密码重设邮件
 func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response {
-	// 检查验证码
-	isCaptchaRequired := model.IsTrueVal(model.GetSettingByName("forget_captcha"))
-	useRecaptcha := model.IsTrueVal(model.GetSettingByName("captcha_IsUseReCaptcha"))
-	recaptchaSecret := model.GetSettingByName("captcha_ReCaptchaSecret")
-	if isCaptchaRequired && !useRecaptcha {
-		captchaID := util.GetSession(c, "captchaID")
-		util.DeleteSession(c, "captchaID")
-		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
-			return serializer.ParamErr("验证码错误", nil)
-		}
-	} else if isCaptchaRequired && useRecaptcha {
-		captcha, err := recaptcha.NewReCAPTCHA(recaptchaSecret, recaptcha.V2, 10*time.Second)
-		if err != nil {
-			util.Log().Error(err.Error())
-		}
-		err = captcha.Verify(service.CaptchaCode)
-		if err != nil {
-			util.Log().Error(err.Error())
-			return serializer.ParamErr("验证失败，请刷新网页后再次验证", nil)
-		}
-	}
-
 	// 查找用户
 	if user, err := model.GetUserByEmail(service.UserName); err == nil {
 
@@ -151,30 +123,7 @@ func (service *Enable2FA) Login(c *gin.Context) serializer.Response {
 
 // Login 用户登录函数
 func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
-	isCaptchaRequired := model.GetSettingByName("login_captcha")
-	useRecaptcha := model.GetSettingByName("captcha_IsUseReCaptcha")
-	recaptchaSecret := model.GetSettingByName("captcha_ReCaptchaSecret")
 	expectedUser, err := model.GetUserByEmail(service.UserName)
-
-	if (model.IsTrueVal(isCaptchaRequired)) && !(model.IsTrueVal(useRecaptcha)) {
-		// TODO 验证码校验
-		captchaID := util.GetSession(c, "captchaID")
-		util.DeleteSession(c, "captchaID")
-		if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
-			return serializer.ParamErr("验证码错误", nil)
-		}
-	} else if (model.IsTrueVal(isCaptchaRequired)) && (model.IsTrueVal(useRecaptcha)) {
-		captcha, err := recaptcha.NewReCAPTCHA(recaptchaSecret, recaptcha.V2, 10*time.Second)
-		if err != nil {
-			util.Log().Error(err.Error())
-		}
-		err = captcha.Verify(service.CaptchaCode)
-		if err != nil {
-			util.Log().Error(err.Error())
-			return serializer.ParamErr("验证失败，请刷新网页后再次验证", nil)
-		}
-	}
-
 	// 一系列校验
 	if err != nil {
 		return serializer.Err(serializer.CodeCredentialInvalid, "用户邮箱或密码错误", err)
