@@ -37,7 +37,7 @@ func Init() {
 			// 当前只支持 sqlite3 与 mysql 数据库
 			// TODO: import 其他 gorm 支持的主流数据库？否则直接 Open 没有任何意义。
 			// TODO: 数据库连接其他参数允许用户自定义？譬如编码更换为 utf8mb4 以支持表情。
-			db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+			db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
 				conf.DatabaseConfig.Host,
