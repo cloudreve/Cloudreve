@@ -371,10 +371,10 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 		fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
-	}
 
-	// 禁止覆盖
-	ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
+		// 禁止覆盖
+		ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
+	}
 
 	// 执行上传
 	err = fs.Upload(ctx, fileData)
