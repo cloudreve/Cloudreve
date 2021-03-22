@@ -2,6 +2,8 @@ package filesystem
 
 import (
 	"context"
+	"io"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -9,8 +11,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/juju/ratelimit"
-	"io"
-	"net/url"
 )
 
 /* ============
@@ -289,11 +289,8 @@ func (fs *FileSystem) SignURL(ctx context.Context, file *model.File, ttl int64, 
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
 	}
-	// 阿里云的 golang SDK 会把整个object KEY也编码 临时解决方案是清空`RawPath`让golang的`url.EscapedPath`修正这个问题
-	// https://github.com/cloudreve/Cloudreve/issues/677  https://github.com/aliyun/aliyun-oss-go-sdk/blob/6f7e8f88c64181cc2d86d8bd46090b68851e645a/oss/conn.go#L767
-	sourceUrl, _ := url.Parse(source)
-	sourceUrl.RawPath = ""
-	return sourceUrl.String(), nil
+
+	return source, nil
 }
 
 // ResetFileIfNotExist 重设当前目标文件为 path，如果当前目标为空
