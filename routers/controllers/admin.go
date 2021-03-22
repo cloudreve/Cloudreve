@@ -25,7 +25,7 @@ func AdminSummary(c *gin.Context) {
 // AdminNews 获取社区新闻
 func AdminNews(c *gin.Context) {
 	r := request.HTTPClient{}
-	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3Anotice&sort=-startTime&", nil)
+	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3Anotice&sort=-startTime&page%5Blimit%5D=10", nil)
 	if res.Err == nil {
 		io.Copy(c.Writer, res.Response.Body)
 	}
