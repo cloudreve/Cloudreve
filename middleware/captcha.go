@@ -45,13 +45,17 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			if err != nil {
 				c.JSON(200, serializer.ParamErr("验证码错误", err))
 				c.Abort()
+				return
 			}
+
 			bodyData := bodyCopy.Bytes()
 			err = json.Unmarshal(bodyData, &service)
 			if err != nil {
 				c.JSON(200, serializer.ParamErr("验证码错误", err))
 				c.Abort()
+				return
 			}
+
 			c.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyData))
 			switch options["captcha_type"] {
 			case "normal":
@@ -60,19 +64,26 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
 					c.JSON(200, serializer.ParamErr("验证码错误", nil))
 					c.Abort()
+					return
 				}
+
 				break
 			case "recaptcha":
 				reCAPTCHA, err := recaptcha.NewReCAPTCHA(options["captcha_ReCaptchaSecret"], recaptcha.V2, 10*time.Second)
 				if err != nil {
 					util.Log().Warning("reCAPTCHA 验证错误, %s", err)
+					c.Abort()
+					break
 				}
+
 				err = reCAPTCHA.Verify(service.CaptchaCode)
 				if err != nil {
 					util.Log().Warning("reCAPTCHA 验证错误, %s", err)
 					c.JSON(200, serializer.ParamErr("验证失败，请刷新网页后再次验证", nil))
 					c.Abort()
+					return
 				}
+
 				break
 			case "tcaptcha":
 				credential := common.NewCredential(
@@ -82,9 +93,7 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				cpf := profile.NewClientProfile()
 				cpf.HttpProfile.Endpoint = "captcha.tencentcloudapi.com"
 				client, _ := captcha.NewClient(credential, "", cpf)
-
 				request := captcha.NewDescribeCaptchaResultRequest()
-
 				request.CaptchaType = common.Uint64Ptr(9)
 				appid, _ := strconv.Atoi(options["captcha_TCaptcha_CaptchaAppId"])
 				request.CaptchaAppId = common.Uint64Ptr(uint64(appid))
@@ -92,15 +101,19 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				request.Ticket = common.StringPtr(service.Ticket)
 				request.Randstr = common.StringPtr(service.Randstr)
 				request.UserIp = common.StringPtr(c.ClientIP())
-
 				response, err := client.DescribeCaptchaResult(request)
 				if err != nil {
 					util.Log().Warning("TCaptcha 验证错误, %s", err)
+					c.Abort()
+					break
 				}
+
 				if *response.Response.CaptchaCode != int64(1) {
 					c.JSON(200, serializer.ParamErr("验证失败，请刷新网页后再次验证", nil))
 					c.Abort()
+					return
 				}
+
 				break
 			}
 		}
