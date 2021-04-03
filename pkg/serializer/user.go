@@ -6,6 +6,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/duo-labs/webauthn/webauthn"
+	"time"
 )
 
 // CheckLogin 检查登录
@@ -18,17 +19,17 @@ func CheckLogin() Response {
 
 // User 用户序列化器
 type User struct {
-	ID             string `json:"id"`
-	Email          string `json:"user_name"`
-	Nickname       string `json:"nickname"`
-	Status         int    `json:"status"`
-	Avatar         string `json:"avatar"`
-	CreatedAt      int64  `json:"created_at"`
-	PreferredTheme string `json:"preferred_theme"`
-	Anonymous      bool   `json:"anonymous"`
-	Policy         policy `json:"policy"`
-	Group          group  `json:"group"`
-	Tags           []tag  `json:"tags"`
+	ID             string    `json:"id"`
+	Email          string    `json:"user_name"`
+	Nickname       string    `json:"nickname"`
+	Status         int       `json:"status"`
+	Avatar         string    `json:"avatar"`
+	CreatedAt      time.Time `json:"created_at"`
+	PreferredTheme string    `json:"preferred_theme"`
+	Anonymous      bool      `json:"anonymous"`
+	Policy         policy    `json:"policy"`
+	Group          group     `json:"group"`
+	Tags           []tag     `json:"tags"`
 }
 
 type policy struct {
@@ -94,7 +95,7 @@ func BuildUser(user model.User) User {
 		Nickname:       user.Nick,
 		Status:         user.Status,
 		Avatar:         user.Avatar,
-		CreatedAt:      user.CreatedAt.Unix(),
+		CreatedAt:      user.CreatedAt,
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
 		Anonymous:      user.IsAnonymous(),
 		Policy: policy{

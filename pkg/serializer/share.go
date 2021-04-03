@@ -12,7 +12,7 @@ type Share struct {
 	Key        string        `json:"key"`
 	Locked     bool          `json:"locked"`
 	IsDir      bool          `json:"is_dir"`
-	CreateDate string        `json:"create_date,omitempty"`
+	CreateDate time.Time     `json:"create_date,omitempty"`
 	Downloads  int           `json:"downloads"`
 	Views      int           `json:"views"`
 	Expire     int64         `json:"expire"`
@@ -37,7 +37,7 @@ type myShareItem struct {
 	Key             string       `json:"key"`
 	IsDir           bool         `json:"is_dir"`
 	Password        string       `json:"password"`
-	CreateDate      string       `json:"create_date,omitempty"`
+	CreateDate      time.Time    `json:"create_date,omitempty"`
 	Downloads       int          `json:"downloads"`
 	RemainDownloads int          `json:"remain_downloads"`
 	Views           int          `json:"views"`
@@ -55,7 +55,7 @@ func BuildShareList(shares []model.Share, total int) Response {
 			Key:             hashid.HashID(shares[i].ID, hashid.ShareID),
 			IsDir:           shares[i].IsDir,
 			Password:        shares[i].Password,
-			CreateDate:      shares[i].CreatedAt.Format("2006-01-02 15:04:05"),
+			CreateDate:      shares[i].CreatedAt,
 			Downloads:       shares[i].Downloads,
 			Views:           shares[i].Views,
 			Preview:         shares[i].PreviewEnabled,
@@ -99,7 +99,7 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 			Nick:      creator.Nick,
 			GroupName: creator.Group.Name,
 		},
-		CreateDate: share.CreatedAt.Format("2006-01-02 15:04:05"),
+		CreateDate: share.CreatedAt,
 	}
 
 	// 未解锁时只返回基本信息

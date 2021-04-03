@@ -1,6 +1,9 @@
 package serializer
 
-import model "github.com/cloudreve/Cloudreve/v3/models"
+import (
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"time"
+)
 
 // SiteConfig 站点全局设置序列
 type SiteConfig struct {
@@ -22,11 +25,11 @@ type SiteConfig struct {
 }
 
 type task struct {
-	Status     int    `json:"status"`
-	Type       int    `json:"type"`
-	CreateDate string `json:"create_date"`
-	Progress   int    `json:"progress"`
-	Error      string `json:"error"`
+	Status     int       `json:"status"`
+	Type       int       `json:"type"`
+	CreateDate time.Time `json:"create_date"`
+	Progress   int       `json:"progress"`
+	Error      string    `json:"error"`
 }
 
 // BuildTaskList 构建任务列表响应
@@ -36,7 +39,7 @@ func BuildTaskList(tasks []model.Task, total int) Response {
 		res = append(res, task{
 			Status:     t.Status,
 			Type:       t.Type,
-			CreateDate: t.CreatedAt.Format("2006-01-02 15:04:05"),
+			CreateDate: t.CreatedAt,
 			Progress:   t.Progress,
 			Error:      t.Error,
 		})

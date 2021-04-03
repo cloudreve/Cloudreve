@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -20,14 +21,14 @@ import (
 
 // Object 文件或者目录
 type Object struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Pic  string `json:"pic"`
-	Size uint64 `json:"size"`
-	Type string `json:"type"`
-	Date string `json:"date"`
-	Key  string `json:"key,omitempty"`
+	ID   string    `json:"id"`
+	Name string    `json:"name"`
+	Path string    `json:"path"`
+	Pic  string    `json:"pic"`
+	Size uint64    `json:"size"`
+	Type string    `json:"type"`
+	Date time.Time `json:"date"`
+	Key  string    `json:"key,omitempty"`
 }
 
 // Rename 重命名对象
@@ -349,7 +350,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Pic:  "",
 			Size: 0,
 			Type: "dir",
-			Date: subFolder.CreatedAt.Format("2006-01-02 15:04:05"),
+			Date: subFolder.CreatedAt,
 		})
 	}
 
@@ -369,7 +370,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Pic:  file.PicInfo,
 			Size: file.Size,
 			Type: "file",
-			Date: file.CreatedAt.Format("2006-01-02 15:04:05"),
+			Date: file.CreatedAt,
 		}
 		if shareKey != "" {
 			newFile.Key = shareKey
