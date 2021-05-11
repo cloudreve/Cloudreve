@@ -105,9 +105,6 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 
 // Get 获取文件
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	// 给文件名加上随机参数以强制拉取
-	path = fmt.Sprintf("%s?v=%d", path, time.Now().UnixNano())
-
 	// 获取文件源地址
 	downloadURL, err := handler.Source(
 		ctx,
