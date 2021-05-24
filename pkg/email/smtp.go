@@ -77,11 +77,12 @@ func (client *SMTP) Init() {
 		d := mail.NewDialer(client.Config.Host, client.Config.Port, client.Config.User, client.Config.Password)
 		d.Timeout = time.Duration(client.Config.Keepalive+5) * time.Second
 		client.chOpen = true
-
 		// 是否启用 SSL
+		d.SSL = false
 		if client.Config.Encryption {
 			d.SSL = true
 		}
+		d.StartTLSPolicy = mail.OpportunisticStartTLS
 
 		var s mail.SendCloser
 		var err error
