@@ -27,6 +27,7 @@ func SiteConfig(c *gin.Context) {
 		"captcha_ReCaptchaKey",
 		"captcha_type",
 		"captcha_TCaptcha_CaptchaAppId",
+		"register_enabled",
 	)
 
 	// 如果已登录，则同时返回用户信息和标签
