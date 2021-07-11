@@ -16,6 +16,7 @@ type database struct {
 	TablePrefix string
 	DBFile      string
 	Port        int
+	Charset     string
 }
 
 // system 系统通用配置

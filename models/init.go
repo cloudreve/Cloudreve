@@ -9,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 
+	_ "github.com/jinzhu/gorm/dialects/mssql"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
@@ -33,16 +35,14 @@ func Init() {
 		case "UNSET", "sqlite", "sqlite3":
 			// 未指定数据库或者明确指定为 sqlite 时，使用 SQLite3 数据库
 			db, err = gorm.Open("sqlite3", util.RelativePath(conf.DatabaseConfig.DBFile))
-		case "mysql":
-			// 当前只支持 sqlite3 与 mysql 数据库
-			// TODO: import 其他 gorm 支持的主流数据库？否则直接 Open 没有任何意义。
-			// TODO: 数据库连接其他参数允许用户自定义？譬如编码更换为 utf8mb4 以支持表情。
-			db, err = gorm.Open("mysql", fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=utf8&parseTime=True&loc=Local",
+		case "mysql", "postgres", "mssql":
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
 				conf.DatabaseConfig.Host,
 				conf.DatabaseConfig.Port,
-				conf.DatabaseConfig.Name))
+				conf.DatabaseConfig.Name,
+				conf.DatabaseConfig.Charset))
 		default:
 			util.Log().Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
 		}
