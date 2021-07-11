@@ -344,7 +344,6 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 			map[string]string{"bucket": handler.Policy.BucketName},
 			[]string{"starts-with", "$key", savePath},
 			[]string{"starts-with", "$success_action_redirect", apiURL.String()},
-			[]string{"starts-with", "$name", ""},
 			[]string{"starts-with", "$Content-Type", ""},
 			map[string]string{"x-amz-algorithm": "AWS4-HMAC-SHA256"},
 		},
