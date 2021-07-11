@@ -22,6 +22,7 @@ type SiteConfig struct {
 	ReCaptchaKey         string `json:"captcha_ReCaptchaKey"`
 	CaptchaType          string `json:"captcha_type"`
 	TCaptchaCaptchaAppId string `json:"tcaptcha_captcha_app_id"`
+	RegisterEnabled      bool   `json:"registerEnabled"`
 }
 
 type task struct {
@@ -83,6 +84,7 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			ReCaptchaKey:         checkSettingValue(settings, "captcha_ReCaptchaKey"),
 			CaptchaType:          checkSettingValue(settings, "captcha_type"),
 			TCaptchaCaptchaAppId: checkSettingValue(settings, "captcha_TCaptcha_CaptchaAppId"),
+			RegisterEnabled:      model.IsTrueVal(checkSettingValue(settings, "register_enabled")),
 		}}
 	return res
 }
