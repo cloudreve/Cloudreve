@@ -97,7 +97,7 @@ cd ../
 go get github.com/rakyll/statik
 
 # 开始嵌入
-statik -src=assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
+statik -src=assets/build/ -include="*.html,*.js,*.json,*.css,*.png,*.svg,*.ico" -f
 ```
 
 #### 编译项目
