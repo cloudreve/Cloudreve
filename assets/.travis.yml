@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - 12.16.3
+before_script:
+  - yarn install
+script:
+  - CI=false yarn run build
+  - yarn run test

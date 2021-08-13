@@ -1,0 +1,37 @@
+extends: 
+  - eslint:recommended
+  - plugin:react/recommended
+  - plugin:@typescript-eslint/recommended
+parser: '@typescript-eslint/parser'
+plugins:
+  - react
+  - react-hooks
+  - '@typescript-eslint'
+parserOptions:
+  sourceType: module
+  ecmaVersion: 2020
+  ecmaFeatures:
+      jsx: true
+env:
+  es6: true
+  browser: true
+  node: true
+  jest: true
+
+settings:
+  react:
+    version: detect
+ignorePatterns:
+  - node_modules
+rules:
+  react/prop-types: 0
+  react-hooks/rules-of-hooks: "error"
+  # TODO: 修改添加deps后出现的死循环
+  react-hooks/exhaustive-deps: 0
+  '@typescript-eslint/explicit-function-return-type': 0
+  '@typescript-eslint/no-explicit-any': 0
+
+overrides:
+  - files: ['*.js', '*.jsx']
+    rules:
+      '@typescript-eslint/camelcase': 0
