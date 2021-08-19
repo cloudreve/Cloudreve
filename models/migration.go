@@ -34,8 +34,9 @@ func migration() {
 	if conf.DatabaseConfig.Type == "mysql" {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
+
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()

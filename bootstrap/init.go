@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/crontab"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
@@ -24,6 +25,7 @@ func Init(path string) {
 	if conf.SystemConfig.Mode == "master" {
 		model.Init()
 		task.Init()
+		cluster.Init()
 		aria2.Init(false)
 		email.Init()
 		crontab.Init()
