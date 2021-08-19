@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -24,6 +25,21 @@ type SlaveNode struct {
 	callback func(bool, uint)
 	close    chan bool
 	lock     sync.RWMutex
+}
+
+// Init 初始化节点
+func (node *SlaveNode) Init(nodeModel *model.Node) {
+	node.lock.Lock()
+	node.Model = nodeModel
+	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SecretKey)}
+	node.Client = request.HTTPClient{}
+	node.Active = true
+	if node.close != nil {
+		node.close <- true
+	}
+	node.lock.Unlock()
+
+	go node.StartPingLoop()
 }
 
 // IsFeatureEnabled 查询节点的某项功能是否启用
@@ -166,4 +182,9 @@ loop:
 			break loop
 		}
 	}
+}
+
+// GetAria2Instance 获取从机Aria2实例
+func (node *SlaveNode) GetAria2Instance() (aria2.Aria2, error) {
+	return nil, nil
 }

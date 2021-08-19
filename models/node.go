@@ -1,6 +1,9 @@
 package model
 
-import "github.com/jinzhu/gorm"
+import (
+	"encoding/json"
+	"github.com/jinzhu/gorm"
+)
 
 // Node 从机节点信息模型
 type Node struct {
@@ -12,6 +15,23 @@ type Node struct {
 	SecretKey    string     `gorm:"type:text"` // 通信密钥
 	Aria2Enabled bool       // 是否支持用作离线下载节点
 	Aria2Options string     `gorm:"type:text"` // 离线下载配置
+
+	// 数据库忽略字段
+	Aria2OptionsSerialized Aria2Option `gorm:"-"`
+}
+
+// Aria2Option 非公有的Aria2配置属性
+type Aria2Option struct {
+	// RPC 服务器地址
+	Server string `json:"server,omitempty"`
+	// RPC 密钥
+	Token string `json:"token,omitempty"`
+	// 临时下载目录
+	TempPath string `json:"temp_path,omitempty"`
+	// 附加下载配置
+	Options string `json:"options,omitempty"`
+	// 下载监控间隔
+	Interval string `json:"interval,omitempty"`
 }
 
 type NodeStatus int
@@ -32,4 +52,21 @@ func GetNodesByStatus(status ...NodeStatus) ([]Node, error) {
 	var nodes []Node
 	result := DB.Where("status in (?)", status).Find(&nodes)
 	return nodes, result.Error
+}
+
+// AfterFind 找到节点后的钩子
+func (node *Node) AfterFind() (err error) {
+	// 解析离线下载设置到 Aria2OptionsSerialized
+	if node.Aria2Options != "" {
+		err = json.Unmarshal([]byte(node.Aria2Options), &node.Aria2OptionsSerialized)
+	}
+
+	return err
+}
+
+// BeforeSave Save策略前的钩子
+func (node *Node) BeforeSave() (err error) {
+	optionsValue, err := json.Marshal(&node.Aria2OptionsSerialized)
+	node.Aria2Options = string(optionsValue)
+	return err
 }
