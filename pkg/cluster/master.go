@@ -29,3 +29,8 @@ func (node *MasterNode) SubscribeStatusChange(callback func(isActive bool, id ui
 func (node *MasterNode) IsActive() bool {
 	return true
 }
+
+// InitAria2RPCClient 初始化主机 Aria2 RPC 服务
+func (node *MasterNode) InitAria2RPCClient() error {
+	return nil
+}

@@ -43,11 +43,21 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	}
 
 	aria2.Lock.RLock()
-	if err := aria2.Instance.CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options); err != nil {
+	gid, err := aria2.Instance.CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options)
+	if err != nil {
 		aria2.Lock.RUnlock()
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
-	aria2.Lock.RUnlock()
 
+	task.GID = gid
+	_, err = task.Create()
+	if err != nil {
+		return serializer.DBErr("任务创建失败", err)
+	}
+
+	// 创建任务监控
+	aria2.NewMonitor(task)
+
+	aria2.Lock.RUnlock()
 	return serializer.Response{}
 }

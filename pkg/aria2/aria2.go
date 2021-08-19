@@ -23,7 +23,7 @@ var EventNotifier = &Notifier{}
 // Aria2 离线下载处理接口
 type Aria2 interface {
 	// CreateTask 创建新的任务
-	CreateTask(task *model.Download, options map[string]interface{}) error
+	CreateTask(task *model.Download, options map[string]interface{}) (string, error)
 	// 返回状态信息
 	Status(task *model.Download) (rpc.StatusInfo, error)
 	// 取消任务
@@ -68,8 +68,8 @@ type DummyAria2 struct {
 }
 
 // CreateTask 创建新任务，此处直接返回未开启错误
-func (instance *DummyAria2) CreateTask(model *model.Download, options map[string]interface{}) error {
-	return ErrNotEnabled
+func (instance *DummyAria2) CreateTask(model *model.Download, options map[string]interface{}) (string, error) {
+	return "", ErrNotEnabled
 }
 
 // Status 返回未开启错误

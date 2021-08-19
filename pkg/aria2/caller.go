@@ -85,7 +85,7 @@ func (client *RPCService) Select(task *model.Download, files []int) error {
 }
 
 // CreateTask 创建新任务
-func (client *RPCService) CreateTask(task *model.Download, groupOptions map[string]interface{}) error {
+func (client *RPCService) CreateTask(task *model.Download, groupOptions map[string]interface{}) (string, error) {
 	// 生成存储路径
 	path := filepath.Join(
 		model.GetSettingByName("aria2_temp_path"),
@@ -106,18 +106,8 @@ func (client *RPCService) CreateTask(task *model.Download, groupOptions map[stri
 
 	gid, err := client.Caller.AddURI(task.Source, options)
 	if err != nil || gid == "" {
-		return err
+		return "", err
 	}
 
-	// 保存到数据库
-	task.GID = gid
-	_, err = task.Create()
-	if err != nil {
-		return err
-	}
-
-	// 创建任务监控
-	NewMonitor(task)
-
-	return nil
+	return gid, nil
 }
