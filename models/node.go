@@ -31,7 +31,9 @@ type Aria2Option struct {
 	// 附加下载配置
 	Options string `json:"options,omitempty"`
 	// 下载监控间隔
-	Interval string `json:"interval,omitempty"`
+	Interval int `json:"interval,omitempty"`
+	// RPC API 请求超时
+	Timeout int `json:"timeout,omitempty"`
 }
 
 type NodeStatus int

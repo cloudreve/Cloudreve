@@ -3,6 +3,7 @@ package aria2
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -42,10 +43,20 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 		Source: service.URL,
 	}
 
+	// 获取 Aria2 负载均衡器
 	aria2.Lock.RLock()
-	gid, err := aria2.Instance.CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options)
+	lb := aria2.LB
+	aria2.Lock.RUnlock()
+
+	// 获取 Aria2 实例
+	err, node := cluster.Default.BalanceNodeByFeature("aria2", lb)
 	if err != nil {
-		aria2.Lock.RUnlock()
+		return serializer.Err(serializer.CodeInternalSetting, "Aria2 实例获取失败", err)
+	}
+
+	// 创建任务
+	gid, err := node.GetAria2Instance().CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options)
+	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}
 

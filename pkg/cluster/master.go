@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
@@ -54,7 +55,12 @@ func (node *MasterNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingR
 
 // IsFeatureEnabled 查询节点的某项功能是否启用
 func (node *MasterNode) IsFeatureEnabled(feature string) bool {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
 	switch feature {
+	case "aria2":
+		return node.Model.Aria2Enabled
 	default:
 		return false
 	}
@@ -70,18 +76,18 @@ func (node *MasterNode) IsActive() bool {
 }
 
 // GetAria2Instance 获取主机Aria2实例
-func (node *MasterNode) GetAria2Instance() (aria2.Aria2, error) {
+func (node *MasterNode) GetAria2Instance() aria2.Aria2 {
 	if !node.Model.Aria2Enabled {
-		return &aria2.DummyAria2{}, nil
+		return &aria2.DummyAria2{}
 	}
 
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	if !node.aria2RPC.Initialized {
-		return &aria2.DummyAria2{}, nil
+		return &aria2.DummyAria2{}
 	}
 
-	return &node.aria2RPC, nil
+	return &node.aria2RPC
 }
 
 func (r *rpcService) Init() error {
@@ -104,16 +110,18 @@ func (r *rpcService) Init() error {
 
 	// 加载自定义下载配置
 	var globalOptions map[string]interface{}
-	err = json.Unmarshal([]byte(r.parent.Model.Aria2OptionsSerialized.Options), &globalOptions)
-	if err != nil {
-		util.Log().Warning("无法解析主机 Aria2 配置，%s", err)
-		return err
+	if r.parent.Model.Aria2OptionsSerialized.Options != "" {
+		err = json.Unmarshal([]byte(r.parent.Model.Aria2OptionsSerialized.Options), &globalOptions)
+		if err != nil {
+			util.Log().Warning("无法解析主机 Aria2 配置，%s", err)
+			return err
+		}
 	}
 
 	r.options = &clientOptions{
 		Options: globalOptions,
 	}
-	timeout := model.GetIntSetting("aria2_call_timeout", 5)
+	timeout := r.parent.Model.Aria2OptionsSerialized.Timeout
 	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, aria2.EventNotifier)
 
 	r.Caller = caller
@@ -122,7 +130,7 @@ func (r *rpcService) Init() error {
 }
 
 func (r *rpcService) CreateTask(task *model.Download, options map[string]interface{}) (string, error) {
-	panic("implement me")
+	return "", fmt.Errorf("some error #%d", r.parent.Model.ID)
 }
 
 func (r *rpcService) Status(task *model.Download) (rpc.StatusInfo, error) {

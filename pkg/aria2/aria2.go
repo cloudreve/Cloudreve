@@ -5,11 +5,15 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
 
 // Instance 默认使用的Aria2处理实例
 var Instance Aria2 = &DummyAria2{}
+
+// LB 获取 Aria2 节点的负载均衡器
+var LB balancer.Balancer
 
 // Lock Instance的读写锁
 var Lock sync.RWMutex
@@ -92,6 +96,10 @@ func (instance *DummyAria2) Select(task *model.Download, files []int) error {
 
 // Init 初始化
 func Init(isReload bool) {
+	Lock.Lock()
+	LB = balancer.NewBalancer("RoundRobin")
+	Lock.Unlock()
+
 	if !isReload {
 		// 从数据库中读取未完成任务，创建监控
 		unfinished := model.GetDownloadsByStatus(Ready, Paused, Downloading)
@@ -101,7 +109,6 @@ func Init(isReload bool) {
 			NewMonitor(&unfinished[i])
 		}
 	}
-
 }
 
 // getStatus 将给定的状态字符串转换为状态标识数字

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"sync"
 )
@@ -9,11 +10,11 @@ import (
 var Default *NodePool
 
 // 需要分类的节点组
-var featureGroup = []string{"Aria2"}
+var featureGroup = []string{"aria2"}
 
 // Pool 节点池
 type Pool interface {
-	Select()
+	BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node)
 }
 
 // NodePool 通用节点池
@@ -24,10 +25,6 @@ type NodePool struct {
 	featureMap map[string][]Node
 
 	lock sync.RWMutex
-}
-
-func (pool *NodePool) Select() {
-
 }
 
 // Init 初始化从机节点池
@@ -99,4 +96,16 @@ func (pool *NodePool) initFromDB() error {
 
 	pool.buildIndexMap()
 	return nil
+}
+
+// BalanceNodeByFeature 根据 feature 和 LoadBalancer 取出节点
+func (pool *NodePool) BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	if nodes, ok := pool.featureMap[feature]; ok {
+		err, res := lb.NextPeer(nodes)
+		return err, res.(Node)
+	}
+
+	return ErrFeatureNotExist, nil
 }

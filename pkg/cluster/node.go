@@ -12,7 +12,7 @@ type Node interface {
 	SubscribeStatusChange(callback func(isActive bool, id uint))
 	Ping(req *serializer.NodePingReq) (*serializer.NodePingResp, error)
 	IsActive() bool
-	GetAria2Instance() (aria2.Aria2, error)
+	GetAria2Instance() aria2.Aria2
 }
 
 func getNodeFromDBModel(node *model.Node) Node {

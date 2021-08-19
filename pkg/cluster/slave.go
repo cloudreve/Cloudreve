@@ -185,6 +185,6 @@ loop:
 }
 
 // GetAria2Instance 获取从机Aria2实例
-func (node *SlaveNode) GetAria2Instance() (aria2.Aria2, error) {
-	return nil, nil
+func (node *SlaveNode) GetAria2Instance() aria2.Aria2 {
+	return nil
 }
