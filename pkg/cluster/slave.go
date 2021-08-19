@@ -19,8 +19,8 @@ type SlaveNode struct {
 	Model        *model.Node
 	AuthInstance auth.Auth
 	Client       request.Client
+	Active       bool
 
-	active   bool
 	callback func(bool, uint)
 	close    chan bool
 	lock     sync.RWMutex
@@ -80,7 +80,7 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 
 // IsActive 返回节点是否在线
 func (node *SlaveNode) IsActive() bool {
-	return node.active
+	return node.Active
 }
 
 // getAPIUrl 获取接口请求地址
@@ -101,10 +101,10 @@ func (node *SlaveNode) getAPIUrl(scope string) string {
 func (node *SlaveNode) changeStatus(isActive bool) {
 	node.lock.RLock()
 	id := node.Model.ID
-	if isActive != node.active {
+	if isActive != node.Active {
 		node.lock.RUnlock()
 		node.lock.Lock()
-		node.active = isActive
+		node.Active = isActive
 		node.lock.Unlock()
 		node.callback(isActive, id)
 	} else {
@@ -116,34 +116,51 @@ func (node *SlaveNode) changeStatus(isActive bool) {
 func (node *SlaveNode) StartPingLoop() {
 	node.lock.Lock()
 	node.close = make(chan bool)
-	node.active = true
 	node.lock.Unlock()
 
-	t := time.NewTicker(time.Duration(model.GetIntSetting("slave_ping_interval", 300)) * time.Second)
-	defer t.Stop()
+	tickDuration := time.Duration(model.GetIntSetting("slave_ping_interval", 300)) * time.Second
+	recoverDuration := time.Duration(model.GetIntSetting("slave_recover_interval", 600)) * time.Second
+	pingTicker := time.NewTicker(tickDuration)
+	defer pingTicker.Stop()
 
 	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
 	retry := 0
+	recoverMode := false
 
 loop:
 	for {
 		select {
-		case <-t.C:
+		case <-pingTicker.C:
 			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
 			res, err := node.Ping(&serializer.NodePingReq{})
 			if err != nil {
 				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
 				retry++
-				if retry > model.GetIntSetting("slave_node_retry", 3) {
+				if retry >= model.GetIntSetting("slave_node_retry", 3) {
 					util.Log().Debug("从机节点 [%s] Ping 重试已达到最大限制，将从机节点标记为不可用", node.Model.Name)
 					node.changeStatus(false)
-					break loop
+
+					if !recoverMode {
+						// 启动恢复监控循环
+						util.Log().Debug("从机节点 [%s] 进入恢复模式", node.Model.Name)
+						pingTicker.Stop()
+						pingTicker = time.NewTicker(recoverDuration)
+						recoverMode = true
+					}
 				}
-				break
+			} else {
+				if recoverMode {
+					util.Log().Debug("从机节点 [%s] 复活", node.Model.Name)
+					pingTicker.Stop()
+					pingTicker = time.NewTicker(tickDuration)
+					recoverMode = false
+				}
+
+				util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
+				node.changeStatus(true)
+				retry = 0
 			}
 
-			util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
-			node.changeStatus(true)
 		case <-node.close:
 			util.Log().Debug("从机节点 [%s] 收到关闭信号", node.Model.Name)
 			break loop

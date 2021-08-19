@@ -57,7 +57,7 @@ func (pool *NodePool) buildIndexMap() {
 }
 
 func (pool *NodePool) nodeStatusChange(isActive bool, id uint) {
-	util.Log().Debug("从机节点 [ID=%d] 状态变更 [active=%t]", id, isActive)
+	util.Log().Debug("从机节点 [ID=%d] 状态变更 [Active=%t]", id, isActive)
 	pool.lock.Lock()
 	if isActive {
 		node := pool.inactive[id]

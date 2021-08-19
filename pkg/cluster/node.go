@@ -21,6 +21,7 @@ func getNodeFromDBModel(node *model.Node) Node {
 			Model:        node,
 			AuthInstance: auth.HMACAuth{SecretKey: []byte(node.SecretKey)},
 			Client:       request.HTTPClient{},
+			Active:       true,
 		}
 		go slave.StartPingLoop()
 		return slave

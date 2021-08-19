@@ -103,6 +103,7 @@ func addDefaultSettings() {
 		{Name: "slave_api_timeout", Value: `60`, Type: "timeout"},
 		{Name: "slave_node_retry", Value: `3`, Type: "slave"},
 		{Name: "slave_ping_interval", Value: `300`, Type: "slave"},
+		{Name: "slave_recover_interval", Value: `600`, Type: "slave"},
 		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
 		{Name: "share_download_session_timeout", Value: `2073600`, Type: "timeout"},
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
