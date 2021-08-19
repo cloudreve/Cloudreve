@@ -1,13 +1,13 @@
 package cluster
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/url"
 	"path"
 	"strings"
@@ -20,8 +20,9 @@ type SlaveNode struct {
 	AuthInstance auth.Auth
 	Client       request.Client
 
-	callback func()
-	ctx      context.Context
+	active   bool
+	callback func(bool, uint)
+	close    chan bool
 	lock     sync.RWMutex
 }
 
@@ -34,7 +35,7 @@ func (node *SlaveNode) IsFeatureEnabled(feature string) bool {
 }
 
 // SubscribeStatusChange 订阅节点状态更改
-func (node *SlaveNode) SubscribeStatusChange(callback func()) {
+func (node *SlaveNode) SubscribeStatusChange(callback func(bool, uint)) {
 	node.lock.Lock()
 	node.callback = callback
 	node.lock.Unlock()
@@ -77,6 +78,11 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 	return &res, nil
 }
 
+// IsActive 返回节点是否在线
+func (node *SlaveNode) IsActive() bool {
+	return node.active
+}
+
 // getAPIUrl 获取接口请求地址
 func (node *SlaveNode) getAPIUrl(scope string) string {
 	node.lock.RLock()
@@ -92,16 +98,55 @@ func (node *SlaveNode) getAPIUrl(scope string) string {
 	return serverURL.ResolveReference(controller).String()
 }
 
-func (node *SlaveNode) pingLoop() {
-	t := time.NewTicker(time.Second)
+func (node *SlaveNode) changeStatus(isActive bool) {
+	node.lock.RLock()
+	id := node.Model.ID
+	if isActive != node.active {
+		node.lock.RUnlock()
+		node.lock.Lock()
+		node.active = isActive
+		node.lock.Unlock()
+		node.callback(isActive, id)
+	} else {
+		node.lock.RUnlock()
+	}
 
+}
+
+func (node *SlaveNode) StartPingLoop() {
+	node.lock.Lock()
+	node.close = make(chan bool)
+	node.active = true
+	node.lock.Unlock()
+
+	t := time.NewTicker(time.Duration(model.GetIntSetting("slave_ping_interval", 300)) * time.Second)
+	defer t.Stop()
+
+	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
+	retry := 0
+
+loop:
 	for {
 		select {
 		case <-t.C:
-		case <-node.ctx.Done():
+			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
+			res, err := node.Ping(&serializer.NodePingReq{})
+			if err != nil {
+				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
+				retry++
+				if retry > model.GetIntSetting("slave_node_retry", 3) {
+					util.Log().Debug("从机节点 [%s] Ping 重试已达到最大限制，将从机节点标记为不可用", node.Model.Name)
+					node.changeStatus(false)
+					break loop
+				}
+				break
+			}
+
+			util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
+			node.changeStatus(true)
+		case <-node.close:
+			util.Log().Debug("从机节点 [%s] 收到关闭信号", node.Model.Name)
+			break loop
 		}
 	}
 }
-
-// PingLoop
-// RecoverLoop

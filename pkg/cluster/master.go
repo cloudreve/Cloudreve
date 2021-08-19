@@ -22,5 +22,10 @@ func (node *MasterNode) IsFeatureEnabled(feature string) bool {
 }
 
 // SubscribeStatusChange 订阅节点状态更改
-func (node *MasterNode) SubscribeStatusChange(callback func()) {
+func (node *MasterNode) SubscribeStatusChange(callback func(isActive bool, id uint)) {
+}
+
+// IsActive 返回节点是否在线
+func (node *MasterNode) IsActive() bool {
+	return true
 }

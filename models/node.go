@@ -6,6 +6,7 @@ import "github.com/jinzhu/gorm"
 type Node struct {
 	gorm.Model
 	Status       NodeStatus // 节点状态
+	Name         string     // 节点别名
 	Type         ModelType  // 节点状态
 	Server       string     // 服务器地址
 	SecretKey    string     `gorm:"type:text"` // 通信密钥

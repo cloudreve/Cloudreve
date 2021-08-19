@@ -9,18 +9,21 @@ import (
 
 type Node interface {
 	IsFeatureEnabled(feature string) bool
-	SubscribeStatusChange(callback func())
+	SubscribeStatusChange(callback func(isActive bool, id uint))
 	Ping(req *serializer.NodePingReq) (*serializer.NodePingResp, error)
+	IsActive() bool
 }
 
 func getNodeFromDBModel(node *model.Node) Node {
 	switch node.Type {
 	case model.SlaveNodeType:
-		return &SlaveNode{
+		slave := &SlaveNode{
 			Model:        node,
 			AuthInstance: auth.HMACAuth{SecretKey: []byte(node.SecretKey)},
 			Client:       request.HTTPClient{},
 		}
+		go slave.StartPingLoop()
+		return slave
 	default:
 		return &MasterNode{
 			Model: node,
