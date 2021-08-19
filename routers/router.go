@@ -37,6 +37,8 @@ func InitSlaveRouter() *gin.Engine {
 	{
 		// Ping
 		v3.POST("ping", controllers.SlavePing)
+		// 接收主机心跳包
+		v3.POST("heartbeat", controllers.SlaveHeartbeat)
 		// 上传
 		v3.POST("upload", controllers.SlaveUpload)
 		// 下载

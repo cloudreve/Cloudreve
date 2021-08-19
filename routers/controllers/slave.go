@@ -11,6 +11,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
+	"github.com/cloudreve/Cloudreve/v3/service/node"
 	"github.com/gin-gonic/gin"
 )
 
@@ -170,6 +171,17 @@ func SlaveList(c *gin.Context) {
 	var service explorer.SlaveListService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveHeartbeat 接受主机心跳包
+func SlaveHeartbeat(c *gin.Context) {
+	var service serializer.NodePingReq
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := node.HandleMasterHeartbeat(&service)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

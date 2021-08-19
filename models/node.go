@@ -5,8 +5,8 @@ import "github.com/jinzhu/gorm"
 // Node 从机节点信息模型
 type Node struct {
 	gorm.Model
-	Status       NodeStatus // 任务状态
-	Type         ModelType  // 任务状态
+	Status       NodeStatus // 节点状态
+	Type         ModelType  // 节点状态
 	Server       string     // 服务器地址
 	SecretKey    string     `gorm:"type:text"` // 通信密钥
 	Aria2Enabled bool       // 是否支持用作离线下载节点

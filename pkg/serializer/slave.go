@@ -10,3 +10,11 @@ type ListRequest struct {
 	Path      string `json:"path"`
 	Recursive bool   `json:"recursive"`
 }
+
+// NodePingReq 从机节点Ping请求
+type NodePingReq struct {
+}
+
+// NodePingResp 从机节点Ping响应
+type NodePingResp struct {
+}
