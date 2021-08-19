@@ -49,6 +49,12 @@ var CORSConfig = &cors{
 	ExposeHeaders:    nil,
 }
 
+// RCloneConfig 配置
+var RCloneConfig = &rclone{
+	Config:		"rclone.conf",
+	Binds:		[]string{"UNSET"},
+}
+
 // ThumbConfig 缩略图配置
 var ThumbConfig = &thumb{
 	MaxWidth:   400,

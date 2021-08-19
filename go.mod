@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
-	github.com/aws/aws-sdk-go v1.31.5
+	github.com/aws/aws-sdk-go v1.38.22
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/duo-labs/webauthn v0.0.0-20191119193225-4bf9a0f776d4
 	github.com/fatih/color v1.7.0
@@ -16,13 +16,13 @@ require (
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-ini/ini v1.50.0
 	github.com/go-mail/mail v2.3.1+incompatible
+	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible
-	github.com/google/go-querystring v1.0.0
-	github.com/gorilla/websocket v1.4.1
+	github.com/google/go-querystring v1.1.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-version v1.2.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/juju/ratelimit v1.0.1
-	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.9.1
@@ -33,13 +33,16 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible
-	github.com/stretchr/testify v1.5.1
+	github.com/spf13/afero v1.6.0
+	github.com/stretchr/testify v1.7.0
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.125+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20200120023323-87ff3bc489ac
 	github.com/upyun/go-sdk v2.1.0+incompatible
-	golang.org/x/text v0.3.2
+	golang.org/x/text v0.3.6
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/go-playground/validator.v9 v9.29.1
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )
+
+replace github.com/spf13/afero => github.com/chaoqing/afero v1.6.1-0.20210815024925-e47db790683a

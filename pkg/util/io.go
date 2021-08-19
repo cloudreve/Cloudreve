@@ -1,14 +1,19 @@
 package util
 
 import (
+	"github.com/spf13/afero"
 	"io"
 	"os"
 	"path/filepath"
 )
 
+var (
+	OS = afero.NewOsFs()
+)
+
 // Exists reports whether the named file or directory exists.
 func Exists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
+	if _, err := OS.Stat(name); err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -17,22 +22,22 @@ func Exists(name string) bool {
 }
 
 // CreatNestedFile 给定path创建文件，如果目录不存在就递归创建
-func CreatNestedFile(path string) (*os.File, error) {
+func CreatNestedFile(path string) (afero.File, error) {
 	basePath := filepath.Dir(path)
 	if !Exists(basePath) {
-		err := os.MkdirAll(basePath, 0700)
+		err := OS.MkdirAll(basePath, 0700)
 		if err != nil {
 			Log().Warning("无法创建目录，%s", err)
 			return nil, err
 		}
 	}
 
-	return os.Create(path)
+	return OS.Create(path)
 }
 
 // IsEmpty 返回给定目录是否为空目录
 func IsEmpty(name string) (bool, error) {
-	f, err := os.Open(name)
+	f, err := OS.Open(name)
 	if err != nil {
 		return false, err
 	}

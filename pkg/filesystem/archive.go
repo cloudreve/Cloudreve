@@ -83,12 +83,17 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		saveFolder,
 		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
 	)
-	zipFile, err := util.CreatNestedFile(zipFilePath)
+	zipAferoFile, err := util.CreatNestedFile(zipFilePath)
 	if err != nil {
 		util.Log().Warning("%s", err)
 		return "", err
 	}
-	defer zipFile.Close()
+	defer zipAferoFile.Close()
+
+	zipFile, ok := zipAferoFile.(*os.File)
+	if !ok{
+		return "", fmt.Errorf("not implemented for non OS compression")
+	}
 
 	// 创建压缩文件Writer
 	zipWriter := zip.NewWriter(zipFile)

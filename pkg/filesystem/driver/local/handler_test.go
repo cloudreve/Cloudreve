@@ -21,7 +21,7 @@ func TestHandler_Put(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{}
 	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
-	os.Remove(util.RelativePath("test/test/txt"))
+	util.OS.Remove(util.RelativePath("test/test/txt"))
 
 	testCases := []struct {
 		file io.ReadCloser
@@ -62,16 +62,16 @@ func TestHandler_Delete(t *testing.T) {
 	ctx := context.Background()
 	filePath := util.RelativePath("test.file")
 
-	file, err := os.Create(filePath)
+	file, err := util.OS.Create(filePath)
 	asserts.NoError(err)
 	_ = file.Close()
 	list, err := handler.Delete(ctx, []string{"test.file"})
 	asserts.Equal([]string{}, list)
 	asserts.NoError(err)
 
-	file, err = os.Create(filePath)
+	file, err = util.OS.Create(filePath)
 	_ = file.Close()
-	file, _ = os.OpenFile(filePath, os.O_RDWR, os.FileMode(0))
+	file, _ = util.OS.OpenFile(filePath, os.O_RDWR, os.FileMode(0))
 	asserts.NoError(err)
 	list, err = handler.Delete(ctx, []string{"test.file", "test.notexist"})
 	file.Close()
@@ -82,7 +82,7 @@ func TestHandler_Delete(t *testing.T) {
 	asserts.Equal([]string{}, list)
 	asserts.NoError(err)
 
-	file, err = os.Create(filePath)
+	file, err = util.OS.Create(filePath)
 	asserts.NoError(err)
 	list, err = handler.Delete(ctx, []string{"test.file"})
 	_ = file.Close()
@@ -97,7 +97,7 @@ func TestHandler_Get(t *testing.T) {
 	defer cancel()
 
 	// 成功
-	file, err := os.Create(util.RelativePath("TestHandler_Get.txt"))
+	file, err := util.OS.Create(util.RelativePath("TestHandler_Get.txt"))
 	asserts.NoError(err)
 	_ = file.Close()
 
@@ -116,7 +116,7 @@ func TestHandler_Thumb(t *testing.T) {
 	asserts := assert.New(t)
 	handler := Driver{}
 	ctx := context.Background()
-	file, err := os.Create(util.RelativePath("TestHandler_Thumb" + conf.ThumbConfig.FileSuffix))
+	file, err := util.OS.Create(util.RelativePath("TestHandler_Thumb" + conf.ThumbConfig.FileSuffix))
 	asserts.NoError(err)
 	file.Close()
 

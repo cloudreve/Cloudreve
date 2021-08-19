@@ -3,7 +3,11 @@ package conf
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/go-ini/ini"
+	"github.com/spf13/afero"
+	"github.com/spf13/afero/rclonefs"
 	"gopkg.in/go-playground/validator.v9"
+	"path/filepath"
+	"strings"
 )
 
 // database 数据库
@@ -84,6 +88,13 @@ type cors struct {
 	ExposeHeaders    []string
 }
 
+// RClone配置
+// Binds /mnt/ibm:ibm
+type rclone struct {
+	Config     string
+	Binds     []string
+}
+
 var cfg *ini.File
 
 const defaultConf = `[System]
@@ -131,6 +142,7 @@ func Init(path string) {
 		"Redis":      RedisConfig,
 		"Thumbnail":  ThumbConfig,
 		"CORS":       CORSConfig,
+		"RClone":     RCloneConfig,
 		"Slave":      SlaveConfig,
 	}
 	for sectionName, sectionStruct := range sections {
@@ -147,6 +159,7 @@ func Init(path string) {
 		util.Log()
 	}
 
+	initRCloneBind()
 }
 
 // mapSection 将配置文件的 Section 映射到结构体上
@@ -164,4 +177,37 @@ func mapSection(section string, confStruct interface{}) error {
 	}
 
 	return nil
+}
+
+
+func initRCloneBind(){
+	if RCloneConfig.Binds[0] == "UNSET"{
+		return
+	}
+
+	if ok := util.Exists(RCloneConfig.Config); ok{
+		_ = rclonefs.SetConfigPath(RCloneConfig.Config)
+	}else{
+		util.Log().Warning("未找到RClone配置文件: %s", RCloneConfig.Config)
+		return
+	}
+
+	bindPoints := make(map[string]afero.Fs)
+	bindPoints["/"] = afero.NewOsFs()
+
+	for _, kv := range RCloneConfig.Binds{
+		if bind := strings.SplitN(kv,":", 2); len(bind)==2{
+			util.Log().Info("RClone绑定: '%s' -> '%s'", bind[1], bind[0])
+			if target, err := filepath.Abs(bind[0]); err==nil{
+				bindPoints[target] = rclonefs.NewRCloneFs(bind[1])
+			}else{
+				util.Log().Warning("绑定绝对路径出错: '%s'", bind[0])
+			}
+		}else{
+			util.Log().Warning("RClone绑定不符合格式: %s", kv)
+			return
+		}
+	}
+
+	util.OS = rclonefs.NewBindPathFs(bindPoints)
 }

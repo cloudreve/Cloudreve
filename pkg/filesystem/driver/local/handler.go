@@ -17,6 +17,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/spf13/afero"
 )
 
 // Driver 本地策略适配器
@@ -32,7 +33,7 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 	root := util.RelativePath(filepath.FromSlash(path))
 
 	// 开始遍历路径下的文件、目录
-	err := filepath.Walk(root,
+	err := afero.Walk(util.OS, root,
 		func(path string, info os.FileInfo, err error) error {
 			// 跳过根目录
 			if path == root {
@@ -73,7 +74,7 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 // Get 获取文件内容
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 打开文件
-	file, err := os.Open(util.RelativePath(path))
+	file, err := util.OS.Open(util.RelativePath(path))
 	if err != nil {
 		util.Log().Debug("无法打开文件：%s", err)
 		return nil, err
@@ -111,7 +112,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {
-		err := os.MkdirAll(basePath, 0744)
+		err := util.OS.MkdirAll(basePath, 0744)
 		if err != nil {
 			util.Log().Warning("无法创建目录，%s", err)
 			return err
@@ -119,7 +120,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	}
 
 	// 创建目标文件
-	out, err := os.Create(dst)
+	out, err := util.OS.Create(dst)
 	if err != nil {
 		util.Log().Warning("无法创建文件，%s", err)
 		return err
@@ -140,7 +141,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 	for _, value := range files {
 		filePath := util.RelativePath(filepath.FromSlash(value))
 		if util.Exists(filePath) {
-			err := os.Remove(filePath)
+			err := util.OS.Remove(filePath)
 			if err != nil {
 				util.Log().Warning("无法删除文件，%s", err)
 				retErr = err
@@ -149,7 +150,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		}
 
 		// 尝试删除文件的缩略图（如果有）
-		_ = os.Remove(util.RelativePath(value + conf.ThumbConfig.FileSuffix))
+		_ = util.OS.Remove(util.RelativePath(value + conf.ThumbConfig.FileSuffix))
 	}
 
 	return deleteFailed, retErr
