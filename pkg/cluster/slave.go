@@ -2,13 +2,14 @@ package cluster
 
 import (
 	"encoding/json"
-	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -19,12 +20,17 @@ import (
 type SlaveNode struct {
 	Model        *model.Node
 	AuthInstance auth.Auth
-	Client       request.Client
 	Active       bool
 
+	caller   slaveCaller
 	callback func(bool, uint)
 	close    chan bool
 	lock     sync.RWMutex
+}
+
+type slaveCaller struct {
+	parent *SlaveNode
+	Client request.Client
 }
 
 // Init 初始化节点
@@ -32,7 +38,8 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
 	node.Model = nodeModel
 	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SlaveKey)}
-	node.Client = request.HTTPClient{}
+	node.caller.Client = request.HTTPClient{}
+	node.caller.parent = node
 	node.Active = true
 	if node.close != nil {
 		node.close <- true
@@ -44,7 +51,12 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 
 // IsFeatureEnabled 查询节点的某项功能是否启用
 func (node *SlaveNode) IsFeatureEnabled(feature string) bool {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
 	switch feature {
+	case "aria2":
+		return node.Model.Aria2Enabled
 	default:
 		return false
 	}
@@ -67,10 +79,12 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 	bodyReader := strings.NewReader(string(reqBodyEncoded))
 	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 
-	resp, err := node.Client.Request(
+	resp, err := node.caller.Client.Request(
 		"POST",
 		node.getAPIUrl("heartbeat"),
 		bodyReader,
+		request.WithMasterMeta(),
+		request.WithTimeout(time.Duration(signTTL)*time.Second),
 		request.WithCredential(node.AuthInstance, int64(signTTL)),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
@@ -79,7 +93,7 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 
 	// 处理列取结果
 	if resp.Code != 0 {
-		return nil, errors.New(resp.Error)
+		return nil, serializer.NewErrorFromResponse(resp)
 	}
 
 	var res serializer.NodePingResp
@@ -96,6 +110,9 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 
 // IsActive 返回节点是否在线
 func (node *SlaveNode) IsActive() bool {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
 	return node.Active
 }
 
@@ -111,7 +128,14 @@ func (node *SlaveNode) Kill() {
 
 // GetAria2Instance 获取从机Aria2实例
 func (node *SlaveNode) GetAria2Instance() common.Aria2 {
-	return nil
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	if !node.Model.Aria2Enabled {
+		return &common.DummyAria2{}
+	}
+
+	return &node.caller
 }
 
 func (node *SlaveNode) ID() uint {
@@ -210,8 +234,79 @@ loop:
 // getHeartbeatContent gets serializer.NodePingReq used to send heartbeat to slave
 func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingReq {
 	return &serializer.NodePingReq{
-		IsUpdate:  isUpdate,
-		MasterURL: model.GetSiteURL().String(),
-		Node:      node.Model,
+		IsUpdate: isUpdate,
+		SiteID:   model.GetSettingByName("siteID"),
+		Node:     node.Model,
 	}
+}
+
+func (s *slaveCaller) Init() error {
+	return nil
+}
+
+// SendAria2Call send remote aria2 call to slave node
+func (s *slaveCaller) SendAria2Call(body *serializer.SlaveAria2Call, scope string) (*serializer.Response, error) {
+	reqReader, err := getAria2RequestBody(body)
+	if err != nil {
+		return nil, err
+	}
+
+	signTTL := model.GetIntSetting("slave_api_timeout", 60)
+	return s.Client.Request(
+		"POST",
+		s.parent.getAPIUrl("aria2/"+scope),
+		reqReader,
+		request.WithMasterMeta(),
+		request.WithTimeout(time.Duration(signTTL)*time.Second),
+		request.WithCredential(s.parent.AuthInstance, int64(signTTL)),
+	).CheckHTTPResponse(200).DecodeResponse()
+}
+
+func (s *slaveCaller) CreateTask(task *model.Download, options map[string]interface{}) (string, error) {
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	req := &serializer.SlaveAria2Call{
+		Task:         task,
+		GroupOptions: options,
+	}
+
+	res, err := s.SendAria2Call(req, "task")
+	if err != nil {
+		return "", err
+	}
+
+	if res.Code != 0 {
+		return "", serializer.NewErrorFromResponse(res)
+	}
+
+	return res.Data.(string), err
+}
+
+func (s *slaveCaller) Status(task *model.Download) (rpc.StatusInfo, error) {
+	panic("implement me")
+}
+
+func (s *slaveCaller) Cancel(task *model.Download) error {
+	panic("implement me")
+}
+
+func (s *slaveCaller) Select(task *model.Download, files []int) error {
+	panic("implement me")
+}
+
+func (s *slaveCaller) GetConfig() model.Aria2Option {
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	return s.parent.Model.Aria2OptionsSerialized
+}
+
+func getAria2RequestBody(body *serializer.SlaveAria2Call) (io.Reader, error) {
+	reqBodyEncoded, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.NewReader(string(reqBodyEncoded)), nil
 }

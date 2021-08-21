@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/fatih/color"
+	"github.com/gofrs/uuid"
 	"github.com/jinzhu/gorm"
 )
 
@@ -74,6 +75,8 @@ func addDefaultPolicy() {
 }
 
 func addDefaultSettings() {
+	siteID, _ := uuid.NewV4()
+
 	defaultSettings := []Setting{
 		{Name: "siteURL", Value: `http://localhost`, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
@@ -84,6 +87,7 @@ func addDefaultSettings() {
 		{Name: "siteDes", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteTitle", Value: `平步云端`, Type: "basic"},
 		{Name: "siteScript", Value: ``, Type: "basic"},
+		{Name: "siteID", Value: siteID.String(), Type: "basic"},
 		{Name: "fromName", Value: `Cloudreve`, Type: "mail"},
 		{Name: "mail_keepalive", Value: `30`, Type: "mail"},
 		{Name: "fromAdress", Value: `no-reply@acg.blue`, Type: "mail"},

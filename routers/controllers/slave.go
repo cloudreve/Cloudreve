@@ -191,9 +191,9 @@ func SlaveHeartbeat(c *gin.Context) {
 
 // SlaveAria2Create 创建 Aria2 任务
 func SlaveAria2Create(c *gin.Context) {
-	var service aria2.SlaveAria2Call
+	var service serializer.SlaveAria2Call
 	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Add(c)
+		res := aria2.Add(c, &service)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

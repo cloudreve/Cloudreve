@@ -30,6 +30,8 @@ func InitSlaveRouter() *gin.Engine {
 	v3 := r.Group("/api/v3/slave")
 	// 鉴权中间件
 	v3.Use(middleware.SignRequired())
+	// 主机信息解析
+	v3.Use(middleware.MasterMetadata())
 
 	/*
 		路由
@@ -55,7 +57,7 @@ func InitSlaveRouter() *gin.Engine {
 		// 离线下载
 		aria2 := v3.Group("aria2")
 		{
-			aria2.POST("task", controllers.SlaveList)
+			aria2.POST("task", controllers.SlaveAria2Create)
 		}
 	}
 	return r

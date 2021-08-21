@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -81,6 +82,7 @@ func getSignContent(r *http.Request) (rawSignString string) {
 			signedHeader = append(signedHeader, fmt.Sprintf("%s=%s", k, r.Header.Get(k)))
 		}
 	}
+	sort.Strings(signedHeader)
 
 	// 读取所有待签名Header
 	rawSignString = serializer.NewRequestSignString(r.URL.Path, strings.Join(signedHeader, "&"), string(body))

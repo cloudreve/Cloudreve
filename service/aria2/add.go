@@ -8,6 +8,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,13 +16,6 @@ import (
 type AddURLService struct {
 	URL string `json:"url" binding:"required"`
 	Dst string `json:"dst" binding:"required,min=1"`
-}
-
-// SlaveAria2Call 从机有关Aria2的请求正文
-type SlaveAria2Call struct {
-	Task         *model.Download        `json:"task"`
-	GroupOptions map[string]interface{} `json:"group_options"`
-	Files        []uint                 `json:"files"`
 }
 
 // Add 主机创建新的链接离线下载任务
@@ -83,6 +77,23 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 }
 
 // Add 从机创建新的链接离线下载任务
-func (service *SlaveAria2Call) Add(c *gin.Context) serializer.Response {
-	return serializer.Response{}
+func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	if siteID, exist := c.Get("MasterSiteID"); exist {
+		// 获取对应主机节点的从机Aria2实例
+		caller, err := slave.DefaultController.GetAria2Instance(siteID.(string))
+		if err != nil {
+			return serializer.Err(serializer.CodeNotSet, "无法获取 Aria2 实例", err)
+		}
+
+		// 创建任务
+		gid, err := caller.CreateTask(service.Task, service.GroupOptions)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "无法创建离线下载任务", err)
+		}
+
+		// TODO: 创建监控
+		return serializer.Response{Data: gid}
+	}
+
+	return serializer.ParamErr("未知的主机节点ID", nil)
 }
