@@ -51,6 +51,12 @@ func InitSlaveRouter() *gin.Engine {
 		v3.POST("delete", controllers.SlaveDelete)
 		// 列出文件
 		v3.POST("list", controllers.SlaveList)
+
+		// 离线下载
+		aria2 := v3.Group("aria2")
+		{
+			aria2.POST("task", controllers.SlaveList)
+		}
 	}
 	return r
 }

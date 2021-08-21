@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -30,9 +31,8 @@ type Auth interface {
 	Check(body string, sign string) error
 }
 
-// SignRequest 对PUT\POST等复杂HTTP请求签名，如果请求Header中
-// 包含 X-Policy， 则此请求会被认定为上传请求，只会对URI部分和
-// Policy部分进行签名。其他请求则会对URI和Body部分进行签名。
+// SignRequest 对PUT\POST等复杂HTTP请求签名，只会对URI部分、
+// 请求正文、`X-`开头的header进行签名
 func SignRequest(instance Auth, r *http.Request, expires int64) *http.Request {
 	// 处理有效期
 	if expires > 0 {
@@ -61,20 +61,28 @@ func CheckRequest(instance Auth, r *http.Request) error {
 	return instance.Check(getSignContent(r), sign[0])
 }
 
-// getSignContent 根据请求Header中是否包含X-Policy判断是否为上传请求，
+// getSignContent 签名请求path、正文、以`X-`开头的header
 // 返回待签名/验证的字符串
 func getSignContent(r *http.Request) (rawSignString string) {
-	if policy, ok := r.Header["X-Policy"]; ok {
-		rawSignString = serializer.NewRequestSignString(r.URL.Path, policy[0], "")
-	} else {
-		var body = []byte{}
-		if r.Body != nil {
-			body, _ = ioutil.ReadAll(r.Body)
-			_ = r.Body.Close()
-			r.Body = ioutil.NopCloser(bytes.NewReader(body))
-		}
-		rawSignString = serializer.NewRequestSignString(r.URL.Path, "", string(body))
+	// 读取所有body正文
+	var body = []byte{}
+	if r.Body != nil {
+		body, _ = ioutil.ReadAll(r.Body)
+		_ = r.Body.Close()
+		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
+
+	// 决定要签名的header
+	var signedHeader []string
+	for k, _ := range r.Header {
+		if strings.HasPrefix(k, "X-") {
+			signedHeader = append(signedHeader, fmt.Sprintf("%s=%s", k, r.Header.Get(k)))
+		}
+	}
+
+	// 读取所有待签名Header
+	rawSignString = serializer.NewRequestSignString(r.URL.Path, strings.Join(signedHeader, "&"), string(body))
+
 	return rawSignString
 }
 

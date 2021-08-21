@@ -17,7 +17,14 @@ type AddURLService struct {
 	Dst string `json:"dst" binding:"required,min=1"`
 }
 
-// Add 创建新的链接离线下载任务
+// SlaveAria2Call 从机有关Aria2的请求正文
+type SlaveAria2Call struct {
+	Task         *model.Download        `json:"task"`
+	GroupOptions map[string]interface{} `json:"group_options"`
+	Files        []uint                 `json:"files"`
+}
+
+// Add 主机创建新的链接离线下载任务
 func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
@@ -72,5 +79,10 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	// 创建任务监控
 	monitor.NewMonitor(task)
 
+	return serializer.Response{}
+}
+
+// Add 从机创建新的链接离线下载任务
+func (service *SlaveAria2Call) Add(c *gin.Context) serializer.Response {
 	return serializer.Response{}
 }

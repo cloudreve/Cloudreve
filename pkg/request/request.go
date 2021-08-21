@@ -12,6 +12,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -46,6 +47,7 @@ type options struct {
 	signTTL       int64
 	ctx           context.Context
 	contentLength int64
+	masterMeta    bool
 }
 
 type optionFunc func(*options)
@@ -110,6 +112,13 @@ func WithContentLength(s int64) Option {
 	})
 }
 
+// WithMasterMeta 请求时携带主机信息
+func WithMasterMeta() Option {
+	return optionFunc(func(o *options) {
+		o.masterMeta = true
+	})
+}
+
 // Request 发送HTTP请求
 func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
@@ -142,6 +151,12 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	// 添加请求相关设置
 	req.Header = options.header
+
+	if options.masterMeta {
+		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
+		req.Header.Add("X-Cloudreve-Version", conf.BackendVersion)
+	}
+
 	if options.contentLength != -1 {
 		req.ContentLength = options.contentLength
 	}

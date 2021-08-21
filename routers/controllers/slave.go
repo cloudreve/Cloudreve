@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
+	"github.com/cloudreve/Cloudreve/v3/service/aria2"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/cloudreve/Cloudreve/v3/service/node"
 	"github.com/gin-gonic/gin"
@@ -182,6 +183,17 @@ func SlaveHeartbeat(c *gin.Context) {
 	var service serializer.NodePingReq
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := node.HandleMasterHeartbeat(&service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveAria2Create 创建 Aria2 任务
+func SlaveAria2Create(c *gin.Context) {
+	var service aria2.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
