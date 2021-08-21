@@ -57,7 +57,10 @@ func InitSlaveRouter() *gin.Engine {
 		// 离线下载
 		aria2 := v3.Group("aria2")
 		{
+			// 创建离线下载任务
 			aria2.POST("task", controllers.SlaveAria2Create)
+			// 创建离线下载任务
+			aria2.POST("status", controllers.SlaveAria2Status)
 		}
 	}
 	return r

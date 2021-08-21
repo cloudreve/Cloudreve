@@ -284,7 +284,26 @@ func (s *slaveCaller) CreateTask(task *model.Download, options map[string]interf
 }
 
 func (s *slaveCaller) Status(task *model.Download) (rpc.StatusInfo, error) {
-	panic("implement me")
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	req := &serializer.SlaveAria2Call{
+		Task: task,
+	}
+
+	res, err := s.SendAria2Call(req, "status")
+	if err != nil {
+		return rpc.StatusInfo{}, err
+	}
+
+	if res.Code != 0 {
+		return rpc.StatusInfo{}, serializer.NewErrorFromResponse(res)
+	}
+
+	var status rpc.StatusInfo
+	res.GobDecode(&status)
+
+	return status, err
 }
 
 func (s *slaveCaller) Cancel(task *model.Download) error {

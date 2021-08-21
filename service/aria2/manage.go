@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/gin-gonic/gin"
 )
 
@@ -90,4 +91,25 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 
 	return serializer.Response{}
 
+}
+
+// Status 从机查询离线任务状态
+func Status(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	if siteID, exist := c.Get("MasterSiteID"); exist {
+		// 获取对应主机节点的从机Aria2实例
+		caller, err := slave.DefaultController.GetAria2Instance(siteID.(string))
+		if err != nil {
+			return serializer.Err(serializer.CodeNotSet, "无法获取 Aria2 实例", err)
+		}
+
+		// 查询任务
+		status, err := caller.Status(service.Task)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "离线下载任务查询失败", err)
+		}
+
+		return serializer.NewResponseWithGobData(status)
+	}
+
+	return serializer.ParamErr("未知的主机节点ID", nil)
 }

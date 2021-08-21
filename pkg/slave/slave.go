@@ -1,8 +1,10 @@
 package slave
 
 import (
+	"encoding/gob"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -38,6 +40,7 @@ func Init() {
 	DefaultController = &slaveController{
 		masters: make(map[string]masterInfo),
 	}
+	gob.Register(rpc.StatusInfo{})
 }
 
 func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializer.NodePingResp, error) {

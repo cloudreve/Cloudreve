@@ -199,3 +199,14 @@ func SlaveAria2Create(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveAria2Status 查询 Aria2 任务状态
+func SlaveAria2Status(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.Status(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
