@@ -2,10 +2,10 @@ package aria2
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +16,8 @@ type SelectFileService struct {
 
 // DownloadTaskService 下载任务管理服务
 type DownloadTaskService struct {
-	GID string `uri:"gid" binding:"required"`
+	GID    string `uri:"gid" binding:"required"`
+	Status int    `uri:"gid"`
 }
 
 // DownloadListService 下载列表服务
@@ -58,12 +59,17 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	}
 
 	// 取消任务
-	aria2.Lock.RLock()
-	defer aria2.Lock.RUnlock()
-	if err := aria2.Instance.Cancel(download); err != nil {
+	node := cluster.Default.GetNodeByID(download.GetNodeID())
+	if err := node.GetAria2Instance().Cancel(download); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}
 
+	return serializer.Response{}
+}
+
+// Notify 转发通知任务更新
+func (service *DownloadTaskService) Notify() serializer.Response {
+	common.EventNotifier.Notify([]rpc.Event{{service.GID}}, service.Status)
 	return serializer.Response{}
 }
 
@@ -83,9 +89,8 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 	}
 
 	// 选取下载
-	aria2.Lock.RLock()
-	defer aria2.Lock.RUnlock()
-	if err := aria2.Instance.Select(download, service.Indexes); err != nil {
+	node := cluster.Default.GetNodeByID(download.GetNodeID())
+	if err := node.GetAria2Instance().Select(download, service.Indexes); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}
 
@@ -93,23 +98,44 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 
 }
 
-// Status 从机查询离线任务状态
-func Status(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
-	if siteID, exist := c.Get("MasterSiteID"); exist {
-		// 获取对应主机节点的从机Aria2实例
-		caller, err := slave.DefaultController.GetAria2Instance(siteID.(string))
-		if err != nil {
-			return serializer.Err(serializer.CodeNotSet, "无法获取 Aria2 实例", err)
-		}
+// SlaveStatus 从机查询离线任务状态
+func SlaveStatus(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	caller, _ := c.Get("MasterAria2Instance")
 
-		// 查询任务
-		status, err := caller.Status(service.Task)
-		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "离线下载任务查询失败", err)
-		}
-
-		return serializer.NewResponseWithGobData(status)
+	// 查询任务
+	status, err := caller.(common.Aria2).Status(service.Task)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "离线下载任务查询失败", err)
 	}
 
-	return serializer.ParamErr("未知的主机节点ID", nil)
+	return serializer.NewResponseWithGobData(status)
+
+}
+
+// SlaveCancel 取消从机离线下载任务
+func SlaveCancel(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	caller, _ := c.Get("MasterAria2Instance")
+
+	// 查询任务
+	err := caller.(common.Aria2).Cancel(service.Task)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "任务取消失败", err)
+	}
+
+	return serializer.Response{}
+
+}
+
+// SlaveSelect 从机选取离线下载任务文件
+func SlaveSelect(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	caller, _ := c.Get("MasterAria2Instance")
+
+	// 查询任务
+	err := caller.(common.Aria2).Select(service.Task, service.Files)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "任务选取失败", err)
+	}
+
+	return serializer.Response{}
+
 }

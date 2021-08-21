@@ -78,7 +78,7 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		MAX_RETRY = 1
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{}, errors.New("error"))
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{}, errors.New("error"))
 		file, _ := util.CreatNestedFile("TestMonitor_Update/1")
 		file.Close()
 		aria2.Instance = testInstance
@@ -91,7 +91,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 磁力链下载重定向
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{
 			FollowedBy: []string{"1"},
 		}, nil)
 		monitor.Task.ID = 1
@@ -108,7 +108,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 无法更新任务信息
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{}, nil)
 		monitor.Task.ID = 1
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnError(errors.New("error"))
@@ -122,7 +122,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 返回未知状态
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "?"}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{Status: "?"}, nil)
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		aria2.mock.ExpectCommit()
@@ -135,7 +135,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 返回被取消状态
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "removed"}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{Status: "removed"}, nil)
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		aria2.mock.ExpectCommit()
@@ -151,7 +151,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 返回活跃状态
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "active"}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{Status: "active"}, nil)
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		aria2.mock.ExpectCommit()
@@ -164,7 +164,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 返回错误状态
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "error"}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{Status: "error"}, nil)
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		aria2.mock.ExpectCommit()
@@ -177,7 +177,7 @@ func TestMonitor_Update(t *testing.T) {
 	// 返回完成
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "complete"}, nil)
+		testInstance.On("SlaveStatus", testMock.Anything).Return(rpc.StatusInfo{Status: "complete"}, nil)
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		aria2.mock.ExpectCommit()
@@ -221,7 +221,7 @@ func TestMonitor_UpdateTaskInfo(t *testing.T) {
 	// 更新成功，大小改变，需要校验，校验失败
 	{
 		testInstance := new(InstanceMock)
-		testInstance.On("Cancel", testMock.Anything).Return(nil)
+		testInstance.On("SlaveCancel", testMock.Anything).Return(nil)
 		aria2.Instance = testInstance
 		aria2.mock.ExpectBegin()
 		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))

@@ -56,11 +56,16 @@ func InitSlaveRouter() *gin.Engine {
 
 		// 离线下载
 		aria2 := v3.Group("aria2")
+		aria2.Use(middleware.UseSlaveAria2Instance())
 		{
 			// 创建离线下载任务
 			aria2.POST("task", controllers.SlaveAria2Create)
-			// 创建离线下载任务
+			// 获取任务状态
 			aria2.POST("status", controllers.SlaveAria2Status)
+			// 取消离线下载任务
+			aria2.POST("cancel", controllers.SlaveCancelAria2Task)
+			// 选取任务文件
+			aria2.POST("select", controllers.SlaveSelectTask)
 		}
 	}
 	return r
@@ -185,6 +190,12 @@ func InitMasterRouter() *gin.Engine {
 				// 下载文件
 				file.GET("download/:id", controllers.Download)
 			}
+		}
+
+		// 从机的 RPC 通信
+		slave := v3.Group("slave")
+		{
+			slave.PATCH("aria2/:gid/:status", controllers.TaskUpdate)
 		}
 
 		// 回调接口

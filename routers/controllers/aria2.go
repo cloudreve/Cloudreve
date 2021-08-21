@@ -95,3 +95,14 @@ func ListFinished(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// TaskUpdate 被动更新任务状态
+func TaskUpdate(c *gin.Context) {
+	var service aria2.DownloadTaskService
+	if err := c.ShouldBindQuery(&service); err == nil {
+		res := service.Notify()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

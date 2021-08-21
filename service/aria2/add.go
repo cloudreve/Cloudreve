@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -78,22 +79,21 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 
 // Add 从机创建新的链接离线下载任务
 func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
-	if siteID, exist := c.Get("MasterSiteID"); exist {
-		// 获取对应主机节点的从机Aria2实例
-		caller, err := slave.DefaultController.GetAria2Instance(siteID.(string))
-		if err != nil {
-			return serializer.Err(serializer.CodeNotSet, "无法获取 Aria2 实例", err)
-		}
+	caller, _ := c.Get("MasterAria2Instance")
 
-		// 创建任务
-		gid, err := caller.CreateTask(service.Task, service.GroupOptions)
-		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "无法创建离线下载任务", err)
-		}
-
-		// TODO: 创建监控
-		return serializer.Response{Data: gid}
+	// 创建任务
+	gid, err := caller.(common.Aria2).CreateTask(service.Task, service.GroupOptions)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "无法创建离线下载任务", err)
 	}
 
-	return serializer.ParamErr("未知的主机节点ID", nil)
+	// 创建事件通知回调
+	siteID, _ := c.Get("MasterSiteID")
+	common.EventNotifier.SubscribeCallback(func(event common.StatusEvent) {
+		if err := slave.DefaultController.SendAria2Notification(siteID.(string), event); err != nil {
+			util.Log().Warning("无法发送离线下载任务状态变更通知, %s", err)
+		}
+	}, gid)
+
+	return serializer.Response{Data: gid}
 }

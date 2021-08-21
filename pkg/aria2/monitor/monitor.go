@@ -42,6 +42,7 @@ func NewMonitor(task *model.Download) {
 	if monitor.node != nil {
 		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second
 		go monitor.Loop()
+
 		common.EventNotifier.Subscribe(monitor.notifier, monitor.Task.GID)
 	}
 }

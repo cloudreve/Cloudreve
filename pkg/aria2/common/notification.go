@@ -11,9 +11,16 @@ type Notifier struct {
 	Subscribes sync.Map
 }
 
+type CallbackFunc func(StatusEvent)
+
 // Subscribe 订阅事件通知
 func (notifier *Notifier) Subscribe(target chan StatusEvent, gid string) {
 	notifier.Subscribes.Store(gid, target)
+}
+
+// Subscribe 订阅事件通知回调
+func (notifier *Notifier) SubscribeCallback(callback CallbackFunc, gid string) {
+	notifier.Subscribes.Store(gid, callback)
 }
 
 // Unsubscribe 取消订阅事件通知
@@ -25,10 +32,17 @@ func (notifier *Notifier) Unsubscribe(gid string) {
 func (notifier *Notifier) Notify(events []rpc.Event, status int) {
 	for _, event := range events {
 		if target, ok := notifier.Subscribes.Load(event.Gid); ok {
-			target.(chan StatusEvent) <- StatusEvent{
+			msg := StatusEvent{
 				GID:    event.Gid,
 				Status: status,
 			}
+
+			if callback, ok := target.(CallbackFunc); ok {
+				go callback(msg)
+			} else {
+				target.(chan StatusEvent) <- msg
+			}
+
 		}
 	}
 }

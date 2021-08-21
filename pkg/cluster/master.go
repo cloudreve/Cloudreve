@@ -107,6 +107,10 @@ func (node *MasterNode) GetAria2Instance() common.Aria2 {
 	return &node.aria2RPC
 }
 
+func (node *MasterNode) IsMater() bool {
+	return true
+}
+
 func (r *rpcService) Init() error {
 	r.parent.lock.Lock()
 	defer r.parent.lock.Unlock()

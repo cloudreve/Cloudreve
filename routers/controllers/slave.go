@@ -200,11 +200,33 @@ func SlaveAria2Create(c *gin.Context) {
 	}
 }
 
-// SlaveAria2Status 查询 Aria2 任务状态
+// SlaveAria2Status 查询从机 Aria2 任务状态
 func SlaveAria2Status(c *gin.Context) {
 	var service serializer.SlaveAria2Call
 	if err := c.ShouldBindJSON(&service); err == nil {
-		res := aria2.Status(c, &service)
+		res := aria2.SlaveStatus(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveCancelAria2Task 取消从机离线下载任务
+func SlaveCancelAria2Task(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveCancel(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveSelectTask 从机选取离线下载文件
+func SlaveSelectTask(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveSelect(c, &service)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

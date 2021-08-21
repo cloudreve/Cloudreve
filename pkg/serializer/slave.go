@@ -15,10 +15,11 @@ type ListRequest struct {
 
 // NodePingReq 从机节点Ping请求
 type NodePingReq struct {
-	SiteURL  string      `json:"site_url"`
-	SiteID   string      `json:"site_id"`
-	IsUpdate bool        `json:"is_update"`
-	Node     *model.Node `json:"node"`
+	SiteURL       string      `json:"site_url"`
+	SiteID        string      `json:"site_id"`
+	IsUpdate      bool        `json:"is_update"`
+	CredentialTTL int         `json:"credential_ttl"`
+	Node          *model.Node `json:"node"`
 }
 
 // NodePingResp 从机节点Ping响应
@@ -29,5 +30,5 @@ type NodePingResp struct {
 type SlaveAria2Call struct {
 	Task         *model.Download        `json:"task"`
 	GroupOptions map[string]interface{} `json:"group_options"`
-	Files        []uint                 `json:"files"`
+	Files        []int                  `json:"files"`
 }

@@ -234,10 +234,15 @@ loop:
 // getHeartbeatContent gets serializer.NodePingReq used to send heartbeat to slave
 func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingReq {
 	return &serializer.NodePingReq{
-		IsUpdate: isUpdate,
-		SiteID:   model.GetSettingByName("siteID"),
-		Node:     node.Model,
+		IsUpdate:      isUpdate,
+		SiteID:        model.GetSettingByName("siteID"),
+		Node:          node.Model,
+		CredentialTTL: model.GetIntSetting("slave_api_timeout", 60),
 	}
+}
+
+func (node *SlaveNode) IsMater() bool {
+	return false
 }
 
 func (s *slaveCaller) Init() error {
@@ -307,11 +312,44 @@ func (s *slaveCaller) Status(task *model.Download) (rpc.StatusInfo, error) {
 }
 
 func (s *slaveCaller) Cancel(task *model.Download) error {
-	panic("implement me")
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	req := &serializer.SlaveAria2Call{
+		Task: task,
+	}
+
+	res, err := s.SendAria2Call(req, "cancel")
+	if err != nil {
+		return err
+	}
+
+	if res.Code != 0 {
+		return serializer.NewErrorFromResponse(res)
+	}
+
+	return nil
 }
 
 func (s *slaveCaller) Select(task *model.Download, files []int) error {
-	panic("implement me")
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	req := &serializer.SlaveAria2Call{
+		Task:  task,
+		Files: files,
+	}
+
+	res, err := s.SendAria2Call(req, "select")
+	if err != nil {
+		return err
+	}
+
+	if res.Code != 0 {
+		return serializer.NewErrorFromResponse(res)
+	}
+
+	return nil
 }
 
 func (s *slaveCaller) GetConfig() model.Aria2Option {
