@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/crontab"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
+	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/gin-gonic/gin"
 )
@@ -21,6 +22,7 @@ func Init(path string) {
 	if !conf.SystemConfig.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
 	cache.Init()
 	if conf.SystemConfig.Mode == "master" {
 		model.Init()
@@ -30,6 +32,9 @@ func Init(path string) {
 		email.Init()
 		crontab.Init()
 		InitStatic()
+	} else {
+		slave.Init()
 	}
+
 	auth.Init()
 }

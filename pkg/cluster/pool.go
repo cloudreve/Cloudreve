@@ -95,7 +95,7 @@ func (pool *NodePool) initFromDB() error {
 	pool.active = make(map[uint]Node)
 	pool.inactive = make(map[uint]Node)
 	for i := 0; i < len(nodes); i++ {
-		newNode := getNodeFromDBModel(&nodes[i])
+		newNode := NewNodeFromDBModel(&nodes[i])
 		if newNode.IsActive() {
 			pool.active[nodes[i].ID] = newNode
 		} else {

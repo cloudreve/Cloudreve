@@ -84,6 +84,13 @@ func (node *MasterNode) IsActive() bool {
 	return true
 }
 
+// Kill 结束aria2请求
+func (node *MasterNode) Kill() {
+	if node.aria2RPC.Caller != nil {
+		node.aria2RPC.Caller.Close()
+	}
+}
+
 // GetAria2Instance 获取主机Aria2实例
 func (node *MasterNode) GetAria2Instance() common.Aria2 {
 	if !node.Model.Aria2Enabled {

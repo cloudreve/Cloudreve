@@ -31,7 +31,7 @@ type SlaveNode struct {
 func (node *SlaveNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
 	node.Model = nodeModel
-	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SecretKey)}
+	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SlaveKey)}
 	node.Client = request.HTTPClient{}
 	node.Active = true
 	if node.close != nil {
@@ -99,6 +99,28 @@ func (node *SlaveNode) IsActive() bool {
 	return node.Active
 }
 
+// Kill 结束节点内相关循环
+func (node *SlaveNode) Kill() {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	if node.close != nil {
+		close(node.close)
+	}
+}
+
+// GetAria2Instance 获取从机Aria2实例
+func (node *SlaveNode) GetAria2Instance() common.Aria2 {
+	return nil
+}
+
+func (node *SlaveNode) ID() uint {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model.ID
+}
+
 // getAPIUrl 获取接口请求地址
 func (node *SlaveNode) getAPIUrl(scope string) string {
 	node.lock.RLock()
@@ -136,8 +158,7 @@ func (node *SlaveNode) StartPingLoop() {
 
 	tickDuration := time.Duration(model.GetIntSetting("slave_ping_interval", 300)) * time.Second
 	recoverDuration := time.Duration(model.GetIntSetting("slave_recover_interval", 600)) * time.Second
-	pingTicker := time.NewTicker(tickDuration)
-	defer pingTicker.Stop()
+	pingTicker := time.Duration(0)
 
 	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
 	retry := 0
@@ -146,9 +167,13 @@ func (node *SlaveNode) StartPingLoop() {
 loop:
 	for {
 		select {
-		case <-pingTicker.C:
+		case <-time.After(pingTicker):
+			if pingTicker == 0 {
+				pingTicker = tickDuration
+			}
+
 			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
-			res, err := node.Ping(&serializer.NodePingReq{})
+			res, err := node.Ping(node.getHeartbeatContent(false))
 			if err != nil {
 				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
 				retry++
@@ -159,16 +184,14 @@ loop:
 					if !recoverMode {
 						// 启动恢复监控循环
 						util.Log().Debug("从机节点 [%s] 进入恢复模式", node.Model.Name)
-						pingTicker.Stop()
-						pingTicker = time.NewTicker(recoverDuration)
+						pingTicker = recoverDuration
 						recoverMode = true
 					}
 				}
 			} else {
 				if recoverMode {
 					util.Log().Debug("从机节点 [%s] 复活", node.Model.Name)
-					pingTicker.Stop()
-					pingTicker = time.NewTicker(tickDuration)
+					pingTicker = tickDuration
 					recoverMode = false
 				}
 
@@ -184,14 +207,11 @@ loop:
 	}
 }
 
-// GetAria2Instance 获取从机Aria2实例
-func (node *SlaveNode) GetAria2Instance() common.Aria2 {
-	return nil
-}
-
-func (node *SlaveNode) ID() uint {
-	node.lock.RLock()
-	defer node.lock.RUnlock()
-
-	return node.Model.ID
+// getHeartbeatContent gets serializer.NodePingReq used to send heartbeat to slave
+func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingReq {
+	return &serializer.NodePingReq{
+		IsUpdate:  isUpdate,
+		MasterURL: model.GetSiteURL().String(),
+		Node:      node.Model,
+	}
 }

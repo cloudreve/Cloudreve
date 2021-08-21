@@ -18,6 +18,13 @@ var LB balancer.Balancer
 // Lock Instance的读写锁
 var Lock sync.RWMutex
 
+// GetLoadBalancer 返回供Aria2使用的负载均衡器
+func GetLoadBalancer() balancer.Balancer {
+	Lock.RLock()
+	defer Lock.RUnlock()
+	return LB
+}
+
 // Init 初始化
 func Init(isReload bool) {
 	Lock.Lock()

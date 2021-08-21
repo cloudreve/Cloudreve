@@ -21,9 +21,12 @@ type Node interface {
 	GetAria2Instance() common.Aria2
 	// Returns unique id of this node
 	ID() uint
+	// Kill node and recycle resources
+	Kill()
 }
 
-func getNodeFromDBModel(node *model.Node) Node {
+// Create new node from DB model
+func NewNodeFromDBModel(node *model.Node) Node {
 	switch node.Type {
 	case model.SlaveNodeType:
 		slave := &SlaveNode{}

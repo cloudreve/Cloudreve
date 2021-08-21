@@ -12,12 +12,13 @@ type Node struct {
 	Name         string     // 节点别名
 	Type         ModelType  // 节点状态
 	Server       string     // 服务器地址
-	SecretKey    string     `gorm:"type:text"` // 通信密钥
+	SlaveKey     string     `gorm:"type:text"` // 主->从 通信密钥
+	MasterKey    string     `gorm:"type:text"` // 从->主 通信密钥
 	Aria2Enabled bool       // 是否支持用作离线下载节点
 	Aria2Options string     `gorm:"type:text"` // 离线下载配置
 
 	// 数据库忽略字段
-	Aria2OptionsSerialized Aria2Option `gorm:"-"`
+	Aria2OptionsSerialized Aria2Option `gorm:"-" json:"-"`
 }
 
 // Aria2Option 非公有的Aria2配置属性
