@@ -37,7 +37,7 @@ func NewMonitor(task *model.Download) {
 	monitor := &Monitor{
 		Task:     task,
 		notifier: make(chan common.StatusEvent),
-		node:     cluster.Default.GetNodeByID(task.NodeID),
+		node:     cluster.Default.GetNodeByID(task.GetNodeID()),
 	}
 	if monitor.node != nil {
 		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second

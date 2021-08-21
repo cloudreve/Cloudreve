@@ -115,3 +115,13 @@ func (task *Download) GetOwner() *User {
 func (download *Download) Delete() error {
 	return DB.Model(download).Delete(download).Error
 }
+
+// GetNodeID 返回任务所属节点ID
+func (task *Download) GetNodeID() uint {
+	// 兼容3.4版本之前生成的下载记录
+	if task.NodeID == 0 {
+		return 1
+	}
+
+	return task.NodeID
+}
