@@ -1,4 +1,4 @@
-package aria2
+package common
 
 import (
 	"sync"
@@ -6,7 +6,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 )
 
-// Notifier aria2实践通知处理
+// Notifier aria2事件通知处理
 type Notifier struct {
 	Subscribes sync.Map
 }
@@ -61,4 +61,10 @@ func (notifier *Notifier) OnDownloadError(events []rpc.Event) {
 // OnBtDownloadComplete BT下载完成
 func (notifier *Notifier) OnBtDownloadComplete(events []rpc.Event) {
 	notifier.Notify(events, Complete)
+}
+
+// StatusEvent 状态改变事件
+type StatusEvent struct {
+	GID    string
+	Status int
 }

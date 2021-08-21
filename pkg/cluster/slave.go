@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -185,6 +185,13 @@ loop:
 }
 
 // GetAria2Instance 获取从机Aria2实例
-func (node *SlaveNode) GetAria2Instance() aria2.Aria2 {
+func (node *SlaveNode) GetAria2Instance() common.Aria2 {
 	return nil
+}
+
+func (node *SlaveNode) ID() uint {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model.ID
 }

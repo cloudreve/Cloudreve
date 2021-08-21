@@ -1,4 +1,4 @@
-package aria2
+package monitor
 
 import (
 	"errors"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
@@ -44,13 +46,13 @@ func (m InstanceMock) Select(task *model.Download, files []int) error {
 func TestNewMonitor(t *testing.T) {
 	asserts := assert.New(t)
 	NewMonitor(&model.Download{GID: "gid"})
-	_, ok := EventNotifier.Subscribes.Load("gid")
+	_, ok := common.EventNotifier.Subscribes.Load("gid")
 	asserts.True(ok)
 }
 
 func TestMonitor_Loop(t *testing.T) {
 	asserts := assert.New(t)
-	notifier := make(chan StatusEvent)
+	notifier := make(chan common.StatusEvent)
 	MAX_RETRY = 0
 	monitor := &Monitor{
 		Task:     &model.Download{GID: "gid"},
@@ -79,7 +81,7 @@ func TestMonitor_Update(t *testing.T) {
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{}, errors.New("error"))
 		file, _ := util.CreatNestedFile("TestMonitor_Update/1")
 		file.Close()
-		Instance = testInstance
+		aria2.Instance = testInstance
 		asserts.False(monitor.Update())
 		asserts.True(monitor.Update())
 		testInstance.AssertExpectations(t)
@@ -93,12 +95,12 @@ func TestMonitor_Update(t *testing.T) {
 			FollowedBy: []string{"1"},
 		}, nil)
 		monitor.Task.ID = 1
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.False(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 		asserts.EqualValues("1", monitor.Task.GID)
 	}
@@ -108,12 +110,12 @@ func TestMonitor_Update(t *testing.T) {
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{}, nil)
 		monitor.Task.ID = 1
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnError(errors.New("error"))
-		mock.ExpectRollback()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnError(errors.New("error"))
+		aria2.mock.ExpectRollback()
+		aria2.Instance = testInstance
 		asserts.True(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 
@@ -121,12 +123,12 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "?"}, nil)
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.True(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 
@@ -134,15 +136,15 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "removed"}, nil)
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.True(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 
@@ -150,12 +152,12 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "active"}, nil)
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.False(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 
@@ -163,12 +165,12 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "error"}, nil)
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.True(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 
@@ -176,12 +178,12 @@ func TestMonitor_Update(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Status", testMock.Anything).Return(rpc.StatusInfo{Status: "complete"}, nil)
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
-		Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
+		aria2.Instance = testInstance
 		asserts.True(monitor.Update())
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		testInstance.AssertExpectations(t)
 	}
 }
@@ -198,21 +200,21 @@ func TestMonitor_UpdateTaskInfo(t *testing.T) {
 
 	// 失败
 	{
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnError(errors.New("error"))
-		mock.ExpectRollback()
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnError(errors.New("error"))
+		aria2.mock.ExpectRollback()
 		err := monitor.UpdateTaskInfo(rpc.StatusInfo{})
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		asserts.Error(err)
 	}
 
 	// 更新成功，无需校验
 	{
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
 		err := monitor.UpdateTaskInfo(rpc.StatusInfo{})
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		asserts.NoError(err)
 	}
 
@@ -220,12 +222,12 @@ func TestMonitor_UpdateTaskInfo(t *testing.T) {
 	{
 		testInstance := new(InstanceMock)
 		testInstance.On("Cancel", testMock.Anything).Return(nil)
-		Instance = testInstance
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
-		mock.ExpectCommit()
+		aria2.Instance = testInstance
+		aria2.mock.ExpectBegin()
+		aria2.mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		aria2.mock.ExpectCommit()
 		err := monitor.UpdateTaskInfo(rpc.StatusInfo{TotalLength: "1"})
-		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(aria2.mock.ExpectationsWereMet())
 		asserts.Error(err)
 		testInstance.AssertExpectations(t)
 	}
@@ -308,17 +310,17 @@ func TestMonitor_Complete(t *testing.T) {
 	}
 
 	cache.Set("setting_max_worker_num", "1", 0)
-	mock.ExpectQuery("SELECT(.+)tasks").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+	aria2.mock.ExpectQuery("SELECT(.+)tasks").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	task.Init()
-	mock.ExpectQuery("SELECT(.+)users").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectQuery("SELECT(.+)policies").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-	mock.ExpectBegin()
-	mock.ExpectExec("INSERT(.+)tasks").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
+	aria2.mock.ExpectQuery("SELECT(.+)users").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	aria2.mock.ExpectQuery("SELECT(.+)policies").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	aria2.mock.ExpectBegin()
+	aria2.mock.ExpectExec("INSERT(.+)tasks").WillReturnResult(sqlmock.NewResult(1, 1))
+	aria2.mock.ExpectCommit()
 
-	mock.ExpectBegin()
-	mock.ExpectExec("UPDATE(.+)downloads").WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
+	aria2.mock.ExpectBegin()
+	aria2.mock.ExpectExec("UPDATE(.+)downloads").WillReturnResult(sqlmock.NewResult(1, 1))
+	aria2.mock.ExpectCommit()
 	asserts.True(monitor.Complete(rpc.StatusInfo{}))
-	asserts.NoError(mock.ExpectationsWereMet())
+	asserts.NoError(aria2.mock.ExpectationsWereMet())
 }

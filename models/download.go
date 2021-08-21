@@ -24,6 +24,7 @@ type Download struct {
 	Dst            string `gorm:"type:text"`       // 用户文件系统存储父目录路径
 	UserID         uint   // 发起者UID
 	TaskID         uint   // 对应的转存任务ID
+	NodeID         uint   // 处理任务的节点ID
 
 	// 关联模型
 	User *User `gorm:"PRELOAD:false,association_autoupdate:false"`

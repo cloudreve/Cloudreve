@@ -14,7 +14,11 @@ var featureGroup = []string{"aria2"}
 
 // Pool 节点池
 type Pool interface {
+	// Returns active node selected by given feature and load balancer
 	BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node)
+
+	// Returns node by ID
+	GetNodeByID(id uint) Node
 }
 
 // NodePool 通用节点池
@@ -51,6 +55,17 @@ func (pool *NodePool) buildIndexMap() {
 		}
 	}
 	pool.lock.Unlock()
+}
+
+func (pool *NodePool) GetNodeByID(id uint) Node {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	if node, ok := pool.active[id]; ok {
+		return node
+	}
+
+	return pool.inactive[id]
 }
 
 func (pool *NodePool) nodeStatusChange(isActive bool, id uint) {

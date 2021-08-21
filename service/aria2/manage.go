@@ -3,6 +3,7 @@ package aria2
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
@@ -25,14 +26,14 @@ type DownloadListService struct {
 // Finished 获取已完成的任务
 func (service *DownloadListService) Finished(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, aria2.Error, aria2.Complete, aria2.Canceled, aria2.Unknown)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Error, common.Complete, common.Canceled, common.Unknown)
 	return serializer.BuildFinishedListResponse(downloads)
 }
 
 // Downloading 获取正在下载中的任务
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, aria2.Downloading, aria2.Paused, aria2.Ready)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Paused, common.Ready)
 	return serializer.BuildDownloadingResponse(downloads)
 }
 
@@ -47,7 +48,7 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
 	}
 
-	if download.Status >= aria2.Error {
+	if download.Status >= common.Error {
 		// 如果任务已完成，则删除任务记录
 		if err := download.Delete(); err != nil {
 			return serializer.Err(serializer.CodeDBError, "任务记录删除失败", err)
@@ -76,7 +77,7 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
 	}
 
-	if download.StatusInfo.BitTorrent.Mode != "multi" || (download.Status != aria2.Downloading && download.Status != aria2.Paused) {
+	if download.StatusInfo.BitTorrent.Mode != "multi" || (download.Status != common.Downloading && download.Status != common.Paused) {
 		return serializer.Err(serializer.CodeNoPermissionErr, "此下载任务无法选取文件", err)
 	}
 

@@ -3,13 +3,15 @@ package cluster
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/url"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -49,6 +51,13 @@ func (node *MasterNode) Init(nodeModel *model.Node) {
 	node.lock.RUnlock()
 }
 
+func (node *MasterNode) ID() uint {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model.ID
+}
+
 func (node *MasterNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingResp, error) {
 	return &serializer.NodePingResp{}, nil
 }
@@ -76,15 +85,15 @@ func (node *MasterNode) IsActive() bool {
 }
 
 // GetAria2Instance 获取主机Aria2实例
-func (node *MasterNode) GetAria2Instance() aria2.Aria2 {
+func (node *MasterNode) GetAria2Instance() common.Aria2 {
 	if !node.Model.Aria2Enabled {
-		return &aria2.DummyAria2{}
+		return &common.DummyAria2{}
 	}
 
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 	if !node.aria2RPC.Initialized {
-		return &aria2.DummyAria2{}
+		return &common.DummyAria2{}
 	}
 
 	return &node.aria2RPC
@@ -122,25 +131,76 @@ func (r *rpcService) Init() error {
 		Options: globalOptions,
 	}
 	timeout := r.parent.Model.Aria2OptionsSerialized.Timeout
-	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, aria2.EventNotifier)
+	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, common.EventNotifier)
 
 	r.Caller = caller
 	r.Initialized = true
 	return err
 }
 
-func (r *rpcService) CreateTask(task *model.Download, options map[string]interface{}) (string, error) {
-	return "", fmt.Errorf("some error #%d", r.parent.Model.ID)
+func (r *rpcService) CreateTask(task *model.Download, groupOptions map[string]interface{}) (string, error) {
+	r.parent.lock.RLock()
+	// 生成存储路径
+	path := filepath.Join(
+		r.parent.Model.Aria2OptionsSerialized.TempPath,
+		"aria2",
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+	)
+	r.parent.lock.RUnlock()
+
+	// 创建下载任务
+	options := map[string]interface{}{
+		"dir": path,
+	}
+	for k, v := range r.options.Options {
+		options[k] = v
+	}
+	for k, v := range groupOptions {
+		options[k] = v
+	}
+
+	gid, err := r.Caller.AddURI(task.Source, options)
+	if err != nil || gid == "" {
+		return "", err
+	}
+
+	return gid, nil
 }
 
 func (r *rpcService) Status(task *model.Download) (rpc.StatusInfo, error) {
-	panic("implement me")
+	res, err := r.Caller.TellStatus(task.GID)
+	if err != nil {
+		// 失败后重试
+		util.Log().Debug("无法获取离线下载状态，%s，10秒钟后重试", err)
+		time.Sleep(time.Duration(10) * time.Second)
+		res, err = r.Caller.TellStatus(task.GID)
+	}
+
+	return res, err
 }
 
 func (r *rpcService) Cancel(task *model.Download) error {
-	panic("implement me")
+	// 取消下载任务
+	_, err := r.Caller.Remove(task.GID)
+	if err != nil {
+		util.Log().Warning("无法取消离线下载任务[%s], %s", task.GID, err)
+	}
+
+	return err
 }
 
 func (r *rpcService) Select(task *model.Download, files []int) error {
-	panic("implement me")
+	var selected = make([]string, len(files))
+	for i := 0; i < len(files); i++ {
+		selected[i] = strconv.Itoa(files[i])
+	}
+	_, err := r.Caller.ChangeOption(task.GID, map[string]interface{}{"select-file": strings.Join(selected, ",")})
+	return err
+}
+
+func (r *rpcService) GetConfig() model.Aria2Option {
+	r.parent.lock.RLock()
+	defer r.parent.lock.RUnlock()
+
+	return r.parent.Model.Aria2OptionsSerialized
 }

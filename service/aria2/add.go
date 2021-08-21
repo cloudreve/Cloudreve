@@ -3,6 +3,8 @@ package aria2
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/monitor"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -36,7 +38,7 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 
 	// 创建任务
 	task := &model.Download{
-		Status: aria2.Ready,
+		Status: common.Ready,
 		Type:   taskType,
 		Dst:    service.Dst,
 		UserID: fs.User.ID,
@@ -61,14 +63,14 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	}
 
 	task.GID = gid
+	task.NodeID = node.ID()
 	_, err = task.Create()
 	if err != nil {
 		return serializer.DBErr("任务创建失败", err)
 	}
 
 	// 创建任务监控
-	aria2.NewMonitor(task)
+	monitor.NewMonitor(task)
 
-	aria2.Lock.RUnlock()
 	return serializer.Response{}
 }
