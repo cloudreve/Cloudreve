@@ -61,15 +61,17 @@ func CheckRequest(instance Auth, r *http.Request) error {
 	return instance.Check(getSignContent(r), sign[0])
 }
 
-// getSignContent 签名请求path、正文、以`X-`开头的header
-// 返回待签名/验证的字符串
+// getSignContent 签名请求 path、正文、以`X-`开头的 Header. 如果 Header 中包含 `X-Policy`，
+// 则不对正文签名。返回待签名/验证的字符串
 func getSignContent(r *http.Request) (rawSignString string) {
 	// 读取所有body正文
 	var body = []byte{}
-	if r.Body != nil {
-		body, _ = ioutil.ReadAll(r.Body)
-		_ = r.Body.Close()
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
+	if _, ok := r.Header["X-Policy"]; !ok {
+		if r.Body != nil {
+			body, _ = ioutil.ReadAll(r.Body)
+			_ = r.Body.Close()
+			r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		}
 	}
 
 	// 决定要签名的header

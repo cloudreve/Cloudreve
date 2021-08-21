@@ -49,6 +49,7 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 		handler.getAPIUrl("list"),
 		bodyReader,
 		request.WithCredential(handler.AuthInstance, int64(signTTL)),
+		request.WithMasterMeta(),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return res, err
@@ -116,6 +117,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 		nil,
 		request.WithContext(ctx),
 		request.WithTimeout(time.Duration(0)),
+		request.WithMasterMeta(),
 	).CheckHTTPResponse(200).GetRSCloser()
 	if err != nil {
 		return nil, err
@@ -175,6 +177,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 		}),
 		request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(0)),
+		request.WithMasterMeta(),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return err
@@ -206,6 +209,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		handler.getAPIUrl("delete"),
 		bodyReader,
 		request.WithCredential(handler.AuthInstance, int64(signTTL)),
+		request.WithMasterMeta(),
 	).CheckHTTPResponse(200).GetResponse()
 	if err != nil {
 		return files, err
