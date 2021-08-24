@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/afero/rclonefs"
 	"gopkg.in/go-playground/validator.v9"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -181,6 +182,11 @@ func mapSection(section string, confStruct interface{}) error {
 
 
 func initRCloneBind(){
+	if runtime.GOOS != "linux"{
+		util.Log().Warning("RClone Bind Unsupported OS %s until tested", runtime.GOOS)
+		return
+	}
+
 	if RCloneConfig.Binds[0] == "UNSET"{
 		return
 	}
