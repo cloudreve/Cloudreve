@@ -146,7 +146,7 @@ func (r *rpcService) Init() error {
 	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, common.EventNotifier)
 
 	r.Caller = caller
-	r.Initialized = true
+	r.Initialized = err == nil
 	return err
 }
 
