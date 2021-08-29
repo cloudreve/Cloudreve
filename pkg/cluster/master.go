@@ -6,6 +6,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/url"
@@ -73,6 +74,13 @@ func (node *MasterNode) IsFeatureEnabled(feature string) bool {
 	default:
 		return false
 	}
+}
+
+func (node *MasterNode) GetAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
 }
 
 // SubscribeStatusChange 订阅节点状态更改

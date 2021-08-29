@@ -6,11 +6,11 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"net/http"
+	"net/url"
 	"sync"
 )
 
@@ -36,10 +36,10 @@ type slaveController struct {
 
 // info of master node
 type masterInfo struct {
-	slaveID    uint
-	id         string
-	authClient auth.Auth
-	ttl        int
+	slaveID uint
+	id      string
+	ttl     int
+	url     *url.URL
 	// used to invoke aria2 rpc calls
 	instance cluster.Node
 }
@@ -66,14 +66,18 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 			origin.instance.Kill()
 		}
 
+		masterUrl, err := url.Parse(req.SiteURL)
+		if err != nil {
+			return serializer.NodePingResp{}, err
+		}
+
 		c.masters[req.SiteID] = masterInfo{
 			slaveID: req.Node.ID,
 			id:      req.SiteID,
-			authClient: auth.HMACAuth{
-				SecretKey: []byte(req.Node.MasterKey),
-			},
-			ttl: req.CredentialTTL,
+			url:     masterUrl,
+			ttl:     req.CredentialTTL,
 			instance: cluster.NewNodeFromDBModel(&model.Node{
+				MasterKey:              req.Node.MasterKey,
 				Type:                   model.MasterNodeType,
 				Aria2Enabled:           req.Node.Aria2Enabled,
 				Aria2OptionsSerialized: req.Node.Aria2OptionsSerialized,
@@ -101,12 +105,14 @@ func (c *slaveController) SendAria2Notification(id string, msg common.StatusEven
 	if node, ok := c.masters[id]; ok {
 		c.lock.RUnlock()
 
+		apiPath, _ := url.Parse(fmt.Sprintf("/api/v3/slave/aria2/%s/%d", msg.GID, msg.Status))
+
 		res, err := c.client.Request(
 			"PATCH",
-			fmt.Sprintf("/api/v3/slave/aria2/%s/%d", msg.GID, msg.Status),
+			node.url.ResolveReference(apiPath).String(),
 			nil,
-			request.WithHeader(http.Header{"X-Node-ID": []string{fmt.Sprintf("%d", node.slaveID)}}),
-			request.WithCredential(node.authClient, int64(node.ttl)),
+			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.slaveID)}}),
+			request.WithCredential(node.instance.GetAuthInstance(), int64(node.ttl)),
 		).CheckHTTPResponse(200).DecodeResponse()
 		if err != nil {
 			return err

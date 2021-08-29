@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/middleware"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -29,7 +30,7 @@ func InitSlaveRouter() *gin.Engine {
 	InitCORS(r)
 	v3 := r.Group("/api/v3/slave")
 	// 鉴权中间件
-	v3.Use(middleware.SignRequired())
+	v3.Use(middleware.SignRequired(auth.General))
 	// 主机信息解析
 	v3.Use(middleware.MasterMetadata())
 
@@ -149,7 +150,7 @@ func InitMasterRouter() *gin.Engine {
 			user.PATCH("reset", controllers.UserReset)
 			// 邮件激活
 			user.GET("activate/:id",
-				middleware.SignRequired(),
+				middleware.SignRequired(auth.General),
 				middleware.HashID(hashid.UserID),
 				controllers.UserActivate,
 			)
@@ -177,7 +178,7 @@ func InitMasterRouter() *gin.Engine {
 
 		// 需要携带签名验证的
 		sign := v3.Group("")
-		sign.Use(middleware.SignRequired())
+		sign.Use(middleware.SignRequired(auth.General))
 		{
 			file := sign.Group("file")
 			{
@@ -194,6 +195,7 @@ func InitMasterRouter() *gin.Engine {
 
 		// 从机的 RPC 通信
 		slave := v3.Group("slave")
+		slave.Use(middleware.SlaveRPCSignRequired())
 		{
 			slave.PATCH("aria2/:gid/:status", controllers.TaskUpdate)
 		}

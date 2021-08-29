@@ -187,6 +187,7 @@ func (node *SlaveNode) StartPingLoop() {
 	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
 	retry := 0
 	recoverMode := false
+	isFirstLoop := true
 
 loop:
 	for {
@@ -197,7 +198,9 @@ loop:
 			}
 
 			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
-			res, err := node.Ping(node.getHeartbeatContent(false))
+			res, err := node.Ping(node.getHeartbeatContent(isFirstLoop))
+			isFirstLoop = false
+
 			if err != nil {
 				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
 				retry++
@@ -217,6 +220,7 @@ loop:
 					util.Log().Debug("从机节点 [%s] 复活", node.Model.Name)
 					pingTicker = tickDuration
 					recoverMode = false
+					isFirstLoop = true
 				}
 
 				util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
@@ -234,6 +238,7 @@ loop:
 // getHeartbeatContent gets serializer.NodePingReq used to send heartbeat to slave
 func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingReq {
 	return &serializer.NodePingReq{
+		SiteURL:       model.GetSiteURL().String(),
 		IsUpdate:      isUpdate,
 		SiteID:        model.GetSettingByName("siteID"),
 		Node:          node.Model,
@@ -243,6 +248,13 @@ func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingRe
 
 func (node *SlaveNode) IsMater() bool {
 	return false
+}
+
+func (node *SlaveNode) GetAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
 }
 
 func (s *slaveCaller) Init() error {

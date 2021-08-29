@@ -16,6 +16,10 @@ func (r *RoundRobin) NextPeer(nodes interface{}) (error, interface{}) {
 		return ErrInputNotSlice, nil
 	}
 
+	if v.Len() == 0 {
+		return ErrNoAvaliableNode, nil
+	}
+
 	next := r.NextIndex(v.Len())
 	return nil, v.Index(next).Interface()
 }

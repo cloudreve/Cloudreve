@@ -17,7 +17,7 @@ type SelectFileService struct {
 // DownloadTaskService 下载任务管理服务
 type DownloadTaskService struct {
 	GID    string `uri:"gid" binding:"required"`
-	Status int    `uri:"gid"`
+	Status int    `uri:"status"`
 }
 
 // DownloadListService 下载列表服务

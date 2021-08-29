@@ -119,7 +119,11 @@ func (pool *NodePool) BalanceNodeByFeature(feature string, lb balancer.Balancer)
 	defer pool.lock.RUnlock()
 	if nodes, ok := pool.featureMap[feature]; ok {
 		err, res := lb.NextPeer(nodes)
-		return err, res.(Node)
+		if err == nil {
+			return nil, res.(Node)
+		}
+
+		return err, nil
 	}
 
 	return ErrFeatureNotExist, nil

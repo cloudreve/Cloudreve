@@ -3,6 +3,7 @@ package cluster
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
 
@@ -33,6 +34,9 @@ type Node interface {
 
 	// Returns if current node is master node
 	IsMater() bool
+
+	// Get auth instance used to check RPC call from slave to master
+	GetAuthInstance() auth.Auth
 }
 
 // Create new node from DB model

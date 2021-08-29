@@ -154,7 +154,7 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	if options.masterMeta {
 		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
-		req.Header.Add("X-Site-ID", model.GetSettingByName("siteID"))
+		req.Header.Add("X-Site-Id", model.GetSettingByName("siteID"))
 		req.Header.Add("X-Cloudreve-Version", conf.BackendVersion)
 	}
 
