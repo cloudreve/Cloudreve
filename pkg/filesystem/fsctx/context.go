@@ -41,4 +41,6 @@ const (
 	ValidateCapacityOnceCtx
 	// 禁止上传时同名覆盖操作
 	DisableOverwrite
+	// 文件在从机节点中的路径
+	SlaveSrcPath
 )

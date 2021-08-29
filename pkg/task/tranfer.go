@@ -108,6 +108,7 @@ func (job *TransferTask) Do() {
 		}
 
 		ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
+		ctx = context.WithValue(ctx, fsctx.SlaveSrcPath, file)
 		if job.TaskProps.NodeID > 1 {
 			// 指定为从机中转
 
@@ -121,6 +122,7 @@ func (job *TransferTask) Do() {
 			fs.SwitchToSlaveHandler(node)
 			err = fs.UploadFromStream(ctx, nil, dst, job.TaskProps.SrcSizes[file])
 		} else {
+			// 主机节点中转
 			err = fs.UploadFromPath(ctx, file, dst)
 		}
 

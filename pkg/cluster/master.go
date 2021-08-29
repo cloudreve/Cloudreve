@@ -102,16 +102,19 @@ func (node *MasterNode) Kill() {
 // GetAria2Instance 获取主机Aria2实例
 func (node *MasterNode) GetAria2Instance() common.Aria2 {
 	node.lock.RLock()
-	defer node.lock.RUnlock()
 
 	if !node.Model.Aria2Enabled {
+		node.lock.RUnlock()
 		return &common.DummyAria2{}
 	}
 
 	if !node.aria2RPC.Initialized {
+		node.lock.RUnlock()
+		node.aria2RPC.Init()
 		return &common.DummyAria2{}
 	}
 
+	defer node.lock.RUnlock()
 	return &node.aria2RPC
 }
 
