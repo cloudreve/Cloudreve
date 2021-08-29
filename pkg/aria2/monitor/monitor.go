@@ -239,17 +239,24 @@ func (monitor *Monitor) RemoveTempFolder() {
 func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 	// 创建中转任务
 	file := make([]string, 0, len(monitor.Task.StatusInfo.Files))
+	sizes := make(map[string]uint64, len(monitor.Task.StatusInfo.Files))
 	for i := 0; i < len(monitor.Task.StatusInfo.Files); i++ {
-		if monitor.Task.StatusInfo.Files[i].Selected == "true" {
-			file = append(file, monitor.Task.StatusInfo.Files[i].Path)
+		fileInfo := monitor.Task.StatusInfo.Files[i]
+		if fileInfo.Selected == "true" {
+			file = append(file, fileInfo.Path)
+			size, _ := strconv.ParseUint(fileInfo.Length, 10, 64)
+			sizes[fileInfo.Path] = size
 		}
 	}
+
 	job, err := task.NewTransferTask(
 		monitor.Task.UserID,
 		file,
 		monitor.Task.Dst,
 		monitor.Task.Parent,
 		true,
+		monitor.node.ID(),
+		sizes,
 	)
 	if err != nil {
 		monitor.setErrorStatus(err)

@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"io"
 	"net/http"
 	"net/url"
@@ -134,7 +135,6 @@ func NewFileSystem(user *model.User) (*FileSystem, error) {
 	// 分配存储策略适配器
 	err := fs.DispatchHandler()
 
-	// TODO 分配默认钩子
 	return fs, err
 }
 
@@ -159,7 +159,6 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 }
 
 // DispatchHandler 根据存储策略分配文件适配器
-// TODO 完善测试
 func (fs *FileSystem) DispatchHandler() error {
 	var policyType string
 	var currentPolicy *model.Policy
@@ -270,6 +269,11 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 	err = fs.DispatchHandler()
 
 	return fs, err
+}
+
+// SwitchToSlaveHandler 将负责上传的 Handler 切换为从机节点
+func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
+
 }
 
 // SetTargetFile 设置当前处理的目标文件
