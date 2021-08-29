@@ -5,7 +5,9 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"io"
 	"net/url"
@@ -16,6 +18,7 @@ type Driver struct {
 	node    cluster.Node
 	handler driver.Handler
 	policy  *model.Policy
+	client  request.Client
 }
 
 // NewDriver 返回新的从机指派处理器
@@ -24,12 +27,16 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 		node:    node,
 		handler: handler,
 		policy:  policy,
+		client:  request.NewClient(request.WithMasterMeta()),
 	}
 }
 
 func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+	realBase, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
+	if !ok {
+		return ErrSlaveSrcPathNotExist
+	}
 
-	panic("implement me")
 }
 
 func (d Driver) Delete(ctx context.Context, files []string) ([]string, error) {

@@ -47,7 +47,7 @@ type masterInfo struct {
 func Init() {
 	DefaultController = &slaveController{
 		masters: make(map[string]masterInfo),
-		client:  request.HTTPClient{},
+		client:  request.NewClient(),
 	}
 	gob.Register(rpc.StatusInfo{})
 }

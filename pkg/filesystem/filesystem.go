@@ -153,7 +153,7 @@ func (fs *FileSystem) DispatchHandler() error {
 	case "remote":
 		fs.Handler = remote.Driver{
 			Policy:       currentPolicy,
-			Client:       request.HTTPClient{},
+			Client:       request.NewClient(),
 			AuthInstance: auth.HMACAuth{[]byte(currentPolicy.SecretKey)},
 		}
 		return nil
@@ -165,7 +165,7 @@ func (fs *FileSystem) DispatchHandler() error {
 	case "oss":
 		fs.Handler = oss.Driver{
 			Policy:     currentPolicy,
-			HTTPClient: request.HTTPClient{},
+			HTTPClient: request.NewClient(),
 		}
 		return nil
 	case "upyun":
@@ -178,7 +178,7 @@ func (fs *FileSystem) DispatchHandler() error {
 		fs.Handler = onedrive.Driver{
 			Policy:     currentPolicy,
 			Client:     client,
-			HTTPClient: request.HTTPClient{},
+			HTTPClient: request.NewClient(),
 		}
 		return err
 	case "cos":
@@ -192,7 +192,7 @@ func (fs *FileSystem) DispatchHandler() error {
 					SecretKey: currentPolicy.SecretKey,
 				},
 			}),
-			HTTPClient: request.HTTPClient{},
+			HTTPClient: request.NewClient(),
 		}
 		return nil
 	case "s3":

@@ -38,7 +38,7 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
 	node.Model = nodeModel
 	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SlaveKey)}
-	node.caller.Client = request.HTTPClient{}
+	node.caller.Client = request.NewClient()
 	node.caller.parent = node
 	node.Active = true
 	if node.close != nil {

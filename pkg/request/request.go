@@ -1,14 +1,12 @@
 package request
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
@@ -33,105 +31,33 @@ type Client interface {
 
 // HTTPClient 实现 Client 接口
 type HTTPClient struct {
+	options *options
 }
 
-// Option 发送请求的额外设置
-type Option interface {
-	apply(*options)
-}
-
-type options struct {
-	timeout       time.Duration
-	header        http.Header
-	sign          auth.Auth
-	signTTL       int64
-	ctx           context.Context
-	contentLength int64
-	masterMeta    bool
-}
-
-type optionFunc func(*options)
-
-func (f optionFunc) apply(o *options) {
-	f(o)
-}
-
-func newDefaultOption() *options {
-	return &options{
-		header:        http.Header{},
-		timeout:       time.Duration(30) * time.Second,
-		contentLength: -1,
+func NewClient(opts ...Option) Client {
+	client := &HTTPClient{
+		options: newDefaultOption(),
 	}
-}
 
-// WithTimeout 设置请求超时
-func WithTimeout(t time.Duration) Option {
-	return optionFunc(func(o *options) {
-		o.timeout = t
-	})
-}
+	for _, o := range opts {
+		o.apply(client.options)
+	}
 
-// WithContext 设置请求上下文
-func WithContext(c context.Context) Option {
-	return optionFunc(func(o *options) {
-		o.ctx = c
-	})
-}
-
-// WithCredential 对请求进行签名
-func WithCredential(instance auth.Auth, ttl int64) Option {
-	return optionFunc(func(o *options) {
-		o.sign = instance
-		o.signTTL = ttl
-	})
-}
-
-// WithHeader 设置请求Header
-func WithHeader(header http.Header) Option {
-	return optionFunc(func(o *options) {
-		for k, v := range header {
-			o.header[k] = v
-		}
-	})
-}
-
-// WithoutHeader 设置清除请求Header
-func WithoutHeader(header []string) Option {
-	return optionFunc(func(o *options) {
-		for _, v := range header {
-			delete(o.header, v)
-		}
-
-	})
-}
-
-// WithContentLength 设置请求大小
-func WithContentLength(s int64) Option {
-	return optionFunc(func(o *options) {
-		o.contentLength = s
-	})
-}
-
-// WithMasterMeta 请求时携带主机信息
-func WithMasterMeta() Option {
-	return optionFunc(func(o *options) {
-		o.masterMeta = true
-	})
+	return client
 }
 
 // Request 发送HTTP请求
 func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
-	options := newDefaultOption()
 	for _, o := range opts {
-		o.apply(options)
+		o.apply(c.options)
 	}
 
 	// 创建请求客户端
-	client := &http.Client{Timeout: options.timeout}
+	client := &http.Client{Timeout: c.options.timeout}
 
 	// size为0时将body设为nil
-	if options.contentLength == 0 {
+	if c.options.contentLength == 0 {
 		body = nil
 	}
 
@@ -140,8 +66,8 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 		req *http.Request
 		err error
 	)
-	if options.ctx != nil {
-		req, err = http.NewRequestWithContext(options.ctx, method, target, body)
+	if c.options.ctx != nil {
+		req, err = http.NewRequestWithContext(c.options.ctx, method, target, body)
 	} else {
 		req, err = http.NewRequest(method, target, body)
 	}
@@ -150,21 +76,21 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	}
 
 	// 添加请求相关设置
-	req.Header = options.header
+	req.Header = c.options.header
 
-	if options.masterMeta {
+	if c.options.masterMeta {
 		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
 		req.Header.Add("X-Site-Id", model.GetSettingByName("siteID"))
 		req.Header.Add("X-Cloudreve-Version", conf.BackendVersion)
 	}
 
-	if options.contentLength != -1 {
-		req.ContentLength = options.contentLength
+	if c.options.contentLength != -1 {
+		req.ContentLength = c.options.contentLength
 	}
 
 	// 签名请求
-	if options.sign != nil {
-		auth.SignRequest(options.sign, req, options.signTTL)
+	if c.options.sign != nil {
+		auth.SignRequest(c.options.sign, req, c.options.signTTL)
 	}
 
 	// 发送请求
