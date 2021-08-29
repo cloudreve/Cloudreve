@@ -36,7 +36,13 @@ type Node interface {
 	IsMater() bool
 
 	// Get auth instance used to check RPC call from slave to master
-	GetAuthInstance() auth.Auth
+	MasterAuthInstance() auth.Auth
+
+	// Get auth instance used to check RPC call from master to slave
+	SlaveAuthInstance() auth.Auth
+
+	// Get node DB model
+	DBModel() *model.Node
 }
 
 // Create new node from DB model

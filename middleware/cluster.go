@@ -56,7 +56,7 @@ func SlaveRPCSignRequired() gin.HandlerFunc {
 			return
 		}
 
-		SignRequired(slaveNode.GetAuthInstance())(c)
+		SignRequired(slaveNode.MasterAuthInstance())(c)
 
 	}
 }

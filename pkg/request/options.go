@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type options struct {
 	ctx           context.Context
 	contentLength int64
 	masterMeta    bool
+	endpoint      *url.URL
 }
 
 type optionFunc func(*options)
@@ -88,5 +90,13 @@ func WithContentLength(s int64) Option {
 func WithMasterMeta() Option {
 	return optionFunc(func(o *options) {
 		o.masterMeta = true
+	})
+}
+
+// Endpoint 使用同一的请求Endpoint
+func WithEndpoint(endpoint string) Option {
+	endpointURL, _ := url.Parse(endpoint)
+	return optionFunc(func(o *options) {
+		o.endpoint = endpointURL
 	})
 }

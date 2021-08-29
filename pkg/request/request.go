@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"path"
+	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
@@ -31,6 +33,7 @@ type Client interface {
 
 // HTTPClient 实现 Client 接口
 type HTTPClient struct {
+	mu      sync.Mutex
 	options *options
 }
 
@@ -49,16 +52,26 @@ func NewClient(opts ...Option) Client {
 // Request 发送HTTP请求
 func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
+	c.mu.Lock()
+	options := *c.options
+	c.mu.Unlock()
 	for _, o := range opts {
-		o.apply(c.options)
+		o.apply(&options)
 	}
 
 	// 创建请求客户端
-	client := &http.Client{Timeout: c.options.timeout}
+	client := &http.Client{Timeout: options.timeout}
 
 	// size为0时将body设为nil
-	if c.options.contentLength == 0 {
+	if options.contentLength == 0 {
 		body = nil
+	}
+
+	// 确定请求URL
+	if options.endpoint != nil {
+		targetURL := *options.endpoint
+		targetURL.Path = path.Join(targetURL.Path, target)
+		target = targetURL.String()
 	}
 
 	// 创建请求
@@ -66,8 +79,8 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 		req *http.Request
 		err error
 	)
-	if c.options.ctx != nil {
-		req, err = http.NewRequestWithContext(c.options.ctx, method, target, body)
+	if options.ctx != nil {
+		req, err = http.NewRequestWithContext(options.ctx, method, target, body)
 	} else {
 		req, err = http.NewRequest(method, target, body)
 	}
@@ -76,21 +89,21 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	}
 
 	// 添加请求相关设置
-	req.Header = c.options.header
+	req.Header = options.header
 
-	if c.options.masterMeta {
+	if options.masterMeta {
 		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
 		req.Header.Add("X-Site-Id", model.GetSettingByName("siteID"))
 		req.Header.Add("X-Cloudreve-Version", conf.BackendVersion)
 	}
 
-	if c.options.contentLength != -1 {
-		req.ContentLength = c.options.contentLength
+	if options.contentLength != -1 {
+		req.ContentLength = options.contentLength
 	}
 
 	// 签名请求
-	if c.options.sign != nil {
-		auth.SignRequest(c.options.sign, req, c.options.signTTL)
+	if options.sign != nil {
+		auth.SignRequest(options.sign, req, options.signTTL)
 	}
 
 	// 发送请求

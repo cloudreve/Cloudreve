@@ -11,16 +11,14 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"net/url"
-	"path"
 	"strings"
 	"sync"
 	"time"
 )
 
 type SlaveNode struct {
-	Model        *model.Node
-	AuthInstance auth.Auth
-	Active       bool
+	Model  *model.Node
+	Active bool
 
 	caller   slaveCaller
 	callback func(bool, uint)
@@ -36,15 +34,30 @@ type slaveCaller struct {
 // Init 初始化节点
 func (node *SlaveNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
+	defer node.lock.Unlock()
 	node.Model = nodeModel
-	node.AuthInstance = auth.HMACAuth{SecretKey: []byte(nodeModel.SlaveKey)}
-	node.caller.Client = request.NewClient()
+
+	// Init http request client
+	var endpoint *url.URL
+	if serverURL, err := url.Parse(node.Model.Server); err == nil {
+		var controller *url.URL
+		controller, _ = url.Parse("/api/v3/slave")
+		endpoint = serverURL.ResolveReference(controller)
+	}
+
+	signTTL := model.GetIntSetting("slave_api_timeout", 60)
+	node.caller.Client = request.NewClient(
+		request.WithMasterMeta(),
+		request.WithTimeout(time.Duration(signTTL)*time.Second),
+		request.WithCredential(auth.HMACAuth{SecretKey: []byte(nodeModel.SlaveKey)}, int64(signTTL)),
+		request.WithEndpoint(endpoint.String()),
+	)
+
 	node.caller.parent = node
 	node.Active = true
 	if node.close != nil {
 		node.close <- true
 	}
-	node.lock.Unlock()
 
 	go node.StartPingLoop()
 }
@@ -77,15 +90,11 @@ func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingRe
 	}
 
 	bodyReader := strings.NewReader(string(reqBodyEncoded))
-	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 
 	resp, err := node.caller.Client.Request(
 		"POST",
-		node.getAPIUrl("heartbeat"),
+		"heartbeat",
 		bodyReader,
-		request.WithMasterMeta(),
-		request.WithTimeout(time.Duration(signTTL)*time.Second),
-		request.WithCredential(node.AuthInstance, int64(signTTL)),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return nil, err
@@ -143,36 +152,6 @@ func (node *SlaveNode) ID() uint {
 	defer node.lock.RUnlock()
 
 	return node.Model.ID
-}
-
-// getAPIUrl 获取接口请求地址
-func (node *SlaveNode) getAPIUrl(scope string) string {
-	node.lock.RLock()
-	serverURL, err := url.Parse(node.Model.Server)
-	node.lock.RUnlock()
-	if err != nil {
-		return ""
-	}
-
-	var controller *url.URL
-	controller, _ = url.Parse("/api/v3/slave")
-	controller.Path = path.Join(controller.Path, scope)
-	return serverURL.ResolveReference(controller).String()
-}
-
-func (node *SlaveNode) changeStatus(isActive bool) {
-	node.lock.RLock()
-	id := node.Model.ID
-	if isActive != node.Active {
-		node.lock.RUnlock()
-		node.lock.Lock()
-		node.Active = isActive
-		node.lock.Unlock()
-		node.callback(isActive, id)
-	} else {
-		node.lock.RUnlock()
-	}
-
 }
 
 func (node *SlaveNode) StartPingLoop() {
@@ -235,6 +214,31 @@ loop:
 	}
 }
 
+func (node *SlaveNode) IsMater() bool {
+	return false
+}
+
+func (node *SlaveNode) MasterAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
+}
+
+func (node *SlaveNode) SlaveAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.SlaveKey)}
+}
+
+func (node *SlaveNode) DBModel() *model.Node {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model
+}
+
 // getHeartbeatContent gets serializer.NodePingReq used to send heartbeat to slave
 func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingReq {
 	return &serializer.NodePingReq{
@@ -246,15 +250,19 @@ func (node *SlaveNode) getHeartbeatContent(isUpdate bool) *serializer.NodePingRe
 	}
 }
 
-func (node *SlaveNode) IsMater() bool {
-	return false
-}
-
-func (node *SlaveNode) GetAuthInstance() auth.Auth {
+func (node *SlaveNode) changeStatus(isActive bool) {
 	node.lock.RLock()
-	defer node.lock.RUnlock()
+	id := node.Model.ID
+	if isActive != node.Active {
+		node.lock.RUnlock()
+		node.lock.Lock()
+		node.Active = isActive
+		node.lock.Unlock()
+		node.callback(isActive, id)
+	} else {
+		node.lock.RUnlock()
+	}
 
-	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
 }
 
 func (s *slaveCaller) Init() error {
@@ -268,14 +276,10 @@ func (s *slaveCaller) SendAria2Call(body *serializer.SlaveAria2Call, scope strin
 		return nil, err
 	}
 
-	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 	return s.Client.Request(
 		"POST",
-		s.parent.getAPIUrl("aria2/"+scope),
+		"aria2/"+scope,
 		reqReader,
-		request.WithMasterMeta(),
-		request.WithTimeout(time.Duration(signTTL)*time.Second),
-		request.WithCredential(s.parent.AuthInstance, int64(signTTL)),
 	).CheckHTTPResponse(200).DecodeResponse()
 }
 

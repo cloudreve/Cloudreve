@@ -232,3 +232,14 @@ func SlaveSelectTask(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveCreateTransferTask 从机创建中转任务
+func SlaveCreateTransferTask(c *gin.Context) {
+	var service serializer.SlaveTransferReq
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := explorer.CreateTransferTask(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

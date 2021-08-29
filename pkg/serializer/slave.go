@@ -1,6 +1,9 @@
 package serializer
 
-import model "github.com/cloudreve/Cloudreve/v3/models"
+import (
+	"fmt"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+)
 
 // RemoteDeleteRequest 远程策略删除接口请求正文
 type RemoteDeleteRequest struct {
@@ -31,4 +34,16 @@ type SlaveAria2Call struct {
 	Task         *model.Download        `json:"task"`
 	GroupOptions map[string]interface{} `json:"group_options"`
 	Files        []int                  `json:"files"`
+}
+
+// SlaveTransferReq 从机中转任务创建请求
+type SlaveTransferReq struct {
+	Src    string `json:"src"`
+	Dst    string `json:"dst"`
+	Policy *model.Policy
+}
+
+// Hash 返回创建请求的唯一标识，保持创建请求幂等
+func (s *SlaveTransferReq) Hash(id string) string {
+	return fmt.Sprintf("transfer-%s-%s-%s-%d", id, s.Src, s.Dst, s.Policy.ID)
 }

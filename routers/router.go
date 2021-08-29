@@ -68,6 +68,12 @@ func InitSlaveRouter() *gin.Engine {
 			// 选取任务文件
 			aria2.POST("select", controllers.SlaveSelectTask)
 		}
+
+		// 异步任务
+		task := v3.Group("task")
+		{
+			task.PUT("transfer", controllers.SlaveCreateTransferTask)
+		}
 	}
 	return r
 }

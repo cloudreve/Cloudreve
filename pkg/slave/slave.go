@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"net/http"
 	"net/url"
 	"sync"
@@ -26,6 +27,9 @@ type Controller interface {
 
 	// Send event change message to master node
 	SendAria2Notification(string, common.StatusEvent) error
+
+	// Submit async task into task pool
+	SubmitTask(string, task.Job, string) error
 }
 
 type slaveController struct {
@@ -36,10 +40,11 @@ type slaveController struct {
 
 // info of master node
 type masterInfo struct {
-	slaveID uint
-	id      string
-	ttl     int
-	url     *url.URL
+	slaveID    uint
+	id         string
+	ttl        int
+	url        *url.URL
+	jobTracker map[string]bool
 	// used to invoke aria2 rpc calls
 	instance cluster.Node
 }
@@ -72,10 +77,11 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 		}
 
 		c.masters[req.SiteID] = masterInfo{
-			slaveID: req.Node.ID,
-			id:      req.SiteID,
-			url:     masterUrl,
-			ttl:     req.CredentialTTL,
+			slaveID:    req.Node.ID,
+			id:         req.SiteID,
+			url:        masterUrl,
+			ttl:        req.CredentialTTL,
+			jobTracker: make(map[string]bool),
 			instance: cluster.NewNodeFromDBModel(&model.Node{
 				MasterKey:              req.Node.MasterKey,
 				Type:                   model.MasterNodeType,
@@ -112,7 +118,7 @@ func (c *slaveController) SendAria2Notification(id string, msg common.StatusEven
 			node.url.ResolveReference(apiPath).String(),
 			nil,
 			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.slaveID)}}),
-			request.WithCredential(node.instance.GetAuthInstance(), int64(node.ttl)),
+			request.WithCredential(node.instance.MasterAuthInstance(), int64(node.ttl)),
 		).CheckHTTPResponse(200).DecodeResponse()
 		if err != nil {
 			return err
@@ -126,5 +132,23 @@ func (c *slaveController) SendAria2Notification(id string, msg common.StatusEven
 	}
 
 	c.lock.RUnlock()
+	return ErrMasterNotFound
+}
+
+// SubmitTask 提交异步任务
+func (c *slaveController) SubmitTask(id string, job task.Job, hash string) error {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if node, ok := c.masters[id]; ok {
+		if _, ok := node.jobTracker[hash]; ok {
+			// 任务已存在，直接返回
+			return nil
+		}
+
+		task.TaskPoll.Submit(job)
+		return nil
+	}
+
 	return ErrMasterNotFound
 }

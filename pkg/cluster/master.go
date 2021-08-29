@@ -76,11 +76,18 @@ func (node *MasterNode) IsFeatureEnabled(feature string) bool {
 	}
 }
 
-func (node *MasterNode) GetAuthInstance() auth.Auth {
+func (node *MasterNode) MasterAuthInstance() auth.Auth {
 	node.lock.RLock()
 	defer node.lock.RUnlock()
 
 	return auth.HMACAuth{SecretKey: []byte(node.Model.MasterKey)}
+}
+
+func (node *MasterNode) SlaveAuthInstance() auth.Auth {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return auth.HMACAuth{SecretKey: []byte(node.Model.SlaveKey)}
 }
 
 // SubscribeStatusChange 订阅节点状态更改
@@ -120,6 +127,13 @@ func (node *MasterNode) GetAria2Instance() common.Aria2 {
 
 func (node *MasterNode) IsMater() bool {
 	return true
+}
+
+func (node *MasterNode) DBModel() *model.Node {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
+	return node.Model
 }
 
 func (r *rpcService) Init() error {

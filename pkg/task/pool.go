@@ -2,6 +2,7 @@ package task
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -56,5 +57,7 @@ func Init() {
 	TaskPoll.Add(maxWorker)
 	util.Log().Info("初始化任务队列，WorkerNum = %d", maxWorker)
 
-	Resume()
+	if conf.SystemConfig.Mode == "master" {
+		Resume()
+	}
 }
