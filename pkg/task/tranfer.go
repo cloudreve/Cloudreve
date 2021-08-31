@@ -123,7 +123,7 @@ func (job *TransferTask) Do() {
 			err = fs.UploadFromStream(ctx, nil, dst, job.TaskProps.SrcSizes[file])
 		} else {
 			// 主机节点中转
-			err = fs.UploadFromPath(ctx, file, dst)
+			err = fs.UploadFromPath(ctx, file, dst, true)
 		}
 
 		if err != nil {

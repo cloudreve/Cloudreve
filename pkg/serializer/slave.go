@@ -59,7 +59,7 @@ const (
 )
 
 type SlaveTransferResult struct {
-	Error error
+	Error string
 }
 
 func init() {

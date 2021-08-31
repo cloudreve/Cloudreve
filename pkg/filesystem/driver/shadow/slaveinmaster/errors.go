@@ -1,4 +1,4 @@
-package slave
+package slaveinmaster
 
 import "errors"
 

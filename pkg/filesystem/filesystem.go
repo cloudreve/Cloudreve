@@ -4,7 +4,8 @@ import (
 	"errors"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/slave"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/masterinslave"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/slaveinmaster"
 	"io"
 	"net/http"
 	"net/url"
@@ -243,7 +244,12 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 
 // SwitchToSlaveHandler 将负责上传的 Handler 切换为从机节点
 func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
-	fs.Handler = slave.NewDriver(node, fs.Handler, &fs.User.Policy)
+	fs.Handler = slaveinmaster.NewDriver(node, fs.Handler, &fs.User.Policy)
+}
+
+// SwitchToShadowHandler 将负责上传的 Handler 切换为从机节点转存使用的影子处理器
+func (fs *FileSystem) SwitchToShadowHandler(masterID string) {
+	fs.Handler = masterinslave.NewDriver(masterID, fs.Handler, fs.Policy)
 }
 
 // SetTargetFile 设置当前处理的目标文件

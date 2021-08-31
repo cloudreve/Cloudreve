@@ -1,9 +1,10 @@
-package slave
+package slaveinmaster
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
@@ -49,7 +50,7 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 }
 
 // Put 将ctx中指定的从机物理文件由从机上传到目标存储策略
-func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (d *Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
 	src, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
 	if !ok {
 		return ErrSlaveSrcPathNotExist
@@ -88,33 +89,33 @@ func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size ui
 		return ErrWaitResultTimeout
 	case msg := <-resChan:
 		if msg.Event != serializer.SlaveTransferSuccess {
-			return msg.Content.(serializer.SlaveTransferResult).Error
+			return errors.New(msg.Content.(serializer.SlaveTransferResult).Error)
 		}
 	}
 
 	return nil
 }
 
-func (d Driver) Delete(ctx context.Context, files []string) ([]string, error) {
+func (d *Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	return nil, ErrNotImplemented
 }
 
-func (d Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (d *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	return nil, ErrNotImplemented
 }
 
-func (d Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (d *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	return nil, ErrNotImplemented
 }
 
-func (d Driver) Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error) {
+func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error) {
 	return "", ErrNotImplemented
 }
 
-func (d Driver) Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error) {
+func (d *Driver) Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, ErrNotImplemented
 }
 
-func (d Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
+func (d *Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
 	return nil, ErrNotImplemented
 }

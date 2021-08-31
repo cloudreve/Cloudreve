@@ -1,13 +1,16 @@
 package slavetask
 
 import (
+	"context"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"time"
+	"os"
 )
 
 // TransferTask 文件中转任务
@@ -53,7 +56,20 @@ func (job *TransferTask) SetErrorMsg(msg string, err error) {
 	if err != nil {
 		jobErr.Error = err.Error()
 	}
+
 	job.SetError(jobErr)
+
+	notifyMsg := mq.Message{
+		TriggeredBy: job.MasterID,
+		Event:       serializer.SlaveTransferFailed,
+		Content: serializer.SlaveTransferResult{
+			Error: err.Error(),
+		},
+	}
+
+	if err := slave.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
+		util.Log().Warning("无法发送转存失败通知到从机, ", err)
+	}
 }
 
 // GetError 返回任务失败信息
@@ -63,18 +79,50 @@ func (job *TransferTask) GetError() *task.JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	time.Sleep(time.Duration(10) * time.Second)
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		job.SetErrorMsg("无法初始化匿名文件系统", err)
+		return
+	}
+
+	fs.Policy = job.Req.Policy
+	if err := fs.DispatchHandler(); err != nil {
+		job.SetErrorMsg("无法分发存储策略", err)
+		return
+	}
+
+	fs.SwitchToShadowHandler(job.MasterID)
+	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
+	file, err := os.Open(util.RelativePath(job.Req.Src))
+	if err != nil {
+		job.SetErrorMsg("无法读取源文件", err)
+		return
+	}
+
+	defer file.Close()
+
+	// 获取源文件大小
+	fi, err := file.Stat()
+	if err != nil {
+		job.SetErrorMsg("无法获取源文件大小", err)
+		return
+	}
+
+	size := fi.Size()
+
+	err = fs.Handler.Put(ctx, file, job.Req.Dst, uint64(size))
+	if err != nil {
+		job.SetErrorMsg("文件上传失败", err)
+		return
+	}
+
 	msg := mq.Message{
 		TriggeredBy: job.MasterID,
 		Event:       serializer.SlaveTransferSuccess,
-		Content: serializer.SlaveTransferResult{
-			Error: nil,
-		},
+		Content:     serializer.SlaveTransferResult{},
 	}
 
 	if err := slave.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
-		job.SetErrorMsg("无法发送转存结果通知", err)
+		util.Log().Warning("无法发送转存成功通知到从机, ", err)
 	}
-
-	util.Log().Debug("job done")
 }
