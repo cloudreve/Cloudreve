@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"strings"
 	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -89,7 +90,11 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 	}
 
 	// 添加请求相关设置
-	req.Header = options.header
+	if options.header != nil {
+		for k, v := range options.header {
+			req.Header.Add(k, strings.Join(v, " "))
+		}
+	}
 
 	if options.masterMeta {
 		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
