@@ -2,15 +2,19 @@ package slavetask
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"time"
 )
 
 // TransferTask 文件中转任务
 type TransferTask struct {
-	Err *task.JobError
-	Req *serializer.SlaveTransferReq
+	Err      *task.JobError
+	Req      *serializer.SlaveTransferReq
+	MasterID string
 }
 
 // Props 获取任务属性
@@ -59,5 +63,18 @@ func (job *TransferTask) GetError() *task.JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	util.Log().Debug("job")
+	time.Sleep(time.Duration(10) * time.Second)
+	msg := mq.Message{
+		TriggeredBy: job.MasterID,
+		Event:       serializer.SlaveTransferSuccess,
+		Content: serializer.SlaveTransferResult{
+			Error: nil,
+		},
+	}
+
+	if err := slave.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
+		job.SetErrorMsg("无法发送转存结果通知", err)
+	}
+
+	util.Log().Debug("job done")
 }

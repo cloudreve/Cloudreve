@@ -148,10 +148,11 @@ func (service *SlaveFileService) Thumb(ctx context.Context, c *gin.Context) seri
 func CreateTransferTask(c *gin.Context, req *serializer.SlaveTransferReq) serializer.Response {
 	if id, ok := c.Get("MasterSiteID"); ok {
 		job := &slavetask.TransferTask{
-			Req: req,
+			Req:      req,
+			MasterID: id.(string),
 		}
 
-		if err := slave.DefaultController.SubmitTask(id.(string), job, req.Hash(id.(string))); err != nil {
+		if err := slave.DefaultController.SubmitTask(job.MasterID, job, req.Hash(job.MasterID)); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "任务创建失败", err)
 		}
 

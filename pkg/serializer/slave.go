@@ -1,6 +1,8 @@
 package serializer
 
 import (
+	"crypto/sha1"
+	"encoding/gob"
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 )
@@ -38,12 +40,28 @@ type SlaveAria2Call struct {
 
 // SlaveTransferReq 从机中转任务创建请求
 type SlaveTransferReq struct {
-	Src    string `json:"src"`
-	Dst    string `json:"dst"`
-	Policy *model.Policy
+	Src    string        `json:"src"`
+	Dst    string        `json:"dst"`
+	Policy *model.Policy `json:"policy"`
 }
 
 // Hash 返回创建请求的唯一标识，保持创建请求幂等
 func (s *SlaveTransferReq) Hash(id string) string {
-	return fmt.Sprintf("transfer-%s-%s-%s-%d", id, s.Src, s.Dst, s.Policy.ID)
+	h := sha1.New()
+	h.Write([]byte(fmt.Sprintf("transfer-%s-%s-%s-%d", id, s.Src, s.Dst, s.Policy.ID)))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
+const (
+	SlaveTransferSuccess = "success"
+	SlaveTransferFailed  = "failed"
+)
+
+type SlaveTransferResult struct {
+	Error error
+}
+
+func init() {
+	gob.Register(SlaveTransferResult{})
 }

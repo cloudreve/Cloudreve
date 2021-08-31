@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"io"
@@ -65,6 +66,10 @@ func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size ui
 		return err
 	}
 
+	// 订阅转存结果
+	resChan := mq.GlobalMQ.Subscribe(req.Hash(model.GetSettingByName("siteID")), 0)
+	defer mq.GlobalMQ.Unsubscribe(req.Hash(model.GetSettingByName("siteID")), resChan)
+
 	res, err := d.client.Request("PUT", "task/transfer", bytes.NewReader(body)).
 		CheckHTTPResponse(200).
 		DecodeResponse()
@@ -76,9 +81,18 @@ func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size ui
 		return serializer.NewErrorFromResponse(res)
 	}
 
-	// TODO: subscribe and wait
+	// 等待转存结果或者超时
+	waitTimeout := model.GetIntSetting("slave_transfer_timeout", 172800)
+	select {
+	case <-time.After(time.Duration(waitTimeout) * time.Second):
+		return ErrWaitResultTimeout
+	case msg := <-resChan:
+		if msg.Event != serializer.SlaveTransferSuccess {
+			return msg.Content.(serializer.SlaveTransferResult).Error
+		}
+	}
 
-	return ErrNotImplemented
+	return nil
 }
 
 func (d Driver) Delete(ctx context.Context, files []string) ([]string, error) {
