@@ -23,18 +23,85 @@ func Init(path string) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	cache.Init()
-	if conf.SystemConfig.Mode == "master" {
-		model.Init()
-		task.Init()
-		cluster.Init()
-		aria2.Init(false)
-		email.Init()
-		crontab.Init()
-		InitStatic()
-	} else {
-		slave.Init()
+	dependencies := []struct {
+		mode    string
+		factory func()
+	}{
+		{
+			"both",
+			func() {
+				cache.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				model.Init()
+			},
+		},
+		{
+			"both",
+			func() {
+				task.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				cluster.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				aria2.Init(false)
+			},
+		},
+		{
+			"master",
+			func() {
+				email.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				crontab.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				InitStatic()
+			},
+		},
+		{
+			"slave",
+			func() {
+				slave.Init()
+			},
+		},
+		{
+			"both",
+			func() {
+				auth.Init()
+			},
+		},
 	}
 
-	auth.Init()
+	for _, dependency := range dependencies {
+		switch dependency.mode {
+		case "master":
+			if conf.SystemConfig.Mode == "master" {
+				dependency.factory()
+			}
+		case "slave":
+			if conf.SystemConfig.Mode == "slave" {
+				dependency.factory()
+			}
+		default:
+			dependency.factory()
+		}
+	}
+
 }

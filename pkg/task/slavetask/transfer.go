@@ -59,5 +59,5 @@ func (job *TransferTask) GetError() *task.JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	util.Log().Println("job", "")
+	util.Log().Debug("job")
 }

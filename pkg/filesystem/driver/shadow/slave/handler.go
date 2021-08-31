@@ -65,7 +65,7 @@ func (d Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size ui
 		return err
 	}
 
-	res, err := d.client.Request("PUT", "task、transfer", bytes.NewReader(body)).
+	res, err := d.client.Request("PUT", "task/transfer", bytes.NewReader(body)).
 		CheckHTTPResponse(200).
 		DecodeResponse()
 	if err != nil {
