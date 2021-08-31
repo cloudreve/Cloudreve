@@ -51,7 +51,7 @@ func NewMQ() MQ {
 
 func init() {
 	gob.Register(Message{})
-	gob.Register(rpc.Event{})
+	gob.Register([]rpc.Event{})
 }
 
 type inMemoryMQ struct {

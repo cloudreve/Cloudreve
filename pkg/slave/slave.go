@@ -1,12 +1,14 @@
 package slave
 
 import (
+	"bytes"
 	"encoding/gob"
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
@@ -26,7 +28,7 @@ type Controller interface {
 	GetAria2Instance(string) (common.Aria2, error)
 
 	// Send event change message to master node
-	SendAria2Notification(string, common.StatusEvent) error
+	SendNotification(string, string, mq.Message) error
 
 	// Submit async task into task pool
 	SubmitTask(string, task.Job, string) error
@@ -105,18 +107,23 @@ func (c *slaveController) GetAria2Instance(id string) (common.Aria2, error) {
 	return nil, ErrMasterNotFound
 }
 
-func (c *slaveController) SendAria2Notification(id string, msg common.StatusEvent) error {
+func (c *slaveController) SendNotification(id, subject string, msg mq.Message) error {
 	c.lock.RLock()
 
 	if node, ok := c.masters[id]; ok {
 		c.lock.RUnlock()
 
-		apiPath, _ := url.Parse(fmt.Sprintf("/api/v3/slave/aria2/%s/%d", msg.GID, msg.Status))
+		apiPath, _ := url.Parse(fmt.Sprintf("/api/v3/slave/notification/%s", subject))
+		body := bytes.Buffer{}
+		enc := gob.NewEncoder(&body)
+		if err := enc.Encode(&msg); err != nil {
+			return err
+		}
 
 		res, err := c.client.Request(
-			"PATCH",
+			"PUT",
 			node.url.ResolveReference(apiPath).String(),
-			nil,
+			&body,
 			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.slaveID)}}),
 			request.WithCredential(node.instance.MasterAuthInstance(), int64(node.ttl)),
 		).CheckHTTPResponse(200).DecodeResponse()

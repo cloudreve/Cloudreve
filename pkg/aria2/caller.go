@@ -8,8 +8,8 @@ import (
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -34,7 +34,7 @@ func (client *RPCService) Init(server, secret string, timeout int, options map[s
 		Options: options,
 	}
 	caller, err := rpc.New(context.Background(), server, secret, time.Duration(timeout)*time.Second,
-		common.EventNotifier)
+		mq.GlobalMQ)
 	client.Caller = caller
 	return err
 }

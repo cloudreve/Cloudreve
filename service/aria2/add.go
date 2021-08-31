@@ -7,6 +7,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/monitor"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -89,11 +90,11 @@ func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response
 
 	// 创建事件通知回调
 	siteID, _ := c.Get("MasterSiteID")
-	common.EventNotifier.SubscribeCallback(func(event common.StatusEvent) {
-		if err := slave.DefaultController.SendAria2Notification(siteID.(string), event); err != nil {
+	mq.GlobalMQ.SubscribeCallback(gid, func(message mq.Message) {
+		if err := slave.DefaultController.SendNotification(siteID.(string), message.TriggeredBy, message); err != nil {
 			util.Log().Warning("无法发送离线下载任务状态变更通知, %s", err)
 		}
-	}, gid)
+	})
 
 	return serializer.Response{Data: gid}
 }

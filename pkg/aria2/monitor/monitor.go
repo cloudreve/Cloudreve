@@ -16,6 +16,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -25,7 +26,7 @@ type Monitor struct {
 	Task     *model.Download
 	Interval time.Duration
 
-	notifier chan common.StatusEvent
+	notifier <-chan mq.Message
 	node     cluster.Node
 	retried  int
 }
@@ -36,20 +37,20 @@ var MAX_RETRY = 10
 func NewMonitor(task *model.Download) {
 	monitor := &Monitor{
 		Task:     task,
-		notifier: make(chan common.StatusEvent),
+		notifier: make(chan mq.Message),
 		node:     cluster.Default.GetNodeByID(task.GetNodeID()),
 	}
 	if monitor.node != nil {
 		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second
 		go monitor.Loop()
 
-		common.EventNotifier.Subscribe(monitor.notifier, monitor.Task.GID)
+		monitor.notifier = mq.GlobalMQ.Subscribe(monitor.Task.GID, 0)
 	}
 }
 
 // Loop 开启监控循环
 func (monitor *Monitor) Loop() {
-	defer common.EventNotifier.Unsubscribe(monitor.Task.GID)
+	defer mq.GlobalMQ.Unsubscribe(monitor.Task.GID, monitor.notifier)
 	fmt.Println(cluster.Default)
 
 	// 首次循环立即更新

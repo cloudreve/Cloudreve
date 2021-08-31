@@ -203,7 +203,7 @@ func InitMasterRouter() *gin.Engine {
 		slave := v3.Group("slave")
 		slave.Use(middleware.SlaveRPCSignRequired())
 		{
-			slave.PATCH("aria2/:gid/:status", controllers.TaskUpdate)
+			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
 		}
 
 		// 回调接口

@@ -105,6 +105,3 @@ func GetStatus(status string) int {
 		return Unknown
 	}
 }
-
-// EventNotifier 任务状态更新通知处理器
-var EventNotifier = &Notifier{}

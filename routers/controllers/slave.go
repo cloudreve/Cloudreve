@@ -243,3 +243,14 @@ func SlaveCreateTransferTask(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveNotificationPush 处理从机发送的消息推送
+func SlaveNotificationPush(c *gin.Context) {
+	var service node.SlaveNotificationService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.HandleSlaveNotificationPush(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

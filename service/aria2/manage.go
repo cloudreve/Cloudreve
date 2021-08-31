@@ -3,7 +3,6 @@ package aria2
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -16,8 +15,7 @@ type SelectFileService struct {
 
 // DownloadTaskService 下载任务管理服务
 type DownloadTaskService struct {
-	GID    string `uri:"gid" binding:"required"`
-	Status int    `uri:"status"`
+	GID string `uri:"gid" binding:"required"`
 }
 
 // DownloadListService 下载列表服务
@@ -64,12 +62,6 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}
 
-	return serializer.Response{}
-}
-
-// Notify 转发通知任务更新
-func (service *DownloadTaskService) Notify() serializer.Response {
-	common.EventNotifier.Notify([]rpc.Event{{service.GID}}, service.Status)
 	return serializer.Response{}
 }
 

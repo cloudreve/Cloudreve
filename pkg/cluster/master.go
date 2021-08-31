@@ -7,6 +7,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/url"
@@ -168,7 +169,7 @@ func (r *rpcService) Init() error {
 		Options: globalOptions,
 	}
 	timeout := r.parent.Model.Aria2OptionsSerialized.Timeout
-	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, common.EventNotifier)
+	caller, err := rpc.New(context.Background(), server.String(), r.parent.Model.Aria2OptionsSerialized.Token, time.Duration(timeout)*time.Second, mq.GlobalMQ)
 
 	r.Caller = caller
 	r.Initialized = err == nil
