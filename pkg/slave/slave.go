@@ -24,7 +24,7 @@ type Controller interface {
 	// Handle heartbeat sent from master
 	HandleHeartBeat(*serializer.NodePingReq) (serializer.NodePingResp, error)
 
-	// Get Aria2 instance by master node id
+	// Get Aria2 Instance by master node ID
 	GetAria2Instance(string) (common.Aria2, error)
 
 	// Send event change message to master node
@@ -32,28 +32,32 @@ type Controller interface {
 
 	// Submit async task into task pool
 	SubmitTask(string, task.Job, string) error
+
+	// Get master node info
+	GetMasterInfo(string) (*MasterInfo, error)
 }
 
 type slaveController struct {
-	masters map[string]masterInfo
+	masters map[string]MasterInfo
 	client  request.Client
 	lock    sync.RWMutex
 }
 
 // info of master node
-type masterInfo struct {
-	slaveID    uint
-	id         string
-	ttl        int
-	url        *url.URL
-	jobTracker map[string]bool
+type MasterInfo struct {
+	SlaveID uint
+	ID      string
+	TTL     int
+	URL     *url.URL
 	// used to invoke aria2 rpc calls
-	instance cluster.Node
+	Instance cluster.Node
+
+	jobTracker map[string]bool
 }
 
 func Init() {
 	DefaultController = &slaveController{
-		masters: make(map[string]masterInfo),
+		masters: make(map[string]MasterInfo),
 		client:  request.NewClient(),
 	}
 	gob.Register(rpc.StatusInfo{})
@@ -70,7 +74,7 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 
 	if (ok && req.IsUpdate) || !ok {
 		if ok {
-			origin.instance.Kill()
+			origin.Instance.Kill()
 		}
 
 		masterUrl, err := url.Parse(req.SiteURL)
@@ -78,13 +82,13 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 			return serializer.NodePingResp{}, err
 		}
 
-		c.masters[req.SiteID] = masterInfo{
-			slaveID:    req.Node.ID,
-			id:         req.SiteID,
-			url:        masterUrl,
-			ttl:        req.CredentialTTL,
+		c.masters[req.SiteID] = MasterInfo{
+			SlaveID:    req.Node.ID,
+			ID:         req.SiteID,
+			URL:        masterUrl,
+			TTL:        req.CredentialTTL,
 			jobTracker: make(map[string]bool),
-			instance: cluster.NewNodeFromDBModel(&model.Node{
+			Instance: cluster.NewNodeFromDBModel(&model.Node{
 				MasterKey:              req.Node.MasterKey,
 				Type:                   model.MasterNodeType,
 				Aria2Enabled:           req.Node.Aria2Enabled,
@@ -101,7 +105,7 @@ func (c *slaveController) GetAria2Instance(id string) (common.Aria2, error) {
 	defer c.lock.RUnlock()
 
 	if node, ok := c.masters[id]; ok {
-		return node.instance.GetAria2Instance(), nil
+		return node.Instance.GetAria2Instance(), nil
 	}
 
 	return nil, ErrMasterNotFound
@@ -122,10 +126,10 @@ func (c *slaveController) SendNotification(id, subject string, msg mq.Message) e
 
 		res, err := c.client.Request(
 			"PUT",
-			node.url.ResolveReference(apiPath).String(),
+			node.URL.ResolveReference(apiPath).String(),
 			&body,
-			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.slaveID)}}),
-			request.WithCredential(node.instance.MasterAuthInstance(), int64(node.ttl)),
+			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.SlaveID)}}),
+			request.WithCredential(node.Instance.MasterAuthInstance(), int64(node.TTL)),
 		).CheckHTTPResponse(200).DecodeResponse()
 		if err != nil {
 			return err
@@ -158,4 +162,16 @@ func (c *slaveController) SubmitTask(id string, job task.Job, hash string) error
 	}
 
 	return ErrMasterNotFound
+}
+
+// GetMasterInfo 获取主机节点信息
+func (c *slaveController) GetMasterInfo(id string) (*MasterInfo, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	if node, ok := c.masters[id]; ok {
+		return &node, nil
+	}
+
+	return nil, ErrMasterNotFound
 }

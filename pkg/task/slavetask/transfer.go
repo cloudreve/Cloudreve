@@ -91,7 +91,13 @@ func (job *TransferTask) Do() {
 		return
 	}
 
-	fs.SwitchToShadowHandler(job.MasterID)
+	master, err := slave.DefaultController.GetMasterInfo(job.MasterID)
+	if err != nil {
+		job.SetErrorMsg("找不到主机节点", err)
+		return
+	}
+
+	fs.SwitchToShadowHandler(master.Instance, master.URL.String())
 	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 	file, err := os.Open(util.RelativePath(job.Req.Src))
 	if err != nil {

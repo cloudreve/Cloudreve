@@ -97,7 +97,7 @@ func (d *Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size u
 }
 
 func (d *Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	return nil, ErrNotImplemented
+	return d.handler.Delete(ctx, files)
 }
 
 func (d *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {

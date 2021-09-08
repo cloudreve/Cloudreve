@@ -78,7 +78,7 @@ func getSignContent(r *http.Request) (rawSignString string) {
 	// 决定要签名的header
 	var signedHeader []string
 	for k, _ := range r.Header {
-		if strings.HasPrefix(k, "X-") {
+		if strings.HasPrefix(k, "X-") && k != "X-Filename" {
 			signedHeader = append(signedHeader, fmt.Sprintf("%s=%s", k, r.Header.Get(k)))
 		}
 	}

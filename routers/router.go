@@ -204,6 +204,8 @@ func InitMasterRouter() *gin.Engine {
 		slave.Use(middleware.SlaveRPCSignRequired())
 		{
 			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
+			// 上传
+			slave.POST("upload", controllers.SlaveUpload)
 		}
 
 		// 回调接口

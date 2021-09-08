@@ -170,14 +170,14 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 		handler.Policy.GetUploadURL(),
 		file,
 		request.WithHeader(map[string][]string{
-			"Authorization": {credential.Token},
-			"X-Policy":      {credential.Policy},
-			"X-FileName":    {fileName},
-			"X-Overwrite":   {overwrite},
+			"X-Policy":    {credential.Policy},
+			"X-FileName":  {fileName},
+			"X-Overwrite": {overwrite},
 		}),
 		request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(0)),
 		request.WithMasterMeta(),
+		request.WithCredential(handler.AuthInstance, int64(credentialTTL)),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return err

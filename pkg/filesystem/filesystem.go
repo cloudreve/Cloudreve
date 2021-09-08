@@ -248,8 +248,19 @@ func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
 }
 
 // SwitchToShadowHandler 将负责上传的 Handler 切换为从机节点转存使用的影子处理器
-func (fs *FileSystem) SwitchToShadowHandler(masterID string) {
-	fs.Handler = masterinslave.NewDriver(masterID, fs.Handler, fs.Policy)
+func (fs *FileSystem) SwitchToShadowHandler(master cluster.Node, masterURL string) {
+	// 交换主从存储策略
+	if fs.Policy.Type == "remote" {
+		fs.Policy.Type = "local"
+		fs.DispatchHandler()
+	} else if fs.Policy.Type == "local" {
+		fs.Policy.Type = "remote"
+		fs.Policy.Server = masterURL
+		fs.Policy.SecretKey = master.DBModel().MasterKey
+		fs.DispatchHandler()
+	}
+
+	fs.Handler = masterinslave.NewDriver(master, fs.Handler, fs.Policy)
 }
 
 // SetTargetFile 设置当前处理的目标文件

@@ -19,7 +19,7 @@ import (
 )
 
 // GeneralClient 通用 HTTP Client
-var GeneralClient Client = HTTPClient{}
+var GeneralClient Client = NewClient()
 
 // Response 请求的响应或错误信息
 type Response struct {

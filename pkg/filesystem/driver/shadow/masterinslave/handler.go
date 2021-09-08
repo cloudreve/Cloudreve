@@ -3,6 +3,7 @@ package masterinslave
 import (
 	"context"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -12,17 +13,17 @@ import (
 
 // Driver 影子存储策略，用于在从机端上传文件
 type Driver struct {
-	masterID string
-	handler  driver.Handler
-	policy   *model.Policy
+	master  cluster.Node
+	handler driver.Handler
+	policy  *model.Policy
 }
 
 // NewDriver 返回新的处理器
-func NewDriver(masterID string, handler driver.Handler, policy *model.Policy) driver.Handler {
+func NewDriver(master cluster.Node, handler driver.Handler, policy *model.Policy) driver.Handler {
 	return &Driver{
-		masterID: masterID,
-		handler:  handler,
-		policy:   policy,
+		master:  master,
+		handler: handler,
+		policy:  policy,
 	}
 }
 
