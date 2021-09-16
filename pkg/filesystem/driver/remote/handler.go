@@ -98,7 +98,7 @@ func (handler Driver) getAPIUrl(scope string, routes ...string) string {
 
 // Get 获取文件内容
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
-	// 尝试获取速度限制 TODO 是否需要在这里限制？
+	// 尝试获取速度限制
 	speedLimit := 0
 	if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
 		speedLimit = user.Group.SpeedLimit
@@ -177,6 +177,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 		request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(0)),
 		request.WithMasterMeta(),
+		request.WithSlaveMeta(handler.Policy.AccessKey),
 		request.WithCredential(handler.AuthInstance, int64(credentialTTL)),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
@@ -210,6 +211,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		bodyReader,
 		request.WithCredential(handler.AuthInstance, int64(signTTL)),
 		request.WithMasterMeta(),
+		request.WithSlaveMeta(handler.Policy.AccessKey),
 	).CheckHTTPResponse(200).GetResponse()
 	if err != nil {
 		return files, err

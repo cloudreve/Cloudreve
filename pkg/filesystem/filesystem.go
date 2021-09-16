@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"errors"
+	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/masterinslave"
@@ -256,6 +257,7 @@ func (fs *FileSystem) SwitchToShadowHandler(master cluster.Node, masterURL strin
 	} else if fs.Policy.Type == "local" {
 		fs.Policy.Type = "remote"
 		fs.Policy.Server = masterURL
+		fs.Policy.AccessKey = fmt.Sprintf("%d", master.ID())
 		fs.Policy.SecretKey = master.DBModel().MasterKey
 		fs.DispatchHandler()
 	}

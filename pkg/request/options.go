@@ -22,6 +22,7 @@ type options struct {
 	contentLength int64
 	masterMeta    bool
 	endpoint      *url.URL
+	slaveNodeID   string
 }
 
 type optionFunc func(*options)
@@ -90,6 +91,13 @@ func WithContentLength(s int64) Option {
 func WithMasterMeta() Option {
 	return optionFunc(func(o *options) {
 		o.masterMeta = true
+	})
+}
+
+// WithSlaveMeta 请求时携带从机信息
+func WithSlaveMeta(s string) Option {
+	return optionFunc(func(o *options) {
+		o.slaveNodeID = s
 	})
 }
 

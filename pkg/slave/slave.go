@@ -12,7 +12,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
-	"net/http"
+	"github.com/jinzhu/gorm"
 	"net/url"
 	"sync"
 )
@@ -45,10 +45,9 @@ type slaveController struct {
 
 // info of master node
 type MasterInfo struct {
-	SlaveID uint
-	ID      string
-	TTL     int
-	URL     *url.URL
+	ID  string
+	TTL int
+	URL *url.URL
 	// used to invoke aria2 rpc calls
 	Instance cluster.Node
 
@@ -83,12 +82,12 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 		}
 
 		c.masters[req.SiteID] = MasterInfo{
-			SlaveID:    req.Node.ID,
 			ID:         req.SiteID,
 			URL:        masterUrl,
 			TTL:        req.CredentialTTL,
 			jobTracker: make(map[string]bool),
 			Instance: cluster.NewNodeFromDBModel(&model.Node{
+				Model:                  gorm.Model{ID: req.Node.ID},
 				MasterKey:              req.Node.MasterKey,
 				Type:                   model.MasterNodeType,
 				Aria2Enabled:           req.Node.Aria2Enabled,
@@ -128,7 +127,7 @@ func (c *slaveController) SendNotification(id, subject string, msg mq.Message) e
 			"PUT",
 			node.URL.ResolveReference(apiPath).String(),
 			&body,
-			request.WithHeader(http.Header{"X-Node-Id": []string{fmt.Sprintf("%d", node.SlaveID)}}),
+			request.WithSlaveMeta(fmt.Sprintf("%d", node.Instance.ID())),
 			request.WithCredential(node.Instance.MasterAuthInstance(), int64(node.TTL)),
 		).CheckHTTPResponse(200).DecodeResponse()
 		if err != nil {

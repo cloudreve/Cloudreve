@@ -96,10 +96,14 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 		}
 	}
 
-	if options.masterMeta {
+	if options.masterMeta && conf.SystemConfig.Mode == "master" {
 		req.Header.Add("X-Site-Url", model.GetSiteURL().String())
 		req.Header.Add("X-Site-Id", model.GetSettingByName("siteID"))
 		req.Header.Add("X-Cloudreve-Version", conf.BackendVersion)
+	}
+
+	if options.slaveNodeID != "" && conf.SystemConfig.Mode == "slave" {
+		req.Header.Add("X-Node-Id", options.slaveNodeID)
 	}
 
 	if options.contentLength != -1 {
