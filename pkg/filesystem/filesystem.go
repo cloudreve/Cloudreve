@@ -176,13 +176,9 @@ func (fs *FileSystem) DispatchHandler() error {
 		}
 		return nil
 	case "onedrive":
-		client, err := onedrive.NewClient(currentPolicy)
-		fs.Handler = onedrive.Driver{
-			Policy:     currentPolicy,
-			Client:     client,
-			HTTPClient: request.NewClient(),
-		}
-		return err
+		var odErr error
+		fs.Handler, odErr = onedrive.NewDriver(currentPolicy)
+		return odErr
 	case "cos":
 		u, _ := url.Parse(currentPolicy.Server)
 		b := &cossdk.BaseURL{BucketURL: u}
@@ -249,17 +245,19 @@ func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
 }
 
 // SwitchToShadowHandler 将负责上传的 Handler 切换为从机节点转存使用的影子处理器
-func (fs *FileSystem) SwitchToShadowHandler(master cluster.Node, masterURL string) {
-	// 交换主从存储策略
-	if fs.Policy.Type == "remote" {
+func (fs *FileSystem) SwitchToShadowHandler(master cluster.Node, masterURL, masterID string) {
+	switch fs.Policy.Type {
+	case "remote":
 		fs.Policy.Type = "local"
 		fs.DispatchHandler()
-	} else if fs.Policy.Type == "local" {
+	case "local":
 		fs.Policy.Type = "remote"
 		fs.Policy.Server = masterURL
 		fs.Policy.AccessKey = fmt.Sprintf("%d", master.ID())
 		fs.Policy.SecretKey = master.DBModel().MasterKey
 		fs.DispatchHandler()
+	case "onedrive":
+		fs.Policy.MasterID = masterID
 	}
 
 	fs.Handler = masterinslave.NewDriver(master, fs.Handler, fs.Policy)

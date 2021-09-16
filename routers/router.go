@@ -203,9 +203,12 @@ func InitMasterRouter() *gin.Engine {
 		slave := v3.Group("slave")
 		slave.Use(middleware.SlaveRPCSignRequired())
 		{
+			// 事件通知
 			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
 			// 上传
 			slave.POST("upload", controllers.SlaveUpload)
+			// OneDrive 存储策略凭证
+			slave.GET("credential/onedrive/:id", controllers.SlaveGetOneDriveCredential)
 		}
 
 		// 回调接口

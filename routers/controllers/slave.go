@@ -254,3 +254,14 @@ func SlaveNotificationPush(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveGetOneDriveCredential 从机获取主机的OneDrive存储策略凭证
+func SlaveGetOneDriveCredential(c *gin.Context) {
+	var service node.OneDriveCredentialService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

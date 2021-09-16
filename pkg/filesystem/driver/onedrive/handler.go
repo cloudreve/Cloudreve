@@ -14,6 +14,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
@@ -25,6 +26,16 @@ type Driver struct {
 	Policy     *model.Policy
 	Client     *Client
 	HTTPClient request.Client
+}
+
+// NewDriver 从存储策略初始化新的Driver实例
+func NewDriver(policy *model.Policy) (driver.Handler, error) {
+	client, err := NewClient(policy)
+	return Driver{
+		Policy:     policy,
+		Client:     client,
+		HTTPClient: request.NewClient(),
+	}, err
 }
 
 // List 列取项目

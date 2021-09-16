@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
+	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task/slavetask"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -152,7 +153,9 @@ func CreateTransferTask(c *gin.Context, req *serializer.SlaveTransferReq) serial
 			MasterID: id.(string),
 		}
 
-		if err := slave.DefaultController.SubmitTask(job.MasterID, job, req.Hash(job.MasterID)); err != nil {
+		if err := slave.DefaultController.SubmitTask(job.MasterID, job, req.Hash(job.MasterID), func(job interface{}) {
+			task.TaskPoll.Submit(job.(task.Job))
+		}); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "任务创建失败", err)
 		}
 

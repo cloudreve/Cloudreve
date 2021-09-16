@@ -37,6 +37,7 @@ type Policy struct {
 
 	// 数据库忽略字段
 	OptionsSerialized PolicyOption `gorm:"-"`
+	MasterID          string       `gorm:"-"`
 }
 
 // PolicyOption 非公有的存储策略属性
@@ -273,6 +274,13 @@ func (policy *Policy) GetUploadURL() string {
 // SaveAndClearCache 更新并清理缓存
 func (policy *Policy) SaveAndClearCache() error {
 	err := DB.Save(policy).Error
+	policy.ClearCache()
+	return err
+}
+
+// SaveAndClearCache 更新并清理缓存
+func (policy *Policy) UpdateAccessKeyAndClearCache(s string) error {
+	err := DB.Model(policy).UpdateColumn("access_key", s).Error
 	policy.ClearCache()
 	return err
 }

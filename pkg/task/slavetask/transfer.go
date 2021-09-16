@@ -97,7 +97,7 @@ func (job *TransferTask) Do() {
 		return
 	}
 
-	fs.SwitchToShadowHandler(master.Instance, master.URL.String())
+	fs.SwitchToShadowHandler(master.Instance, master.URL.String(), master.ID)
 	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 	file, err := os.Open(util.RelativePath(job.Req.Src))
 	if err != nil {

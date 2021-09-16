@@ -112,7 +112,14 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	// 签名请求
 	if options.sign != nil {
-		auth.SignRequest(options.sign, req, options.signTTL)
+		switch method {
+		case "PUT", "POST", "PATCH":
+			auth.SignRequest(options.sign, req, options.signTTL)
+		default:
+			if resURL, err := auth.SignURI(options.sign, req.URL.String(), options.signTTL); err == nil {
+				req.URL = resURL
+			}
+		}
 	}
 
 	// 发送请求
