@@ -2,6 +2,7 @@ package admin
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"strings"
 )
@@ -35,8 +36,16 @@ func (service *AdminListService) Nodes() serializer.Response {
 	// 查询记录
 	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
 
+	isActive := make(map[uint]bool)
+	for i := 0; i < len(res); i++ {
+		if node := cluster.Default.GetNodeByID(res[i].ID); node != nil {
+			isActive[res[i].ID] = node.IsActive()
+		}
+	}
+
 	return serializer.Response{Data: map[string]interface{}{
-		"total": total,
-		"items": res,
+		"total":  total,
+		"items":  res,
+		"active": isActive,
 	}}
 }

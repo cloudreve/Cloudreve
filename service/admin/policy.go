@@ -245,7 +245,7 @@ func (service *SlaveTestService) Test() serializer.Response {
 	}
 
 	if res.Code != 0 {
-		return serializer.ParamErr("成功接到从机，但是"+res.Msg, nil)
+		return serializer.ParamErr("成功接到从机，但是从机返回："+res.Msg, nil)
 	}
 
 	return serializer.Response{}

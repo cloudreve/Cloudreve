@@ -3,6 +3,7 @@ package controllers
 import (
 	"io"
 
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
@@ -92,7 +93,13 @@ func AdminSendTestMail(c *gin.Context) {
 func AdminTestAria2(c *gin.Context) {
 	var service admin.Aria2TestService
 	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Test()
+		var res serializer.Response
+		if service.Type == model.MasterNodeType {
+			res = service.TestMaster()
+		} else {
+			res = service.TestSlave()
+		}
+
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

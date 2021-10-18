@@ -40,6 +40,8 @@ func InitSlaveRouter() *gin.Engine {
 	{
 		// Ping
 		v3.POST("ping", controllers.SlavePing)
+		// 测试 Aria2 RPC 连接
+		v3.POST("ping/aria2", controllers.AdminTestAria2)
 		// 接收主机心跳包
 		v3.POST("heartbeat", controllers.SlaveHeartbeat)
 		// 上传
@@ -446,6 +448,9 @@ func InitMasterRouter() *gin.Engine {
 				{
 					// 列出从机节点
 					node.POST("list", controllers.AdminListNodes)
+
+					// 列出从机节点
+					node.POST("aria2/test", controllers.AdminTestAria2)
 				}
 
 			}
