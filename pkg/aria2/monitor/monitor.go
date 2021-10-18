@@ -51,7 +51,6 @@ func NewMonitor(task *model.Download) {
 // Loop 开启监控循环
 func (monitor *Monitor) Loop() {
 	defer mq.GlobalMQ.Unsubscribe(monitor.Task.GID, monitor.notifier)
-	fmt.Println(cluster.Default)
 
 	// 首次循环立即更新
 	interval := time.Duration(0)

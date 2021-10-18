@@ -34,7 +34,7 @@ type GitHubRelease struct {
 
 // CheckUpdate 检查更新
 func CheckUpdate() {
-	client := request.HTTPClient{}
+	client := request.NewClient()
 	res, err := client.Request("GET", "https://api.github.com/repos/cloudreve/cloudreve/releases", nil).GetResponse()
 	if err != nil {
 		util.Log().Warning("更新检查失败, %s", err)
