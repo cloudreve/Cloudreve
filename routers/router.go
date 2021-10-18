@@ -442,6 +442,12 @@ func InitMasterRouter() *gin.Engine {
 					task.POST("import", controllers.AdminCreateImportTask)
 				}
 
+				node := admin.Group("node")
+				{
+					// 列出从机节点
+					node.POST("list", controllers.AdminListNodes)
+				}
+
 			}
 
 			// 用户
