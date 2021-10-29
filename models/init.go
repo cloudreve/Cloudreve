@@ -35,7 +35,14 @@ func Init() {
 		case "UNSET", "sqlite", "sqlite3":
 			// 未指定数据库或者明确指定为 sqlite 时，使用 SQLite3 数据库
 			db, err = gorm.Open("sqlite3", util.RelativePath(conf.DatabaseConfig.DBFile))
-		case "mysql", "postgres", "mssql":
+		case "postgres":
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
+				conf.DatabaseConfig.Host,
+				conf.DatabaseConfig.User,
+				conf.DatabaseConfig.Password,
+				conf.DatabaseConfig.Name,
+				conf.DatabaseConfig.Port))
+		case "mysql", "mssql":
 			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
