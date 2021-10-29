@@ -448,9 +448,10 @@ func InitMasterRouter() *gin.Engine {
 				{
 					// 列出从机节点
 					node.POST("list", controllers.AdminListNodes)
-
 					// 列出从机节点
 					node.POST("aria2/test", controllers.AdminTestAria2)
+					// 创建/保存节点
+					node.POST("", controllers.AdminAddNode)
 				}
 
 			}

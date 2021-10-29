@@ -443,3 +443,14 @@ func AdminListNodes(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminAddNode 新建节点
+func AdminAddNode(c *gin.Context) {
+	var service admin.AddNodeService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

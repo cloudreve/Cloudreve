@@ -7,6 +7,26 @@ import (
 	"strings"
 )
 
+// AddNodeService 节点添加服务
+type AddNodeService struct {
+	Node model.Node `json:"node" binding:"required"`
+}
+
+// Add 添加节点
+func (service *AddNodeService) Add() serializer.Response {
+	if service.Node.ID > 0 {
+		if err := model.DB.Save(&service.Node).Error; err != nil {
+			return serializer.ParamErr("节点保存失败", err)
+		}
+	} else {
+		if err := model.DB.Create(&service.Node).Error; err != nil {
+			return serializer.ParamErr("节点添加失败", err)
+		}
+	}
+
+	return serializer.Response{Data: service.Node.ID}
+}
+
 // Nodes 列出从机节点
 func (service *AdminListService) Nodes() serializer.Response {
 	var res []model.Node

@@ -18,7 +18,7 @@ type Node struct {
 	Aria2Options string     `gorm:"type:text"` // 离线下载配置
 
 	// 数据库忽略字段
-	Aria2OptionsSerialized Aria2Option `gorm:"-" json:"-"`
+	Aria2OptionsSerialized Aria2Option `gorm:"-"`
 }
 
 // Aria2Option 非公有的Aria2配置属性
