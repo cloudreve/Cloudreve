@@ -11,12 +11,15 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+const deleteTempFileDuration = 60 * time.Second
 
 type MasterNode struct {
 	Model    *model.Node
@@ -241,4 +244,20 @@ func (r *rpcService) GetConfig() model.Aria2Option {
 	defer r.parent.lock.RUnlock()
 
 	return r.parent.Model.Aria2OptionsSerialized
+}
+
+func (s *rpcService) DeleteTempFile(task *model.Download) error {
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	// 避免被aria2占用，异步执行删除
+	go func(src string) {
+		time.Sleep(deleteTempFileDuration)
+		err := os.RemoveAll(src)
+		if err != nil {
+			util.Log().Warning("无法删除离线下载临时目录[%s], %s", src, err)
+		}
+	}(task.Parent)
+
+	return nil
 }

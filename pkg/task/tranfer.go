@@ -135,11 +135,12 @@ func (job *TransferTask) Do() {
 
 // Recycle 回收临时文件
 func (job *TransferTask) Recycle() {
-	err := os.RemoveAll(job.TaskProps.Parent)
-	if err != nil {
-		util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
+	if job.TaskProps.NodeID == 1 {
+		err := os.RemoveAll(job.TaskProps.Parent)
+		if err != nil {
+			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
+		}
 	}
-
 }
 
 // NewTransferTask 新建中转任务

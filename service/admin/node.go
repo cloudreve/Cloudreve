@@ -72,12 +72,26 @@ func (service *AdminListService) Nodes() serializer.Response {
 
 // ToggleNodeService 开关节点服务
 type ToggleNodeService struct {
-	ID      uint `uri:"id"`
-	Desired int  `uri:"desired"`
+	ID      uint             `uri:"id"`
+	Desired model.NodeStatus `uri:"desired"`
 }
 
 // Toggle 开关节点
 func (service *ToggleNodeService) Toggle() serializer.Response {
+	node, err := model.GetNodeByID(service.ID)
+	if err != nil {
+		return serializer.DBErr("找不到节点", err)
+	}
+
+	if err = node.SetStatus(service.Desired); err != nil {
+		return serializer.DBErr("无法更改节点状态", err)
+	}
+
+	if service.Desired == model.NodeActive {
+		cluster.Default.Add(&node)
+	} else {
+		cluster.Default.Delete(node.ID)
+	}
 
 	return serializer.Response{}
 }

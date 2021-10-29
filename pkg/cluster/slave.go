@@ -375,6 +375,26 @@ func (s *slaveCaller) GetConfig() model.Aria2Option {
 	return s.parent.Model.Aria2OptionsSerialized
 }
 
+func (s *slaveCaller) DeleteTempFile(task *model.Download) error {
+	s.parent.lock.RLock()
+	defer s.parent.lock.RUnlock()
+
+	req := &serializer.SlaveAria2Call{
+		Task: task,
+	}
+
+	res, err := s.SendAria2Call(req, "delete")
+	if err != nil {
+		return err
+	}
+
+	if res.Code != 0 {
+		return serializer.NewErrorFromResponse(res)
+	}
+
+	return nil
+}
+
 func getAria2RequestBody(body *serializer.SlaveAria2Call) (io.Reader, error) {
 	reqBodyEncoded, err := json.Marshal(body)
 	if err != nil {

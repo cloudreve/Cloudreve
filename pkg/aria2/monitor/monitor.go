@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -40,11 +39,14 @@ func NewMonitor(task *model.Download) {
 		notifier: make(chan mq.Message),
 		node:     cluster.Default.GetNodeByID(task.GetNodeID()),
 	}
+
 	if monitor.node != nil {
 		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second
 		go monitor.Loop()
 
 		monitor.notifier = mq.GlobalMQ.Subscribe(monitor.Task.GID, 0)
+	} else {
+		monitor.setErrorStatus(errors.New("节点不可用"))
 	}
 }
 
@@ -102,6 +104,7 @@ func (monitor *Monitor) Update() bool {
 	if err := monitor.UpdateTaskInfo(status); err != nil {
 		util.Log().Warning("无法更新下载任务[%s]的任务信息[%s]，", monitor.Task.GID, err)
 		monitor.setErrorStatus(err)
+		monitor.RemoveTempFolder()
 		return true
 	}
 
@@ -228,11 +231,7 @@ func (monitor *Monitor) Error(status rpc.StatusInfo) bool {
 
 // RemoveTempFolder 清理下载临时目录
 func (monitor *Monitor) RemoveTempFolder() {
-	err := os.RemoveAll(monitor.Task.Parent)
-	if err != nil {
-		util.Log().Warning("无法删除离线下载临时目录[%s], %s", monitor.Task.Parent, err)
-	}
-
+	monitor.node.GetAria2Instance().DeleteTempFile(monitor.Task)
 }
 
 // Complete 完成下载，返回是否中断监控

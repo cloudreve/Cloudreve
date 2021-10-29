@@ -69,6 +69,8 @@ func InitSlaveRouter() *gin.Engine {
 			aria2.POST("cancel", controllers.SlaveCancelAria2Task)
 			// 选取任务文件
 			aria2.POST("select", controllers.SlaveSelectTask)
+			// 删除任务临时文件
+			aria2.POST("delete", controllers.SlaveDeleteTempFile)
 		}
 
 		// 异步任务

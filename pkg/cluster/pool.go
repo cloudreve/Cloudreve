@@ -125,6 +125,7 @@ func (pool *NodePool) add(node *model.Node) {
 
 func (pool *NodePool) Add(node *model.Node) {
 	pool.lock.Lock()
+	defer pool.buildIndexMap()
 	defer pool.lock.Unlock()
 
 	if _, ok := pool.active[node.ID]; ok {
@@ -141,6 +142,7 @@ func (pool *NodePool) Add(node *model.Node) {
 
 func (pool *NodePool) Delete(id uint) {
 	pool.lock.Lock()
+	defer pool.buildIndexMap()
 	defer pool.lock.Unlock()
 
 	if node, ok := pool.active[id]; ok {

@@ -42,14 +42,21 @@ type NodeStatus int
 type ModelType int
 
 const (
-	NodeActive = iota
+	NodeActive NodeStatus = iota
 	NodeSuspend
 )
 
 const (
-	SlaveNodeType = iota
+	SlaveNodeType ModelType = iota
 	MasterNodeType
 )
+
+// GetNodeByID 用ID获取节点
+func GetNodeByID(ID interface{}) (Node, error) {
+	var node Node
+	result := DB.First(&node, ID)
+	return node, result.Error
+}
 
 // GetNodesByStatus 根据给定状态获取节点
 func GetNodesByStatus(status ...NodeStatus) ([]Node, error) {
@@ -73,4 +80,12 @@ func (node *Node) BeforeSave() (err error) {
 	optionsValue, err := json.Marshal(&node.Aria2OptionsSerialized)
 	node.Aria2Options = string(optionsValue)
 	return err
+}
+
+// SetStatus 设置节点启用状态
+func (node *Node) SetStatus(status NodeStatus) error {
+	node.Status = status
+	return DB.Model(node).Updates(map[string]interface{}{
+		"status": status,
+	}).Error
 }

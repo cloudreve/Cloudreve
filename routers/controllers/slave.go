@@ -265,3 +265,14 @@ func SlaveGetOneDriveCredential(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// SlaveSelectTask 从机删除离线下载临时文件
+func SlaveDeleteTempFile(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveDeleteTemp(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

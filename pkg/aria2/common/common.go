@@ -18,8 +18,10 @@ type Aria2 interface {
 	Cancel(task *model.Download) error
 	// 选择要下载的文件
 	Select(task *model.Download, files []int) error
-	// GetConfig 获取离线下载配置
+	// 获取离线下载配置
 	GetConfig() model.Aria2Option
+	// 删除临时下载文件
+	DeleteTempFile(*model.Download) error
 }
 
 const (
@@ -84,6 +86,11 @@ func (instance *DummyAria2) Select(task *model.Download, files []int) error {
 // GetConfig 返回空的
 func (instance *DummyAria2) GetConfig() model.Aria2Option {
 	return model.Aria2Option{}
+}
+
+// GetConfig 返回空的
+func (instance *DummyAria2) DeleteTempFile(src *model.Download) error {
+	return ErrNotEnabled
 }
 
 // GetStatus 将给定的状态字符串转换为状态标识数字

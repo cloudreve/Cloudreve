@@ -58,6 +58,10 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 
 	// 取消任务
 	node := cluster.Default.GetNodeByID(download.GetNodeID())
+	if node == nil {
+		return serializer.Err(serializer.CodeInternalSetting, "目标节点不可用", err)
+	}
+
 	if err := node.GetAria2Instance().Cancel(download); err != nil {
 		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
 	}
@@ -126,6 +130,20 @@ func SlaveSelect(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	err := caller.(common.Aria2).Select(service.Task, service.Files)
 	if err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "任务选取失败", err)
+	}
+
+	return serializer.Response{}
+
+}
+
+// SlaveSelect 从机选取离线下载任务文件
+func SlaveDeleteTemp(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response {
+	caller, _ := c.Get("MasterAria2Instance")
+
+	// 查询任务
+	err := caller.(common.Aria2).DeleteTempFile(service.Task)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "临时文件删除失败", err)
 	}
 
 	return serializer.Response{}
