@@ -452,6 +452,8 @@ func InitMasterRouter() *gin.Engine {
 					node.POST("aria2/test", controllers.AdminTestAria2)
 					// 创建/保存节点
 					node.POST("", controllers.AdminAddNode)
+					// 启用/暂停节点
+					node.PATCH("enable/:id/:desired", controllers.AdminToggleNode)
 				}
 
 			}

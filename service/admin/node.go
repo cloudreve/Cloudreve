@@ -69,3 +69,15 @@ func (service *AdminListService) Nodes() serializer.Response {
 		"active": isActive,
 	}}
 }
+
+// ToggleNodeService 开关节点服务
+type ToggleNodeService struct {
+	ID      uint `uri:"id"`
+	Desired int  `uri:"desired"`
+}
+
+// Toggle 开关节点
+func (service *ToggleNodeService) Toggle() serializer.Response {
+
+	return serializer.Response{}
+}

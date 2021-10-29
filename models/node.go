@@ -16,6 +16,7 @@ type Node struct {
 	MasterKey    string     `gorm:"type:text"` // 从->主 通信密钥
 	Aria2Enabled bool       // 是否支持用作离线下载节点
 	Aria2Options string     `gorm:"type:text"` // 离线下载配置
+	Rank         int        // 负载均衡权重
 
 	// 数据库忽略字段
 	Aria2OptionsSerialized Aria2Option `gorm:"-"`

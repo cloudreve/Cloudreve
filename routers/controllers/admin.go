@@ -454,3 +454,14 @@ func AdminAddNode(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminToggleNode 启用/暂停节点
+func AdminToggleNode(c *gin.Context) {
+	var service admin.ToggleNodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Toggle()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

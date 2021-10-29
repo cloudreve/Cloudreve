@@ -19,6 +19,12 @@ type Pool interface {
 
 	// Returns node by ID
 	GetNodeByID(id uint) Node
+
+	// Add given node into pool. If node existed, refresh node.
+	Add(node *model.Node)
+
+	// Delete and kill node from pool by given node id
+	Delete(id uint)
 }
 
 // NodePool 通用节点池
@@ -95,22 +101,60 @@ func (pool *NodePool) initFromDB() error {
 	pool.active = make(map[uint]Node)
 	pool.inactive = make(map[uint]Node)
 	for i := 0; i < len(nodes); i++ {
-		newNode := NewNodeFromDBModel(&nodes[i])
-		if newNode.IsActive() {
-			pool.active[nodes[i].ID] = newNode
-		} else {
-			pool.inactive[nodes[i].ID] = newNode
-		}
-
-		// 订阅节点状态变更
-		newNode.SubscribeStatusChange(func(isActive bool, id uint) {
-			pool.nodeStatusChange(isActive, id)
-		})
+		pool.add(&nodes[i])
 	}
 	pool.lock.Unlock()
 
 	pool.buildIndexMap()
 	return nil
+}
+
+func (pool *NodePool) add(node *model.Node) {
+	newNode := NewNodeFromDBModel(node)
+	if newNode.IsActive() {
+		pool.active[node.ID] = newNode
+	} else {
+		pool.inactive[node.ID] = newNode
+	}
+
+	// 订阅节点状态变更
+	newNode.SubscribeStatusChange(func(isActive bool, id uint) {
+		pool.nodeStatusChange(isActive, id)
+	})
+}
+
+func (pool *NodePool) Add(node *model.Node) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	if _, ok := pool.active[node.ID]; ok {
+		// TODO: refresh node
+		return
+	}
+
+	if _, ok := pool.inactive[node.ID]; ok {
+		return
+	}
+
+	pool.add(node)
+}
+
+func (pool *NodePool) Delete(id uint) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	if node, ok := pool.active[id]; ok {
+		node.Kill()
+		delete(pool.active, id)
+		return
+	}
+
+	if node, ok := pool.inactive[id]; ok {
+		node.Kill()
+		delete(pool.inactive, id)
+		return
+	}
+
 }
 
 // BalanceNodeByFeature 根据 feature 和 LoadBalancer 取出节点
