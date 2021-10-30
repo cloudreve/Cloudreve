@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 )
 
 // DotPathToStandardPath 将","分割的路径转换为标准路径
