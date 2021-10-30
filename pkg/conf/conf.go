@@ -26,6 +26,7 @@ type system struct {
 	Debug         bool
 	SessionSecret string
 	HashIDSalt    string
+	DataPath  string
 }
 
 type ssl struct {

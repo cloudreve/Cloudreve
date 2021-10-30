@@ -48,11 +48,23 @@ func FormSlash(old string) string {
 	return path.Clean(strings.ReplaceAll(old, "\\", "/"))
 }
 
-// RelativePath 获取相对工作目录的路径
+// RelativeExecutablePath 获取相对可执行文件的路径
+func RelativeExecutablePath(name string) string {
+	if filepath.IsAbs(name) {
+		return name
+	}
+	e, _ := os.Executable()
+	return filepath.Join(filepath.Dir(e), name)
+}
+
+//RelativePath 获取相对路径
 func RelativePath(name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
-	e, _ := os.Getwd()
-	return filepath.Join(e, name)
+	if conf.SystemConfig.DataPath != "" {
+		return filepath.Join(conf.SystemConfig.DataPath, name)
+	} else {
+		return RelativeExecutablePath(name)
+	}
 }
