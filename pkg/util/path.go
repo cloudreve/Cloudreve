@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"github.com/cloudreve/Cloudreve/v3/global"
 )
 
 // DotPathToStandardPath 将","分割的路径转换为标准路径
@@ -48,11 +49,23 @@ func FormSlash(old string) string {
 	return path.Clean(strings.ReplaceAll(old, "\\", "/"))
 }
 
-// RelativePath 获取相对可执行文件的路径
-func RelativePath(name string) string {
+// RelativeExecutablePath 获取相对可执行文件的路径
+func RelativeExecutablePath(name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
 	e, _ := os.Executable()
 	return filepath.Join(filepath.Dir(e), name)
+}
+
+//RelativePath 获取相对路径
+func RelativePath(name string) string {
+	if filepath.IsAbs(name) {
+		return name
+	}
+	if global.DataPath != "" {
+		return filepath.Join(global.DataPath, name)
+	} else {
+		return RelativeExecutablePath(name)
+	}
 }

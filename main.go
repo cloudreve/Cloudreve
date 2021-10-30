@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
+	flag.StringVar(&confPath, "c", util.RelativeExecutablePath("conf.ini"), "配置文件路径")
 	flag.BoolVar(&isEject, "eject", false, "导出内置静态资源")
 	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
 	flag.Parse()

@@ -2,6 +2,7 @@ package conf
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/global"
 	"github.com/go-ini/ini"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -26,6 +27,7 @@ type system struct {
 	Debug         bool
 	SessionSecret string
 	HashIDSalt    string
+	DataPath      string
 }
 
 type ssl struct {
@@ -146,6 +148,7 @@ func Init(path string) {
 		util.GloablLogger = nil
 		util.Log()
 	}
+	global.DataPath = SystemConfig.DataPath
 
 }
 
