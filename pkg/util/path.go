@@ -5,7 +5,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/global"
 )
 
 // DotPathToStandardPath 将","分割的路径转换为标准路径
@@ -63,8 +63,9 @@ func RelativePath(name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
-	if conf.SystemConfig.DataPath != "" {
-		return filepath.Join(conf.SystemConfig.DataPath, name)
+	SystemConfig, ok := global.conf[ "SystemConfig" ]
+	if SystemConfig.DataPath != "" {
+		return filepath.Join(SystemConfig.DataPath, name)
 	} else {
 		return RelativeExecutablePath(name)
 	}

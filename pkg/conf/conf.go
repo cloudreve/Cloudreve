@@ -2,6 +2,7 @@ package conf
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/global"
 	"github.com/go-ini/ini"
 	"gopkg.in/go-playground/validator.v9"
 )
@@ -148,6 +149,7 @@ func Init(path string) {
 		util.Log()
 	}
 
+	global.conf := sections
 }
 
 // mapSection 将配置文件的 Section 映射到结构体上
