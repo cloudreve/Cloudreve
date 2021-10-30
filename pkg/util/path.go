@@ -63,7 +63,7 @@ func RelativePath(name string) string {
 	if filepath.IsAbs(name) {
 		return name
 	}
-	SystemConfig, ok := global.conf[ "SystemConfig" ]
+	SystemConfig, ok := global.Conf[ "SystemConfig" ]
 	if SystemConfig.DataPath != "" {
 		return filepath.Join(SystemConfig.DataPath, name)
 	} else {

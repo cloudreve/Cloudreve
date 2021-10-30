@@ -149,7 +149,7 @@ func Init(path string) {
 		util.Log()
 	}
 
-	global.conf := sections
+	global.Conf := sections
 }
 
 // mapSection 将配置文件的 Section 映射到结构体上

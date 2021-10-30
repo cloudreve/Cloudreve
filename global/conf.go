@@ -1,3 +1,3 @@
 package global
 
-var conf map[string]interface{}
+var Conf map[string]interface{}
