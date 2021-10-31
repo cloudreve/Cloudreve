@@ -476,3 +476,14 @@ func AdminDeleteNode(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminGetNode 获取节点详情
+func AdminGetNode(c *gin.Context) {
+	var service admin.NodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

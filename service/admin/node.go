@@ -83,6 +83,11 @@ func (service *ToggleNodeService) Toggle() serializer.Response {
 		return serializer.DBErr("找不到节点", err)
 	}
 
+	// 是否为系统节点
+	if node.ID <= 1 {
+		return serializer.Err(serializer.CodeNoPermissionErr, "系统节点无法更改", err)
+	}
+
 	if err = node.SetStatus(service.Desired); err != nil {
 		return serializer.DBErr("无法更改节点状态", err)
 	}
@@ -120,4 +125,14 @@ func (service *NodeService) Delete() serializer.Response {
 	}
 
 	return serializer.Response{}
+}
+
+// Get 获取节点详情
+func (service *NodeService) Get() serializer.Response {
+	node, err := model.GetNodeByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "节点不存在", err)
+	}
+
+	return serializer.Response{Data: node}
 }

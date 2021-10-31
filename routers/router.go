@@ -458,6 +458,8 @@ func InitMasterRouter() *gin.Engine {
 					node.PATCH("enable/:id/:desired", controllers.AdminToggleNode)
 					// 删除节点
 					node.DELETE(":id", controllers.AdminDeleteNode)
+					// 获取节点
+					node.GET(":id", controllers.AdminGetNode)
 				}
 
 			}
