@@ -465,3 +465,14 @@ func AdminToggleNode(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// AdminDeleteGroup 删除用户组
+func AdminDeleteNode(c *gin.Context) {
+	var service admin.NodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}

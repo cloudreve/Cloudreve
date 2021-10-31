@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gofrs/uuid"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -182,10 +183,11 @@ func (r *rpcService) Init() error {
 func (r *rpcService) CreateTask(task *model.Download, groupOptions map[string]interface{}) (string, error) {
 	r.parent.lock.RLock()
 	// 生成存储路径
+	guid, _ := uuid.NewV4()
 	path := filepath.Join(
 		r.parent.Model.Aria2OptionsSerialized.TempPath,
 		"aria2",
-		strconv.FormatInt(time.Now().UnixNano(), 10),
+		guid.String(),
 	)
 	r.parent.lock.RUnlock()
 

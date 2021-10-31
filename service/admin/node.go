@@ -95,3 +95,29 @@ func (service *ToggleNodeService) Toggle() serializer.Response {
 
 	return serializer.Response{}
 }
+
+// NodeService 节点ID服务
+type NodeService struct {
+	ID uint `uri:"id" json:"id" binding:"required"`
+}
+
+// Delete 删除节点
+func (service *NodeService) Delete() serializer.Response {
+	// 查找用户组
+	node, err := model.GetNodeByID(service.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "节点不存在", err)
+	}
+
+	// 是否为系统节点
+	if node.ID <= 1 {
+		return serializer.Err(serializer.CodeNoPermissionErr, "系统节点无法删除", err)
+	}
+
+	cluster.Default.Delete(node.ID)
+	if err := model.DB.Delete(&node).Error; err != nil {
+		return serializer.DBErr("无法删除节点", err)
+	}
+
+	return serializer.Response{}
+}
