@@ -11,6 +11,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
 
+// TODO: move to slave pkg
 // RemoteCallback 发送远程存储策略上传回调请求
 func RemoteCallback(url string, body serializer.UploadCallback) error {
 	callbackBody, err := json.Marshal(struct {

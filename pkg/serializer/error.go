@@ -1,14 +1,9 @@
 package serializer
 
-import "github.com/gin-gonic/gin"
-
-// Response 基础序列化器
-type Response struct {
-	Code  int         `json:"code"`
-	Data  interface{} `json:"data,omitempty"`
-	Msg   string      `json:"msg"`
-	Error string      `json:"error,omitempty"`
-}
+import (
+	"errors"
+	"github.com/gin-gonic/gin"
+)
 
 // AppError 应用错误，实现了error接口
 type AppError struct {
@@ -17,12 +12,21 @@ type AppError struct {
 	RawError error
 }
 
-// NewError 返回新的错误对象 todo:测试 还有下面的
+// NewError 返回新的错误对象
 func NewError(code int, msg string, err error) AppError {
 	return AppError{
 		Code:     code,
 		Msg:      msg,
 		RawError: err,
+	}
+}
+
+// NewErrorFromResponse 从 serializer.Response 构建错误
+func NewErrorFromResponse(resp *Response) AppError {
+	return AppError{
+		Code:     resp.Code,
+		Msg:      resp.Msg,
+		RawError: errors.New(resp.Error),
 	}
 }
 
@@ -66,6 +70,8 @@ const (
 	CodeGroupNotAllowed = 40007
 	// CodeAdminRequired 非管理用户组
 	CodeAdminRequired = 40008
+	// CodeMasterNotFound 主机节点未注册
+	CodeMasterNotFound = 40009
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

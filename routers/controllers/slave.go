@@ -10,7 +10,9 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
+	"github.com/cloudreve/Cloudreve/v3/service/aria2"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
+	"github.com/cloudreve/Cloudreve/v3/service/node"
 	"github.com/gin-gonic/gin"
 )
 
@@ -170,6 +172,105 @@ func SlaveList(c *gin.Context) {
 	var service explorer.SlaveListService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveHeartbeat 接受主机心跳包
+func SlaveHeartbeat(c *gin.Context) {
+	var service serializer.NodePingReq
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := node.HandleMasterHeartbeat(&service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveAria2Create 创建 Aria2 任务
+func SlaveAria2Create(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.Add(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveAria2Status 查询从机 Aria2 任务状态
+func SlaveAria2Status(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveStatus(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveCancelAria2Task 取消从机离线下载任务
+func SlaveCancelAria2Task(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveCancel(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveSelectTask 从机选取离线下载文件
+func SlaveSelectTask(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveSelect(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveCreateTransferTask 从机创建中转任务
+func SlaveCreateTransferTask(c *gin.Context) {
+	var service serializer.SlaveTransferReq
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := explorer.CreateTransferTask(c, &service)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveNotificationPush 处理从机发送的消息推送
+func SlaveNotificationPush(c *gin.Context) {
+	var service node.SlaveNotificationService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.HandleSlaveNotificationPush(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveGetOneDriveCredential 从机获取主机的OneDrive存储策略凭证
+func SlaveGetOneDriveCredential(c *gin.Context) {
+	var service node.OneDriveCredentialService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// SlaveSelectTask 从机删除离线下载临时文件
+func SlaveDeleteTempFile(c *gin.Context) {
+	var service serializer.SlaveAria2Call
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := aria2.SlaveDeleteTemp(c, &service)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

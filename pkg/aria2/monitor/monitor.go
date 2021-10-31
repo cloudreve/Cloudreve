@@ -1,19 +1,21 @@
-package aria2
+package monitor
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -23,32 +25,34 @@ type Monitor struct {
 	Task     *model.Download
 	Interval time.Duration
 
-	notifier chan StatusEvent
+	notifier <-chan mq.Message
+	node     cluster.Node
 	retried  int
-}
-
-// StatusEvent 状态改变事件
-type StatusEvent struct {
-	GID    string
-	Status int
 }
 
 var MAX_RETRY = 10
 
-// NewMonitor 新建上传状态监控
+// NewMonitor 新建离线下载状态监控
 func NewMonitor(task *model.Download) {
 	monitor := &Monitor{
 		Task:     task,
-		Interval: time.Duration(model.GetIntSetting("aria2_interval", 10)) * time.Second,
-		notifier: make(chan StatusEvent),
+		notifier: make(chan mq.Message),
+		node:     cluster.Default.GetNodeByID(task.GetNodeID()),
 	}
-	go monitor.Loop()
-	EventNotifier.Subscribe(monitor.notifier, monitor.Task.GID)
+
+	if monitor.node != nil {
+		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second
+		go monitor.Loop()
+
+		monitor.notifier = mq.GlobalMQ.Subscribe(monitor.Task.GID, 0)
+	} else {
+		monitor.setErrorStatus(errors.New("节点不可用"))
+	}
 }
 
 // Loop 开启监控循环
 func (monitor *Monitor) Loop() {
-	defer EventNotifier.Unsubscribe(monitor.Task.GID)
+	defer mq.GlobalMQ.Unsubscribe(monitor.Task.GID, monitor.notifier)
 
 	// 首次循环立即更新
 	interval := time.Duration(0)
@@ -70,9 +74,7 @@ func (monitor *Monitor) Loop() {
 
 // Update 更新状态，返回值表示是否退出监控
 func (monitor *Monitor) Update() bool {
-	Lock.RLock()
-	status, err := Instance.Status(monitor.Task)
-	Lock.RUnlock()
+	status, err := monitor.node.GetAria2Instance().Status(monitor.Task)
 
 	if err != nil {
 		monitor.retried++
@@ -102,6 +104,7 @@ func (monitor *Monitor) Update() bool {
 	if err := monitor.UpdateTaskInfo(status); err != nil {
 		util.Log().Warning("无法更新下载任务[%s]的任务信息[%s]，", monitor.Task.GID, err)
 		monitor.setErrorStatus(err)
+		monitor.RemoveTempFolder()
 		return true
 	}
 
@@ -115,7 +118,7 @@ func (monitor *Monitor) Update() bool {
 	case "active", "waiting", "paused":
 		return false
 	case "removed":
-		monitor.Task.Status = Canceled
+		monitor.Task.Status = common.Canceled
 		monitor.Task.Save()
 		monitor.RemoveTempFolder()
 		return true
@@ -130,7 +133,7 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 	originSize := monitor.Task.TotalSize
 
 	monitor.Task.GID = status.Gid
-	monitor.Task.Status = getStatus(status.Status)
+	monitor.Task.Status = common.GetStatus(status.Status)
 
 	// 文件大小、已下载大小
 	total, err := strconv.ParseUint(status.TotalLength, 10, 64)
@@ -164,9 +167,7 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 		// 文件大小更新后，对文件限制等进行校验
 		if err := monitor.ValidateFile(); err != nil {
 			// 验证失败时取消任务
-			Lock.RLock()
-			Instance.Cancel(monitor.Task)
-			Lock.RUnlock()
+			monitor.node.GetAria2Instance().Cancel(monitor.Task)
 			return err
 		}
 	}
@@ -179,7 +180,7 @@ func (monitor *Monitor) ValidateFile() error {
 	// 找到任务创建者
 	user := monitor.Task.GetOwner()
 	if user == nil {
-		return ErrUserNotFound
+		return common.ErrUserNotFound
 	}
 
 	// 创建文件系统
@@ -230,28 +231,31 @@ func (monitor *Monitor) Error(status rpc.StatusInfo) bool {
 
 // RemoveTempFolder 清理下载临时目录
 func (monitor *Monitor) RemoveTempFolder() {
-	err := os.RemoveAll(monitor.Task.Parent)
-	if err != nil {
-		util.Log().Warning("无法删除离线下载临时目录[%s], %s", monitor.Task.Parent, err)
-	}
-
+	monitor.node.GetAria2Instance().DeleteTempFile(monitor.Task)
 }
 
 // Complete 完成下载，返回是否中断监控
 func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 	// 创建中转任务
 	file := make([]string, 0, len(monitor.Task.StatusInfo.Files))
+	sizes := make(map[string]uint64, len(monitor.Task.StatusInfo.Files))
 	for i := 0; i < len(monitor.Task.StatusInfo.Files); i++ {
-		if monitor.Task.StatusInfo.Files[i].Selected == "true" {
-			file = append(file, monitor.Task.StatusInfo.Files[i].Path)
+		fileInfo := monitor.Task.StatusInfo.Files[i]
+		if fileInfo.Selected == "true" {
+			file = append(file, fileInfo.Path)
+			size, _ := strconv.ParseUint(fileInfo.Length, 10, 64)
+			sizes[fileInfo.Path] = size
 		}
 	}
+
 	job, err := task.NewTransferTask(
 		monitor.Task.UserID,
 		file,
 		monitor.Task.Dst,
 		monitor.Task.Parent,
 		true,
+		monitor.node.ID(),
+		sizes,
 	)
 	if err != nil {
 		monitor.setErrorStatus(err)
@@ -269,7 +273,7 @@ func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 }
 
 func (monitor *Monitor) setErrorStatus(err error) {
-	monitor.Task.Status = Error
+	monitor.Task.Status = common.Error
 	monitor.Task.Error = err.Error()
 	monitor.Task.Save()
 }

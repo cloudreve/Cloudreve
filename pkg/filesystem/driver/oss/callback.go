@@ -42,7 +42,7 @@ func GetPublicKey(r *http.Request) ([]byte, error) {
 	}
 
 	// 获取公钥
-	client := request.HTTPClient{}
+	client := request.NewClient()
 	body, err := client.Request("GET", string(pubURL), nil).
 		CheckHTTPResponse(200).
 		GetResponse()

@@ -226,13 +226,13 @@ func TestFileSystem_UploadFromPath(t *testing.T) {
 
 	// 文件不存在
 	{
-		err := fs.UploadFromPath(ctx, "test/not_exist", "/")
+		err := fs.UploadFromPath(ctx, "test/not_exist", "/", true)
 		asserts.Error(err)
 	}
 
 	// 文存在,上传失败
 	{
-		err := fs.UploadFromPath(ctx, "tests/test.zip", "/")
+		err := fs.UploadFromPath(ctx, "tests/test.zip", "/", true)
 		asserts.Error(err)
 	}
 }
