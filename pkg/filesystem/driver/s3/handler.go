@@ -172,7 +172,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 	}
 
 	// 获取文件数据流
-	client := request.HTTPClient{}
+	client := request.NewClient()
 	resp, err := client.Request(
 		"GET",
 		downloadURL,

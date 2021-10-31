@@ -292,7 +292,7 @@ func TestDriver_Get(t *testing.T) {
 			BucketName: "test",
 			Server:     "oss-cn-shanghai.aliyuncs.com",
 		},
-		HTTPClient: request.HTTPClient{},
+		HTTPClient: request.NewClient(),
 	}
 	cache.Set("setting_preview_timeout", "3600", 0)
 

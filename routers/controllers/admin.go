@@ -3,6 +3,7 @@ package controllers
 import (
 	"io"
 
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
@@ -24,7 +25,7 @@ func AdminSummary(c *gin.Context) {
 
 // AdminNews 获取社区新闻
 func AdminNews(c *gin.Context) {
-	r := request.HTTPClient{}
+	r := request.NewClient()
 	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3Anotice&sort=-startTime&page%5Blimit%5D=10", nil)
 	if res.Err == nil {
 		io.Copy(c.Writer, res.Response.Body)
@@ -92,7 +93,13 @@ func AdminSendTestMail(c *gin.Context) {
 func AdminTestAria2(c *gin.Context) {
 	var service admin.Aria2TestService
 	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Test()
+		var res serializer.Response
+		if service.Type == model.MasterNodeType {
+			res = service.TestMaster()
+		} else {
+			res = service.TestSlave()
+		}
+
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
@@ -420,6 +427,61 @@ func AdminListFolders(c *gin.Context) {
 	var service admin.ListFolderService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.List(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListNodes 列出从机节点
+func AdminListNodes(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Nodes()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminAddNode 新建节点
+func AdminAddNode(c *gin.Context) {
+	var service admin.AddNodeService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Add()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminToggleNode 启用/暂停节点
+func AdminToggleNode(c *gin.Context) {
+	var service admin.ToggleNodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Toggle()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteGroup 删除用户组
+func AdminDeleteNode(c *gin.Context) {
+	var service admin.NodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGetNode 获取节点详情
+func AdminGetNode(c *gin.Context) {
+	var service admin.NodeService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Get()
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

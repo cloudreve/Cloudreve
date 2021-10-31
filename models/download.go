@@ -24,6 +24,7 @@ type Download struct {
 	Dst            string `gorm:"type:text"`       // 用户文件系统存储父目录路径
 	UserID         uint   // 发起者UID
 	TaskID         uint   // 对应的转存任务ID
+	NodeID         uint   // 处理任务的节点ID
 
 	// 关联模型
 	User *User `gorm:"PRELOAD:false,association_autoupdate:false"`
@@ -113,4 +114,14 @@ func (task *Download) GetOwner() *User {
 // Delete 删除离线下载记录
 func (download *Download) Delete() error {
 	return DB.Model(download).Delete(download).Error
+}
+
+// GetNodeID 返回任务所属节点ID
+func (task *Download) GetNodeID() uint {
+	// 兼容3.4版本之前生成的下载记录
+	if task.NodeID == 0 {
+		return 1
+	}
+
+	return task.NodeID
 }

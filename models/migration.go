@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/fatih/color"
+	"github.com/gofrs/uuid"
 	"github.com/jinzhu/gorm"
 )
 
@@ -34,8 +35,9 @@ func migration() {
 	if conf.DatabaseConfig.Type == "mysql" {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
+
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -73,6 +75,8 @@ func addDefaultPolicy() {
 }
 
 func addDefaultSettings() {
+	siteID, _ := uuid.NewV4()
+
 	defaultSettings := []Setting{
 		{Name: "siteURL", Value: `http://localhost`, Type: "basic"},
 		{Name: "siteName", Value: `Cloudreve`, Type: "basic"},
@@ -83,6 +87,7 @@ func addDefaultSettings() {
 		{Name: "siteDes", Value: `Cloudreve`, Type: "basic"},
 		{Name: "siteTitle", Value: `平步云端`, Type: "basic"},
 		{Name: "siteScript", Value: ``, Type: "basic"},
+		{Name: "siteID", Value: siteID.String(), Type: "basic"},
 		{Name: "fromName", Value: `Cloudreve`, Type: "mail"},
 		{Name: "mail_keepalive", Value: `30`, Type: "mail"},
 		{Name: "fromAdress", Value: `no-reply@acg.blue`, Type: "mail"},
@@ -100,10 +105,13 @@ func addDefaultSettings() {
 		{Name: "upload_credential_timeout", Value: `1800`, Type: "timeout"},
 		{Name: "upload_session_timeout", Value: `86400`, Type: "timeout"},
 		{Name: "slave_api_timeout", Value: `60`, Type: "timeout"},
+		{Name: "slave_node_retry", Value: `3`, Type: "slave"},
+		{Name: "slave_ping_interval", Value: `60`, Type: "slave"},
+		{Name: "slave_recover_interval", Value: `120`, Type: "slave"},
+		{Name: "slave_transfer_timeout", Value: `172800`, Type: "timeout"},
 		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
 		{Name: "share_download_session_timeout", Value: `2073600`, Type: "timeout"},
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
-		{Name: "aria2_call_timeout", Value: `5`, Type: "timeout"},
 		{Name: "folder_props_timeout", Value: `300`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
 		{Name: "onedrive_source_timeout", Value: `1800`, Type: "timeout"},
@@ -131,11 +139,6 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "gravatar_server", Value: `https://www.gravatar.com/`, Type: "avatar"},
 		{Name: "defaultTheme", Value: `#3f51b5`, Type: "basic"},
 		{Name: "themes", Value: `{"#3f51b5":{"palette":{"primary":{"main":"#3f51b5"},"secondary":{"main":"#f50057"}}},"#2196f3":{"palette":{"primary":{"main":"#2196f3"},"secondary":{"main":"#FFC107"}}},"#673AB7":{"palette":{"primary":{"main":"#673AB7"},"secondary":{"main":"#2196F3"}}},"#E91E63":{"palette":{"primary":{"main":"#E91E63"},"secondary":{"main":"#42A5F5","contrastText":"#fff"}}},"#FF5722":{"palette":{"primary":{"main":"#FF5722"},"secondary":{"main":"#3F51B5"}}},"#FFC107":{"palette":{"primary":{"main":"#FFC107"},"secondary":{"main":"#26C6DA"}}},"#8BC34A":{"palette":{"primary":{"main":"#8BC34A","contrastText":"#fff"},"secondary":{"main":"#FF8A65","contrastText":"#fff"}}},"#009688":{"palette":{"primary":{"main":"#009688"},"secondary":{"main":"#4DD0E1","contrastText":"#fff"}}},"#607D8B":{"palette":{"primary":{"main":"#607D8B"},"secondary":{"main":"#F06292"}}},"#795548":{"palette":{"primary":{"main":"#795548"},"secondary":{"main":"#4CAF50","contrastText":"#fff"}}}}`, Type: "basic"},
-		{Name: "aria2_token", Value: ``, Type: "aria2"},
-		{Name: "aria2_rpcurl", Value: ``, Type: "aria2"},
-		{Name: "aria2_temp_path", Value: ``, Type: "aria2"},
-		{Name: "aria2_options", Value: `{}`, Type: "aria2"},
-		{Name: "aria2_interval", Value: `60`, Type: "aria2"},
 		{Name: "max_worker_num", Value: `10`, Type: "task"},
 		{Name: "max_parallel_transfer", Value: `4`, Type: "task"},
 		{Name: "secret_key", Value: util.RandStringRunes(256), Type: "auth"},

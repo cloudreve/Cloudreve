@@ -96,7 +96,9 @@ func Resume() {
 			continue
 		}
 
-		TaskPoll.Submit(job)
+		if job != nil {
+			TaskPoll.Submit(job)
+		}
 	}
 }
 

@@ -151,7 +151,7 @@ func (service *PolicyService) AddCORS() serializer.Response {
 	case "oss":
 		handler := oss.Driver{
 			Policy:     &policy,
-			HTTPClient: request.HTTPClient{},
+			HTTPClient: request.NewClient(),
 		}
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
@@ -161,7 +161,7 @@ func (service *PolicyService) AddCORS() serializer.Response {
 		b := &cossdk.BaseURL{BucketURL: u}
 		handler := cos.Driver{
 			Policy:     &policy,
-			HTTPClient: request.HTTPClient{},
+			HTTPClient: request.NewClient(),
 			Client: cossdk.NewClient(b, &http.Client{
 				Transport: &cossdk.AuthorizationTransport{
 					SecretID:  policy.AccessKey,
@@ -195,7 +195,7 @@ func (service *SlavePingService) Test() serializer.Response {
 
 	controller, _ := url.Parse("/api/v3/site/ping")
 
-	r := request.HTTPClient{}
+	r := request.NewClient()
 	res, err := r.Request(
 		"GET",
 		master.ResolveReference(controller).String(),
@@ -229,7 +229,7 @@ func (service *SlaveTestService) Test() serializer.Response {
 	}
 	bodyByte, _ := json.Marshal(body)
 
-	r := request.HTTPClient{}
+	r := request.NewClient()
 	res, err := r.Request(
 		"POST",
 		slave.ResolveReference(controller).String(),
@@ -245,7 +245,7 @@ func (service *SlaveTestService) Test() serializer.Response {
 	}
 
 	if res.Code != 0 {
-		return serializer.ParamErr("成功接到从机，但是"+res.Msg, nil)
+		return serializer.ParamErr("成功接到从机，但是从机返回："+res.Msg, nil)
 	}
 
 	return serializer.Response{}
