@@ -112,7 +112,6 @@ func addDefaultSettings() {
 		{Name: "onedrive_monitor_timeout", Value: `600`, Type: "timeout"},
 		{Name: "share_download_session_timeout", Value: `2073600`, Type: "timeout"},
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
-		{Name: "aria2_call_timeout", Value: `5`, Type: "timeout"},
 		{Name: "folder_props_timeout", Value: `300`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
 		{Name: "onedrive_source_timeout", Value: `1800`, Type: "timeout"},
