@@ -128,12 +128,15 @@ func (pool *NodePool) Add(node *model.Node) {
 	defer pool.buildIndexMap()
 	defer pool.lock.Unlock()
 
-	if _, ok := pool.active[node.ID]; ok {
-		// TODO: refresh node
-		return
+	var (
+		old Node
+		ok  bool
+	)
+	if old, ok = pool.active[node.ID]; !ok {
+		old, ok = pool.inactive[node.ID]
 	}
-
-	if _, ok := pool.inactive[node.ID]; ok {
+	if old != nil {
+		old.Init(node)
 		return
 	}
 
