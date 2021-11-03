@@ -136,7 +136,7 @@ func (pool *NodePool) Add(node *model.Node) {
 		old, ok = pool.inactive[node.ID]
 	}
 	if old != nil {
-		old.Init(node)
+		go old.Init(node)
 		return
 	}
 

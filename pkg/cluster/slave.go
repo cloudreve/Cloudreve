@@ -34,7 +34,6 @@ type slaveCaller struct {
 // Init 初始化节点
 func (node *SlaveNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
-	defer node.lock.Unlock()
 	node.Model = nodeModel
 
 	// Init http request client
@@ -54,12 +53,15 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 	)
 
 	node.caller.parent = node
-	node.Active = true
 	if node.close != nil {
+		node.lock.Unlock()
 		node.close <- true
+		go node.StartPingLoop()
+	} else {
+		node.Active = true
+		node.lock.Unlock()
+		go node.StartPingLoop()
 	}
-
-	go node.StartPingLoop()
 }
 
 // IsFeatureEnabled 查询节点的某项功能是否启用
@@ -84,6 +86,9 @@ func (node *SlaveNode) SubscribeStatusChange(callback func(bool, uint)) {
 
 // Ping 从机节点，返回从机负载
 func (node *SlaveNode) Ping(req *serializer.NodePingReq) (*serializer.NodePingResp, error) {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+
 	reqBodyEncoded, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
