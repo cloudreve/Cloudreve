@@ -24,6 +24,7 @@ func (service *AddNodeService) Add() serializer.Response {
 		}
 	}
 
+	cluster.Default.Add(&service.Node)
 	return serializer.Response{Data: service.Node.ID}
 }
 

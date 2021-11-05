@@ -15,9 +15,9 @@ import (
 
 // Aria2TestService aria2连接测试服务
 type Aria2TestService struct {
-	Server string          `json:"server" binding:"required"`
+	Server string          `json:"server"`
 	RPC    string          `json:"rpc" binding:"required"`
-	Secret string          `json:"secret" binding:"required"`
+	Secret string          `json:"secret"`
 	Token  string          `json:"token"`
 	Type   model.ModelType `json:"type"`
 }

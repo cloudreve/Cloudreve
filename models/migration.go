@@ -48,6 +48,9 @@ func migration() {
 	// 创建初始管理员账户
 	addDefaultUser()
 
+	// 创建初始节点
+	addDefaultNode()
+
 	// 向设置数据表添加初始设置
 	addDefaultSettings()
 
@@ -266,5 +269,24 @@ func addDefaultUser() {
 		c := color.New(color.FgWhite).Add(color.BgBlack).Add(color.Bold)
 		util.Log().Info("初始管理员账号：" + c.Sprint("admin@cloudreve.org"))
 		util.Log().Info("初始管理员密码：" + c.Sprint(password))
+	}
+}
+
+func addDefaultNode() {
+	_, err := GetNodeByID(1)
+
+	if gorm.IsRecordNotFoundError(err) {
+		defaultAdminGroup := Node{
+			Name:   "主机（本机）",
+			Status: NodeActive,
+			Type:   MasterNodeType,
+			Aria2OptionsSerialized: Aria2Option{
+				Interval: 10,
+				Timeout:  10,
+			},
+		}
+		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
+			util.Log().Panic("无法创建初始节点记录, %s", err)
+		}
 	}
 }
