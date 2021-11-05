@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"sync"
+
+	"runtime"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -35,16 +38,48 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
 	res, err := fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
-	if err == nil && conf.SystemConfig.Mode == "master" {
-		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
-	}
 
 	// 本地存储策略出错时重新生成缩略图
 	if err != nil && fs.Policy.Type == "local" {
 		fs.GenerateThumbnail(ctx, &fs.FileTarget[0])
+		res, err = fs.Handler.Thumb(ctx, fs.FileTarget[0].SourceName)
+	}
+
+	if err == nil && conf.SystemConfig.Mode == "master" {
+		res.MaxAge = model.GetIntSetting("preview_timeout", 60)
 	}
 
 	return res, err
+}
+
+// thumbPool 要使用的任务池
+var thumbPool *Pool
+var once sync.Once
+
+// Pool 带有最大配额的任务池
+type Pool struct {
+	// 容量
+	worker chan int
+}
+
+// Init 初始化任务池
+func getThumbWorker() *Pool {
+	once.Do(func() {
+		maxWorker := model.GetIntSetting("max_thumb_worker_num", runtime.GOMAXPROCS(0))
+		thumbPool = &Pool{
+			worker: make(chan int, maxWorker),
+		}
+		util.Log().Info("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
+	})
+	return thumbPool
+}
+func (pool *Pool) addWorker() {
+	pool.worker <- 1
+	util.Log().Info("Thumb任务队列，addWorker")
+}
+func (pool *Pool) releaseWorker() {
+	util.Log().Info("Thumb任务队列，releaseWorker")
+	<-pool.worker
 }
 
 // GenerateThumbnail 尝试为本地策略文件生成缩略图并获取图像原始大小
@@ -65,6 +100,8 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		return
 	}
 	defer source.Close()
+	getThumbWorker().addWorker()
+	defer getThumbWorker().releaseWorker()
 
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
