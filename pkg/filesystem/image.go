@@ -65,20 +65,23 @@ type Pool struct {
 // Init 初始化任务池
 func getThumbWorker() *Pool {
 	once.Do(func() {
-		maxWorker := model.GetIntSetting("max_thumb_worker_num", runtime.GOMAXPROCS(0))
+		maxWorker := conf.ThumbConfig.MaxTaskCount
+		if maxWorker <= 0 {
+			maxWorker = runtime.GOMAXPROCS(0)
+		}
 		thumbPool = &Pool{
 			worker: make(chan int, maxWorker),
 		}
-		util.Log().Info("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
+		util.Log().Debug("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
 	})
 	return thumbPool
 }
 func (pool *Pool) addWorker() {
 	pool.worker <- 1
-	util.Log().Info("Thumb任务队列，addWorker")
+	util.Log().Debug("Thumb任务队列，addWorker")
 }
 func (pool *Pool) releaseWorker() {
-	util.Log().Info("Thumb任务队列，releaseWorker")
+	util.Log().Debug("Thumb任务队列，releaseWorker")
 	<-pool.worker
 }
 
@@ -116,6 +119,12 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
 	err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
+	image = nil
+	if conf.ThumbConfig.GCAfterGen {
+		util.Log().Debug("GenerateThumbnail runtime.GC")
+		runtime.GC()
+	}
+
 	if err != nil {
 		util.Log().Warning("无法保存缩略图：%s", err)
 		return

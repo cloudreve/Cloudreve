@@ -51,9 +51,13 @@ var CORSConfig = &cors{
 
 // ThumbConfig 缩略图配置
 var ThumbConfig = &thumb{
-	MaxWidth:   400,
-	MaxHeight:  300,
-	FileSuffix: "._thumb",
+	MaxWidth:      400,
+	MaxHeight:     300,
+	FileSuffix:    "._thumb",
+	MaxTaskCount:  -1,
+	EncodeMethod:  "jpg",
+	GCAfterGen:    false,
+	EncodeQuality: 85,
 }
 
 // SlaveConfig 从机配置
