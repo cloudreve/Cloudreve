@@ -188,18 +188,6 @@ func TestShare_CanBeDownloadBy(t *testing.T) {
 		asserts.Error(share.CanBeDownloadBy(user))
 	}
 
-	// 未登录，需要积分
-	{
-		user := &User{
-			Group: Group{
-				OptionsSerialized: GroupOption{
-					ShareDownload: true,
-				},
-			},
-		}
-		asserts.Error(share.CanBeDownloadBy(user))
-	}
-
 	// 成功
 	{
 		user := &User{
