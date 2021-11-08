@@ -1,4 +1,4 @@
-package slave
+package cluster
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -51,13 +50,13 @@ type MasterInfo struct {
 	TTL int
 	URL *url.URL
 	// used to invoke aria2 rpc calls
-	Instance cluster.Node
+	Instance Node
 	Client   request.Client
 
 	jobTracker map[string]bool
 }
 
-func Init() {
+func InitController() {
 	DefaultController = &slaveController{
 		masters: make(map[string]MasterInfo),
 	}
@@ -95,7 +94,7 @@ func (c *slaveController) HandleHeartBeat(req *serializer.NodePingReq) (serializ
 				}, int64(req.CredentialTTL)),
 			),
 			jobTracker: make(map[string]bool),
-			Instance: cluster.NewNodeFromDBModel(&model.Node{
+			Instance: NewNodeFromDBModel(&model.Node{
 				Model:                  gorm.Model{ID: req.Node.ID},
 				MasterKey:              req.Node.MasterKey,
 				Type:                   model.MasterNodeType,

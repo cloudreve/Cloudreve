@@ -90,15 +90,27 @@ func TestSignRequired(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	c.Request, _ = http.NewRequest("GET", "/test", nil)
-	SignRequiredFunc := SignRequired(auth.HMACAuth{SecretKey: []byte(util.RandStringRunes(256))})
+	authInstance := auth.HMACAuth{SecretKey: []byte(util.RandStringRunes(256))}
+	SignRequiredFunc := SignRequired(authInstance)
 
 	// 鉴权失败
 	SignRequiredFunc(c)
 	asserts.NotNil(c)
+	asserts.True(c.IsAborted())
 
+	c, _ = gin.CreateTestContext(rec)
 	c.Request, _ = http.NewRequest("PUT", "/test", nil)
 	SignRequiredFunc(c)
 	asserts.NotNil(c)
+	asserts.True(c.IsAborted())
+
+	// Sign verify success
+	c, _ = gin.CreateTestContext(rec)
+	c.Request, _ = http.NewRequest("PUT", "/test", nil)
+	c.Request = auth.SignRequest(authInstance, c.Request, 0)
+	SignRequiredFunc(c)
+	asserts.NotNil(c)
+	asserts.False(c.IsAborted())
 }
 
 func TestWebDAVAuth(t *testing.T) {
@@ -780,8 +792,6 @@ func TestS3CallbackAuth(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "group_id"}).AddRow(1, 1))
 		mock.ExpectQuery("SELECT(.+)groups(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policies"}).AddRow(1, "[702]"))
-		mock.ExpectQuery("SELECT(.+)policies(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "access_key", "secret_key"}).AddRow(2, "123", "123"))
 		c, _ := gin.CreateTestContext(rec)
 		c.Params = []gin.Param{
 			{"key", "testCallBackUpyun"},
@@ -789,5 +799,6 @@ func TestS3CallbackAuth(t *testing.T) {
 		c.Request, _ = http.NewRequest("POST", "/api/v3/callback/upyun/testCallBackUpyun", ioutil.NopCloser(strings.NewReader("1")))
 		AuthFunc(c)
 		asserts.False(c.IsAborted())
+		asserts.NoError(mock.ExpectationsWereMet())
 	}
 }

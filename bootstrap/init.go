@@ -9,7 +9,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/crontab"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
-	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/gin-gonic/gin"
 )
@@ -78,7 +77,7 @@ func Init(path string) {
 		{
 			"slave",
 			func() {
-				slave.Init()
+				cluster.InitController()
 			},
 		},
 		{
