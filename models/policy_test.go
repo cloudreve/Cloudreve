@@ -327,3 +327,18 @@ func TestPolicy_IsThumbExist(t *testing.T) {
 		asserts.Equal(testCase.expect, policy.IsThumbExist(testCase.name))
 	}
 }
+
+func TestPolicy_UpdateAccessKeyAndClearCache(t *testing.T) {
+	a := assert.New(t)
+	cache.Set("policy_1331", Policy{}, 3600)
+	p := &Policy{}
+	p.ID = 1331
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WithArgs("ak", sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	a.NoError(p.UpdateAccessKeyAndClearCache("ak"))
+	a.NoError(mock.ExpectationsWereMet())
+	_, ok := cache.Get("policy_1331")
+	a.False(ok)
+}

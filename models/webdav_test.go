@@ -55,6 +55,6 @@ func TestDeleteWebDAVAccountByID(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
-	asserts.NoError(DeleteTagByID(1, 1))
+	DeleteWebDAVAccountByID(1, 1)
 	asserts.NoError(mock.ExpectationsWereMet())
 }

@@ -48,7 +48,7 @@ func TestNode_BeforeSave(t *testing.T) {
 
 	node.Aria2OptionsSerialized.Timeout = 1
 	a.NoError(node.BeforeSave())
-	a.Contains("1", node.Aria2Options)
+	a.Contains(node.Aria2Options, "1")
 }
 
 func TestNode_SetStatus(t *testing.T) {
