@@ -37,6 +37,7 @@ func SignRequired(authInstance auth.Auth) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
 		c.Next()
 	}
 }

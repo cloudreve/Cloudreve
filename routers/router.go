@@ -3,6 +3,7 @@ package routers
 import (
 	"github.com/cloudreve/Cloudreve/v3/middleware"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -59,7 +60,7 @@ func InitSlaveRouter() *gin.Engine {
 
 		// 离线下载
 		aria2 := v3.Group("aria2")
-		aria2.Use(middleware.UseSlaveAria2Instance())
+		aria2.Use(middleware.UseSlaveAria2Instance(cluster.DefaultController))
 		{
 			// 创建离线下载任务
 			aria2.POST("task", controllers.SlaveAria2Create)
@@ -205,7 +206,7 @@ func InitMasterRouter() *gin.Engine {
 
 		// 从机的 RPC 通信
 		slave := v3.Group("slave")
-		slave.Use(middleware.SlaveRPCSignRequired())
+		slave.Use(middleware.SlaveRPCSignRequired(cluster.Default))
 		{
 			// 事件通知
 			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)

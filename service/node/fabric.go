@@ -3,10 +3,10 @@ package node
 import (
 	"encoding/gob"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +19,7 @@ type OneDriveCredentialService struct {
 }
 
 func HandleMasterHeartbeat(req *serializer.NodePingReq) serializer.Response {
-	res, err := slave.DefaultController.HandleHeartBeat(req)
+	res, err := cluster.DefaultController.HandleHeartBeat(req)
 	if err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "Cannot initialize slave controller", err)
 	}

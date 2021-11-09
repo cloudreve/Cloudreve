@@ -3,11 +3,11 @@ package slavetask
 import (
 	"context"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/slave"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"os"
@@ -68,7 +68,7 @@ func (job *TransferTask) SetErrorMsg(msg string, err error) {
 		},
 	}
 
-	if err := slave.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
+	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
 		util.Log().Warning("无法发送转存失败通知到从机, ", err)
 	}
 }
@@ -94,7 +94,7 @@ func (job *TransferTask) Do() {
 		return
 	}
 
-	master, err := slave.DefaultController.GetMasterInfo(job.MasterID)
+	master, err := cluster.DefaultController.GetMasterInfo(job.MasterID)
 	if err != nil {
 		job.SetErrorMsg("找不到主机节点", err)
 		return
@@ -131,7 +131,7 @@ func (job *TransferTask) Do() {
 		Content:     serializer.SlaveTransferResult{},
 	}
 
-	if err := slave.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
+	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
 		util.Log().Warning("无法发送转存成功通知到从机, ", err)
 	}
 }

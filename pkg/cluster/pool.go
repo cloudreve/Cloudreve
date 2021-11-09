@@ -39,12 +39,20 @@ type NodePool struct {
 
 // Init 初始化从机节点池
 func Init() {
-	Default = &NodePool{
-		featureMap: make(map[string][]Node),
-	}
+	Default = &NodePool{}
+	Default.Init()
 	if err := Default.initFromDB(); err != nil {
 		util.Log().Warning("节点池初始化失败, %s", err)
 	}
+}
+
+func (pool *NodePool) Init() {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.featureMap = make(map[string][]Node)
+	pool.active = make(map[uint]Node)
+	pool.inactive = make(map[uint]Node)
 }
 
 func (pool *NodePool) buildIndexMap() {
@@ -98,8 +106,6 @@ func (pool *NodePool) initFromDB() error {
 	}
 
 	pool.lock.Lock()
-	pool.active = make(map[uint]Node)
-	pool.inactive = make(map[uint]Node)
 	for i := 0; i < len(nodes); i++ {
 		pool.add(&nodes[i])
 	}

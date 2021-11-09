@@ -35,7 +35,7 @@ type User struct {
 	Storage   uint64
 	TwoFactor string
 	Avatar    string
-	Options   string `json:"-",gorm:"type:text"`
+	Options   string `json:"-" gorm:"type:text"`
 	Authn     string `gorm:"type:text"`
 
 	// 关联模型
