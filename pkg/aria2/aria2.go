@@ -3,6 +3,8 @@ package aria2
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"net/url"
 	"sync"
 	"time"
@@ -42,7 +44,7 @@ func Init(isReload bool) {
 
 		for i := 0; i < len(unfinished); i++ {
 			// 创建任务监控
-			monitor.NewMonitor(&unfinished[i])
+			monitor.NewMonitor(&unfinished[i], cluster.Default, mq.GlobalMQ)
 		}
 	}
 }

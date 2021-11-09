@@ -72,7 +72,7 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	}
 
 	// 创建任务监控
-	monitor.NewMonitor(task)
+	monitor.NewMonitor(task, cluster.Default, mq.GlobalMQ)
 
 	return serializer.Response{}
 }

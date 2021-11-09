@@ -33,29 +33,29 @@ type Monitor struct {
 var MAX_RETRY = 10
 
 // NewMonitor 新建离线下载状态监控
-func NewMonitor(task *model.Download) {
+func NewMonitor(task *model.Download, pool cluster.Pool, mqClient mq.MQ) {
 	monitor := &Monitor{
 		Task:     task,
 		notifier: make(chan mq.Message),
-		node:     cluster.Default.GetNodeByID(task.GetNodeID()),
+		node:     pool.GetNodeByID(task.GetNodeID()),
 	}
 
 	if monitor.node != nil {
 		monitor.Interval = time.Duration(monitor.node.GetAria2Instance().GetConfig().Interval) * time.Second
-		go monitor.Loop()
+		go monitor.Loop(mqClient)
 
-		monitor.notifier = mq.GlobalMQ.Subscribe(monitor.Task.GID, 0)
+		monitor.notifier = mqClient.Subscribe(monitor.Task.GID, 0)
 	} else {
 		monitor.setErrorStatus(errors.New("节点不可用"))
 	}
 }
 
 // Loop 开启监控循环
-func (monitor *Monitor) Loop() {
-	defer mq.GlobalMQ.Unsubscribe(monitor.Task.GID, monitor.notifier)
+func (monitor *Monitor) Loop(mqClient mq.MQ) {
+	defer mqClient.Unsubscribe(monitor.Task.GID, monitor.notifier)
 
 	// 首次循环立即更新
-	interval := time.Duration(0)
+	interval := 50 * time.Millisecond
 
 	for {
 		select {
@@ -259,6 +259,7 @@ func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 	)
 	if err != nil {
 		monitor.setErrorStatus(err)
+		monitor.RemoveTempFolder()
 		return true
 	}
 
