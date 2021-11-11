@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	testMock "github.com/stretchr/testify/mock"
 )
 
@@ -170,4 +171,16 @@ func (a Aria2Mock) GetConfig() model.Aria2Option {
 func (a Aria2Mock) DeleteTempFile(download *model.Download) error {
 	args := a.Called(download)
 	return args.Error(0)
+}
+
+type TaskPoolMock struct {
+	testMock.Mock
+}
+
+func (t TaskPoolMock) Add(num int) {
+	t.Called(num)
+}
+
+func (t TaskPoolMock) Submit(job task.Job) {
+	t.Called(job)
 }

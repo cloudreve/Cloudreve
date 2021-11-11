@@ -37,7 +37,7 @@ func TestInit(t *testing.T) {
 
 func TestPool_Submit(t *testing.T) {
 	asserts := assert.New(t)
-	pool := &Pool{
+	pool := &AsyncPool{
 		idleWorker: make(chan int, 1),
 	}
 	pool.Add(1)

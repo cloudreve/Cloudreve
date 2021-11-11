@@ -112,7 +112,7 @@ func (monitor *Monitor) Update() bool {
 
 	switch status.Status {
 	case "complete":
-		return monitor.Complete(status)
+		return monitor.Complete(task.TaskPoll)
 	case "error":
 		return monitor.Error(status)
 	case "active", "waiting", "paused":
@@ -235,7 +235,7 @@ func (monitor *Monitor) RemoveTempFolder() {
 }
 
 // Complete 完成下载，返回是否中断监控
-func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
+func (monitor *Monitor) Complete(pool task.Pool) bool {
 	// 创建中转任务
 	file := make([]string, 0, len(monitor.Task.StatusInfo.Files))
 	sizes := make(map[string]uint64, len(monitor.Task.StatusInfo.Files))
@@ -264,7 +264,7 @@ func (monitor *Monitor) Complete(status rpc.StatusInfo) bool {
 	}
 
 	// 提交中转任务
-	task.TaskPoll.Submit(job)
+	pool.Submit(job)
 
 	// 更新任务ID
 	monitor.Task.TaskID = job.Model().ID

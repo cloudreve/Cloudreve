@@ -7,23 +7,28 @@ import (
 )
 
 // TaskPoll 要使用的任务池
-var TaskPoll *Pool
+var TaskPoll Pool
 
-// Pool 带有最大配额的任务池
-type Pool struct {
+type Pool interface {
+	Add(num int)
+	Submit(job Job)
+}
+
+// AsyncPool 带有最大配额的任务池
+type AsyncPool struct {
 	// 容量
 	idleWorker chan int
 }
 
 // Add 增加可用Worker数量
-func (pool *Pool) Add(num int) {
+func (pool *AsyncPool) Add(num int) {
 	for i := 0; i < num; i++ {
 		pool.idleWorker <- 1
 	}
 }
 
 // ObtainWorker 阻塞直到获取新的Worker
-func (pool *Pool) ObtainWorker() Worker {
+func (pool *AsyncPool) obtainWorker() Worker {
 	select {
 	case <-pool.idleWorker:
 		// 有空闲Worker名额时，返回新Worker
@@ -32,26 +37,26 @@ func (pool *Pool) ObtainWorker() Worker {
 }
 
 // FreeWorker 添加空闲Worker
-func (pool *Pool) FreeWorker() {
+func (pool *AsyncPool) freeWorker() {
 	pool.Add(1)
 }
 
 // Submit 开始提交任务
-func (pool *Pool) Submit(job Job) {
+func (pool *AsyncPool) Submit(job Job) {
 	go func() {
 		util.Log().Debug("等待获取Worker")
-		worker := pool.ObtainWorker()
+		worker := pool.obtainWorker()
 		util.Log().Debug("获取到Worker")
 		worker.Do(job)
 		util.Log().Debug("释放Worker")
-		pool.FreeWorker()
+		pool.freeWorker()
 	}()
 }
 
 // Init 初始化任务池
 func Init() {
 	maxWorker := model.GetIntSetting("max_worker_num", 10)
-	TaskPoll = &Pool{
+	TaskPoll = &AsyncPool{
 		idleWorker: make(chan int, maxWorker),
 	}
 	TaskPoll.Add(maxWorker)

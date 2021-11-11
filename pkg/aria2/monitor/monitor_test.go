@@ -7,6 +7,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mocks"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/jinzhu/gorm"
@@ -249,4 +250,189 @@ func TestMonitor_UpdateActive(t *testing.T) {
 	a.NoError(mock.ExpectationsWereMet())
 	mockAria2.AssertExpectations(t)
 	mockNode.AssertExpectations(t)
+}
+
+func TestMonitor_UpdateRemoved(t *testing.T) {
+	a := assert.New(t)
+	mockAria2 := &mocks.Aria2Mock{}
+	mockAria2.On("Status", testMock.Anything).Return(rpc.StatusInfo{
+		Status: "removed",
+	}, nil)
+	mockAria2.On("DeleteTempFile", testMock.Anything).Return(nil)
+	mockNode := &mocks.NodeMock{}
+	mockNode.On("GetAria2Instance").Return(mockAria2)
+	m := &Monitor{
+		node: mockNode,
+		Task: &model.Download{Model: gorm.Model{ID: 1}},
+	}
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	a.True(m.Update())
+	a.Equal(common.Canceled, m.Task.Status)
+	a.NoError(mock.ExpectationsWereMet())
+	mockAria2.AssertExpectations(t)
+	mockNode.AssertExpectations(t)
+}
+
+func TestMonitor_UpdateUnknown(t *testing.T) {
+	a := assert.New(t)
+	mockAria2 := &mocks.Aria2Mock{}
+	mockAria2.On("Status", testMock.Anything).Return(rpc.StatusInfo{
+		Status: "unknown",
+	}, nil)
+	mockNode := &mocks.NodeMock{}
+	mockNode.On("GetAria2Instance").Return(mockAria2)
+	m := &Monitor{
+		node: mockNode,
+		Task: &model.Download{Model: gorm.Model{ID: 1}},
+	}
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	a.True(m.Update())
+	a.NoError(mock.ExpectationsWereMet())
+	mockAria2.AssertExpectations(t)
+	mockNode.AssertExpectations(t)
+}
+
+func TestMonitor_UpdateTaskInfoValidateFailed(t *testing.T) {
+	a := assert.New(t)
+	status := rpc.StatusInfo{
+		Status:          "completed",
+		TotalLength:     "100",
+		CompletedLength: "50",
+		DownloadSpeed:   "20",
+	}
+	mockNode := &mocks.NodeMock{}
+	mockNode.On("GetAria2Instance").Return(&common.DummyAria2{})
+	m := &Monitor{
+		node: mockNode,
+		Task: &model.Download{Model: gorm.Model{ID: 1}},
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	err := m.UpdateTaskInfo(status)
+	a.Error(err)
+	a.NoError(mock.ExpectationsWereMet())
+	mockNode.AssertExpectations(t)
+}
+
+func TestMonitor_ValidateFile(t *testing.T) {
+	a := assert.New(t)
+	m := &Monitor{
+		Task: &model.Download{
+			Model:     gorm.Model{ID: 1},
+			TotalSize: 100,
+		},
+	}
+
+	// failed to create filesystem
+	{
+		m.Task.User = &model.User{
+			Policy: model.Policy{
+				Type: "random",
+			},
+		}
+		a.Equal(filesystem.ErrUnknownPolicyType, m.ValidateFile())
+	}
+
+	// User capacity not enough
+	{
+		m.Task.User = &model.User{
+			Group: model.Group{
+				MaxStorage: 99,
+			},
+			Policy: model.Policy{
+				Type: "local",
+			},
+		}
+		a.Equal(filesystem.ErrInsufficientCapacity, m.ValidateFile())
+	}
+
+	// single file too big
+	{
+		m.Task.StatusInfo.Files = []rpc.FileInfo{
+			{
+				Length:   "100",
+				Selected: "true",
+			},
+		}
+		m.Task.User = &model.User{
+			Group: model.Group{
+				MaxStorage: 100,
+			},
+			Policy: model.Policy{
+				Type:    "local",
+				MaxSize: 99,
+			},
+		}
+		a.Equal(filesystem.ErrFileSizeTooBig, m.ValidateFile())
+	}
+
+	// all pass
+	{
+		m.Task.StatusInfo.Files = []rpc.FileInfo{
+			{
+				Length:   "100",
+				Selected: "true",
+			},
+		}
+		m.Task.User = &model.User{
+			Group: model.Group{
+				MaxStorage: 100,
+			},
+			Policy: model.Policy{
+				Type:    "local",
+				MaxSize: 100,
+			},
+		}
+		a.NoError(m.ValidateFile())
+	}
+}
+
+func TestMonitor_Complete(t *testing.T) {
+	a := assert.New(t)
+	mockNode := &mocks.NodeMock{}
+	mockNode.On("ID").Return(uint(1))
+	mockPool := &mocks.TaskPoolMock{}
+	mockPool.On("Submit", testMock.Anything)
+	m := &Monitor{
+		node: mockNode,
+		Task: &model.Download{
+			Model:     gorm.Model{ID: 1},
+			TotalSize: 100,
+			UserID:    9414,
+		},
+	}
+	m.Task.StatusInfo.Files = []rpc.FileInfo{
+		{
+			Length:   "100",
+			Selected: "true",
+		},
+	}
+
+	mock.ExpectQuery("SELECT(.+)users").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(9414))
+
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT(.+)tasks").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)downloads").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+
+	a.True(m.Complete(mockPool))
+	a.NoError(mock.ExpectationsWereMet())
+	mockNode.AssertExpectations(t)
+	mockPool.AssertExpectations(t)
 }
