@@ -12,9 +12,11 @@ import (
 	"strings"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 
-	"github.com/nfnt/resize"
+	//"github.com/nfnt/resize"
+	"golang.org/x/image/draw"
 )
 
 // Thumb 缩略图
@@ -58,7 +60,8 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 
 // GetThumb 生成给定最大尺寸的缩略图
 func (image *Thumb) GetThumb(width, height uint) {
-	image.src = resize.Thumbnail(width, height, image.src, resize.Lanczos3)
+	//image.src = resize.Thumbnail(width, height, image.src, resize.Lanczos3)
+	image.src = Thumbnail(width, height, image.src)
 }
 
 // GetSize 获取图像尺寸
@@ -75,10 +78,57 @@ func (image *Thumb) Save(path string) (err error) {
 		return err
 	}
 	defer out.Close()
+	switch conf.ThumbConfig.EncodeMethod {
+	case "png":
+		err = png.Encode(out, image.src)
+	default:
+		err = jpeg.Encode(out, image.src, &jpeg.Options{Quality: conf.ThumbConfig.EncodeQuality})
+	}
 
-	err = png.Encode(out, image.src)
 	return err
 
+}
+
+// Thumbnail will downscale provided image to max width and height preserving
+// original aspect ratio and using the interpolation function interp.
+// It will return original image, without processing it, if original sizes
+// are already smaller than provided constraints.
+func Thumbnail(maxWidth, maxHeight uint, img image.Image) image.Image {
+	origBounds := img.Bounds()
+	origWidth := uint(origBounds.Dx())
+	origHeight := uint(origBounds.Dy())
+	newWidth, newHeight := origWidth, origHeight
+
+	// Return original image if it have same or smaller size as constraints
+	if maxWidth >= origWidth && maxHeight >= origHeight {
+		return img
+	}
+
+	// Preserve aspect ratio
+	if origWidth > maxWidth {
+		newHeight = uint(origHeight * maxWidth / origWidth)
+		if newHeight < 1 {
+			newHeight = 1
+		}
+		newWidth = maxWidth
+	}
+
+	if newHeight > maxHeight {
+		newWidth = uint(newWidth * maxHeight / newHeight)
+		if newWidth < 1 {
+			newWidth = 1
+		}
+		newHeight = maxHeight
+	}
+	return Resize(newWidth, newHeight, img)
+}
+
+func Resize(newWidth, newHeight uint, img image.Image) image.Image {
+	// Set the expected size that you want:
+	dst := image.NewRGBA(image.Rect(0, 0, int(newWidth), int(newHeight)))
+	// Resize:
+	draw.BiLinear.Scale(dst, dst.Rect, img, img.Bounds(), draw.Src, nil)
+	return dst
 }
 
 // CreateAvatar 创建头像
@@ -92,7 +142,8 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 	// 生成头像缩略图
 	src := image.src
 	for k, size := range []int{s, m, l} {
-		image.src = resize.Resize(uint(size), uint(size), src, resize.Lanczos3)
+		//image.src = resize.Resize(uint(size), uint(size), src, resize.Lanczos3)
+		image.src = Resize(uint(size), uint(size), src)
 		err := image.Save(filepath.Join(savePath, fmt.Sprintf("avatar_%d_%d.png", uid, k)))
 		if err != nil {
 			return err

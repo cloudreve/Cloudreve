@@ -86,6 +86,30 @@ func TestThumb_GetThumb(t *testing.T) {
 	})
 }
 
+func TestThumb_Thumbnail(t *testing.T) {
+	asserts := assert.New(t)
+	{
+		img := image.NewRGBA(image.Rect(0, 0, 500, 200))
+		thumb := Thumbnail(100, 100, img)
+		asserts.Equal(thumb.Bounds(), image.Rect(0, 0, 100, 40))
+	}
+	{
+		img := image.NewRGBA(image.Rect(0, 0, 200, 200))
+		thumb := Thumbnail(100, 100, img)
+		asserts.Equal(thumb.Bounds(), image.Rect(0, 0, 100, 100))
+	}
+	{
+		img := image.NewRGBA(image.Rect(0, 0, 500, 500))
+		thumb := Thumbnail(100, 100, img)
+		asserts.Equal(thumb.Bounds(), image.Rect(0, 0, 100, 100))
+	}
+	{
+		img := image.NewRGBA(image.Rect(0, 0, 200, 500))
+		thumb := Thumbnail(100, 100, img)
+		asserts.Equal(thumb.Bounds(), image.Rect(0, 0, 40, 100))
+	}
+}
+
 func TestThumb_Save(t *testing.T) {
 	asserts := assert.New(t)
 	file := CreateTestImage()
