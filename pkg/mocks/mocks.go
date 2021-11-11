@@ -8,9 +8,11 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	testMock "github.com/stretchr/testify/mock"
+	"io"
 )
 
 type SlaveControllerMock struct {
@@ -183,4 +185,12 @@ func (t TaskPoolMock) Add(num int) {
 
 func (t TaskPoolMock) Submit(job task.Job) {
 	t.Called(job)
+}
+
+type RequestMock struct {
+	testMock.Mock
+}
+
+func (r RequestMock) Request(method, target string, body io.Reader, opts ...request.Option) *request.Response {
+	return r.Called(method, target, body, opts).Get(0).(*request.Response)
 }

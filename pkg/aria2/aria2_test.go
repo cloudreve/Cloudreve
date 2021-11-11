@@ -2,14 +2,15 @@ package aria2
 
 import (
 	"database/sql"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mocks"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/monitor"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/jinzhu/gorm"
-	"github.com/stretchr/testify/assert"
 )
 
 var mock sqlmock.Sqlmock
@@ -27,66 +28,39 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestDummyAria2(t *testing.T) {
-	asserts := assert.New(t)
-	instance := DummyAria2{}
-	asserts.Error(instance.CreateTask(nil, nil))
-	_, err := instance.Status(nil)
-	asserts.Error(err)
-	asserts.Error(instance.Cancel(nil))
-	asserts.Error(instance.Select(nil, nil))
-}
-
 func TestInit(t *testing.T) {
-	monitor.MAX_RETRY = 0
-	asserts := assert.New(t)
-	cache.Set("setting_aria2_token", "1", 0)
-	cache.Set("setting_aria2_call_timeout", "5", 0)
-	cache.Set("setting_aria2_options", `[]`, 0)
+	a := assert.New(t)
+	mockPool := &mocks.NodePoolMock{}
+	mockPool.On("GetNodeByID", testMock.Anything).Return(nil)
+	mockQueue := mq.NewMQ()
 
-	// 未指定RPC地址，跳过
+	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	Init(false, mockPool, mockQueue)
+	a.NoError(mock.ExpectationsWereMet())
+	mockPool.AssertExpectations(t)
+}
+
+func TestTestRPCConnection(t *testing.T) {
+	a := assert.New(t)
+
+	// url not legal
 	{
-		cache.Set("setting_aria2_rpcurl", "", 0)
-		Init(false)
-		asserts.IsType(&DummyAria2{}, Instance)
+		res, err := TestRPCConnection(string([]byte{0x7f}), "", 10)
+		a.Error(err)
+		a.Empty(res.Version)
 	}
 
-	// 无法解析服务器地址
+	// rpc failed
 	{
-		cache.Set("setting_aria2_rpcurl", string(byte(0x7f)), 0)
-		Init(false)
-		asserts.IsType(&DummyAria2{}, Instance)
-	}
-
-	// 无法解析全局配置
-	{
-		Instance = &RPCService{}
-		cache.Set("setting_aria2_options", "?", 0)
-		cache.Set("setting_aria2_rpcurl", "ws://127.0.0.1:1234", 0)
-		Init(false)
-		asserts.IsType(&DummyAria2{}, Instance)
-	}
-
-	// 连接失败
-	{
-		cache.Set("setting_aria2_options", "{}", 0)
-		cache.Set("setting_aria2_rpcurl", "http://127.0.0.1:1234", 0)
-		cache.Set("setting_aria2_call_timeout", "1", 0)
-		cache.Set("setting_aria2_interval", "100", 0)
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"g_id"}).AddRow("1"))
-		Init(false)
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.IsType(&RPCService{}, Instance)
+		res, err := TestRPCConnection("ws://0.0.0.0", "", 0)
+		a.Error(err)
+		a.Empty(res.Version)
 	}
 }
 
-func TestGetStatus(t *testing.T) {
-	asserts := assert.New(t)
-	asserts.Equal(4, GetStatus("complete"))
-	asserts.Equal(1, GetStatus("active"))
-	asserts.Equal(0, GetStatus("waiting"))
-	asserts.Equal(2, GetStatus("paused"))
-	asserts.Equal(3, GetStatus("error"))
-	asserts.Equal(5, GetStatus("removed"))
-	asserts.Equal(6, GetStatus("?"))
+func TestGetLoadBalancer(t *testing.T) {
+	a := assert.New(t)
+	a.NotPanics(func() {
+		GetLoadBalancer()
+	})
 }

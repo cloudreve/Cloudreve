@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/crontab"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/gin-gonic/gin"
 )
@@ -53,7 +54,7 @@ func Init(path string) {
 		{
 			"master",
 			func() {
-				aria2.Init(false)
+				aria2.Init(false, cluster.Default, mq.GlobalMQ)
 			},
 		},
 		{

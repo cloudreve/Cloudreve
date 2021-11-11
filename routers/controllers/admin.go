@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"io"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -72,7 +74,7 @@ func AdminReloadService(c *gin.Context) {
 	case "email":
 		email.Init()
 	case "aria2":
-		aria2.Init(true)
+		aria2.Init(true, cluster.Default, mq.GlobalMQ)
 	}
 
 	c.JSON(200, serializer.Response{})

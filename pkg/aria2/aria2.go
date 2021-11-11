@@ -33,7 +33,7 @@ func GetLoadBalancer() balancer.Balancer {
 }
 
 // Init 初始化
-func Init(isReload bool) {
+func Init(isReload bool, pool cluster.Pool, mqClient mq.MQ) {
 	Lock.Lock()
 	LB = balancer.NewBalancer("RoundRobin")
 	Lock.Unlock()
@@ -44,7 +44,7 @@ func Init(isReload bool) {
 
 		for i := 0; i < len(unfinished); i++ {
 			// 创建任务监控
-			monitor.NewMonitor(&unfinished[i], cluster.Default, mq.GlobalMQ)
+			monitor.NewMonitor(&unfinished[i], pool, mqClient)
 		}
 	}
 }

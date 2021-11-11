@@ -80,6 +80,19 @@ func TestCheckRequest(t *testing.T) {
 	asserts := assert.New(t)
 	General = HMACAuth{SecretKey: []byte(util.RandStringRunes(256))}
 
+	// 缺少请求头
+	{
+		req, err := http.NewRequest(
+			"POST",
+			"http://127.0.0.1/api/v3/upload",
+			strings.NewReader("I am body."),
+		)
+		asserts.NoError(err)
+		err = CheckRequest(General, req)
+		asserts.Error(err)
+		asserts.Equal(ErrAuthHeaderMissing, err)
+	}
+
 	// 非上传请求 验证成功
 	{
 		req, err := http.NewRequest(

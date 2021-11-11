@@ -33,7 +33,7 @@ func (auth HMACAuth) Check(body string, sign string) error {
 	signSlice := strings.Split(sign, ":")
 	// 如果未携带expires字段
 	if signSlice[len(signSlice)-1] == "" {
-		return ErrAuthFailed
+		return ErrExpiresMissing
 	}
 
 	// 验证是否过期

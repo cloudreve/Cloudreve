@@ -17,8 +17,10 @@ import (
 )
 
 var (
-	ErrAuthFailed = serializer.NewError(serializer.CodeNoPermissionErr, "鉴权失败", nil)
-	ErrExpired    = serializer.NewError(serializer.CodeSignExpired, "签名已过期", nil)
+	ErrAuthFailed        = serializer.NewError(serializer.CodeNoPermissionErr, "鉴权失败", nil)
+	ErrAuthHeaderMissing = serializer.NewError(serializer.CodeNoPermissionErr, "authorization header is missing", nil)
+	ErrExpiresMissing    = serializer.NewError(serializer.CodeNoPermissionErr, "expire timestamp is missing", nil)
+	ErrExpired           = serializer.NewError(serializer.CodeSignExpired, "签名已过期", nil)
 )
 
 // General 通用的认证接口
@@ -55,7 +57,7 @@ func CheckRequest(instance Auth, r *http.Request) error {
 		ok   bool
 	)
 	if sign, ok = r.Header["Authorization"]; !ok || len(sign) == 0 {
-		return ErrAuthFailed
+		return ErrAuthHeaderMissing
 	}
 	sign[0] = strings.TrimPrefix(sign[0], "Bearer ")
 

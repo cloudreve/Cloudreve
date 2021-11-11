@@ -48,9 +48,7 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	}
 
 	// 获取 Aria2 负载均衡器
-	aria2.Lock.RLock()
-	lb := aria2.LB
-	aria2.Lock.RUnlock()
+	lb := aria2.GetLoadBalancer()
 
 	// 获取 Aria2 实例
 	err, node := cluster.Default.BalanceNodeByFeature("aria2", lb)
