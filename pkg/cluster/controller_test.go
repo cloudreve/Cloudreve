@@ -252,3 +252,134 @@ func TestSlaveController_SendNotification(t *testing.T) {
 		mockRequest.AssertExpectations(t)
 	}
 }
+
+func TestSlaveController_SubmitTask(t *testing.T) {
+	a := assert.New(t)
+	c := &slaveController{
+		masters: map[string]MasterInfo{
+			"1": {
+				jobTracker: map[string]bool{},
+			},
+		},
+	}
+
+	// node not exit
+	{
+		a.Equal(ErrMasterNotFound, c.SubmitTask("2", "", "", nil))
+	}
+
+	// success
+	{
+		submitted := false
+		a.NoError(c.SubmitTask("1", "", "hash", func(i interface{}) {
+			submitted = true
+		}))
+		a.True(submitted)
+	}
+
+	// job already submitted
+	{
+		submitted := false
+		a.NoError(c.SubmitTask("1", "", "hash", func(i interface{}) {
+			submitted = true
+		}))
+		a.False(submitted)
+	}
+}
+
+func TestSlaveController_GetMasterInfo(t *testing.T) {
+	a := assert.New(t)
+	c := &slaveController{
+		masters: map[string]MasterInfo{
+			"1": {},
+		},
+	}
+
+	// node not exit
+	{
+		res, err := c.GetMasterInfo("2")
+		a.Equal(ErrMasterNotFound, err)
+		a.Nil(res)
+	}
+
+	// success
+	{
+		res, err := c.GetMasterInfo("1")
+		a.NoError(err)
+		a.NotNil(res)
+	}
+}
+
+func TestSlaveController_GetOneDriveToken(t *testing.T) {
+	a := assert.New(t)
+	c := &slaveController{
+		masters: map[string]MasterInfo{
+			"1": {},
+		},
+	}
+
+	// node not exit
+	{
+		res, err := c.GetOneDriveToken("2", 1)
+		a.Equal(ErrMasterNotFound, err)
+		a.Empty(res)
+	}
+
+	// return none 200
+	{
+		mockRequest := &requestMock{}
+		mockRequest.On("Request", "GET", "/api/v3/slave/credential/onedrive/1", testMock.Anything, testMock.Anything).Return(&request.Response{
+			Response: &http.Response{StatusCode: http.StatusConflict},
+		})
+		c := &slaveController{
+			masters: map[string]MasterInfo{
+				"1": {Client: mockRequest},
+			},
+		}
+		res, err := c.GetOneDriveToken("1", 1)
+		a.Error(err)
+		a.Empty(res)
+		mockRequest.AssertExpectations(t)
+	}
+
+	// master return error
+	{
+		mockRequest := &requestMock{}
+		mockRequest.On("Request", "GET", "/api/v3/slave/credential/onedrive/1", testMock.Anything, testMock.Anything).Return(&request.Response{
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader("{\"code\":1}")),
+			},
+		})
+		c := &slaveController{
+			masters: map[string]MasterInfo{
+				"1": {Client: mockRequest},
+			},
+		}
+		res, err := c.GetOneDriveToken("1", 1)
+		a.Equal(1, err.(serializer.AppError).Code)
+		a.Empty(res)
+		mockRequest.AssertExpectations(t)
+	}
+
+	// success
+	{
+		mockRequest := &requestMock{}
+		mockRequest.On("Request", "GET", "/api/v3/slave/credential/onedrive/1", testMock.Anything, testMock.Anything).Return(&request.Response{
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader("{\"data\":\"expected\"}")),
+			},
+		})
+		c := &slaveController{
+			masters: map[string]MasterInfo{
+				"1": {Client: mockRequest},
+			},
+		}
+		res, err := c.GetOneDriveToken("1", 1)
+		a.NoError(err)
+		a.Equal("expected", res)
+		mockRequest.AssertExpectations(t)
+	}
+
+}

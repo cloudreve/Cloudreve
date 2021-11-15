@@ -20,7 +20,10 @@ import (
 	"time"
 )
 
-const deleteTempFileDuration = 60 * time.Second
+const (
+	deleteTempFileDuration = 60 * time.Second
+	statusRetryDuration    = 10 * time.Second
+)
 
 type MasterNode struct {
 	Model    *model.Node
@@ -33,8 +36,10 @@ type rpcService struct {
 	Caller      rpc.Client
 	Initialized bool
 
-	parent  *MasterNode
-	options *clientOptions
+	retryDuration         time.Duration
+	deletePaddingDuration time.Duration
+	parent                *MasterNode
+	options               *clientOptions
 }
 
 type clientOptions struct {
@@ -46,6 +51,8 @@ func (node *MasterNode) Init(nodeModel *model.Node) {
 	node.lock.Lock()
 	node.Model = nodeModel
 	node.aria2RPC.parent = node
+	node.aria2RPC.retryDuration = statusRetryDuration
+	node.aria2RPC.deletePaddingDuration = deleteTempFileDuration
 	node.lock.Unlock()
 
 	node.lock.RLock()
@@ -214,8 +221,8 @@ func (r *rpcService) Status(task *model.Download) (rpc.StatusInfo, error) {
 	res, err := r.Caller.TellStatus(task.GID)
 	if err != nil {
 		// 失败后重试
-		util.Log().Debug("无法获取离线下载状态，%s，10秒钟后重试", err)
-		time.Sleep(time.Duration(10) * time.Second)
+		util.Log().Debug("无法获取离线下载状态，%s，稍后重试", err)
+		time.Sleep(r.retryDuration)
 		res, err = r.Caller.TellStatus(task.GID)
 	}
 
@@ -253,13 +260,13 @@ func (s *rpcService) DeleteTempFile(task *model.Download) error {
 	defer s.parent.lock.RUnlock()
 
 	// 避免被aria2占用，异步执行删除
-	go func(src string) {
-		time.Sleep(deleteTempFileDuration)
+	go func(d time.Duration, src string) {
+		time.Sleep(d)
 		err := os.RemoveAll(src)
 		if err != nil {
 			util.Log().Warning("无法删除离线下载临时目录[%s], %s", src, err)
 		}
-	}(task.Parent)
+	}(s.deletePaddingDuration, task.Parent)
 
 	return nil
 }

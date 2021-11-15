@@ -26,7 +26,7 @@ func TestDummyAria2(t *testing.T) {
 	a.Error(err)
 
 	configRes := d.GetConfig()
-	a.NotEmpty(configRes)
+	a.NotNil(configRes)
 
 	err = d.DeleteTempFile(&model.Download{})
 	a.Error(err)
