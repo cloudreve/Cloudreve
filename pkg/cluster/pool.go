@@ -84,14 +84,19 @@ func (pool *NodePool) GetNodeByID(id uint) Node {
 
 func (pool *NodePool) nodeStatusChange(isActive bool, id uint) {
 	util.Log().Debug("从机节点 [ID=%d] 状态变更 [Active=%t]", id, isActive)
+	var node Node
 	pool.lock.Lock()
-	if isActive {
-		node := pool.inactive[id]
+	if n, ok := pool.inactive[id]; ok {
+		node = n
 		delete(pool.inactive, id)
+	} else {
+		node = pool.active[id]
+		delete(pool.active, id)
+	}
+
+	if isActive {
 		pool.active[id] = node
 	} else {
-		node := pool.active[id]
-		delete(pool.active, id)
 		pool.inactive[id] = node
 	}
 	pool.lock.Unlock()
