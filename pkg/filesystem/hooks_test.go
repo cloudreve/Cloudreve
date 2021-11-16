@@ -708,3 +708,29 @@ func TestHookGiveBackCapacity(t *testing.T) {
 		asserts.EqualValues(7, fs.User.Storage)
 	}
 }
+
+func TestHookValidateCapacityWithoutIncrease(t *testing.T) {
+	a := assert.New(t)
+	fs := &FileSystem{
+		User: &model.User{
+			Model:   gorm.Model{ID: 1},
+			Storage: 10,
+			Group:   model.Group{},
+		},
+	}
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 1})
+
+	// not enough
+	{
+		fs.User.Group.MaxStorage = 10
+		a.Error(HookValidateCapacityWithoutIncrease(ctx, fs))
+		a.EqualValues(10, fs.User.Storage)
+	}
+
+	// enough
+	{
+		fs.User.Group.MaxStorage = 11
+		a.NoError(HookValidateCapacityWithoutIncrease(ctx, fs))
+		a.EqualValues(10, fs.User.Storage)
+	}
+}

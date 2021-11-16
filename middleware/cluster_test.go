@@ -6,7 +6,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/mocks"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/controllermock"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +82,7 @@ func TestUseSlaveAria2Instance(t *testing.T) {
 
 	// MasterSiteID not set
 	{
-		testController := &mocks.SlaveControllerMock{}
+		testController := &controllermock.SlaveControllerMock{}
 		useSlaveAria2InstanceFunc := UseSlaveAria2Instance(testController)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = httptest.NewRequest("GET", "/", nil)
@@ -92,7 +92,7 @@ func TestUseSlaveAria2Instance(t *testing.T) {
 
 	// Cannot get aria2 instances
 	{
-		testController := &mocks.SlaveControllerMock{}
+		testController := &controllermock.SlaveControllerMock{}
 		useSlaveAria2InstanceFunc := UseSlaveAria2Instance(testController)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = httptest.NewRequest("GET", "/", nil)
@@ -105,7 +105,7 @@ func TestUseSlaveAria2Instance(t *testing.T) {
 
 	// Success
 	{
-		testController := &mocks.SlaveControllerMock{}
+		testController := &controllermock.SlaveControllerMock{}
 		useSlaveAria2InstanceFunc := UseSlaveAria2Instance(testController)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = httptest.NewRequest("GET", "/", nil)

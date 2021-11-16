@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -573,7 +574,7 @@ func sysError(err error) *RespError {
 
 func (client *Client) request(ctx context.Context, method string, url string, body io.Reader, option ...request.Option) (string, *RespError) {
 	// 获取凭证
-	err := client.UpdateCredential(ctx)
+	err := client.UpdateCredential(ctx, conf.SystemConfig.Mode == "slave")
 	if err != nil {
 		return "", sysError(err)
 	}

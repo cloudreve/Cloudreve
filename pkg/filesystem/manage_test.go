@@ -356,47 +356,6 @@ func TestFileSystem_Delete(t *testing.T) {
 	}}
 	ctx := context.Background()
 
-	//全部未成功
-	{
-		// 列出要删除的目录
-		mock.ExpectQuery("SELECT(.+)").
-			WillReturnRows(
-				sqlmock.NewRows([]string{"id"}).
-					AddRow(1).
-					AddRow(2).
-					AddRow(3),
-			)
-		mock.ExpectQuery("SELECT(.+)").
-			WithArgs(1, 2, 3).
-			WillReturnRows(
-				sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).
-					AddRow(4, "1.txt", "1.txt", 2, 1),
-			)
-		// 查询顶级的文件
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "1.txt", "1.txt", 603, 2))
-		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
-		// 查找软连接
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
-		// 查询上传策略
-		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "type"}).AddRow(603, "local"))
-		// 删除文件记录
-		mock.ExpectBegin()
-		mock.ExpectExec("DELETE(.+)files").
-			WillReturnResult(sqlmock.NewResult(0, 3))
-		mock.ExpectCommit()
-		// 删除对应分享
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)shares").
-			WillReturnResult(sqlmock.NewResult(0, 3))
-		mock.ExpectCommit()
-
-		err := fs.Delete(ctx, []uint{1}, []uint{1}, false)
-		asserts.Error(err)
-		asserts.Equal(203, err.(serializer.AppError).Code)
-		asserts.Equal(uint64(3), fs.User.Storage)
-		asserts.NoError(mock.ExpectationsWereMet())
-	}
 	//全部未成功，强制
 	{
 		fs.CleanTargets()

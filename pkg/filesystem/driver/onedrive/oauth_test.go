@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/controllermock"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -269,10 +270,10 @@ func TestClient_UpdateCredential(t *testing.T) {
 
 	// 无有效的RefreshToken
 	{
-		err := client.UpdateCredential(context.Background())
+		err := client.UpdateCredential(context.Background(), false)
 		asserts.Equal(ErrInvalidRefreshToken, err)
 		client.Credential = nil
-		err = client.UpdateCredential(context.Background())
+		err = client.UpdateCredential(context.Background(), false)
 		asserts.Equal(ErrInvalidRefreshToken, err)
 	}
 
@@ -299,7 +300,7 @@ func TestClient_UpdateCredential(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		err := client.UpdateCredential(context.Background())
+		err := client.UpdateCredential(context.Background(), false)
 		clientMock.AssertExpectations(t)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
@@ -331,7 +332,7 @@ func TestClient_UpdateCredential(t *testing.T) {
 		client.Credential = &Credential{
 			RefreshToken: "old_refresh_token",
 		}
-		err := client.UpdateCredential(context.Background())
+		err := client.UpdateCredential(context.Background(), false)
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
 	}
@@ -346,7 +347,7 @@ func TestClient_UpdateCredential(t *testing.T) {
 		client.Credential = &Credential{
 			RefreshToken: "old_refresh_token",
 		}
-		err := client.UpdateCredential(context.Background())
+		err := client.UpdateCredential(context.Background(), false)
 		asserts.NoError(err)
 		asserts.Equal("AccessToken", client.Credential.AccessToken)
 		asserts.Equal("RefreshToken", client.Credential.RefreshToken)
@@ -359,8 +360,27 @@ func TestClient_UpdateCredential(t *testing.T) {
 			AccessToken:  "AccessToken2",
 			ExpiresIn:    time.Now().Add(time.Duration(10) * time.Second).Unix(),
 		}
-		err := client.UpdateCredential(context.Background())
+		err := client.UpdateCredential(context.Background(), false)
 		asserts.NoError(err)
 		asserts.Equal("AccessToken2", client.Credential.AccessToken)
+	}
+
+	// slave failed
+	{
+		mockController := &controllermock.SlaveControllerMock{}
+		mockController.On("GetOneDriveToken", testMock.Anything, testMock.Anything).Return("", errors.New("error"))
+		client.ClusterController = mockController
+		err := client.UpdateCredential(context.Background(), true)
+		asserts.Error(err)
+	}
+
+	// slave success
+	{
+		mockController := &controllermock.SlaveControllerMock{}
+		mockController.On("GetOneDriveToken", testMock.Anything, testMock.Anything).Return("AccessToken3", nil)
+		client.ClusterController = mockController
+		err := client.UpdateCredential(context.Background(), true)
+		asserts.NoError(err)
+		asserts.Equal("AccessToken3", client.Credential.AccessToken)
 	}
 }

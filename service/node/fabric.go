@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -54,7 +55,7 @@ func (s *OneDriveCredentialService) Get(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeInternalSetting, "Cannot initialize OneDrive client", err)
 	}
 
-	if err := client.UpdateCredential(c); err != nil {
+	if err := client.UpdateCredential(c, conf.SystemConfig.Mode == "slave"); err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "Cannot refresh OneDrive credential", err)
 	}
 

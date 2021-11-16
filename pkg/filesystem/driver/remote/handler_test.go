@@ -105,7 +105,7 @@ func TestHandler_Source(t *testing.T) {
 	// 解析失败 自定义CDN
 	{
 		handler := Driver{
-			Policy:       &model.Policy{Server: "/", BaseURL: string(0x7f)},
+			Policy:       &model.Policy{Server: "/", BaseURL: string([]byte{0x7f})},
 			AuthInstance: auth.HMACAuth{},
 		}
 		file := model.File{
