@@ -190,7 +190,7 @@ func TestHandler_Source(t *testing.T) {
 
 	// 设定了CDN，解析失败
 	{
-		handler.Policy.BaseURL = string(0x7f)
+		handler.Policy.BaseURL = string([]byte{0x7f})
 		file := model.File{
 			Model: gorm.Model{
 				ID: 1,
