@@ -69,7 +69,7 @@ func (job *TransferTask) SetErrorMsg(msg string, err error) {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
-		util.Log().Warning("无法发送转存失败通知到从机, ", err)
+		util.Log().Warning("无法发送转存失败通知到从机, %s", err)
 	}
 }
 
@@ -132,7 +132,7 @@ func (job *TransferTask) Do() {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
-		util.Log().Warning("无法发送转存成功通知到从机, ", err)
+		util.Log().Warning("无法发送转存成功通知到从机, %s", err)
 	}
 }
 

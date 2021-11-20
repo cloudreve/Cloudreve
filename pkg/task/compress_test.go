@@ -144,7 +144,7 @@ func TestCompressTask_Do(t *testing.T) {
 		task.Do()
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NotEmpty(task.GetError().Msg)
-		asserts.True(util.IsEmpty("test/compress"))
+		asserts.True(util.IsEmpty(util.RelativePath("test/compress")))
 	}
 }
 

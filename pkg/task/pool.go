@@ -63,6 +63,6 @@ func Init() {
 	util.Log().Info("初始化任务队列，WorkerNum = %d", maxWorker)
 
 	if conf.SystemConfig.Mode == "master" {
-		Resume()
+		Resume(TaskPoll)
 	}
 }

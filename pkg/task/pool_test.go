@@ -29,10 +29,10 @@ func TestMain(m *testing.M) {
 func TestInit(t *testing.T) {
 	asserts := assert.New(t)
 	cache.Set("setting_max_worker_num", "10", 0)
-	mock.ExpectQuery("SELECT(.+)").WithArgs(Queued).WillReturnRows(sqlmock.NewRows([]string{"type"}).AddRow(-1))
+	mock.ExpectQuery("SELECT(.+)").WithArgs(Queued, Processing).WillReturnRows(sqlmock.NewRows([]string{"type"}).AddRow(-1))
 	Init()
 	asserts.NoError(mock.ExpectationsWereMet())
-	asserts.Len(TaskPoll.idleWorker, 10)
+	asserts.Len(TaskPoll.(*AsyncPool).idleWorker, 10)
 }
 
 func TestPool_Submit(t *testing.T) {

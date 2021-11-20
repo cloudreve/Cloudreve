@@ -82,7 +82,7 @@ func Record(job Job) (*model.Task, error) {
 }
 
 // Resume 从数据库中恢复未完成任务
-func Resume() {
+func Resume(p Pool) {
 	tasks := model.GetTasksByStatus(Queued, Processing)
 	if len(tasks) == 0 {
 		return
@@ -97,7 +97,7 @@ func Resume() {
 		}
 
 		if job != nil {
-			TaskPoll.Submit(job)
+			p.Submit(job)
 		}
 	}
 }
