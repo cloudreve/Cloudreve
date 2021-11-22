@@ -2,8 +2,10 @@ package explorer
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -222,15 +224,15 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 	}
 
 	// 生成最终的预览器地址
-	// TODO 从配置文件中读取
-	viewerBase, _ := url.Parse("https://view.officeapps.live.com/op/view.aspx")
-	params := viewerBase.Query()
-	params.Set("src", downloadURL)
-	viewerBase.RawQuery = params.Encode()
-
+	srcB64 := base64.StdEncoding.EncodeToString([]byte(downloadURL))
+	srcEncoded := url.QueryEscape(downloadURL)
+	srcB64Encoded := url.QueryEscape(srcB64)
 	return serializer.Response{
 		Code: 0,
-		Data: viewerBase.String(),
+		Data: util.Replace(map[string]string{
+			"{$src}":    srcEncoded,
+			"{$srcB64}": srcB64Encoded,
+		}, model.GetSettingByName("office_preview_service")),
 	}
 }
 
