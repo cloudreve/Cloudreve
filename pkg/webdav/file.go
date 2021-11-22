@@ -38,23 +38,26 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 		fileIDs = []uint{src.(*model.File).ID}
 	}
 
-	// 判断是否为重命名
-	if src.GetPosition() == path.Dir(dst) {
-		err = fs.Rename(
-			ctx,
-			folderIDs,
-			fileIDs,
-			path.Base(dst),
-		)
-	} else {
-		err = fs.Move(
-			ctx,
-			folderIDs,
-			fileIDs,
-			src.GetPosition(),
-			path.Dir(dst),
-		)
-	}
+        // 判断是否需要移动
+        if src.GetPosition() != path.Dir(dst) {
+                err = fs.Move(
+                        ctx,
+                        folderIDs,
+                        fileIDs,
+                        src.GetPosition(),
+                        path.Dir(dst),
+                )
+        }
+
+        // 判断是否需要重命名
+        if err == nil && src.GetName() != path.Base(dst) {
+                err = fs.Rename(
+                        ctx,
+                        folderIDs,
+                        fileIDs,
+                        path.Base(dst),
+                )
+        }
 
 	if err != nil {
 		return http.StatusInternalServerError, err
