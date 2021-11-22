@@ -5,6 +5,9 @@ COPY ./assets /assets
 
 WORKDIR /assets
 
+# If encountered problems like JavaScript heap out of memory, please uncomment the following options
+ENV NODE_OPTIONS --max_old_space_size=4096
+
 # yarn repo connection is unstable, adjust the network timeout to 10 min.
 RUN set -ex \
     && yarn install --network-timeout 600000 \
@@ -42,7 +45,7 @@ ARG TZ="Asia/Shanghai"
 
 ENV TZ ${TZ}
 
-COPY --from=be-builder /go/bin/cloudreve /cloudreve/cloudreve
+COPY --from=be-builder /go/bin/Cloudreve /cloudreve/cloudreve
 
 RUN apk upgrade \
     && apk add bash tzdata \
