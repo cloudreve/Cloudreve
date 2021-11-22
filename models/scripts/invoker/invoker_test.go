@@ -1,4 +1,4 @@
-package scripts
+package invoker
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 
 func TestRunDBScript(t *testing.T) {
 	asserts := assert.New(t)
-	register("test", TestScript(0))
+	Register("test", TestScript(0))
 
 	// 不存在
 	{
@@ -46,4 +46,15 @@ func TestRunDBScript(t *testing.T) {
 	{
 		asserts.NoError(RunDBScript("test", context.Background()))
 	}
+}
+
+func TestListPrefix(t *testing.T) {
+	asserts := assert.New(t)
+	Register("U1", TestScript(0))
+	Register("U2", TestScript(0))
+	Register("U3", TestScript(0))
+	Register("P1", TestScript(0))
+
+	res := ListPrefix("U")
+	asserts.Len(res, 3)
 }

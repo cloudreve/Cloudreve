@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/models/scripts"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -27,6 +28,12 @@ func Init(path string) {
 		mode    string
 		factory func()
 	}{
+		{
+			"both",
+			func() {
+				scripts.Init()
+			},
+		},
 		{
 			"both",
 			func() {

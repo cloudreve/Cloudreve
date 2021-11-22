@@ -8,10 +8,6 @@ import (
 
 type UserStorageCalibration int
 
-func init() {
-	register("CalibrateUserStorage", UserStorageCalibration(0))
-}
-
 type storageResult struct {
 	Total uint64
 }

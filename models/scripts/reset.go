@@ -9,10 +9,6 @@ import (
 
 type ResetAdminPassword int
 
-func init() {
-	register("ResetAdminPassword", ResetAdminPassword(0))
-}
-
 // Run 运行脚本从社区版升级至 Pro 版
 func (script ResetAdminPassword) Run(ctx context.Context) {
 	// 查找用户

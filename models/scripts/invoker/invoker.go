@@ -1,8 +1,9 @@
-package scripts
+package invoker
 
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 type DBScript interface {
@@ -13,6 +14,7 @@ var availableScripts = make(map[string]DBScript)
 
 func RunDBScript(name string, ctx context.Context) error {
 	if script, ok := availableScripts[name]; ok {
+		util.Log().Info("开始执行数据库脚本 [%s]", name)
 		script.Run(ctx)
 		return nil
 	}
@@ -20,6 +22,16 @@ func RunDBScript(name string, ctx context.Context) error {
 	return fmt.Errorf("数据库脚本 [%s] 不存在", name)
 }
 
-func register(name string, script DBScript) {
+func Register(name string, script DBScript) {
 	availableScripts[name] = script
+}
+
+func ListPrefix(prefix string) []string {
+	var scripts []string
+	for name := range availableScripts {
+		if name[:len(prefix)] == prefix {
+			scripts = append(scripts, name)
+		}
+	}
+	return scripts
 }
