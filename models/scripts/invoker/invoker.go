@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"strings"
 )
 
 type DBScript interface {
@@ -29,7 +30,7 @@ func Register(name string, script DBScript) {
 func ListPrefix(prefix string) []string {
 	var scripts []string
 	for name := range availableScripts {
-		if name[:len(prefix)] == prefix {
+		if strings.HasPrefix(name, prefix) {
 			scripts = append(scripts, name)
 		}
 	}

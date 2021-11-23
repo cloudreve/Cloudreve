@@ -35,7 +35,7 @@ type Auth interface {
 }
 
 // SignRequest 对PUT\POST等复杂HTTP请求签名，只会对URI部分、
-// 请求正文、`X-`开头的header进行签名
+// 请求正文、`X-Cr-`开头的header进行签名
 func SignRequest(instance Auth, r *http.Request, expires int64) *http.Request {
 	// 处理有效期
 	if expires > 0 {
@@ -69,7 +69,7 @@ func CheckRequest(instance Auth, r *http.Request) error {
 func getSignContent(r *http.Request) (rawSignString string) {
 	// 读取所有body正文
 	var body = []byte{}
-	if _, ok := r.Header["X-Policy"]; !ok {
+	if _, ok := r.Header["X-Cr-Policy"]; !ok {
 		if r.Body != nil {
 			body, _ = ioutil.ReadAll(r.Body)
 			_ = r.Body.Close()
@@ -80,7 +80,7 @@ func getSignContent(r *http.Request) (rawSignString string) {
 	// 决定要签名的header
 	var signedHeader []string
 	for k, _ := range r.Header {
-		if strings.HasPrefix(k, "X-") && k != "X-Filename" {
+		if strings.HasPrefix(k, "X-Cr-") && k != "X-Cr-Filename" {
 			signedHeader = append(signedHeader, fmt.Sprintf("%s=%s", k, r.Header.Get(k)))
 		}
 	}

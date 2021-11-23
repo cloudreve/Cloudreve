@@ -22,9 +22,9 @@ func TestMasterMetadata(t *testing.T) {
 	c.Request = httptest.NewRequest("GET", "/", nil)
 
 	c.Request.Header = map[string][]string{
-		"X-Site-Id":           {"expectedSiteID"},
-		"X-Site-Url":          {"expectedSiteURL"},
-		"X-Cloudreve-Version": {"expectedMasterVersion"},
+		"X-Cr-Site-Id":           {"expectedSiteID"},
+		"X-Cr-Site-Url":          {"expectedSiteURL"},
+		"X-Cr-Cloudreve-Version": {"expectedMasterVersion"},
 	}
 	masterMetaDataFunc(c)
 	siteID, _ := c.Get("MasterSiteID")
@@ -47,7 +47,7 @@ func TestSlaveRPCSignRequired(t *testing.T) {
 	{
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("GET", "/", nil)
-		c.Request.Header.Set("X-Node-Id", "unknown")
+		c.Request.Header.Set("X-Cr-Node-Id", "unknown")
 		slaveRPCSignRequiredFunc(c)
 		a.True(c.IsAborted())
 	}
@@ -56,7 +56,7 @@ func TestSlaveRPCSignRequired(t *testing.T) {
 	{
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("GET", "/", nil)
-		c.Request.Header.Set("X-Node-Id", "38")
+		c.Request.Header.Set("X-Cr-Node-Id", "38")
 		slaveRPCSignRequiredFunc(c)
 		a.True(c.IsAborted())
 	}
@@ -70,7 +70,7 @@ func TestSlaveRPCSignRequired(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(rec)
 		c.Request = httptest.NewRequest("POST", "/", nil)
-		c.Request.Header.Set("X-Node-Id", "38")
+		c.Request.Header.Set("X-Cr-Node-Id", "38")
 		c.Request = auth.SignRequest(authInstance, c.Request, 0)
 		slaveRPCSignRequiredFunc(c)
 		a.False(c.IsAborted())

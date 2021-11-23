@@ -70,7 +70,7 @@ func TestSignRequest(t *testing.T) {
 			strings.NewReader("I am body."),
 		)
 		asserts.NoError(err)
-		req.Header["X-Policy"] = []string{"I am Policy"}
+		req.Header["X-Cr-Policy"] = []string{"I am Policy"}
 		req = SignRequest(General, req, 10)
 		asserts.NotEmpty(req.Header["Authorization"])
 	}
@@ -114,7 +114,7 @@ func TestCheckRequest(t *testing.T) {
 			strings.NewReader("I am body."),
 		)
 		asserts.NoError(err)
-		req.Header["X-Policy"] = []string{"I am Policy"}
+		req.Header["X-Cr-Policy"] = []string{"I am Policy"}
 		req = SignRequest(General, req, 0)
 		err = CheckRequest(General, req)
 		asserts.NoError(err)

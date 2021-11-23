@@ -167,9 +167,9 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 		handler.Policy.GetUploadURL(),
 		file,
 		request.WithHeader(map[string][]string{
-			"X-Policy":    {credential.Policy},
-			"X-FileName":  {fileName},
-			"X-Overwrite": {overwrite},
+			"X-Cr-Policy":    {credential.Policy},
+			"X-Cr-FileName":  {fileName},
+			"X-Cr-Overwrite": {overwrite},
 		}),
 		request.WithContentLength(int64(size)),
 		request.WithTimeout(time.Duration(0)),
@@ -332,8 +332,8 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy serializer
 	// 签名上传策略
 	uploadRequest, _ := http.NewRequest("POST", "/api/v3/slave/upload", nil)
 	uploadRequest.Header = map[string][]string{
-		"X-Policy":    {policyEncoded},
-		"X-Overwrite": {"false"},
+		"X-Cr-Policy":    {policyEncoded},
+		"X-Cr-Overwrite": {"false"},
 	}
 	auth.SignRequest(handler.AuthInstance, uploadRequest, TTL)
 

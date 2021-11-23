@@ -73,7 +73,7 @@ func TestLocalFileUpload(t *testing.T) {
 					strings.NewReader("2333"),
 				)
 				req.Header.Add("Content-Length", "4")
-				req.Header.Add("X-FileName", "大地的%sfsf")
+				req.Header.Add("X-Cr-FileName", "大地的%sfsf")
 				return req
 			},
 			ExpectCode: 40002,
@@ -87,8 +87,8 @@ func TestLocalFileUpload(t *testing.T) {
 					strings.NewReader("2333"),
 				)
 				req.Header.Add("Content-Length", "4")
-				req.Header.Add("X-FileName", "TestFileUploadRoute.txt")
-				req.Header.Add("X-Path", "/")
+				req.Header.Add("X-Cr-FileName", "TestFileUploadRoute.txt")
+				req.Header.Add("X-Cr-Path", "/")
 				return req
 			},
 			ExpectCode: 0,

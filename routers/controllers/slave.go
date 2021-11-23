@@ -32,7 +32,7 @@ func SlaveUpload(c *gin.Context) {
 	fs.Handler = local.Driver{}
 
 	// 从请求中取得上传策略
-	uploadPolicyRaw := c.GetHeader("X-Policy")
+	uploadPolicyRaw := c.GetHeader("X-Cr-Policy")
 	if uploadPolicyRaw == "" {
 		c.JSON(200, serializer.ParamErr("未指定上传策略", nil))
 		return
@@ -54,7 +54,7 @@ func SlaveUpload(c *gin.Context) {
 	}
 
 	// 解码文件名和路径
-	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-FileName"))
+	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-FileName"))
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
@@ -74,7 +74,7 @@ func SlaveUpload(c *gin.Context) {
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 
 	// 是否允许覆盖
-	if c.Request.Header.Get("X-Overwrite") == "false" {
+	if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
 		ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
 	}
 

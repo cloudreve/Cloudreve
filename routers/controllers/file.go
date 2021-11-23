@@ -308,8 +308,8 @@ func FileUploadStream(c *gin.Context) {
 	}
 
 	// 解码文件名和路径
-	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-FileName"))
-	filePath, err := url.QueryUnescape(c.Request.Header.Get("X-Path"))
+	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-FileName"))
+	filePath, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-Path"))
 	if err != nil {
 		c.JSON(200, ErrorResponse(err))
 		return
