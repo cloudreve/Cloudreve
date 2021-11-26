@@ -11,7 +11,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"os"
-	"path/filepath"
 )
 
 // TransferTask 文件中转任务
@@ -138,8 +137,8 @@ func (job *TransferTask) Do() {
 
 // Recycle 回收临时文件
 func (job *TransferTask) Recycle() {
-	err := os.RemoveAll(filepath.Dir(job.Req.Src))
+	err := os.Remove(job.Req.Src)
 	if err != nil {
-		util.Log().Warning("无法删除中转临时目录[%s], %s", job.Req.Src, err)
+		util.Log().Warning("无法删除中转临时文件[%s], %s", job.Req.Src, err)
 	}
 }
