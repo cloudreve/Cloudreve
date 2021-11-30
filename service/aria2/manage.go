@@ -34,7 +34,16 @@ func (service *DownloadListService) Finished(c *gin.Context, user *model.User) s
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
 	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Paused, common.Ready)
-	return serializer.BuildDownloadingResponse(downloads)
+	intervals := make(map[uint]int)
+	for _, download := range downloads {
+		if _, ok := intervals[download.ID]; !ok {
+			if node := cluster.Default.GetNodeByID(download.GetNodeID()); node != nil {
+				intervals[download.ID] = node.DBModel().Aria2OptionsSerialized.Interval
+			}
+		}
+	}
+
+	return serializer.BuildDownloadingResponse(downloads, intervals)
 }
 
 // Delete 取消或删除下载任务

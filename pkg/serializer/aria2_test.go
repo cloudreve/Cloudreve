@@ -82,10 +82,12 @@ func TestBuildDownloadingResponse(t *testing.T) {
 		},
 	}
 	tasks[1].StatusInfo.BitTorrent.Info.Name = "name.txt"
+	tasks[1].ID = 1
 
-	res := BuildDownloadingResponse(tasks).Data.([]DownloadListResponse)
+	res := BuildDownloadingResponse(tasks, map[uint]int{1: 5}).Data.([]DownloadListResponse)
 	asserts.Len(res, 2)
 	asserts.Equal("name1.txt", res[1].Name)
+	asserts.Equal(5, res[1].UpdateInterval)
 	asserts.Equal("name.txt", res[0].Name)
 	asserts.Equal("name.txt", res[0].Info.Files[0].Path)
 	asserts.Equal("name1.txt", res[1].Info.Files[0].Path)

@@ -76,9 +76,8 @@ func BuildFinishedListResponse(tasks []model.Download) Response {
 }
 
 // BuildDownloadingResponse 构建正在下载的列表响应
-func BuildDownloadingResponse(tasks []model.Download) Response {
+func BuildDownloadingResponse(tasks []model.Download, intervals map[uint]int) Response {
 	resp := make([]DownloadListResponse, 0, len(tasks))
-	interval := model.GetIntSetting("aria2_interval", 10)
 
 	for i := 0; i < len(tasks); i++ {
 		fileName := ""
@@ -90,6 +89,11 @@ func BuildDownloadingResponse(tasks []model.Download) Response {
 		tasks[i].StatusInfo.Dir = ""
 		for i2 := 0; i2 < len(tasks[i].StatusInfo.Files); i2++ {
 			tasks[i].StatusInfo.Files[i2].Path = path.Base(tasks[i].StatusInfo.Files[i2].Path)
+		}
+
+		interval := 10
+		if actualInterval, ok := intervals[tasks[i].ID]; ok {
+			interval = actualInterval
 		}
 
 		resp = append(resp, DownloadListResponse{
