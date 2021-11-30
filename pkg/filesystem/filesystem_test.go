@@ -292,16 +292,16 @@ func TestFileSystem_SwitchToShadowHandler(t *testing.T) {
 		Model: &model.Node{},
 	}
 
-	// remote to local
+	// local to remote
 	{
-		fs.Policy.Type = "remote"
+		fs.Policy.Type = "local"
 		fs.SwitchToShadowHandler(mockNode, "", "")
 		a.IsType(&masterinslave.Driver{}, fs.Handler)
 	}
 
-	// local to remote
+	// onedrive
 	{
-		fs.Policy.Type = "local"
+		fs.Policy.Type = "onedrive"
 		fs.SwitchToShadowHandler(mockNode, "", "")
 		a.IsType(&masterinslave.Driver{}, fs.Handler)
 	}

@@ -247,9 +247,6 @@ func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
 // SwitchToShadowHandler 将负责上传的 Handler 切换为从机节点转存使用的影子处理器
 func (fs *FileSystem) SwitchToShadowHandler(master cluster.Node, masterURL, masterID string) {
 	switch fs.Policy.Type {
-	case "remote":
-		fs.Policy.Type = "local"
-		fs.DispatchHandler()
 	case "local":
 		fs.Policy.Type = "remote"
 		fs.Policy.Server = masterURL
