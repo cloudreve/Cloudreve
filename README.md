@@ -66,6 +66,8 @@ chmod +x ./cloudreve
 
 以上为最简单的部署示例，您可以参考 [文档 - 起步](https://docs.cloudreve.org/) 进行更为完善的部署。
 
+如果您想远程云端启动服务，请参阅 [![TeamCode try-it-now](https://static01.teamcode.com/badge/teamcode-badge-run-in-cloud-en.svg)](https://www.teamcode.com/tin/clone?applicationId=270604044600766464)
+
 ## :gear: 构建
 
 自行构建前需要拥有 `Go >= 1.13`、`yarn`等必要依赖。
