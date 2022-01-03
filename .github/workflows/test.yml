@@ -13,35 +13,34 @@ jobs:
     name: Test
     runs-on: ubuntu-18.04
     steps:
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17"
+        id: go
 
-    - name: Set up Golang
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.17
-      id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-      with:
-        submodules: 'recursive'
+      - name: Build static files
+        run: |
+          cd assets
+          yarn install
+          yarn run build
 
-    - name: Get dependencies
-      run: |
-        go get github.com/rakyll/statik
-        export PATH=$PATH:~/go/bin/
-        statik -src=models -f
+      - name: Test
+        run: go test -coverprofile=coverage.txt -covermode=atomic ./...
 
-    - name: Test
-      run: go test -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload binary files (linux_arm)
+        uses: actions/upload-artifact@v2
+        with:
+          name: cloudreve_linux_arm
+          path: release/cloudreve*linux_arm.*
 
-    - name: Upload binary files (linux_arm)
-      uses: actions/upload-artifact@v2
-      with:
-        name: cloudreve_linux_arm
-        path: release/cloudreve*linux_arm.*
-
-    - name: Upload binary files (linux_arm64)
-      uses: actions/upload-artifact@v2
-      with:
-        name: cloudreve_linux_arm64
-        path: release/cloudreve*linux_arm64.*
+      - name: Upload binary files (linux_arm64)
+        uses: actions/upload-artifact@v2
+        with:
+          name: cloudreve_linux_arm64
+          path: release/cloudreve*linux_arm64.*
