@@ -27,8 +27,9 @@ jobs:
       - name: Build static files
         run: |
           cd assets
-          yarn install
-          yarn run build
+          mkdir build
+          cd build
+          touch test.html
 
       - name: Test
         run: go test -coverprofile=coverage.txt -covermode=atomic ./...

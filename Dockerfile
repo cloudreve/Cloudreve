@@ -28,8 +28,6 @@ RUN set -ex \
     && apk add gcc libc-dev git \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
     && export VERSION=$(git describe --tags) \
-    && (cd && go get github.com/rakyll/statik) \
-    && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
     && go install -ldflags "-X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=${VERSION}' \
                             -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=${COMMIT_SHA}'\
                             -w -s"
