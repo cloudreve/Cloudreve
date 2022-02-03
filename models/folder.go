@@ -263,6 +263,13 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 // MoveFolderTo 将folder目录下的dirs子目录复制或移动到dstFolder，
 // 返回此过程中增加的容量
 func (folder *Folder) MoveFolderTo(dirs []uint, dstFolder *Folder) error {
+
+	// 如果目标位置为待移动的目录，会导致 parent 为自己
+	// 造成死循环且无法被除搜索以外的组件展示
+	if folder.OwnerID == dstFolder.OwnerID && util.ContainsUint(dirs, dstFolder.ID) {
+		return errors.New("cannot move a folder into itself")
+	}
+
 	// 更改顶级要移动目录的父目录指向
 	err := DB.Model(Folder{}).Where(
 		"id in (?) and owner_id = ? and parent_id = ?",

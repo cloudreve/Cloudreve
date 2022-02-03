@@ -493,7 +493,8 @@ func TestFolder_MoveOrCopyFolderTo_Move(t *testing.T) {
 	}
 	// 目标目录
 	dstFolder := Folder{
-		Model: gorm.Model{ID: 10},
+		Model:   gorm.Model{ID: 10},
+		OwnerID: 1,
 	}
 
 	// 成功
@@ -506,6 +507,12 @@ func TestFolder_MoveOrCopyFolderTo_Move(t *testing.T) {
 		err := parFolder.MoveFolderTo([]uint{1, 2}, &dstFolder)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
+	}
+
+	// 移动自己到自己内部，失败
+	{
+		err := parFolder.MoveFolderTo([]uint{10, 2}, &dstFolder)
+		asserts.Error(err)
 	}
 }
 
