@@ -305,10 +305,10 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + key)
+	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 生成上传策略

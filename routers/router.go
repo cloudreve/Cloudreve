@@ -506,8 +506,8 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 文件上传
 				file.POST("upload", controllers.FileUploadStream)
-				// 获取上传凭证
-				file.GET("upload/credential", controllers.GetUploadCredential)
+				// 创建上传会话
+				file.PUT("upload/session", controllers.GetUploadCredential)
 				// 更新文件
 				file.PUT("update/:id", controllers.PutContent)
 				// 创建空白文件

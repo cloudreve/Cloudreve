@@ -354,15 +354,15 @@ func FileUploadStream(c *gin.Context) {
 	})
 }
 
-// GetUploadCredential 获取上传凭证
+// GetUploadCredential 创建上传会话
 func GetUploadCredential(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.UploadCredentialService
-	if err := c.ShouldBindQuery(&service); err == nil {
-		res := service.Get(ctx, c)
+	var service explorer.UploadSessionService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(ctx, c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

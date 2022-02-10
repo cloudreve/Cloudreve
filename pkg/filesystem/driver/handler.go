@@ -29,8 +29,8 @@ type Handler interface {
 	// isDownload - 是否直接下载
 	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error)
 
-	// Token 获取有效期为ttl的上传凭证和签名，同时回调会话有效期为sessionTTL
-	Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error)
+	// Token 获取有效期为ttl的上传凭证和签名
+	Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error)
 
 	// List 递归列取远程端path路径下文件、目录，不包含path本身，
 	// 返回的对象路径以path作为起始根目录.

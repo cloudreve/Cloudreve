@@ -14,6 +14,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 )
 
 /* ================
@@ -146,32 +147,47 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 	}
 }
 
-// GetUploadToken 生成新的上传凭证
-func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint64, name string) (*serializer.UploadCredential, error) {
+// CreateUploadSession 创建上传会话
+func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size uint64, name string) (*serializer.UploadCredential, error) {
 	// 获取相关有效期设置
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
 	var err error
 
-	// 检查文件大小
-	if fs.Policy.MaxSize != 0 {
-		if size > fs.Policy.MaxSize {
-			return nil, ErrFileSizeTooBig
-		}
+	// 进行文件上传预检查
+
+	// 创建上下文环境
+	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, local.FileStream{
+		Size: size,
+		Name: name,
+	})
+
+	// 检查上传请求合法性
+	if err := HookValidateFile(ctx, fs); err != nil {
+		return nil, err
 	}
 
-	// 是否需要预先生成存储路径
-	var savePath string
-	if fs.Policy.IsPathGenerateNeeded() {
-		savePath = fs.GenerateSavePath(ctx, local.FileStream{Name: name, VirtualPath: path})
-		ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
+	if err := HookValidateCapacityWithoutIncrease(ctx, fs); err != nil {
+		return nil, err
 	}
-	ctx = context.WithValue(ctx, fsctx.FileSizeCtx, size)
+
+	// 生成存储路径
+	savePath := fs.GenerateSavePath(ctx, local.FileStream{Name: name, VirtualPath: path})
+
+	callbackKey := uuid.Must(uuid.NewV4()).String()
+	uploadSession := &serializer.UploadSession{
+		Key:         callbackKey,
+		UID:         fs.User.ID,
+		PolicyID:    fs.Policy.ID,
+		VirtualPath: path,
+		Name:        name,
+		Size:        size,
+		SavePath:    savePath,
+	}
 
 	// 获取上传凭证
-	callbackKey := util.RandStringRunes(32)
-	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), callbackKey)
+	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), uploadSession)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeEncryptError, "无法获取上传凭证", err)
 	}
@@ -179,14 +195,7 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	// 创建回调会话
 	err = cache.Set(
 		"callback_"+callbackKey,
-		serializer.UploadSession{
-			Key:         callbackKey,
-			UID:         fs.User.ID,
-			VirtualPath: path,
-			Name:        name,
-			Size:        size,
-			SavePath:    savePath,
-		},
+		uploadSession,
 		callBackSessionTTL,
 	)
 	if err != nil {

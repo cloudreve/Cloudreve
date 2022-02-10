@@ -4,29 +4,31 @@ import (
 	"context"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
 
-// UploadCredentialService 获取上传凭证服务
-type UploadCredentialService struct {
-	Path string `form:"path" binding:"required"`
-	Size uint64 `form:"size" binding:"min=0"`
-	Name string `form:"name"`
-	Type string `form:"type"`
+// UploadSessionService 获取上传凭证服务
+type UploadSessionService struct {
+	Path     string `json:"path" binding:"required"`
+	Size     uint64 `json:"size" binding:"min=0"`
+	Name     string `json:"name" binding:"required"`
+	PolicyID uint   `json:"policy_id" binding:"required"`
 }
 
-// Get 获取新的上传凭证
-func (service *UploadCredentialService) Get(ctx context.Context, c *gin.Context) serializer.Response {
+// Create 创建新的上传会话
+func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
-	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	credential, err := fs.GetUploadToken(ctx, service.Path, service.Size, service.Name)
+	if fs.Policy.ID != service.PolicyID {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略发生变化，请刷新文件列表并重新添加此任务", nil)
+	}
+
+	credential, err := fs.CreateUploadSession(ctx, service.Path, service.Size, service.Name)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

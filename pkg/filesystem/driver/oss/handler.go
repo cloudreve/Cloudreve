@@ -397,7 +397,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
 	// 读取上下文中生成的存储路径
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
 	if !ok {
@@ -406,7 +406,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + key)
+	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 回调策略

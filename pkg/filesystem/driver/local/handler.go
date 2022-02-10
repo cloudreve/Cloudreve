@@ -79,20 +79,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 		return nil, err
 	}
 
-	// 开启一个协程，用于请求结束后关闭reader
-	// go closeReader(ctx, file)
-
 	return file, nil
-}
-
-// closeReader 用于在请求结束后关闭reader
-// TODO 让业务代码自己关闭
-func closeReader(ctx context.Context, closer io.Closer) {
-	select {
-	case <-ctx.Done():
-		_ = closer.Close()
-
-	}
 }
 
 // Put 将文件流保存到指定目录
@@ -227,6 +214,8 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
-func (handler Driver) Token(ctx context.Context, ttl int64, key string) (serializer.UploadCredential, error) {
-	return serializer.UploadCredential{}, nil
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+	return serializer.UploadCredential{
+		SessionID: uploadSession.Key,
+	}, nil
 }

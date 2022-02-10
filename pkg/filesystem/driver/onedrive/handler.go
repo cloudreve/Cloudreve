@@ -223,7 +223,7 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 }
 
 // Token 获取上传会话URL
-func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
 
 	// 读取上下文中生成的存储路径和文件大小
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
@@ -242,7 +242,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + key)
+	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	uploadURL, err := handler.Client.CreateUploadSession(ctx, savePath, WithConflictBehavior("fail"))
@@ -251,7 +251,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 	}
 
 	// 监控回调及上传
-	go handler.Client.MonitorUpload(uploadURL, key, savePath, fileSize, TTL)
+	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, savePath, fileSize, ttl)
 
 	return serializer.UploadCredential{
 		Policy: uploadURL,

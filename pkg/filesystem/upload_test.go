@@ -57,8 +57,8 @@ func (m FileHeaderMock) Source(ctx context.Context, path string, url url.URL, ex
 	return args.Get(0).(string), args.Error(1)
 }
 
-func (m FileHeaderMock) Token(ctx context.Context, expires int64, key string) (serializer.UploadCredential, error) {
-	args := m.Called(ctx, expires, key)
+func (m FileHeaderMock) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+	args := m.Called(ctx, ttl, uploadSession)
 	return args.Get(0).(serializer.UploadCredential), args.Error(1)
 }
 
@@ -189,7 +189,7 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		testHandler := new(FileHeaderMock)
 		testHandler.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{Token: "test"}, nil)
 		fs.Handler = testHandler
-		res, err := fs.GetUploadToken(ctx, "/", 10, "123")
+		res, err := fs.CreateUploadSession(ctx, "/", 10, "123")
 		testHandler.AssertExpectations(t)
 		asserts.NoError(err)
 		asserts.Equal("test", res.Token)
@@ -204,7 +204,7 @@ func TestFileSystem_GetUploadToken(t *testing.T) {
 		testHandler := new(FileHeaderMock)
 		testHandler.On("Token", testMock.Anything, int64(10), testMock.Anything).Return(serializer.UploadCredential{}, errors.New("error"))
 		fs.Handler = testHandler
-		_, err := fs.GetUploadToken(ctx, "/", 10, "123")
+		_, err := fs.CreateUploadSession(ctx, "/", 10, "123")
 		testHandler.AssertExpectations(t)
 		asserts.Error(err)
 	}

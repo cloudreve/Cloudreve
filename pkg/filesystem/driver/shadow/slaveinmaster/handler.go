@@ -112,7 +112,7 @@ func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64
 	return "", ErrNotImplemented
 }
 
-func (d *Driver) Token(ctx context.Context, ttl int64, callbackKey string) (serializer.UploadCredential, error) {
+func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, ErrNotImplemented
 }
 

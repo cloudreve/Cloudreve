@@ -324,7 +324,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, key string) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
 	// 读取上下文中生成的存储路径
 	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
 	if !ok {
@@ -333,7 +333,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/cos/" + key)
+	apiBaseURI, _ := url.Parse("/api/v3/callback/cos/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI).String()
 
 	// 上传策略
@@ -346,7 +346,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 			map[string]string{"bucket": handler.Policy.BucketName},
 			map[string]string{"$key": savePath},
 			map[string]string{"x-cos-meta-callback": apiURL},
-			map[string]string{"x-cos-meta-key": key},
+			map[string]string{"x-cos-meta-key": uploadSession.Key},
 			map[string]string{"q-sign-algorithm": "sha1"},
 			map[string]string{"q-ak": handler.Policy.AccessKey},
 			map[string]string{"q-sign-time": keyTime},
@@ -361,7 +361,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, key string) (seriali
 	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime)
 	if err == nil {
 		res.Callback = apiURL
-		res.Key = key
+		res.Key = uploadSession.Key
 	}
 
 	return res, err
