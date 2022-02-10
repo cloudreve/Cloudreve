@@ -184,6 +184,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 		Name:        name,
 		Size:        size,
 		SavePath:    savePath,
+		ChunkSize:   fs.Policy.OptionsSerialized.ChunkSize,
 	}
 
 	// 获取上传凭证

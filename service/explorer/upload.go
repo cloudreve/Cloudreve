@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,7 @@ type UploadSessionService struct {
 	Path     string `json:"path" binding:"required"`
 	Size     uint64 `json:"size" binding:"min=0"`
 	Name     string `json:"name" binding:"required"`
-	PolicyID uint   `json:"policy_id" binding:"required"`
+	PolicyID string `json:"policy_id" binding:"required"`
 }
 
 // Create 创建新的上传会话
@@ -24,7 +25,13 @@ func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context)
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
-	if fs.Policy.ID != service.PolicyID {
+	// 取得存储策略的ID
+	rawID, err := hashid.DecodeHashID(service.PolicyID, hashid.PolicyID)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+	}
+
+	if fs.Policy.ID != rawID {
 		return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略发生变化，请刷新文件列表并重新添加此任务", nil)
 	}
 

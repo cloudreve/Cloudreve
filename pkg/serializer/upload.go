@@ -38,6 +38,7 @@ type UploadSession struct {
 	Name        string
 	Size        uint64
 	SavePath    string
+	ChunkSize   uint64
 }
 
 // UploadCallback 上传回调正文

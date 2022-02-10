@@ -58,6 +58,8 @@ type PolicyOption struct {
 	Region string `json:"region,omitempty"`
 	// ServerSideEndpoint 服务端请求使用的 Endpoint，为空时使用 Policy.Server 字段
 	ServerSideEndpoint string `json:"server_side_endpoint,omitempty"`
+	// 分片上传的分片大小
+	ChunkSize uint64 `json:"chunk_size,omitempty"`
 }
 
 var thumbSuffix = map[string][]string{
