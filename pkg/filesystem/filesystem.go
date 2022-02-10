@@ -104,6 +104,8 @@ func (fs *FileSystem) reset() {
 func NewFileSystem(user *model.User) (*FileSystem, error) {
 	fs := getEmptyFS()
 	fs.User = user
+	fs.Policy = &fs.User.Policy
+
 	// 分配存储策略适配器
 	err := fs.DispatchHandler()
 
@@ -132,16 +134,11 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 
 // DispatchHandler 根据存储策略分配文件适配器
 func (fs *FileSystem) DispatchHandler() error {
-	var policyType string
-	var currentPolicy *model.Policy
+	currentPolicy := fs.Policy
+	policyType := currentPolicy.Type
 
-	if fs.Policy == nil {
-		// 如果没有具体指定，就是用用户当前存储策略
-		policyType = fs.User.Policy.Type
-		currentPolicy = &fs.User.Policy
-	} else {
-		policyType = fs.Policy.Type
-		currentPolicy = fs.Policy
+	if currentPolicy == nil {
+		return ErrUnknownPolicyType
 	}
 
 	switch policyType {
@@ -241,7 +238,7 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 
 // SwitchToSlaveHandler 将负责上传的 Handler 切换为从机节点
 func (fs *FileSystem) SwitchToSlaveHandler(node cluster.Node) {
-	fs.Handler = slaveinmaster.NewDriver(node, fs.Handler, &fs.User.Policy)
+	fs.Handler = slaveinmaster.NewDriver(node, fs.Handler, fs.Policy)
 }
 
 // SwitchToShadowHandler 将负责上传的 Handler 切换为从机节点转存使用的影子处理器

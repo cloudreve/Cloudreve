@@ -263,10 +263,7 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 
 	return serializer.Response{
 		Code: 0,
-		Data: map[string]interface{}{
-			"parent":  "0000",
-			"objects": objects,
-		},
+		Data: serializer.BuildObjectList(0, objects, nil),
 	}
 }
 

@@ -3,17 +3,16 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/gin-gonic/gin"
@@ -300,13 +299,6 @@ func FileUploadStream(c *gin.Context) {
 		return
 	}
 
-	// 非可用策略时拒绝上传
-	if user, ok := c.Get("user"); ok && !user.(*model.User).Policy.IsTransitUpload(fileSize) {
-		request.BlackHole(c.Request.Body)
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
-		return
-	}
-
 	// 解码文件名和路径
 	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-FileName"))
 	filePath, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-Path"))
@@ -327,6 +319,13 @@ func FileUploadStream(c *gin.Context) {
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+		return
+	}
+
+	// 非可用策略时拒绝上传
+	if !fs.Policy.IsTransitUpload(fileSize) {
+		request.BlackHole(c.Request.Body)
+		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
 		return
 	}
 

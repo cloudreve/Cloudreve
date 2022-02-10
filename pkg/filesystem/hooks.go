@@ -119,7 +119,6 @@ func HookResetPolicy(ctx context.Context, fs *FileSystem) error {
 	}
 
 	fs.Policy = originFile.GetPolicy()
-	fs.User.Policy = *fs.Policy
 	return fs.DispatchHandler()
 }
 
@@ -317,7 +316,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem) error {
 	fs.SetTargetFile(&[]model.File{*file})
 
 	// 异步尝试生成缩略图
-	if fs.User.Policy.IsThumbGenerateNeeded() {
+	if fs.Policy.IsThumbGenerateNeeded() {
 		fs.recycleLock.Lock()
 		go func() {
 			defer fs.recycleLock.Unlock()

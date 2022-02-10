@@ -62,10 +62,10 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 		UserID:     fs.User.ID,
 		Size:       file.GetSize(),
 		FolderID:   parent.ID,
-		PolicyID:   fs.User.Policy.ID,
+		PolicyID:   fs.Policy.ID,
 	}
 
-	if fs.User.Policy.IsThumbExist(file.GetFileName()) {
+	if fs.Policy.IsThumbExist(file.GetFileName()) {
 		newFile.PicInfo = "1,1"
 	}
 
@@ -350,7 +350,7 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 }
 
 // Search 搜索文件
-func (fs *FileSystem) Search(ctx context.Context, keywords ...interface{}) ([]Object, error) {
+func (fs *FileSystem) Search(ctx context.Context, keywords ...interface{}) ([]serializer.Object, error) {
 	files, _ := model.GetFilesByKeywords(fs.User.ID, keywords...)
 	fs.SetTargetFile(&files)
 

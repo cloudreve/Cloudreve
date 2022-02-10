@@ -54,9 +54,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 		}
 
 		return serializer.Response{
-			Data: map[string]interface{}{
-				"objects": res,
-			},
+			Data: serializer.BuildObjectList(0, res, nil),
 		}
 
 	}
@@ -82,9 +80,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 	}
 
 	return serializer.Response{
-		Data: map[string]interface{}{
-			"objects": res,
-		},
+		Data: serializer.BuildObjectList(0, res, nil),
 	}
 }
 

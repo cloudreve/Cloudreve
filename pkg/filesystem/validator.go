@@ -45,10 +45,10 @@ func (fs *FileSystem) ValidateLegalName(ctx context.Context, name string) bool {
 
 // ValidateFileSize 验证上传的文件大小是否超出限制
 func (fs *FileSystem) ValidateFileSize(ctx context.Context, size uint64) bool {
-	if fs.User.Policy.MaxSize == 0 {
+	if fs.Policy.MaxSize == 0 {
 		return true
 	}
-	return size <= fs.User.Policy.MaxSize
+	return size <= fs.Policy.MaxSize
 }
 
 // ValidateCapacity 验证并扣除用户容量
@@ -59,11 +59,11 @@ func (fs *FileSystem) ValidateCapacity(ctx context.Context, size uint64) bool {
 // ValidateExtension 验证文件扩展名
 func (fs *FileSystem) ValidateExtension(ctx context.Context, fileName string) bool {
 	// 不需要验证
-	if len(fs.User.Policy.OptionsSerialized.FileType) == 0 {
+	if len(fs.Policy.OptionsSerialized.FileType) == 0 {
 		return true
 	}
 
-	return IsInExtensionList(fs.User.Policy.OptionsSerialized.FileType, fileName)
+	return IsInExtensionList(fs.Policy.OptionsSerialized.FileType, fileName)
 }
 
 // IsInExtensionList 返回文件的扩展名是否在给定的列表范围内

@@ -81,11 +81,11 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) string {
 	if fs.User.Model.ID != 0 {
 		return path.Join(
-			fs.User.Policy.GeneratePath(
+			fs.Policy.GeneratePath(
 				fs.User.Model.ID,
 				file.GetVirtualPath(),
 			),
-			fs.User.Policy.GenerateFileName(
+			fs.Policy.GenerateFileName(
 				fs.User.Model.ID,
 				file.GetFileName(),
 			),
@@ -155,15 +155,15 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 	var err error
 
 	// 检查文件大小
-	if fs.User.Policy.MaxSize != 0 {
-		if size > fs.User.Policy.MaxSize {
+	if fs.Policy.MaxSize != 0 {
+		if size > fs.Policy.MaxSize {
 			return nil, ErrFileSizeTooBig
 		}
 	}
 
 	// 是否需要预先生成存储路径
 	var savePath string
-	if fs.User.Policy.IsPathGenerateNeeded() {
+	if fs.Policy.IsPathGenerateNeeded() {
 		savePath = fs.GenerateSavePath(ctx, local.FileStream{Name: name, VirtualPath: path})
 		ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
 	}
@@ -182,7 +182,6 @@ func (fs *FileSystem) GetUploadToken(ctx context.Context, path string, size uint
 		serializer.UploadSession{
 			Key:         callbackKey,
 			UID:         fs.User.ID,
-			PolicyID:    fs.User.GetPolicyID(0),
 			VirtualPath: path,
 			Name:        name,
 			Size:        size,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -18,18 +17,6 @@ import (
 	 文件/目录管理
    =================
 */
-
-// Object 文件或者目录
-type Object struct {
-	ID   string    `json:"id"`
-	Name string    `json:"name"`
-	Path string    `json:"path"`
-	Pic  string    `json:"pic"`
-	Size uint64    `json:"size"`
-	Type string    `json:"type"`
-	Date time.Time `json:"date"`
-	Key  string    `json:"key,omitempty"`
-}
 
 // Rename 重命名对象
 func (fs *FileSystem) Rename(ctx context.Context, dir, file []uint, new string) (err error) {
@@ -266,7 +253,7 @@ func (fs *FileSystem) ListDeleteFiles(ctx context.Context, ids []uint) error {
 // pathProcessor为最终对象路径的处理钩子。
 // 有些情况下（如在分享页面列对象）时，
 // 路径需要截取掉被分享目录路径之前的部分。
-func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor func(string) string) ([]Object, error) {
+func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor func(string) string) ([]serializer.Object, error) {
 	// 获取父目录
 	isExist, folder := fs.IsPathExist(dirPath)
 	if !isExist {
@@ -289,7 +276,7 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 
 // ListPhysical 列出存储策略中的外部目录
 // TODO:测试
-func (fs *FileSystem) ListPhysical(ctx context.Context, dirPath string) ([]Object, error) {
+func (fs *FileSystem) ListPhysical(ctx context.Context, dirPath string) ([]serializer.Object, error) {
 	if err := fs.DispatchHandler(); fs.Policy == nil || err != nil {
 		return nil, ErrUnknownPolicyType
 	}
@@ -319,7 +306,7 @@ func (fs *FileSystem) ListPhysical(ctx context.Context, dirPath string) ([]Objec
 	return fs.listObjects(ctx, dirPath, nil, folders, nil), nil
 }
 
-func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []model.File, folders []model.Folder, pathProcessor func(string) string) []Object {
+func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []model.File, folders []model.Folder, pathProcessor func(string) string) []serializer.Object {
 	// 分享文件的ID
 	shareKey := ""
 	if key, ok := ctx.Value(fsctx.ShareKeyCtx).(string); ok {
@@ -327,7 +314,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 	}
 
 	// 汇总处理结果
-	objects := make([]Object, 0, len(files)+len(folders))
+	objects := make([]serializer.Object, 0, len(files)+len(folders))
 
 	// 所有对象的父目录
 	var processedPath string
@@ -343,7 +330,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			}
 		}
 
-		objects = append(objects, Object{
+		objects = append(objects, serializer.Object{
 			ID:   hashid.HashID(subFolder.ID, hashid.FolderID),
 			Name: subFolder.Name,
 			Path: processedPath,
@@ -363,14 +350,15 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			}
 		}
 
-		newFile := Object{
-			ID:   hashid.HashID(file.ID, hashid.FileID),
-			Name: file.Name,
-			Path: processedPath,
-			Pic:  file.PicInfo,
-			Size: file.Size,
-			Type: "file",
-			Date: file.CreatedAt,
+		newFile := serializer.Object{
+			ID:            hashid.HashID(file.ID, hashid.FileID),
+			Name:          file.Name,
+			Path:          processedPath,
+			Pic:           file.PicInfo,
+			Size:          file.Size,
+			Type:          "file",
+			Date:          file.CreatedAt,
+			SourceEnabled: file.GetPolicy().IsOriginLinkEnable,
 		}
 		if shareKey != "" {
 			newFile.Key = shareKey
