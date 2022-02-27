@@ -20,6 +20,8 @@ type UploadPolicy struct {
 // UploadCredential 返回给客户端的上传凭证
 type UploadCredential struct {
 	SessionID string `json:"sessionID"`
+	ChunkSize uint64 `json:"chunkSize"` // 分块大小，0 为部分快
+	Expires   int64  `json:"expires"`   // 上传凭证过期时间， Unix 时间戳
 
 	Token     string `json:"token"`
 	Policy    string `json:"policy"`
@@ -39,7 +41,7 @@ type UploadSession struct {
 	Name         string     // 文件名
 	Size         uint64     // 文件大小
 	SavePath     string     // 物理存储路径，包含物理文件名
-	ChunkSize    uint64     // 分块大小，0 为部分快
+	ChunkSize    uint64     // 分块大小，0 为不分快
 	LastModified *time.Time // 可选的文件最后修改日期
 }
 

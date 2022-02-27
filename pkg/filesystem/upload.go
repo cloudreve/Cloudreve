@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -167,6 +168,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 	fs.Use("BeforeUpload", HookValidateFile)
 	fs.Use("AfterUpload", HookClearFileHeaderSize)
+	// TODO: 只有本机策略才添加文件
 	fs.Use("AfterUpload", GenericAfterUpload)
 	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err
@@ -199,6 +201,9 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	if err != nil {
 		return nil, err
 	}
+
+	// 补全上传凭证其他信息
+	credential.Expires = time.Now().Add(time.Duration(callBackSessionTTL) * time.Second).Unix()
 
 	return &credential, nil
 }

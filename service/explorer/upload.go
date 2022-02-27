@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -55,5 +56,19 @@ func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context)
 	return serializer.Response{
 		Code: 0,
 		Data: credential,
+	}
+}
+
+// UploadService 本机策略上传服务
+type UploadService struct {
+	ID    string `uri:"sessionId" binding:"required"`
+	Index int    `uri:"index"`
+}
+
+// Upload 处理本机文件分片上传
+func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serializer.Response {
+	request.BlackHole(c.Request.Body)
+	return serializer.Response{
+		Code: 0,
 	}
 }

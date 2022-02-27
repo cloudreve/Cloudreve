@@ -46,12 +46,11 @@ type Object struct {
 
 // PolicySummary 用于前端组件使用的存储策略概况
 type PolicySummary struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	MaxSize   uint64   `json:"max_size"`
-	FileType  []string `json:"file_type"`
-	ChunkSize uint64   `json:"chunk_size"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	MaxSize  uint64   `json:"max_size"`
+	FileType []string `json:"file_type"`
 }
 
 // BuildObjectList 构建列目录响应
@@ -66,12 +65,11 @@ func BuildObjectList(parent uint, objects []Object, policy *model.Policy) Object
 
 	if policy != nil {
 		res.Policy = &PolicySummary{
-			ID:        hashid.HashID(policy.ID, hashid.PolicyID),
-			Name:      policy.Name,
-			Type:      policy.Type,
-			MaxSize:   policy.MaxSize,
-			FileType:  policy.OptionsSerialized.FileType,
-			ChunkSize: policy.OptionsSerialized.ChunkSize,
+			ID:       hashid.HashID(policy.ID, hashid.PolicyID),
+			Name:     policy.Name,
+			Type:     policy.Type,
+			MaxSize:  policy.MaxSize,
+			FileType: policy.OptionsSerialized.FileType,
 		}
 	}
 

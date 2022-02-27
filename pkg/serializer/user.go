@@ -31,14 +31,6 @@ type User struct {
 	Tags           []tag     `json:"tags"`
 }
 
-type policy struct {
-	SaveType       string   `json:"saveType"`
-	MaxSize        string   `json:"maxSize"`
-	AllowedType    []string `json:"allowedType"`
-	UploadURL      string   `json:"upUrl"`
-	AllowGetSource bool     `json:"allowSource"`
-}
-
 type group struct {
 	ID                   uint   `json:"id"`
 	Name                 string `json:"name"`
