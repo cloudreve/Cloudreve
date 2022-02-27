@@ -133,19 +133,15 @@ func HookValidateCapacityWithoutIncrease(ctx context.Context, fs *FileSystem, fi
 	return nil
 }
 
-// HookChangeCapacity 根据原有文件和新文件的大小更新用户容量
-func HookChangeCapacity(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
+// HookValidateCapacityDiff 根据原有文件和新文件的大小验证用户容量
+func HookValidateCapacityDiff(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
 	originFile := ctx.Value(fsctx.FileModelCtx).(model.File)
 	newFileSize := newFile.Info().Size
 
 	if newFileSize > originFile.Size {
-		if !fs.ValidateCapacity(ctx, newFileSize-originFile.Size) {
-			return ErrInsufficientCapacity
-		}
-		return nil
+		return HookValidateCapacityWithoutIncrease(ctx, fs, newFile)
 	}
 
-	fs.User.DeductionStorage(originFile.Size - newFileSize)
 	return nil
 }
 

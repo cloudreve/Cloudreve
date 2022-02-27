@@ -122,15 +122,12 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst str
 
 // Delete 递归删除对象, force 为 true 时强制删除文件记录，忽略物理删除是否成功
 func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool) error {
-	// 已删除的总容量,map用于去重
-	var deletedStorage = make(map[uint]uint64)
-	var totalStorage = make(map[uint]uint64)
 	// 已删除的文件ID
-	var deletedFileIDs = make([]uint, 0, len(fs.FileTarget))
+	var deletedFiles = make([]*model.File, 0, len(fs.FileTarget))
 	// 删除失败的文件的父目录ID
 
 	// 所有文件的ID
-	var allFileIDs = make([]uint, 0, len(fs.FileTarget))
+	var allFiles = make([]*model.File, 0, len(fs.FileTarget))
 
 	// 列出要删除的目录
 	if len(dirs) > 0 {
@@ -164,39 +161,35 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool
 	for i := 0; i < len(fs.FileTarget); i++ {
 		if !util.ContainsString(failed[fs.FileTarget[i].PolicyID], fs.FileTarget[i].SourceName) {
 			// 已成功删除的文件
-			deletedFileIDs = append(deletedFileIDs, fs.FileTarget[i].ID)
-			deletedStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
+			deletedFiles = append(deletedFiles, &fs.FileTarget[i])
 		}
+
 		// 全部文件
-		totalStorage[fs.FileTarget[i].ID] = fs.FileTarget[i].Size
-		allFileIDs = append(allFileIDs, fs.FileTarget[i].ID)
+		allFiles = append(allFiles, &fs.FileTarget[i])
 	}
 
 	// 如果强制删除，则将全部文件视为删除成功
 	if force {
-		deletedFileIDs = allFileIDs
-		deletedStorage = totalStorage
+		deletedFiles = allFiles
 	}
 
 	// 删除文件记录
-	err = model.DeleteFileByIDs(deletedFileIDs)
+	err = model.DeleteFiles(deletedFiles, fs.User.ID)
 	if err != nil {
 		return ErrDBDeleteObjects.WithError(err)
 	}
 
 	// 删除文件记录对应的分享记录
 	// TODO 先取消分享再删除文件
+	deletedFileIDs := make([]uint, len(deletedFiles))
+	for k, file := range deletedFiles {
+		deletedFileIDs[k] = file.ID
+	}
+
 	model.DeleteShareBySourceIDs(deletedFileIDs, false)
 
-	// 归还容量
-	var total uint64
-	for _, value := range deletedStorage {
-		total += value
-	}
-	fs.User.DeductionStorage(total)
-
 	// 如果文件全部删除成功，继续删除目录
-	if len(deletedFileIDs) == len(allFileIDs) {
+	if len(deletedFiles) == len(allFiles) {
 		var allFolderIDs = make([]uint, 0, len(fs.DirTarget))
 		for _, value := range fs.DirTarget {
 			allFolderIDs = append(allFolderIDs, value.ID)
@@ -210,7 +203,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool
 		model.DeleteShareBySourceIDs(allFolderIDs, true)
 	}
 
-	if notDeleted := len(fs.FileTarget) - len(deletedFileIDs); notDeleted > 0 {
+	if notDeleted := len(fs.FileTarget) - len(deletedFiles); notDeleted > 0 {
 		return serializer.NewError(
 			serializer.CodeNotFullySuccess,
 			fmt.Sprintf("有 %d 个文件未能成功删除", notDeleted),

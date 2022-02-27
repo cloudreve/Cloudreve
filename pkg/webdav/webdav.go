@@ -349,15 +349,13 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 
 		fs.Use("BeforeUpload", filesystem.HookResetPolicy)
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
-		fs.Use("BeforeUpload", filesystem.HookChangeCapacity)
+		fs.Use("BeforeUpload", filesystem.HookValidateCapacityDiff)
 		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
 		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
-		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookCancelContext)
 		fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
 		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
 		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
-		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, *originFile)
 	} else {
 		// 给文件系统分配钩子

@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"path"
 	"time"
 
@@ -200,10 +201,35 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 
 }
 
-// DeleteFileByIDs 根据给定ID批量删除文件记录
-func DeleteFileByIDs(ids []uint) error {
-	result := DB.Where("id in (?)", ids).Unscoped().Delete(&File{})
-	return result.Error
+// DeleteFiles 批量删除文件记录并归还容量
+func DeleteFiles(files []*File, uid uint) error {
+	tx := DB.Begin()
+	user := &User{}
+	user.ID = uid
+	var size uint64
+	for _, file := range files {
+		if file.UserID != uid {
+			tx.Rollback()
+			return errors.New("User id not consistent")
+		}
+
+		result := tx.Unscoped().Delete(file)
+		if result.RowsAffected != 0 {
+			size += file.Size
+		}
+
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+	}
+
+	if err := user.ChangeStorage(tx, "-", size); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 // GetFilesByParentIDs 根据父目录ID查找文件
@@ -232,7 +258,29 @@ func (file *File) UpdatePicInfo(value string) error {
 
 // UpdateSize 更新文件的大小信息
 func (file *File) UpdateSize(value uint64) error {
-	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("size", value).Error
+	tx := DB.Begin()
+	var sizeDelta uint64
+	operator := "+"
+	user := User{}
+	user.ID = file.UserID
+	if value > file.Size {
+		sizeDelta = value - file.Size
+	} else {
+		operator = "-"
+		sizeDelta = file.Size - value
+	}
+
+	if res := tx.Model(&file).Set("gorm:association_autoupdate", false).Update("size", value); res.Error != nil {
+		tx.Rollback()
+		return res.Error
+	}
+
+	if err := user.ChangeStorage(tx, operator, sizeDelta); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 // UpdateSourceName 更新文件的源文件名

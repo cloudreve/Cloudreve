@@ -89,6 +89,11 @@ func (user *User) IncreaseStorage(size uint64) bool {
 	return false
 }
 
+// ChangeStorage 更新用户容量
+func (user *User) ChangeStorage(tx *gorm.DB, operator string, size uint64) error {
+	return tx.Model(user).Update("storage", gorm.Expr("storage "+operator+" ?", size)).Error
+}
+
 // IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
 func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 	if size == 0 {
