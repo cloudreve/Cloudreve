@@ -5,6 +5,7 @@ import (
 	"io"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
@@ -177,23 +178,45 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 
 	for policyID, toBeDeletedFiles := range files {
 		// 列举出需要物理删除的文件的物理路径
-		sourceNames := make([]string, 0, len(toBeDeletedFiles))
+		sourceNamesAll := make([]string, 0, len(toBeDeletedFiles))
+		sourceNamesDeleted := make([]string, 0, len(toBeDeletedFiles))
+		sourceNamesTryDeleted := make([]string, 0, len(toBeDeletedFiles))
+
 		for i := 0; i < len(toBeDeletedFiles); i++ {
-			sourceNames = append(sourceNames, toBeDeletedFiles[i].SourceName)
+			sourceNamesAll = append(sourceNamesAll, toBeDeletedFiles[i].SourceName)
+			if !(toBeDeletedFiles[i].UploadSessionID != nil && toBeDeletedFiles[i].Size == 0) {
+				sourceNamesDeleted = append(sourceNamesDeleted, toBeDeletedFiles[i].SourceName)
+			} else {
+				sourceNamesTryDeleted = append(sourceNamesTryDeleted, toBeDeletedFiles[i].SourceName)
+			}
+
+			if toBeDeletedFiles[i].UploadSessionID != nil {
+				if session, ok := cache.Get(UploadSessionCachePrefix + *toBeDeletedFiles[i].UploadSessionID); ok {
+					uploadSession := session.(serializer.UploadSession)
+					if err := fs.Handler.CancelToken(ctx, &uploadSession); err != nil {
+						util.Log().Warning("无法取消 [%s] 的上传会话: %s", err)
+					}
+
+					cache.Deletes([]string{*toBeDeletedFiles[i].UploadSessionID}, UploadSessionCachePrefix)
+				}
+
+			}
 		}
 
 		// 切换上传策略
 		fs.Policy = toBeDeletedFiles[0].GetPolicy()
 		err := fs.DispatchHandler()
 		if err != nil {
-			failed[policyID] = sourceNames
+			failed[policyID] = sourceNamesAll
 			continue
 		}
 
 		// 执行删除
-		failedFile, _ := fs.Handler.Delete(ctx, sourceNames)
+		failedFile, _ := fs.Handler.Delete(ctx, sourceNamesDeleted)
 		failed[policyID] = failedFile
 
+		// 尝试删除上传会话中大小为0的占位文件。如果失败也忽略
+		fs.Handler.Delete(ctx, sourceNamesTryDeleted)
 	}
 
 	return failed
@@ -208,7 +231,7 @@ func (fs *FileSystem) GroupFileByPolicy(ctx context.Context, files []model.File)
 			// 如果已存在分组，直接追加
 			policyGroup[files[key].PolicyID] = append(file, &files[key])
 		} else {
-			// 分布不存在，创建
+			// 分组不存在，创建
 			policyGroup[files[key].PolicyID] = make([]*model.File, 0)
 			policyGroup[files[key].PolicyID] = append(policyGroup[files[key].PolicyID], &files[key])
 		}

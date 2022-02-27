@@ -343,13 +343,38 @@ func FileUpload(c *gin.Context) {
 	//})
 }
 
+// DeleteUploadCredential 删除上传会话
+func DeleteUploadCredential(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.UploadSessionService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Delete(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// DeleteAllCredential 删除全部上传会话
+func DeleteAllCredential(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	res := explorer.DeleteAllUploadSession(ctx, c)
+	c.JSON(200, res)
+}
+
 // GetUploadCredential 创建上传会话
 func GetUploadCredential(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.UploadSessionService
+	var service explorer.CreateUploadSessionService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Create(ctx, c)
 		c.JSON(200, res)

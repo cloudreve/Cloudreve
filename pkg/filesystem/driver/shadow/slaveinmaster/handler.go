@@ -120,3 +120,8 @@ func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer
 func (d *Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
 	return nil, ErrNotImplemented
 }
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}

@@ -162,6 +162,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 		{Name: "home_view_method", Value: "icon", Type: "view"},
 		{Name: "share_view_method", Value: "list", Type: "view"},
 		{Name: "cron_garbage_collect", Value: "@hourly", Type: "cron"},
+		{Name: "cron_recycle_upload_session", Value: "@every 1h30m", Type: "cron"},
 		{Name: "authn_enabled", Value: "0", Type: "authn"},
 		{Name: "captcha_type", Value: "normal", Type: "captcha"},
 		{Name: "captcha_height", Value: "60", Type: "captcha"},

@@ -249,3 +249,8 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 		Token:  apiURL.String(),
 	}, nil
 }
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}

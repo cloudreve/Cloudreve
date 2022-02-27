@@ -446,3 +446,8 @@ func (handler Driver) CORS() error {
 
 	return err
 }
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}

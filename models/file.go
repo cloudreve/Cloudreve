@@ -139,6 +139,19 @@ func GetChildFilesOfFolders(folders *[]Folder) ([]File, error) {
 	return files, result.Error
 }
 
+// GetUploadPlaceholderFiles 获取所有上传占位文件
+// UID为0表示忽略用户
+func GetUploadPlaceholderFiles(uid uint) []*File {
+	query := DB
+	if uid != 0 {
+		query = query.Where("user_id = ?", uid)
+	}
+
+	var files []*File
+	query.Where("upload_session_id is not NULL").Find(&files)
+	return files
+}
+
 // GetPolicy 获取文件所属策略
 func (file *File) GetPolicy() *Policy {
 	if file.Policy.Model.ID == 0 {

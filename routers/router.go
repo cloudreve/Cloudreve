@@ -504,10 +504,18 @@ func InitMasterRouter() *gin.Engine {
 			// 文件
 			file := auth.Group("file", middleware.HashID(hashid.FileID))
 			{
-				// 文件上传
-				file.POST("upload/:sessionId/:index", controllers.FileUpload)
-				// 创建上传会话
-				file.PUT("upload", controllers.GetUploadCredential)
+				// 上传
+				upload := file.Group("upload")
+				{
+					// 文件上传
+					upload.POST(":sessionId/:index", controllers.FileUpload)
+					// 创建上传会话
+					upload.PUT("", controllers.GetUploadCredential)
+					// 删除给定上传会话
+					upload.DELETE(":sessionId", controllers.DeleteUploadCredential)
+					// 删除全部上传会话
+					upload.DELETE("", controllers.DeleteAllCredential)
+				}
 				// 更新文件
 				file.PUT("update/:id", controllers.PutContent)
 				// 创建空白文件

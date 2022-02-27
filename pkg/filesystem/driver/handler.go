@@ -32,6 +32,9 @@ type Handler interface {
 	// Token 获取有效期为ttl的上传凭证和签名
 	Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error)
 
+	// CancelToken 取消已经创建的有状态上传凭证
+	CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error
+
 	// List 递归列取远程端path路径下文件、目录，不包含path本身，
 	// 返回的对象路径以path作为起始根目录.
 	// recursive - 是否递归列出

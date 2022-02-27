@@ -335,6 +335,11 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	return handler.getUploadCredential(ctx, putPolicy)
 }
 
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}
+
 func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy) (serializer.UploadCredential, error) {
 	// 生成上传策略
 	policyJSON, err := json.Marshal(policy)

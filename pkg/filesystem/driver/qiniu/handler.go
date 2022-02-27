@@ -308,3 +308,8 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy storage.Pu
 		Token: upToken,
 	}, nil
 }
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}

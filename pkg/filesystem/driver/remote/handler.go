@@ -345,3 +345,8 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy serializer
 	}
 	return serializer.UploadCredential{}, errors.New("无法签名上传策略")
 }
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}

@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// UploadSessionService 获取上传凭证服务
-type UploadSessionService struct {
+// CreateUploadSessionService 获取上传凭证服务
+type CreateUploadSessionService struct {
 	Path         string `json:"path" binding:"required"`
 	Size         uint64 `json:"size" binding:"min=0"`
 	Name         string `json:"name" binding:"required"`
@@ -27,7 +27,7 @@ type UploadSessionService struct {
 }
 
 // Create 创建新的上传会话
-func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *CreateUploadSessionService) Create(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -84,6 +84,10 @@ func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serial
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 
+	if uploadSession.UID != fs.User.ID {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Upload session expired or not exist", nil)
+	}
+
 	// 查找上传会话创建的占位文件
 	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
 	if err != nil {
@@ -91,6 +95,10 @@ func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serial
 	}
 
 	// 重设 fs 存储策略
+	if !uploadSession.Policy.IsTransitUpload(uploadSession.Size) {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "Storage policy not supported", err)
+	}
+
 	fs.Policy = &uploadSession.Policy
 	if err := fs.DispatchHandler(); err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, "Unknown storage policy", err)
@@ -165,6 +173,58 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 	err = fs.Upload(uploadCtx, &fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
+	}
+
+	return serializer.Response{}
+}
+
+// UploadSessionService 上传会话服务
+type UploadSessionService struct {
+	ID string `uri:"sessionId" binding:"required"`
+}
+
+// Delete 删除指定上传会话
+func (service *UploadSessionService) Delete(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 查找需要删除的上传会话的占位文件
+	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Upload session file placeholder not exist", err)
+	}
+
+	// 删除文件
+	if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete upload session", err)
+	}
+
+	return serializer.Response{}
+}
+
+// DeleteAllUploadSession 删除当前用户的全部上传绘会话
+func DeleteAllUploadSession(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 查找需要删除的上传会话的占位文件
+	files := model.GetUploadPlaceholderFiles(fs.User.ID)
+	fileIDs := make([]uint, len(files))
+	for i, file := range files {
+		fileIDs[i] = file.ID
+	}
+
+	// 删除文件
+	if err := fs.Delete(ctx, []uint{}, fileIDs, false); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to cleanup upload session", err)
 	}
 
 	return serializer.Response{}

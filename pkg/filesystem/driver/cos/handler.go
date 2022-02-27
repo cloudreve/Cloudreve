@@ -365,6 +365,11 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 
 }
 
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}
+
 // Meta 获取文件信息
 func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) {
 	res, err := handler.Client.Object.Head(ctx, path, &cossdk.ObjectHeadOptions{})

@@ -216,13 +216,7 @@ func (policy *Policy) IsThumbExist(name string) bool {
 
 // IsTransitUpload 返回此策略上传给定size文件时是否需要服务端中转
 func (policy *Policy) IsTransitUpload(size uint64) bool {
-	if policy.Type == "local" {
-		return true
-	}
-	if policy.Type == "onedrive" && size < 4*1024*1024 {
-		return true
-	}
-	return false
+	return policy.Type == "local"
 }
 
 // IsPathGenerateNeeded 返回此策略是否需要在生成上传凭证时生成存储路径

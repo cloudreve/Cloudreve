@@ -185,6 +185,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool
 	}
 
 	// 删除文件记录对应的分享记录
+	// TODO 先取消分享再删除文件
 	model.DeleteShareBySourceIDs(deletedFileIDs, false)
 
 	// 归还容量
