@@ -160,7 +160,6 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	// 添加钩子
 	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
 	fs.Use("BeforeAddFile", filesystem.HookValidateCapacity)
-	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 	fs.Use("BeforeAddFileFailed", filesystem.HookDeleteTempFile)
 

@@ -70,7 +70,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 		newFile.PicInfo = "1,1"
 	}
 
-	_, err = newFile.Create()
+	err = newFile.Create()
 
 	if err != nil {
 		if err := fs.Trigger(ctx, "AfterValidateFailed", file); err != nil {
@@ -79,6 +79,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 		return nil, ErrFileExisted.WithError(err)
 	}
 
+	fs.User.Storage += newFile.Size
 	return &newFile, nil
 }
 

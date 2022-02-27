@@ -33,8 +33,6 @@ const (
 	ForceUsePublicEndpointCtx
 	// CancelFuncCtx Context 取消函數
 	CancelFuncCtx
-	// ValidateCapacityOnceCtx 限定归还容量的操作只執行一次
-	ValidateCapacityOnceCtx
 	// 文件在从机节点中的路径
 	SlaveSrcPath
 )

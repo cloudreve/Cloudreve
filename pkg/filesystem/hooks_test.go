@@ -723,14 +723,14 @@ func TestHookValidateCapacityWithoutIncrease(t *testing.T) {
 	// not enough
 	{
 		fs.User.Group.MaxStorage = 10
-		a.Error(HookValidateCapacityWithoutIncrease(ctx, fs))
+		a.Error(HookValidateCapacity(ctx, fs))
 		a.EqualValues(10, fs.User.Storage)
 	}
 
 	// enough
 	{
 		fs.User.Group.MaxStorage = 11
-		a.NoError(HookValidateCapacityWithoutIncrease(ctx, fs))
+		a.NoError(HookValidateCapacity(ctx, fs))
 		a.EqualValues(10, fs.User.Storage)
 	}
 }

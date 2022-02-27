@@ -94,10 +94,15 @@ func (job *ImportTask) Do() {
 	}
 	defer fs.Recycle()
 
+	fs.Policy = &policy
+	if err := fs.DispatchHandler(); err != nil {
+		job.SetErrorMsg("无法分发存储策略", err)
+		return
+	}
+
 	// 注册钩子
 	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
 	fs.Use("BeforeAddFile", filesystem.HookValidateCapacity)
-	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 
 	// 列取目录、对象
 	job.TaskModel.SetProgress(ListingProgress)

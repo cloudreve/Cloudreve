@@ -2,11 +2,6 @@ package filesystem
 
 import (
 	"context"
-	"errors"
-	"io/ioutil"
-	"strings"
-	"sync"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -15,6 +10,8 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"io/ioutil"
+	"strings"
 )
 
 // Hook 钩子函数
@@ -115,17 +112,8 @@ func HookResetPolicy(ctx context.Context, fs *FileSystem, file fsctx.FileHeader)
 	return fs.DispatchHandler()
 }
 
-// HookValidateCapacity 验证并扣除用户容量，包含数据库操作
+// HookValidateCapacity 验证用户容量
 func HookValidateCapacity(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
-	// 验证并扣除容量
-	if !fs.ValidateCapacity(ctx, file.Info().Size) {
-		return ErrInsufficientCapacity
-	}
-	return nil
-}
-
-// HookValidateCapacityWithoutIncrease 验证用户容量，不扣除
-func HookValidateCapacityWithoutIncrease(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	// 验证并扣除容量
 	if fs.User.GetRemainingCapacity() < file.Info().Size {
 		return ErrInsufficientCapacity
@@ -139,7 +127,7 @@ func HookValidateCapacityDiff(ctx context.Context, fs *FileSystem, newFile fsctx
 	newFileSize := newFile.Info().Size
 
 	if newFileSize > originFile.Size {
-		return HookValidateCapacityWithoutIncrease(ctx, fs, newFile)
+		return HookValidateCapacity(ctx, fs, newFile)
 	}
 
 	return nil
@@ -180,25 +168,6 @@ func HookCancelContext(ctx context.Context, fs *FileSystem, file fsctx.FileHeade
 	cancelFunc, ok := ctx.Value(fsctx.CancelFuncCtx).(context.CancelFunc)
 	if ok {
 		cancelFunc()
-	}
-	return nil
-}
-
-// HookGiveBackCapacity 归还用户容量
-func HookGiveBackCapacity(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
-	once, ok := ctx.Value(fsctx.ValidateCapacityOnceCtx).(*sync.Once)
-	if !ok {
-		once = &sync.Once{}
-	}
-
-	// 归还用户容量
-	res := true
-	once.Do(func() {
-		res = fs.User.DeductionStorage(file.Info().Size)
-	})
-
-	if !res {
-		return errors.New("无法继续降低用户已用存储")
 	}
 	return nil
 }
@@ -333,6 +302,14 @@ func HookChunkUploaded(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fil
 
 	// 更新文件大小
 	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.Model.(*model.File).GetSize() + fileInfo.Size)
+}
+
+// HookChunkUploadFailed 单个分片上传失败后
+func HookChunkUploadFailed(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	fileInfo := fileHeader.Info()
+
+	// 更新文件大小
+	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.Model.(*model.File).GetSize() - fileInfo.Size)
 }
 
 // HookChunkUploadFinished 分片上传结束后处理文件

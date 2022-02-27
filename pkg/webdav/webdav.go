@@ -14,7 +14,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -316,7 +315,6 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	defer cancel()
 	ctx = context.WithValue(ctx, fsctx.HTTPCtx, r.Context())
 	ctx = context.WithValue(ctx, fsctx.CancelFuncCtx, cancel)
-	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
 
 	fileSize, err := strconv.ParseUint(r.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
@@ -362,13 +360,10 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
-		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookCancelContext)
 		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 		fs.Use("AfterUpload", filesystem.HookGenerateThumb)
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
-		fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
 
 		// 禁止覆盖
 		fileData.Mode = fsctx.Create

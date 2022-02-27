@@ -164,6 +164,23 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	callbackKey := uuid.Must(uuid.NewV4()).String()
 	fileSize := file.Size
 
+	// 创建占位的文件，同时校验文件信息
+	file.Mode = fsctx.Nop
+	if callbackKey != "" {
+		file.UploadSessionID = &callbackKey
+	}
+
+	fs.Use("BeforeUpload", HookValidateFile)
+	fs.Use("BeforeUpload", HookValidateCapacity)
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("AfterUpload", HookClearFileHeaderSize)
+	}
+
+	fs.Use("AfterUpload", GenericAfterUpload)
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
+	}
+
 	uploadSession := &serializer.UploadSession{
 		Key:          callbackKey,
 		UID:          fs.User.ID,
@@ -178,27 +195,6 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	// 获取上传凭证
 	credential, err := fs.Handler.Token(ctx, int64(callBackSessionTTL), uploadSession, file)
 	if err != nil {
-		return nil, err
-	}
-
-	// 创建占位的文件，同时校验文件信息
-	file.Mode = fsctx.Nop
-	if callbackKey != "" {
-		file.UploadSessionID = &callbackKey
-	}
-
-	fs.Use("BeforeUpload", HookValidateFile)
-	if !fs.Policy.IsUploadPlaceholderWithSize() {
-		fs.Use("BeforeUpload", HookValidateCapacityWithoutIncrease)
-		fs.Use("AfterUpload", HookClearFileHeaderSize)
-	} else {
-		fs.Use("BeforeUpload", HookValidateCapacity)
-		fs.Use("AfterValidateFailed", HookGiveBackCapacity)
-		fs.Use("AfterUploadFailed", HookGiveBackCapacity)
-	}
-
-	fs.Use("AfterUpload", GenericAfterUpload)
-	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err
 	}
 
@@ -226,12 +222,9 @@ func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStre
 		fs.Use("BeforeUpload", HookValidateFile)
 		fs.Use("BeforeUpload", HookValidateCapacity)
 		fs.Use("AfterUploadCanceled", HookDeleteTempFile)
-		fs.Use("AfterUploadCanceled", HookGiveBackCapacity)
 		fs.Use("AfterUpload", GenericAfterUpload)
 		fs.Use("AfterUpload", HookGenerateThumb)
 		fs.Use("AfterValidateFailed", HookDeleteTempFile)
-		fs.Use("AfterValidateFailed", HookGiveBackCapacity)
-		fs.Use("AfterUploadFailed", HookGiveBackCapacity)
 	}
 	fs.Lock.Unlock()
 

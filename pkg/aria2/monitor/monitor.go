@@ -195,7 +195,7 @@ func (monitor *Monitor) ValidateFile() error {
 	}
 
 	// 验证用户容量
-	if err := filesystem.HookValidateCapacityWithoutIncrease(context.Background(), fs, file); err != nil {
+	if err := filesystem.HookValidateCapacity(context.Background(), fs, file); err != nil {
 		return err
 	}
 

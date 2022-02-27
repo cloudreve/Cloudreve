@@ -15,7 +15,6 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -159,7 +158,6 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 	// 给文件系统分配钩子
 	fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
 	fs.Use("AfterUploadCanceled", filesystem.HookTruncateFileTo(fileData.AppendStart))
-	fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
 	fs.Use("AfterUpload", filesystem.HookChunkUploaded)
 	if isLastChunk {
 		fs.Use("AfterUpload", filesystem.HookChunkUploadFinished)
@@ -167,11 +165,9 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 		fs.Use("AfterUpload", filesystem.HookDeleteUploadSession(session.Key))
 	}
 	fs.Use("AfterValidateFailed", filesystem.HookTruncateFileTo(fileData.AppendStart))
-	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
-	fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterValidateFailed", filesystem.HookChunkUploadFailed)
 
 	// 执行上传
-	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 	err = fs.Upload(uploadCtx, &fileData)
 	if err != nil {

@@ -39,12 +39,23 @@ func init() {
 }
 
 // Create 创建文件记录
-func (file *File) Create() (uint, error) {
-	if err := DB.Create(file).Error; err != nil {
+func (file *File) Create() error {
+	tx := DB.Begin()
+
+	if err := tx.Create(file).Error; err != nil {
 		util.Log().Warning("无法插入文件记录, %s", err)
-		return 0, err
+		tx.Rollback()
+		return err
 	}
-	return file.ID, nil
+
+	user := &User{}
+	user.ID = file.UserID
+	if err := user.ChangeStorage(tx, "+", file.Size); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 // AfterFind 找到文件后的钩子
