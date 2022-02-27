@@ -4,17 +4,20 @@ import (
 	"context"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 // UploadSessionService 获取上传凭证服务
 type UploadSessionService struct {
-	Path     string `json:"path" binding:"required"`
-	Size     uint64 `json:"size" binding:"min=0"`
-	Name     string `json:"name" binding:"required"`
-	PolicyID string `json:"policy_id" binding:"required"`
+	Path         string `json:"path" binding:"required"`
+	Size         uint64 `json:"size" binding:"min=0"`
+	Name         string `json:"name" binding:"required"`
+	PolicyID     string `json:"policy_id" binding:"required"`
+	LastModified int64  `json:"last_modified"`
 }
 
 // Create 创建新的上传会话
@@ -35,7 +38,16 @@ func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context)
 		return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略发生变化，请刷新文件列表并重新添加此任务", nil)
 	}
 
-	credential, err := fs.CreateUploadSession(ctx, service.Path, service.Size, service.Name)
+	file := &fsctx.FileStream{
+		Size:        service.Size,
+		Name:        service.Name,
+		VirtualPath: service.Path,
+	}
+	if service.LastModified > 0 {
+		lastModified := time.UnixMilli(service.LastModified)
+		file.LastModified = &lastModified
+	}
+	credential, err := fs.CreateUploadSession(ctx, file)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

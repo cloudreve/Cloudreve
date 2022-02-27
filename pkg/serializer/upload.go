@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	"time"
 )
 
 // UploadPolicy slave模式下传递的上传策略
@@ -31,14 +32,15 @@ type UploadCredential struct {
 
 // UploadSession 上传会话
 type UploadSession struct {
-	Key         string
-	UID         uint
-	PolicyID    uint
-	VirtualPath string
-	Name        string
-	Size        uint64
-	SavePath    string
-	ChunkSize   uint64
+	Key          string // 上传会话 GUID
+	UID          uint   // 发起者
+	PolicyID     uint
+	VirtualPath  string     // 用户文件路径，不含文件名
+	Name         string     // 文件名
+	Size         uint64     // 文件大小
+	SavePath     string     // 物理存储路径，包含物理文件名
+	ChunkSize    uint64     // 分块大小，0 为部分快
+	LastModified *time.Time // 可选的文件最后修改日期
 }
 
 // UploadCallback 上传回调正文

@@ -149,7 +149,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file fsctx.
 }
 
 // CreateUploadSession 创建上传会话
-func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size uint64, name string) (*serializer.UploadCredential, error) {
+func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileStream) (*serializer.UploadCredential, error) {
 	// 获取相关有效期设置
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
@@ -157,16 +157,12 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 	callbackKey := uuid.Must(uuid.NewV4()).String()
 
 	// 创建隐藏的文件，同时校验文件信息
-	file := &fsctx.FileStream{
-		Size:        size,
-		Name:        name,
-		VirtualPath: path,
-		Mode:        fsctx.Nop,
-		Hidden:      true,
-		Metadata: map[string]string{
-			UploadSessionMetaKey: callbackKey,
-		},
+	file.Mode = fsctx.Nop
+	file.Hidden = true
+	file.Metadata = map[string]string{
+		UploadSessionMetaKey: callbackKey,
 	}
+
 	fs.Use("BeforeUpload", HookValidateFile)
 	fs.Use("AfterUpload", HookClearFileHeaderSize)
 	fs.Use("AfterUpload", GenericAfterUpload)
@@ -175,14 +171,15 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 	}
 
 	uploadSession := &serializer.UploadSession{
-		Key:         callbackKey,
-		UID:         fs.User.ID,
-		PolicyID:    fs.Policy.ID,
-		VirtualPath: path,
-		Name:        name,
-		Size:        size,
-		SavePath:    file.SavePath,
-		ChunkSize:   fs.Policy.OptionsSerialized.ChunkSize,
+		Key:          callbackKey,
+		UID:          fs.User.ID,
+		PolicyID:     fs.Policy.ID,
+		VirtualPath:  file.VirtualPath,
+		Name:         file.Name,
+		Size:         file.Size,
+		SavePath:     file.SavePath,
+		ChunkSize:    fs.Policy.OptionsSerialized.ChunkSize,
+		LastModified: file.GetLastModified(),
 	}
 
 	// 获取上传凭证

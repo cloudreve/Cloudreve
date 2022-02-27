@@ -19,7 +19,7 @@ const (
 type FileStream struct {
 	Mode         WriteMode
 	Hidden       bool
-	LastModified time.Time
+	LastModified *time.Time
 	Metadata     map[string]string
 	File         io.ReadCloser
 	Size         uint64
@@ -61,7 +61,7 @@ func (file *FileStream) GetMetadata() map[string]string {
 	return file.Metadata
 }
 
-func (file *FileStream) GetLastModified() time.Time {
+func (file *FileStream) GetLastModified() *time.Time {
 	return file.LastModified
 }
 
@@ -87,7 +87,7 @@ type FileHeader interface {
 	GetVirtualPath() string
 	GetMode() WriteMode
 	GetMetadata() map[string]string
-	GetLastModified() time.Time
+	GetLastModified() *time.Time
 	IsHidden() bool
 	GetSavePath() string
 	SetSize(uint64)
