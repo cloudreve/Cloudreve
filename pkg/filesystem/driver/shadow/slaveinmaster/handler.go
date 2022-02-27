@@ -57,7 +57,7 @@ func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	req := serializer.SlaveTransferReq{
 		Src:    src,
-		Dst:    file.GetSavePath(),
+		Dst:    file.Info().SavePath,
 		Policy: d.policy,
 	}
 

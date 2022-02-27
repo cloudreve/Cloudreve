@@ -206,7 +206,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	uploader := s3manager.NewUploader(handler.sess)
 
-	dst := file.GetSavePath()
+	dst := file.Info().SavePath
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: &handler.Policy.BucketName,
 		Key:    &dst,
@@ -331,11 +331,12 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 上传策略
+	savePath := file.Info().SavePath
 	putPolicy := UploadPolicy{
 		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", file.GetSavePath()},
+			[]string{"starts-with", "$key", savePath},
 			[]string{"starts-with", "$success_action_redirect", apiURL.String()},
 			[]string{"starts-with", "$name", ""},
 			[]string{"starts-with", "$Content-Type", ""},
@@ -349,7 +350,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	}
 
 	// 生成上传凭证
-	return handler.getUploadCredential(ctx, putPolicy, apiURL, file.GetSavePath())
+	return handler.getUploadCredential(ctx, putPolicy, apiURL, savePath)
 }
 
 // Meta 获取文件信息

@@ -226,6 +226,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
+	fileInfo := file.Info()
 
 	// 初始化客户端
 	if err := handler.InitOSSClient(false); err != nil {
@@ -237,7 +238,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	// 是否允许覆盖
 	overwrite := true
-	if file.GetMode() == fsctx.Create {
+	if fileInfo.Mode == fsctx.Create {
 		overwrite = false
 	}
 
@@ -247,7 +248,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	}
 
 	// 上传文件
-	err := handler.bucket.PutObject(file.GetSavePath(), file, options...)
+	err := handler.bucket.PutObject(fileInfo.SavePath, file, options...)
 	if err != nil {
 		return err
 	}
@@ -411,11 +412,12 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	}
 
 	// 上传策略
+	savePath := file.Info().SavePath
 	postPolicy := UploadPolicy{
 		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", path.Dir(file.GetSavePath())},
+			[]string{"starts-with", "$key", path.Dir(savePath)},
 		},
 	}
 
@@ -424,7 +426,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
-	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, file.GetSavePath())
+	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, savePath)
 }
 
 func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (serializer.UploadCredential, error) {

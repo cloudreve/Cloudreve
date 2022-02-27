@@ -185,7 +185,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	opt := &cossdk.ObjectPutOptions{}
-	_, err := handler.Client.Object.Put(ctx, file.GetSavePath(), file, opt)
+	_, err := handler.Client.Object.Put(ctx, file.Info().SavePath, file, opt)
 	return err
 }
 
@@ -331,6 +331,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	apiURL := siteURL.ResolveReference(apiBaseURI).String()
 
 	// 上传策略
+	savePath := file.Info().SavePath
 	startTime := time.Now()
 	endTime := startTime.Add(time.Duration(ttl) * time.Second)
 	keyTime := fmt.Sprintf("%d;%d", startTime.Unix(), endTime.Unix())
@@ -338,7 +339,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 		Expiration: endTime.UTC().Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			map[string]string{"$key": file.GetSavePath()},
+			map[string]string{"$key": savePath},
 			map[string]string{"x-cos-meta-callback": apiURL},
 			map[string]string{"x-cos-meta-key": uploadSession.Key},
 			map[string]string{"q-sign-algorithm": "sha1"},
@@ -352,7 +353,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
-	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime, file.GetSavePath())
+	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime, savePath)
 	if err == nil {
 		res.Callback = apiURL
 		res.Key = uploadSession.Key

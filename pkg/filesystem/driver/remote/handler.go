@@ -140,11 +140,12 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 
 	// 生成上传策略
+	fileInfo := file.Info()
 	policy := serializer.UploadPolicy{
-		SavePath:   path.Dir(file.GetSavePath()),
-		FileName:   path.Base(file.GetSavePath()),
+		SavePath:   path.Dir(fileInfo.SavePath),
+		FileName:   path.Base(fileInfo.FileName),
 		AutoRename: false,
-		MaxSize:    file.GetSize(),
+		MaxSize:    fileInfo.Size,
 	}
 	credential, err := handler.getUploadCredential(ctx, policy, int64(credentialTTL))
 	if err != nil {
@@ -152,11 +153,11 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	}
 
 	// 对文件名进行URLEncode
-	fileName := url.QueryEscape(path.Base(file.GetSavePath()))
+	fileName := url.QueryEscape(path.Base(fileInfo.SavePath))
 
 	// 决定是否要禁用文件覆盖
 	overwrite := "true"
-	if file.GetMode() != fsctx.Create {
+	if fileInfo.Mode != fsctx.Create {
 		overwrite = "false"
 	}
 
@@ -170,7 +171,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 			"X-Cr-FileName":  {fileName},
 			"X-Cr-Overwrite": {overwrite},
 		}),
-		request.WithContentLength(int64(file.GetSize())),
+		request.WithContentLength(int64(fileInfo.Size)),
 		request.WithTimeout(time.Duration(0)),
 		request.WithMasterMeta(),
 		request.WithSlaveMeta(handler.Policy.AccessKey),

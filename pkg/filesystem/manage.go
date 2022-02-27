@@ -350,7 +350,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			}
 		}
 
-		if !file.Hidden {
+		if file.UploadSessionID == nil {
 			newFile := serializer.Object{
 				ID:            hashid.HashID(file.ID, hashid.FileID),
 				Name:          file.Name,

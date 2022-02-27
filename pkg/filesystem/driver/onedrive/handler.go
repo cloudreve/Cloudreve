@@ -223,9 +223,10 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 
 // Token 获取上传会话URL
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+	fileInfo := file.Info()
 
 	// 如果小于4MB，则由服务端中转
-	if file.GetSize() <= SmallFileSize {
+	if fileInfo.Size <= SmallFileSize {
 		return serializer.UploadCredential{}, nil
 	}
 
@@ -234,13 +235,13 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
-	uploadURL, err := handler.Client.CreateUploadSession(ctx, file.GetSavePath(), WithConflictBehavior("fail"))
+	uploadURL, err := handler.Client.CreateUploadSession(ctx, fileInfo.SavePath, WithConflictBehavior("fail"))
 	if err != nil {
 		return serializer.UploadCredential{}, err
 	}
 
 	// 监控回调及上传
-	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, file.GetSavePath(), file.GetSize(), ttl)
+	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, fileInfo.SavePath, fileInfo.Size, ttl)
 
 	return serializer.UploadCredential{
 		Policy: uploadURL,

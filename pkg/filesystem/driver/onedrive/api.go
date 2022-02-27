@@ -258,14 +258,15 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 
 // Upload 上传文件
 func (client *Client) Upload(ctx context.Context, file fsctx.FileHeader) error {
+	fileInfo := file.Info()
 	// 决定是否覆盖文件
 	overwrite := "replace"
-	if file.GetMode() != fsctx.Create {
+	if fileInfo.Mode != fsctx.Create {
 		overwrite = "fail"
 	}
 
-	size := int(file.GetSize())
-	dst := file.GetSavePath()
+	size := int(fileInfo.Size)
+	dst := fileInfo.SavePath
 
 	// 小文件，使用简单上传接口上传
 	if size <= int(SmallFileSize) {

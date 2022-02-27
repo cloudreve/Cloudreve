@@ -150,12 +150,13 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 
 	// 生成上传策略
+	fileInfo := file.Info()
 	putPolicy := storage.PutPolicy{
 		// 指定为覆盖策略
-		Scope:        fmt.Sprintf("%s:%s", handler.Policy.BucketName, file.GetSavePath()),
-		SaveKey:      file.GetSavePath(),
+		Scope:        fmt.Sprintf("%s:%s", handler.Policy.BucketName, fileInfo.SavePath),
+		SaveKey:      fileInfo.SavePath,
 		ForceSaveKey: true,
-		FsizeLimit:   int64(file.GetSize()),
+		FsizeLimit:   int64(fileInfo.Size),
 	}
 	// 是否开启了MIMEType限制
 	if handler.Policy.OptionsSerialized.MimeType != "" {
@@ -177,7 +178,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	}
 
 	// 开始上传
-	err = formUploader.Put(ctx, &ret, token.Token, file.GetSavePath(), file, int64(file.GetSize()), &putExtra)
+	err = formUploader.Put(ctx, &ret, token.Token, fileInfo.SavePath, file, int64(fileInfo.Size), &putExtra)
 	if err != nil {
 		return err
 	}
@@ -285,7 +286,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 		CallbackURL:      apiURL.String(),
 		CallbackBody:     `{"name":"$(fname)","source_name":"$(key)","size":$(fsize),"pic_info":"$(imageInfo.width),$(imageInfo.height)"}`,
 		CallbackBodyType: "application/json",
-		SaveKey:          file.GetSavePath(),
+		SaveKey:          file.Info().SavePath,
 		ForceSaveKey:     true,
 		FsizeLimit:       int64(handler.Policy.MaxSize),
 	}

@@ -69,10 +69,11 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		return err
 	}
 
+	fileInfo := file.Info()
 	util.Log().Info(
 		"新文件PUT:%s , 大小:%d, 上传者:%s",
-		file.GetFileName(),
-		file.GetSize(),
+		fileInfo.FileName,
+		fileInfo.Size,
 		fs.User.Nick,
 	)
 
@@ -82,15 +83,17 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 // GenerateSavePath 生成要存放文件的路径
 // TODO 完善测试
 func (fs *FileSystem) GenerateSavePath(ctx context.Context, file fsctx.FileHeader) string {
+	fileInfo := file.Info()
+
 	if fs.User.Model.ID != 0 {
 		return path.Join(
 			fs.Policy.GeneratePath(
 				fs.User.Model.ID,
-				file.GetVirtualPath(),
+				fileInfo.VirtualPath,
 			),
 			fs.Policy.GenerateFileName(
 				fs.User.Model.ID,
-				file.GetFileName(),
+				fileInfo.FileName,
 			),
 		)
 	}
@@ -112,7 +115,7 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file fsctx.FileHeade
 		),
 		anonymousPolicy.GenerateFileName(
 			0,
-			file.GetFileName(),
+			fileInfo.FileName,
 		),
 	)
 }
@@ -156,11 +159,10 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 	callbackKey := uuid.Must(uuid.NewV4()).String()
 
-	// 创建隐藏的文件，同时校验文件信息
+	// 创建占位的文件，同时校验文件信息
 	file.Mode = fsctx.Nop
-	file.Hidden = true
-	file.Metadata = map[string]string{
-		UploadSessionMetaKey: callbackKey,
+	if callbackKey != "" {
+		file.UploadSessionID = &callbackKey
 	}
 
 	fs.Use("BeforeUpload", HookValidateFile)
@@ -179,7 +181,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 		Size:         file.Size,
 		SavePath:     file.SavePath,
 		ChunkSize:    fs.Policy.OptionsSerialized.ChunkSize,
-		LastModified: file.GetLastModified(),
+		LastModified: file.LastModified,
 	}
 
 	// 获取上传凭证

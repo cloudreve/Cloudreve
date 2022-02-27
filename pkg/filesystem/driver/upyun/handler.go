@@ -154,7 +154,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 		Password: handler.Policy.SecretKey,
 	})
 	err := up.Put(&upyun.PutObjectConfig{
-		Path:   file.GetSavePath(),
+		Path:   file.Info().SavePath,
 		Reader: file,
 	})
 
@@ -319,14 +319,15 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 上传策略
+	fileInfo := file.Info()
 	putPolicy := UploadPolicy{
 		Bucket: handler.Policy.BucketName,
 		// TODO escape
-		SaveKey:            file.GetSavePath(),
+		SaveKey:            fileInfo.SavePath,
 		Expiration:         time.Now().Add(time.Duration(ttl) * time.Second).Unix(),
 		CallbackURL:        apiURL.String(),
-		ContentLength:      file.GetSize(),
-		ContentLengthRange: fmt.Sprintf("0,%d", file.GetSize()),
+		ContentLength:      fileInfo.Size,
+		ContentLengthRange: fmt.Sprintf("0,%d", fileInfo.Size),
 		AllowFileType:      strings.Join(handler.Policy.OptionsSerialized.FileType, ","),
 	}
 

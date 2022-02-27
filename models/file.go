@@ -14,15 +14,15 @@ import (
 type File struct {
 	// 表字段
 	gorm.Model
-	Name       string `gorm:"unique_index:idx_only_one"`
-	SourceName string `gorm:"type:text"`
-	UserID     uint   `gorm:"index:user_id;unique_index:idx_only_one"`
-	Size       uint64
-	PicInfo    string
-	FolderID   uint `gorm:"index:folder_id;unique_index:idx_only_one"`
-	PolicyID   uint
-	Hidden     bool
-	Metadata   string `gorm:"type:text"`
+	Name            string `gorm:"unique_index:idx_only_one"`
+	SourceName      string `gorm:"type:text"`
+	UserID          uint   `gorm:"index:user_id;unique_index:idx_only_one"`
+	Size            uint64
+	PicInfo         string
+	FolderID        uint `gorm:"index:folder_id;unique_index:idx_only_one"`
+	PolicyID        uint
+	UploadSessionID *string `gorm:"index:session_id;unique_index:session_only_one"`
+	Metadata        string  `gorm:"type:text"`
 
 	// 关联模型
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
@@ -218,6 +218,11 @@ func (file *File) UpdateSize(value uint64) error {
 // UpdateSourceName 更新文件的源文件名
 func (file *File) UpdateSourceName(value string) error {
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
+}
+
+// CanCopy 返回文件是否可被复制
+func (file *File) CanCopy() bool {
+	return file.UploadSessionID == nil
 }
 
 /*

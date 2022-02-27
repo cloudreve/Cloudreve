@@ -57,21 +57,22 @@ func (fs *FileSystem) Trigger(ctx context.Context, name string, file fsctx.FileH
 // HookSlaveUploadValidate Slave模式下对文件上传的一系列验证
 func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
+	fileInfo := file.Info()
 
 	// 验证单文件尺寸
 	if policy.MaxSize > 0 {
-		if file.GetSize() > policy.MaxSize {
+		if fileInfo.Size > policy.MaxSize {
 			return ErrFileSizeTooBig
 		}
 	}
 
 	// 验证文件名
-	if !fs.ValidateLegalName(ctx, file.GetFileName()) {
+	if !fs.ValidateLegalName(ctx, fileInfo.FileName) {
 		return ErrIllegalObjectName
 	}
 
 	// 验证扩展名
-	if len(policy.AllowedExtension) > 0 && !IsInExtensionList(policy.AllowedExtension, file.GetFileName()) {
+	if len(policy.AllowedExtension) > 0 && !IsInExtensionList(policy.AllowedExtension, fileInfo.FileName) {
 		return ErrFileExtensionNotAllowed
 	}
 
@@ -80,18 +81,20 @@ func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem, file fsctx.Fil
 
 // HookValidateFile 一系列对文件检验的集合
 func HookValidateFile(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
+	fileInfo := file.Info()
+
 	// 验证单文件尺寸
-	if !fs.ValidateFileSize(ctx, file.GetSize()) {
+	if !fs.ValidateFileSize(ctx, fileInfo.Size) {
 		return ErrFileSizeTooBig
 	}
 
 	// 验证文件名
-	if !fs.ValidateLegalName(ctx, file.GetFileName()) {
+	if !fs.ValidateLegalName(ctx, fileInfo.FileName) {
 		return ErrIllegalObjectName
 	}
 
 	// 验证扩展名
-	if !fs.ValidateExtension(ctx, file.GetFileName()) {
+	if !fs.ValidateExtension(ctx, fileInfo.FileName) {
 		return ErrFileExtensionNotAllowed
 	}
 
@@ -113,7 +116,7 @@ func HookResetPolicy(ctx context.Context, fs *FileSystem, file fsctx.FileHeader)
 // HookValidateCapacity 验证并扣除用户容量，包含数据库操作
 func HookValidateCapacity(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	// 验证并扣除容量
-	if !fs.ValidateCapacity(ctx, file.GetSize()) {
+	if !fs.ValidateCapacity(ctx, file.Info().Size) {
 		return ErrInsufficientCapacity
 	}
 	return nil
@@ -122,7 +125,7 @@ func HookValidateCapacity(ctx context.Context, fs *FileSystem, file fsctx.FileHe
 // HookValidateCapacityWithoutIncrease 验证用户容量，不扣除
 func HookValidateCapacityWithoutIncrease(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	// 验证并扣除容量
-	if fs.User.GetRemainingCapacity() < file.GetSize() {
+	if fs.User.GetRemainingCapacity() < file.Info().Size {
 		return ErrInsufficientCapacity
 	}
 	return nil
@@ -131,22 +134,23 @@ func HookValidateCapacityWithoutIncrease(ctx context.Context, fs *FileSystem, fi
 // HookChangeCapacity 根据原有文件和新文件的大小更新用户容量
 func HookChangeCapacity(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
 	originFile := ctx.Value(fsctx.FileModelCtx).(model.File)
+	newFileSize := newFile.Info().Size
 
-	if newFile.GetSize() > originFile.Size {
-		if !fs.ValidateCapacity(ctx, newFile.GetSize()-originFile.Size) {
+	if newFileSize > originFile.Size {
+		if !fs.ValidateCapacity(ctx, newFileSize-originFile.Size) {
 			return ErrInsufficientCapacity
 		}
 		return nil
 	}
 
-	fs.User.DeductionStorage(originFile.Size - newFile.GetSize())
+	fs.User.DeductionStorage(originFile.Size - newFileSize)
 	return nil
 }
 
 // HookDeleteTempFile 删除已保存的临时文件
 func HookDeleteTempFile(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	// 删除临时文件
-	_, err := fs.Handler.Delete(ctx, []string{file.GetSavePath()})
+	_, err := fs.Handler.Delete(ctx, []string{file.Info().SavePath})
 	if err != nil {
 		util.Log().Warning("无法清理上传临时文件，%s", err)
 	}
@@ -159,7 +163,7 @@ func HookCleanFileContent(ctx context.Context, fs *FileSystem, file fsctx.FileHe
 	// 清空内容
 	return fs.Handler.Put(ctx, &fsctx.FileStream{
 		File:     ioutil.NopCloser(strings.NewReader("")),
-		SavePath: file.GetSavePath(),
+		SavePath: file.Info().SavePath,
 		Size:     0,
 	})
 }
@@ -192,7 +196,7 @@ func HookGiveBackCapacity(ctx context.Context, fs *FileSystem, file fsctx.FileHe
 	// 归还用户容量
 	res := true
 	once.Do(func() {
-		res = fs.User.DeductionStorage(file.GetSize())
+		res = fs.User.DeductionStorage(file.Info().Size)
 	})
 
 	if !res {
@@ -221,7 +225,7 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 
 	fs.SetTargetFile(&[]model.File{originFile})
 
-	err := originFile.UpdateSize(newFile.GetSize())
+	err := originFile.UpdateSize(newFile.Info().Size)
 	if err != nil {
 		return err
 	}
@@ -244,11 +248,12 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 // SlaveAfterUpload Slave模式下上传完成钩子
 func SlaveAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
+	fileInfo := fileHeader.Info()
 
 	// 构造一个model.File，用于生成缩略图
 	file := model.File{
-		Name:       fileHeader.GetFileName(),
-		SourceName: fileHeader.GetSavePath(),
+		Name:       fileInfo.FileName,
+		SourceName: fileInfo.SavePath,
 	}
 	fs.GenerateThumbnail(ctx, &file)
 
@@ -261,20 +266,19 @@ func SlaveAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.File
 		Name:       file.Name,
 		SourceName: file.SourceName,
 		PicInfo:    file.PicInfo,
-		Size:       fileHeader.GetSize(),
+		Size:       fileInfo.Size,
 	}
 	return request.RemoteCallback(policy.CallbackURL, callbackBody)
 }
 
 // GenericAfterUpload 文件上传完成后，包含数据库操作
 func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-	// 文件存放的虚拟路径
-	virtualPath := fileHeader.GetVirtualPath()
+	fileInfo := fileHeader.Info()
 
 	// 检查路径是否存在，不存在就创建
-	isExist, folder := fs.IsPathExist(virtualPath)
+	isExist, folder := fs.IsPathExist(fileInfo.VirtualPath)
 	if !isExist {
-		newFolder, err := fs.CreateDirectory(ctx, virtualPath)
+		newFolder, err := fs.CreateDirectory(ctx, fileInfo.VirtualPath)
 		if err != nil {
 			return err
 		}
@@ -282,10 +286,14 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 	}
 
 	// 检查文件是否存在
-	if ok, _ := fs.IsChildFileExist(
+	if ok, file := fs.IsChildFileExist(
 		folder,
-		fileHeader.GetFileName(),
+		fileInfo.FileName,
 	); ok {
+		if file.UploadSessionID != nil {
+			return ErrFileUploadSessionExisted
+		}
+
 		return ErrFileExisted
 	}
 

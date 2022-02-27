@@ -85,10 +85,11 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
-	dst := util.RelativePath(filepath.FromSlash(file.GetSavePath()))
+	fileInfo := file.Info()
+	dst := util.RelativePath(filepath.FromSlash(fileInfo.SavePath))
 
 	// 如果非 Overwrite，则检查是否有重名冲突
-	if file.GetMode() == fsctx.Create {
+	if fileInfo.Mode == fsctx.Create {
 		if util.Exists(dst) {
 			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
 			return errors.New("物理同名文件已存在或不可用")

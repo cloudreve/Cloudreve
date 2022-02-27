@@ -158,6 +158,11 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 
 		// 复制文件记录
 		for _, oldFile := range originFiles {
+			if !oldFile.CanCopy() {
+				util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+				continue
+			}
+
 			oldFile.Model = gorm.Model{}
 			oldFile.FolderID = dstFolder.ID
 			oldFile.UserID = dstFolder.OwnerID
@@ -246,6 +251,11 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 
 	// 复制文件记录
 	for _, oldFile := range originFiles {
+		if !oldFile.CanCopy() {
+			util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+			continue
+		}
+
 		oldFile.Model = gorm.Model{}
 		oldFile.FolderID = newIDCache[oldFile.FolderID]
 		oldFile.UserID = dstFolder.OwnerID

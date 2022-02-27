@@ -53,18 +53,19 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 		return nil, err
 	}
 
+	uploadInfo := file.Info()
 	newFile := model.File{
-		Name:               file.GetFileName(),
-		SourceName:         file.GetSavePath(),
+		Name:               uploadInfo.FileName,
+		SourceName:         uploadInfo.SavePath,
 		UserID:             fs.User.ID,
-		Size:               file.GetSize(),
+		Size:               uploadInfo.Size,
 		FolderID:           parent.ID,
 		PolicyID:           fs.Policy.ID,
-		Hidden:             file.IsHidden(),
-		MetadataSerialized: file.GetMetadata(),
+		MetadataSerialized: uploadInfo.Metadata,
+		UploadSessionID:    uploadInfo.UploadSessionID,
 	}
 
-	if fs.Policy.IsThumbExist(file.GetFileName()) {
+	if fs.Policy.IsThumbExist(uploadInfo.FileName) {
 		newFile.PicInfo = "1,1"
 	}
 
