@@ -50,6 +50,8 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 
 // Put 将ctx中指定的从机物理文件由从机上传到目标存储策略
 func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+	defer file.Close()
+
 	src, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
 	if !ok {
 		return ErrSlaveSrcPathNotExist

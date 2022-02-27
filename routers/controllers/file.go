@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
 	"github.com/gin-gonic/gin"
@@ -290,6 +291,7 @@ func FileUpload(c *gin.Context) {
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Upload(ctx, c)
 		c.JSON(200, res)
+		request.BlackHole(c.Request.Body)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}

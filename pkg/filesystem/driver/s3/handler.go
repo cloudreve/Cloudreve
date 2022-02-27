@@ -198,6 +198,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+	defer file.Close()
 
 	// 初始化客户端
 	if err := handler.InitS3Client(); err != nil {

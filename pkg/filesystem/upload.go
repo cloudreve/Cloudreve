@@ -22,7 +22,8 @@ import (
 */
 
 const (
-	UploadSessionMetaKey = "upload_session"
+	UploadSessionMetaKey     = "upload_session"
+	UploadSessionCachePrefix = "callback_"
 )
 
 // Upload 上传文件
@@ -36,13 +37,15 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 
 	// 生成文件名和路径,
 	var savePath string
-	// 如果是更新操作就从上下文中获取
-	if originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
-		savePath = originFile.SourceName
-	} else {
-		savePath = fs.GenerateSavePath(ctx, file)
+	if file.SavePath == "" {
+		// 如果是更新操作就从上下文中获取
+		if originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+			savePath = originFile.SourceName
+		} else {
+			savePath = fs.GenerateSavePath(ctx, file)
+		}
+		file.SavePath = savePath
 	}
-	file.SavePath = savePath
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
@@ -70,14 +73,15 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		return err
 	}
 
-	fileInfo := file.Info()
-	util.Log().Info(
-		"新文件PUT:%s , 大小:%d, 上传者:%s",
-		fileInfo.FileName,
-		fileInfo.Size,
-		fs.User.Nick,
-	)
-
+	if file.Mode == fsctx.Create {
+		fileInfo := file.Info()
+		util.Log().Info(
+			"新文件PUT:%s , 大小:%d, 上传者:%s",
+			fileInfo.FileName,
+			fileInfo.Size,
+			fs.User.Nick,
+		)
+	}
 	return nil
 }
 
@@ -159,6 +163,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
 	callbackKey := uuid.Must(uuid.NewV4()).String()
+	fileSize := file.Size
 
 	// 创建占位的文件，同时校验文件信息
 	file.Mode = fsctx.Nop
@@ -177,12 +182,11 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	uploadSession := &serializer.UploadSession{
 		Key:          callbackKey,
 		UID:          fs.User.ID,
-		PolicyID:     fs.Policy.ID,
+		Policy:       *fs.Policy,
 		VirtualPath:  file.VirtualPath,
 		Name:         file.Name,
-		Size:         file.Size,
+		Size:         fileSize,
 		SavePath:     file.SavePath,
-		ChunkSize:    fs.Policy.OptionsSerialized.ChunkSize,
 		LastModified: file.LastModified,
 	}
 
@@ -194,7 +198,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 	// 创建回调会话
 	err = cache.Set(
-		"callback_"+callbackKey,
+		UploadSessionCachePrefix+callbackKey,
 		uploadSession,
 		callBackSessionTTL,
 	)
@@ -218,6 +222,7 @@ func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStre
 		fs.Use("AfterUploadCanceled", HookDeleteTempFile)
 		fs.Use("AfterUploadCanceled", HookGiveBackCapacity)
 		fs.Use("AfterUpload", GenericAfterUpload)
+		fs.Use("AfterUpload", HookGenerateThumb)
 		fs.Use("AfterValidateFailed", HookDeleteTempFile)
 		fs.Use("AfterValidateFailed", HookGiveBackCapacity)
 		fs.Use("AfterUploadFailed", HookGiveBackCapacity)

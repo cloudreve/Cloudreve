@@ -367,6 +367,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
 		fs.Use("AfterUploadCanceled", filesystem.HookCancelContext)
 		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
+		fs.Use("AfterUpload", filesystem.HookGenerateThumb)
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 		fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
 		fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
@@ -381,7 +382,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		return http.StatusMethodNotAllowed, err
 	}
 
-	etag, err := findETag(ctx, fs, h.LockSystem[fs.User.ID], reqPath, &fs.FileTarget[0])
+	etag, err := findETag(ctx, fs, h.LockSystem[fs.User.ID], reqPath, fileData.Model.(*model.File))
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}

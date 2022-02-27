@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"time"
 )
 
@@ -34,15 +35,14 @@ type UploadCredential struct {
 
 // UploadSession 上传会话
 type UploadSession struct {
-	Key          string // 上传会话 GUID
-	UID          uint   // 发起者
-	PolicyID     uint
+	Key          string     // 上传会话 GUID
+	UID          uint       // 发起者
 	VirtualPath  string     // 用户文件路径，不含文件名
 	Name         string     // 文件名
 	Size         uint64     // 文件大小
 	SavePath     string     // 物理存储路径，包含物理文件名
-	ChunkSize    uint64     // 分块大小，0 为不分快
 	LastModified *time.Time // 可选的文件最后修改日期
+	Policy       model.Policy
 }
 
 // UploadCallback 上传回调正文

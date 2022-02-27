@@ -19,6 +19,10 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
+const (
+	Perm = 0744
+)
+
 // Driver 本地策略适配器
 type Driver struct {
 	Policy *model.Policy
@@ -99,24 +103,59 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	// 如果目标目录不存在，创建
 	basePath := filepath.Dir(dst)
 	if !util.Exists(basePath) {
-		err := os.MkdirAll(basePath, 0744)
+		err := os.MkdirAll(basePath, Perm)
 		if err != nil {
 			util.Log().Warning("无法创建目录，%s", err)
 			return err
 		}
 	}
 
-	// 创建目标文件
-	out, err := os.Create(dst)
+	var (
+		out *os.File
+		err error
+	)
+
+	if fileInfo.Mode == fsctx.Append {
+		// 如果是追加模式，则直接打开文件
+		out, err = os.OpenFile(dst, os.O_APPEND|os.O_CREATE|os.O_WRONLY, Perm)
+	} else {
+		// 创建或覆盖目标文件
+		out, err = os.Create(dst)
+	}
+
 	if err != nil {
-		util.Log().Warning("无法创建文件，%s", err)
+		util.Log().Warning("无法打开或创建文件，%s", err)
 		return err
 	}
 	defer out.Close()
 
+	if fileInfo.Mode == fsctx.Append {
+		stat, err := out.Stat()
+		if err != nil {
+			util.Log().Warning("无法读取文件信息，%s", err)
+			return err
+		}
+
+		if uint64(stat.Size()) != fileInfo.AppendStart {
+			return errors.New("未上传完成的文件分片与预期大小不一致")
+		}
+	}
+
 	// 写入文件内容
 	_, err = io.Copy(out, file)
 	return err
+}
+
+func (handler Driver) Truncate(ctx context.Context, src string, size uint64) error {
+	util.Log().Warning("截断文件 [%s] 至 [%d]", src, size)
+	out, err := os.OpenFile(src, os.O_WRONLY, Perm)
+	if err != nil {
+		util.Log().Warning("无法打开或创建文件，%s", err)
+		return err
+	}
+
+	defer out.Close()
+	return out.Truncate(int64(size))
 }
 
 // Delete 删除一个或多个文件，

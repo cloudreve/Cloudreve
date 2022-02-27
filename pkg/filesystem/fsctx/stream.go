@@ -15,14 +15,6 @@ const (
 	Nop
 )
 
-// FileHeader 上传来的文件数据处理器
-type FileHeader interface {
-	io.Reader
-	io.Closer
-	Info() *UploadTaskInfo
-	SetSize(uint64)
-}
-
 type UploadTaskInfo struct {
 	Size            uint64
 	MIMEType        string
@@ -33,6 +25,17 @@ type UploadTaskInfo struct {
 	LastModified    *time.Time
 	SavePath        string
 	UploadSessionID *string
+	AppendStart     uint64
+	Model           interface{}
+}
+
+// FileHeader 上传来的文件数据处理器
+type FileHeader interface {
+	io.Reader
+	io.Closer
+	Info() *UploadTaskInfo
+	SetSize(uint64)
+	SetModel(fileModel interface{})
 }
 
 // FileStream 用户传来的文件
@@ -47,6 +50,8 @@ type FileStream struct {
 	MIMEType        string
 	SavePath        string
 	UploadSessionID *string
+	AppendStart     uint64
+	Model           interface{}
 }
 
 func (file *FileStream) Read(p []byte) (n int, err error) {
@@ -68,9 +73,15 @@ func (file *FileStream) Info() *UploadTaskInfo {
 		LastModified:    file.LastModified,
 		SavePath:        file.SavePath,
 		UploadSessionID: file.UploadSessionID,
+		AppendStart:     file.AppendStart,
+		Model:           file.Model,
 	}
 }
 
 func (file *FileStream) SetSize(size uint64) {
 	file.Size = size
+}
+
+func (file *FileStream) SetModel(fileModel interface{}) {
+	file.Model = fileModel
 }

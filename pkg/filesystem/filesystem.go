@@ -213,11 +213,7 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
 
 	// 重新指向上传策略
-	policy, err := model.GetPolicyByID(callbackSession.PolicyID)
-	if err != nil {
-		return nil, err
-	}
-	fs.Policy = &policy
+	fs.Policy = &callbackSession.Policy
 	fs.User.Policy = policy
 	err = fs.DispatchHandler()
 

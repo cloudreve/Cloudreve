@@ -248,9 +248,6 @@ func (instance NopRSCloser) Seek(offset int64, whence int) (int64, error) {
 // BlackHole 将客户端发来的数据放入黑洞
 func BlackHole(r io.Reader) {
 	if !model.IsTrueVal(model.GetSettingByName("reset_after_upload_failed")) {
-		_, err := io.Copy(ioutil.Discard, r)
-		if err != nil {
-			util.Log().Debug("黑洞数据出错，%s", err)
-		}
+		io.Copy(ioutil.Discard, r)
 	}
 }

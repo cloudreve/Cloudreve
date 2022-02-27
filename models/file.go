@@ -200,6 +200,13 @@ func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {
 	return files, result.Error
 }
 
+// GetFilesByUploadSession 查找上传会话对应的文件
+func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
+	file := File{}
+	result := DB.Where("user_id = ? and upload_session_id = ?", uid, sessionID).Find(&file)
+	return &file, result.Error
+}
+
 // Rename 重命名文件
 func (file *File) Rename(new string) error {
 	return DB.Model(&file).Update("name", new).Error
@@ -207,7 +214,7 @@ func (file *File) Rename(new string) error {
 
 // UpdatePicInfo 更新文件的图像信息
 func (file *File) UpdatePicInfo(value string) error {
-	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("pic_info", value).Error
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).UpdateColumns(File{PicInfo: value}).Error
 }
 
 // UpdateSize 更新文件的大小信息
@@ -218,6 +225,18 @@ func (file *File) UpdateSize(value uint64) error {
 // UpdateSourceName 更新文件的源文件名
 func (file *File) UpdateSourceName(value string) error {
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
+}
+
+func (file *File) PopChunkToFile(lastModified *time.Time) error {
+	file.UploadSessionID = nil
+	if lastModified != nil {
+		file.UpdatedAt = *lastModified
+	}
+
+	return DB.Model(file).UpdateColumns(map[string]interface{}{
+		"upload_session_id": file.UploadSessionID,
+		"updated_at":        file.UpdatedAt,
+	}).Error
 }
 
 // CanCopy 返回文件是否可被复制

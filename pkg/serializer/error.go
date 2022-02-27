@@ -72,6 +72,12 @@ const (
 	CodeAdminRequired = 40008
 	// CodeMasterNotFound 主机节点未注册
 	CodeMasterNotFound = 40009
+	// CodeUploadSessionExpired 上传会话已过期
+	CodeUploadSessionExpired = 400011
+	// CodeInvalidChunkIndex 无效的分片序号
+	CodeInvalidChunkIndex = 400012
+	// CodeInvalidContentLength 无效的正文长度
+	CodeInvalidContentLength = 400013
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

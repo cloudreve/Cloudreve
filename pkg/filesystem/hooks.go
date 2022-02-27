@@ -8,7 +8,9 @@ import (
 	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -223,23 +225,11 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 		return ErrObjectNotExist
 	}
 
-	fs.SetTargetFile(&[]model.File{originFile})
+	newFile.SetModel(&originFile)
 
 	err := originFile.UpdateSize(newFile.Info().Size)
 	if err != nil {
 		return err
-	}
-
-	// 尝试清空原有缩略图并重新生成
-	if originFile.GetPolicy().IsThumbGenerateNeeded() {
-		fs.recycleLock.Lock()
-		go func() {
-			defer fs.recycleLock.Unlock()
-			if originFile.PicInfo != "" {
-				_, _ = fs.Handler.Delete(ctx, []string{originFile.SourceName + conf.ThumbConfig.FileSuffix})
-				fs.GenerateThumbnail(ctx, &originFile)
-			}
-		}()
 	}
 
 	return nil
@@ -302,17 +292,23 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 	if err != nil {
 		return ErrInsertFileRecord
 	}
-	fs.SetTargetFile(&[]model.File{*file})
+	fileHeader.SetModel(file)
 
+	return nil
+}
+
+// HookGenerateThumb 生成缩略图
+func HookGenerateThumb(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 	// 异步尝试生成缩略图
+	fileMode := fileHeader.Info().Model.(*model.File)
 	if fs.Policy.IsThumbGenerateNeeded() {
 		fs.recycleLock.Lock()
 		go func() {
 			defer fs.recycleLock.Unlock()
-			fs.GenerateThumbnail(ctx, file)
+			_, _ = fs.Handler.Delete(ctx, []string{fileMode.SourceName + conf.ThumbConfig.FileSuffix})
+			fs.GenerateThumbnail(ctx, fileMode)
 		}()
 	}
-
 	return nil
 }
 
@@ -320,4 +316,41 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 func HookClearFileHeaderSize(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 	fileHeader.SetSize(0)
 	return nil
+}
+
+// HookTruncateFileTo 将物理文件截断至 size
+func HookTruncateFileTo(size uint64) Hook {
+	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+		if fs.Policy.Type == "local" {
+			if driver, ok := fs.Handler.(local.Driver); ok {
+				return driver.Truncate(ctx, fileHeader.Info().SavePath, size)
+			}
+		}
+
+		return nil
+	}
+}
+
+// HookChunkUploadFinished 单个分片上传结束后
+func HookChunkUploaded(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	fileInfo := fileHeader.Info()
+
+	// 更新文件大小
+	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.Model.(*model.File).GetSize() + fileInfo.Size)
+}
+
+// HookChunkUploadFinished 分片上传结束后处理文件
+func HookChunkUploadFinished(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	fileInfo := fileHeader.Info()
+	fileModel := fileInfo.Model.(*model.File)
+
+	return fileModel.PopChunkToFile(fileInfo.LastModified)
+}
+
+// HookChunkUploadFinished 分片上传结束后处理文件
+func HookDeleteUploadSession(id string) Hook {
+	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+		cache.Deletes([]string{id}, UploadSessionCachePrefix)
+		return nil
+	}
 }

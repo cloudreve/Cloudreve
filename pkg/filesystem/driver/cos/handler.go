@@ -184,6 +184,8 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 
 // Put 将文件流保存到指定目录
 func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+	defer file.Close()
+
 	opt := &cossdk.ObjectPutOptions{}
 	_, err := handler.Client.Object.Put(ctx, file.Info().SavePath, file, opt)
 	return err

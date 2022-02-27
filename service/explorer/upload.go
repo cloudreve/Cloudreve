@@ -2,13 +2,18 @@ package explorer
 
 import (
 	"context"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"fmt"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
+	"strconv"
+	"sync"
 	"time"
 )
 
@@ -62,13 +67,105 @@ func (service *UploadSessionService) Create(ctx context.Context, c *gin.Context)
 // UploadService 本机策略上传服务
 type UploadService struct {
 	ID    string `uri:"sessionId" binding:"required"`
-	Index int    `uri:"index"`
+	Index int    `uri:"index" binding:"min=0"`
 }
 
 // Upload 处理本机文件分片上传
 func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serializer.Response {
-	request.BlackHole(c.Request.Body)
-	return serializer.Response{
-		Code: 0,
+	uploadSessionRaw, ok := cache.Get(filesystem.UploadSessionCachePrefix + service.ID)
+	if !ok {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Upload session expired or not exist", nil)
 	}
+
+	uploadSession := uploadSessionRaw.(serializer.UploadSession)
+
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+
+	// 查找上传会话创建的占位文件
+	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Upload session file placeholder not exist", err)
+	}
+
+	// 重设 fs 存储策略
+	fs.Policy = &uploadSession.Policy
+	if err := fs.DispatchHandler(); err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "Unknown storage policy", err)
+	}
+
+	expectedSizeStart := file.Size
+	actualSizeStart := uint64(service.Index) * uploadSession.Policy.OptionsSerialized.ChunkSize
+	if uploadSession.Policy.OptionsSerialized.ChunkSize == 0 && service.Index > 0 {
+		return serializer.Err(serializer.CodeInvalidChunkIndex, "Chunk index cannot be greater than 0", nil)
+	}
+
+	if expectedSizeStart < actualSizeStart {
+		return serializer.Err(serializer.CodeInvalidChunkIndex, "Chunk must be uploaded in order", nil)
+	}
+
+	if expectedSizeStart > actualSizeStart {
+		util.Log().Warning("尝试上传覆盖分片[%d]，数据将被忽略", service.Index)
+		return serializer.Response{}
+	}
+
+	return processChunkUpload(ctx, c, fs, &uploadSession, service.Index, file)
+}
+
+func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.FileSystem, session *serializer.UploadSession, index int, file *model.File) serializer.Response {
+	// 取得并校验文件大小是否符合分片要求
+	chunkSize := session.Policy.OptionsSerialized.ChunkSize
+	isLastChunk := session.Policy.OptionsSerialized.ChunkSize == 0 || uint64(index+1)*chunkSize >= session.Size
+	expectedLength := chunkSize
+	if isLastChunk {
+		expectedLength = session.Size - uint64(index)*chunkSize
+	}
+
+	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
+	if err != nil || fileSize == 0 || (expectedLength != fileSize) {
+		return serializer.Err(
+			serializer.CodeInvalidContentLength,
+			fmt.Sprintf("Invalid Content-Length (expected: %d)", expectedLength),
+			err,
+		)
+	}
+
+	fileData := fsctx.FileStream{
+		MIMEType:     c.Request.Header.Get("Content-Type"),
+		File:         c.Request.Body,
+		Size:         fileSize,
+		Name:         session.Name,
+		VirtualPath:  session.VirtualPath,
+		SavePath:     session.SavePath,
+		Mode:         fsctx.Append,
+		AppendStart:  chunkSize * uint64(index),
+		Model:        file,
+		LastModified: session.LastModified,
+	}
+
+	// 给文件系统分配钩子
+	fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
+	fs.Use("AfterUploadCanceled", filesystem.HookTruncateFileTo(fileData.AppendStart))
+	fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterUpload", filesystem.HookChunkUploaded)
+	if isLastChunk {
+		fs.Use("AfterUpload", filesystem.HookChunkUploadFinished)
+		fs.Use("AfterUpload", filesystem.HookGenerateThumb)
+		fs.Use("AfterUpload", filesystem.HookDeleteUploadSession(session.Key))
+	}
+	fs.Use("AfterValidateFailed", filesystem.HookTruncateFileTo(fileData.AppendStart))
+	fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
+	fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
+
+	// 执行上传
+	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
+	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
+	err = fs.Upload(uploadCtx, &fileData)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
+	}
+
+	return serializer.Response{}
 }
