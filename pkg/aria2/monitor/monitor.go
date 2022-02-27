@@ -13,7 +13,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
@@ -191,12 +190,12 @@ func (monitor *Monitor) ValidateFile() error {
 	defer fs.Recycle()
 
 	// 创建上下文环境
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+	file := &fsctx.FileStream{
 		Size: monitor.Task.TotalSize,
-	})
+	}
 
 	// 验证用户容量
-	if err := filesystem.HookValidateCapacityWithoutIncrease(ctx, fs); err != nil {
+	if err := filesystem.HookValidateCapacityWithoutIncrease(context.Background(), fs, file); err != nil {
 		return err
 	}
 
@@ -205,11 +204,11 @@ func (monitor *Monitor) ValidateFile() error {
 		if fileInfo.Selected == "true" {
 			// 创建上下文环境
 			fileSize, _ := strconv.ParseUint(fileInfo.Length, 10, 64)
-			ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+			file := &fsctx.FileStream{
 				Size: fileSize,
 				Name: filepath.Base(fileInfo.Path),
-			})
-			if err := filesystem.HookValidateFile(ctx, fs); err != nil {
+			}
+			if err := filesystem.HookValidateFile(context.Background(), fs, file); err != nil {
 				return err
 			}
 		}

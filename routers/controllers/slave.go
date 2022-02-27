@@ -60,7 +60,7 @@ func SlaveUpload(c *gin.Context) {
 		return
 	}
 
-	fileData := local.FileStream{
+	fileData := fsctx.FileStream{
 		MIMEType: c.Request.Header.Get("Content-Type"),
 		File:     c.Request.Body,
 		Name:     fileName,
@@ -75,11 +75,11 @@ func SlaveUpload(c *gin.Context) {
 
 	// 是否允许覆盖
 	if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
-		ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
+		fileData.Mode = fsctx.Create
 	}
 
 	// 执行上传
-	err = fs.Upload(ctx, fileData)
+	err = fs.Upload(ctx, &fileData)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
 		return

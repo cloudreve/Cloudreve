@@ -183,9 +183,9 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	opt := &cossdk.ObjectPutOptions{}
-	_, err := handler.Client.Object.Put(ctx, dst, file, opt)
+	_, err := handler.Client.Object.Put(ctx, file.GetSavePath(), file, opt)
 	return err
 }
 
@@ -324,13 +324,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/cos/" + uploadSession.Key)
@@ -338,13 +332,13 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 
 	// 上传策略
 	startTime := time.Now()
-	endTime := startTime.Add(time.Duration(TTL) * time.Second)
+	endTime := startTime.Add(time.Duration(ttl) * time.Second)
 	keyTime := fmt.Sprintf("%d;%d", startTime.Unix(), endTime.Unix())
 	postPolicy := UploadPolicy{
 		Expiration: endTime.UTC().Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			map[string]string{"$key": savePath},
+			map[string]string{"$key": file.GetSavePath()},
 			map[string]string{"x-cos-meta-callback": apiURL},
 			map[string]string{"x-cos-meta-key": uploadSession.Key},
 			map[string]string{"q-sign-algorithm": "sha1"},

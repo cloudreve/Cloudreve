@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -146,7 +145,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	up := upyun.NewUpYun(&upyun.UpYunConfig{
@@ -155,7 +154,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 		Password: handler.Policy.SecretKey,
 	})
 	err := up.Put(&upyun.PutObjectConfig{
-		Path:   dst,
+		Path:   file.GetSavePath(),
 		Reader: file,
 	})
 
@@ -311,17 +310,7 @@ func (handler Driver) signURL(ctx context.Context, path *url.URL, TTL int64) (st
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
-	// 读取上下文中生成的存储路径和文件大小
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-	fileSize, ok := ctx.Value(fsctx.FileSizeCtx).(uint64)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取文件大小")
-	}
-
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 检查文件大小
 
 	// 生成回调地址
@@ -333,11 +322,11 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 	putPolicy := UploadPolicy{
 		Bucket: handler.Policy.BucketName,
 		// TODO escape
-		SaveKey:            savePath,
-		Expiration:         time.Now().Add(time.Duration(TTL) * time.Second).Unix(),
+		SaveKey:            file.GetSavePath(),
+		Expiration:         time.Now().Add(time.Duration(ttl) * time.Second).Unix(),
 		CallbackURL:        apiURL.String(),
-		ContentLength:      fileSize,
-		ContentLengthRange: fmt.Sprintf("0,%d", fileSize),
+		ContentLength:      file.GetSize(),
+		ContentLengthRange: fmt.Sprintf("0,%d", file.GetSize()),
 		AllowFileType:      strings.Join(handler.Policy.OptionsSerialized.FileType, ","),
 	}
 

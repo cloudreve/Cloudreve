@@ -7,7 +7,6 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -134,13 +133,12 @@ func (job *ImportTask) Do() {
 		if !object.IsDir {
 			// 创建文件信息
 			virtualPath := path.Dir(path.Join(job.TaskProps.Dst, object.RelativePath))
-			fileHeader := local.FileStream{
+			fileHeader := fsctx.FileStream{
 				Size:        object.Size,
 				VirtualPath: virtualPath,
 				Name:        object.Name,
+				SavePath:    object.Source,
 			}
-			addFileCtx := context.WithValue(ctx, fsctx.FileHeaderCtx, fileHeader)
-			addFileCtx = context.WithValue(addFileCtx, fsctx.SavePathCtx, object.Source)
 
 			// 查找父目录
 			parentFolder := &model.Folder{}
@@ -162,7 +160,7 @@ func (job *ImportTask) Do() {
 			}
 
 			// 插入文件记录
-			_, err := fs.AddFile(addFileCtx, parentFolder)
+			_, err := fs.AddFile(context.Background(), parentFolder, &fileHeader)
 			if err != nil {
 				util.Log().Warning("导入任务无法创插入文件[%s], %s",
 					object.RelativePath, err)

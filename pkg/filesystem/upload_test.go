@@ -13,7 +13,6 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -85,7 +84,7 @@ func TestFileSystem_Upload(t *testing.T) {
 	c.Request, _ = http.NewRequest("POST", "/", nil)
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	cancel()
-	file := local.FileStream{
+	file := fsctx.FileStream{
 		Size:        5,
 		VirtualPath: "/",
 		Name:        "1.txt",
@@ -114,7 +113,7 @@ func TestFileSystem_Upload(t *testing.T) {
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, model.File{SourceName: "123/123.txt"})
 	cancel()
-	file = local.FileStream{
+	file = fsctx.FileStream{
 		Size:        5,
 		VirtualPath: "/",
 		Name:        "1.txt",
@@ -168,7 +167,7 @@ func TestFileSystem_GenerateSavePath_Anonymous(t *testing.T) {
 		},
 	)
 
-	savePath := fs.GenerateSavePath(ctx, local.FileStream{
+	savePath := fs.GenerateSavePath(ctx, fsctx.FileStream{
 		Name: "test.test",
 	})
 	asserts.Len(savePath, 26)

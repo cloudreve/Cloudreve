@@ -80,7 +80,7 @@ func TestDriver_Token(t *testing.T) {
 	{
 		ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "/123")
 		cache.Set("setting_siteURL", "http://test.cloudreve.org", 0)
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.NoError(err)
 		asserts.NotEmpty(res.Policy)
 		asserts.NotEmpty(res.Token)
@@ -91,7 +91,7 @@ func TestDriver_Token(t *testing.T) {
 	// 上下文错误
 	{
 		ctx := context.Background()
-		_, err := handler.Token(ctx, 10, "key")
+		_, err := handler.Token(ctx, 10, "key", nil)
 		asserts.Error(err)
 	}
 

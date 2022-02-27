@@ -303,7 +303,13 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 					}
 				}()
 
-				err = fs.UploadFromStream(ctx, fileStream, savePath, uint64(size))
+				err = fs.UploadFromStream(ctx, &fsctx.FileStream{
+					File:        fileStream,
+					Size:        uint64(size),
+					Name:        path.Base(dst),
+					VirtualPath: path.Dir(dst),
+					Mode:        fsctx.Create,
+				})
 				fileStream.Close()
 				if err != nil {
 					util.Log().Debug("无法上传压缩包内的文件%s , %s , 跳过", rawPath, err)

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -198,7 +197,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	// 初始化客户端
 	if err := handler.InitS3Client(); err != nil {
@@ -207,6 +206,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 
 	uploader := s3manager.NewUploader(handler.sess)
 
+	dst := file.GetSavePath()
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: &handler.Policy.BucketName,
 		Key:    &dst,
@@ -324,14 +324,7 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
-
-	// 读取上下文中生成的存储路径和文件大小
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/s3/" + uploadSession.Key)
@@ -339,10 +332,10 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 
 	// 上传策略
 	putPolicy := UploadPolicy{
-		Expiration: time.Now().UTC().Add(time.Duration(TTL) * time.Second).Format(time.RFC3339),
+		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", savePath},
+			[]string{"starts-with", "$key", file.GetSavePath()},
 			[]string{"starts-with", "$success_action_redirect", apiURL.String()},
 			[]string{"starts-with", "$name", ""},
 			[]string{"starts-with", "$Content-Type", ""},

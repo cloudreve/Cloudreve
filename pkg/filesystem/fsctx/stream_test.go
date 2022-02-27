@@ -1,4 +1,4 @@
-package local
+package fsctx
 
 import (
 	"github.com/stretchr/testify/assert"

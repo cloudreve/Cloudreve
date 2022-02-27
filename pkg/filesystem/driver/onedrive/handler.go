@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -121,9 +120,9 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
-	return handler.Client.Upload(ctx, dst, int(size), file)
+	return handler.Client.Upload(ctx, file)
 }
 
 // Delete 删除一个或多个文件，
@@ -223,20 +222,10 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 }
 
 // Token 获取上传会话URL
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
-
-	// 读取上下文中生成的存储路径和文件大小
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-	fileSize, ok := ctx.Value(fsctx.FileSizeCtx).(uint64)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取文件大小")
-	}
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 
 	// 如果小于4MB，则由服务端中转
-	if fileSize <= SmallFileSize {
+	if file.GetSize() <= SmallFileSize {
 		return serializer.UploadCredential{}, nil
 	}
 
@@ -245,13 +234,13 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
-	uploadURL, err := handler.Client.CreateUploadSession(ctx, savePath, WithConflictBehavior("fail"))
+	uploadURL, err := handler.Client.CreateUploadSession(ctx, file.GetSavePath(), WithConflictBehavior("fail"))
 	if err != nil {
 		return serializer.UploadCredential{}, err
 	}
 
 	// 监控回调及上传
-	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, savePath, fileSize, ttl)
+	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, file.GetSavePath(), file.GetSize(), ttl)
 
 	return serializer.UploadCredential{
 		Policy: uploadURL,

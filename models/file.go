@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"path"
 	"time"
 
@@ -20,12 +21,15 @@ type File struct {
 	PicInfo    string
 	FolderID   uint `gorm:"index:folder_id;unique_index:idx_only_one"`
 	PolicyID   uint
+	Hidden     bool
+	Metadata   string `gorm:"type:text"`
 
 	// 关联模型
 	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
 
 	// 数据库忽略字段
-	Position string `gorm:"-"`
+	Position           string            `gorm:"-"`
+	MetadataSerialized map[string]string `gorm:"-"`
 }
 
 func init() {
@@ -40,6 +44,23 @@ func (file *File) Create() (uint, error) {
 		return 0, err
 	}
 	return file.ID, nil
+}
+
+// AfterFind 找到文件后的钩子
+func (file *File) AfterFind() (err error) {
+	// 反序列化文件元数据
+	if file.Metadata != "" {
+		err = json.Unmarshal([]byte(file.Metadata), &file.MetadataSerialized)
+	}
+
+	return
+}
+
+// BeforeSave Save策略前的钩子
+func (file *File) BeforeSave() (err error) {
+	metaValue, err := json.Marshal(&file.MetadataSerialized)
+	file.Metadata = string(metaValue)
+	return err
 }
 
 // GetChildFile 查找目录下名为name的子文件

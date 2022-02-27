@@ -3,18 +3,11 @@ package filesystem
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/masterinslave"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/slaveinmaster"
-	"io"
-	"net/http"
-	"net/url"
-	"sync"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/cos"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
@@ -22,11 +15,16 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/qiniu"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/remote"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/s3"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/masterinslave"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/slaveinmaster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
+	"net/http"
+	"net/url"
+	"sync"
 )
 
 // FSPool 文件系统资源池
@@ -34,16 +32,6 @@ var FSPool = sync.Pool{
 	New: func() interface{} {
 		return &FileSystem{}
 	},
-}
-
-// FileHeader 上传来的文件数据处理器
-type FileHeader interface {
-	io.Reader
-	io.Closer
-	GetSize() uint64
-	GetMIMEType() string
-	GetFileName() string
-	GetVirtualPath() string
 }
 
 // FileSystem 管理文件的文件系统

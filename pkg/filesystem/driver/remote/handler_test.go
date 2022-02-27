@@ -40,7 +40,7 @@ func TestHandler_Token(t *testing.T) {
 	// 成功
 	{
 		cache.Set("setting_siteURL", "http://test.cloudreve.org", 0)
-		credential, err := handler.Token(ctx, 10, "123")
+		credential, err := handler.Token(ctx, 10, "123", nil)
 		asserts.NoError(err)
 		policy, err := serializer.DecodeUploadPolicy(credential.Policy)
 		asserts.NoError(err)

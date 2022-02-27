@@ -26,7 +26,7 @@ import (
 
 func TestGenericBeforeUpload(t *testing.T) {
 	asserts := assert.New(t)
-	file := local.FileStream{
+	file := fsctx.FileStream{
 		Size: 5,
 		Name: "1.txt",
 	}
@@ -68,7 +68,7 @@ func TestGenericAfterUploadCanceled(t *testing.T) {
 	f, err := os.Create("TestGenericAfterUploadCanceled")
 	asserts.NoError(err)
 	f.Close()
-	file := local.FileStream{
+	file := fsctx.FileStream{
 		Size: 5,
 		Name: "TestGenericAfterUploadCanceled",
 	}
@@ -110,7 +110,7 @@ func TestGenericAfterUpload(t *testing.T) {
 		},
 	}
 
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fsctx.FileStream{
 		VirtualPath: "/我的文件",
 		Name:        "test.txt",
 	})
@@ -277,7 +277,7 @@ func TestHookValidateCapacity(t *testing.T) {
 			MaxStorage: 11,
 		},
 	}}
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 10})
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fsctx.FileStream{Size: 10})
 	{
 		err := HookValidateCapacity(ctx, fs)
 		asserts.NoError(err)
@@ -325,7 +325,7 @@ func TestHookChangeCapacity(t *testing.T) {
 			Model: gorm.Model{ID: 1},
 		}}
 
-		newFile := local.FileStream{Size: 10}
+		newFile := fsctx.FileStream{Size: 10}
 		oldFile := model.File{Size: 9}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
@@ -340,7 +340,7 @@ func TestHookChangeCapacity(t *testing.T) {
 			Group: model.Group{MaxStorage: 1},
 		}}
 
-		newFile := local.FileStream{Size: 10}
+		newFile := fsctx.FileStream{Size: 10}
 		oldFile := model.File{Size: 9}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
@@ -359,7 +359,7 @@ func TestHookChangeCapacity(t *testing.T) {
 			Storage: 1,
 		}}
 
-		newFile := local.FileStream{Size: 9}
+		newFile := fsctx.FileStream{Size: 9}
 		oldFile := model.File{Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, oldFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
@@ -457,7 +457,7 @@ func TestGenericAfterUpdate(t *testing.T) {
 			Model:   gorm.Model{ID: 1},
 			PicInfo: "1,1",
 		}
-		newFile := local.FileStream{Size: 10}
+		newFile := fsctx.FileStream{Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
 
@@ -489,7 +489,7 @@ func TestGenericAfterUpdate(t *testing.T) {
 
 	// 原始文件上下文不存在
 	{
-		newFile := local.FileStream{Size: 10}
+		newFile := fsctx.FileStream{Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, newFile)
 		err := GenericAfterUpdate(ctx, fs)
 		asserts.Error(err)
@@ -502,7 +502,7 @@ func TestGenericAfterUpdate(t *testing.T) {
 			Model:   gorm.Model{ID: 1},
 			PicInfo: "1,1",
 		}
-		newFile := local.FileStream{Size: 10}
+		newFile := fsctx.FileStream{Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, originFile)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, newFile)
 
@@ -533,7 +533,7 @@ func TestHookSlaveUploadValidate(t *testing.T) {
 			MaxSize:          10,
 			AllowedExtension: nil,
 		}
-		file := local.FileStream{Name: "1.txt", Size: 10}
+		file := fsctx.FileStream{Name: "1.txt", Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 		asserts.NoError(HookSlaveUploadValidate(ctx, fs))
@@ -546,7 +546,7 @@ func TestHookSlaveUploadValidate(t *testing.T) {
 			MaxSize:          10,
 			AllowedExtension: nil,
 		}
-		file := local.FileStream{Name: "1.txt", Size: 11}
+		file := fsctx.FileStream{Name: "1.txt", Size: 11}
 		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 		asserts.Equal(ErrFileSizeTooBig, HookSlaveUploadValidate(ctx, fs))
@@ -559,7 +559,7 @@ func TestHookSlaveUploadValidate(t *testing.T) {
 			MaxSize:          10,
 			AllowedExtension: nil,
 		}
-		file := local.FileStream{Name: "/1.txt", Size: 10}
+		file := fsctx.FileStream{Name: "/1.txt", Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 		asserts.Equal(ErrIllegalObjectName, HookSlaveUploadValidate(ctx, fs))
@@ -572,7 +572,7 @@ func TestHookSlaveUploadValidate(t *testing.T) {
 			MaxSize:          10,
 			AllowedExtension: []string{"jpg"},
 		}
-		file := local.FileStream{Name: "1.txt", Size: 10}
+		file := fsctx.FileStream{Name: "1.txt", Size: 10}
 		ctx := context.WithValue(context.Background(), fsctx.UploadPolicyCtx, policy)
 		ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 		asserts.Equal(ErrFileExtensionNotAllowed, HookSlaveUploadValidate(ctx, fs))
@@ -613,7 +613,7 @@ func TestSlaveAfterUpload(t *testing.T) {
 			},
 		})
 		request.GeneralClient = clientMock
-		ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{
+		ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fsctx.FileStream{
 			Size:        10,
 			VirtualPath: "/my",
 			Name:        "test.txt",
@@ -689,7 +689,7 @@ func TestHookGiveBackCapacity(t *testing.T) {
 			Storage: 10,
 		},
 	}
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 1})
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fsctx.FileStream{Size: 1})
 
 	// without once limit
 	{
@@ -718,7 +718,7 @@ func TestHookValidateCapacityWithoutIncrease(t *testing.T) {
 			Group:   model.Group{},
 		},
 	}
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, local.FileStream{Size: 1})
+	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fsctx.FileStream{Size: 1})
 
 	// not enough
 	{

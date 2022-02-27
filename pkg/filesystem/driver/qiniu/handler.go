@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -144,7 +143,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	// 凭证有效期
@@ -153,10 +152,10 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	// 生成上传策略
 	putPolicy := storage.PutPolicy{
 		// 指定为覆盖策略
-		Scope:        fmt.Sprintf("%s:%s", handler.Policy.BucketName, dst),
-		SaveKey:      dst,
+		Scope:        fmt.Sprintf("%s:%s", handler.Policy.BucketName, file.GetSavePath()),
+		SaveKey:      file.GetSavePath(),
 		ForceSaveKey: true,
-		FsizeLimit:   int64(size),
+		FsizeLimit:   int64(file.GetSize()),
 	}
 	// 是否开启了MIMEType限制
 	if handler.Policy.OptionsSerialized.MimeType != "" {
@@ -178,7 +177,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	}
 
 	// 开始上传
-	err = formUploader.Put(ctx, &ret, token.Token, dst, file, int64(size), &putExtra)
+	err = formUploader.Put(ctx, &ret, token.Token, file.GetSavePath(), file, int64(file.GetSize()), &putExtra)
 	if err != nil {
 		return err
 	}
@@ -274,17 +273,11 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64)
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/qiniu/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
-
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
 
 	// 创建上传策略
 	putPolicy := storage.PutPolicy{
@@ -292,7 +285,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 		CallbackURL:      apiURL.String(),
 		CallbackBody:     `{"name":"$(fname)","source_name":"$(key)","size":$(fsize),"pic_info":"$(imageInfo.width),$(imageInfo.height)"}`,
 		CallbackBodyType: "application/json",
-		SaveKey:          savePath,
+		SaveKey:          file.GetSavePath(),
 		ForceSaveKey:     true,
 		FsizeLimit:       int64(handler.Policy.MaxSize),
 	}
@@ -301,7 +294,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 		putPolicy.MimeLimit = handler.Policy.OptionsSerialized.MimeType
 	}
 
-	return handler.getUploadCredential(ctx, putPolicy, TTL)
+	return handler.getUploadCredential(ctx, putPolicy, ttl)
 }
 
 // getUploadCredential 签名上传策略

@@ -7,6 +7,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -106,7 +107,7 @@ func (job *CompressTask) Do() {
 	job.TaskModel.SetProgress(TransferringProgress)
 
 	// 上传文件
-	err = fs.UploadFromPath(ctx, zipFile, job.TaskProps.Dst, true)
+	err = fs.UploadFromPath(ctx, zipFile, job.TaskProps.Dst, true, fsctx.Create)
 	if err != nil {
 		job.SetErrorMsg(err.Error())
 		return

@@ -224,7 +224,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	// 初始化客户端
@@ -237,7 +237,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 
 	// 是否允许覆盖
 	overwrite := true
-	if ctx.Value(fsctx.DisableOverwrite) != nil {
+	if file.GetMode() != fsctx.Overwrite {
 		overwrite = false
 	}
 
@@ -247,7 +247,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	}
 
 	// 上传文件
-	err := handler.bucket.PutObject(dst, file, options...)
+	err := handler.bucket.PutObject(file.GetSavePath(), file, options...)
 	if err != nil {
 		return err
 	}
@@ -397,13 +397,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
@@ -418,10 +412,10 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 
 	// 上传策略
 	postPolicy := UploadPolicy{
-		Expiration: time.Now().UTC().Add(time.Duration(TTL) * time.Second).Format(time.RFC3339),
+		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
 		Conditions: []interface{}{
 			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", path.Dir(savePath)},
+			[]string{"starts-with", "$key", path.Dir(file.GetSavePath())},
 		},
 	}
 
@@ -430,7 +424,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
-	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, TTL)
+	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl)
 }
 
 func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64) (serializer.UploadCredential, error) {

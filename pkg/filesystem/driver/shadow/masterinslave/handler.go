@@ -5,9 +5,9 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"io"
 	"net/url"
 )
 
@@ -27,8 +27,8 @@ func NewDriver(master cluster.Node, handler driver.Handler, policy *model.Policy
 	}
 }
 
-func (d *Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
-	return d.handler.Put(ctx, file, dst, size)
+func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+	return d.handler.Put(ctx, file)
 }
 
 func (d *Driver) Delete(ctx context.Context, files []string) ([]string, error) {
@@ -47,7 +47,7 @@ func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64
 	return "", ErrNotImplemented
 }
 
-func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, ErrNotImplemented
 }
 

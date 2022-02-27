@@ -2,13 +2,11 @@ package filesystem
 
 import (
 	"context"
-	"io"
 	"os"
 	"path"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -23,11 +21,11 @@ import (
 */
 
 // Upload 上传文件
-func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
+func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err error) {
 	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
 
 	// 上传前的钩子
-	err = fs.Trigger(ctx, "BeforeUpload")
+	err = fs.Trigger(ctx, "BeforeUpload", file)
 	if err != nil {
 		request.BlackHole(file)
 		return err
@@ -41,24 +39,24 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 	} else {
 		savePath = fs.GenerateSavePath(ctx, file)
 	}
-	ctx = context.WithValue(ctx, fsctx.SavePathCtx, savePath)
+	file.SavePath = savePath
 
 	// 处理客户端未完成上传时，关闭连接
 	go fs.CancelUpload(ctx, savePath, file)
 
 	// 保存文件
-	err = fs.Handler.Put(ctx, file, savePath, file.GetSize())
+	err = fs.Handler.Put(ctx, file)
 	if err != nil {
-		fs.Trigger(ctx, "AfterUploadFailed")
+		fs.Trigger(ctx, "AfterUploadFailed", file)
 		return err
 	}
 
 	// 上传完成后的钩子
-	err = fs.Trigger(ctx, "AfterUpload")
+	err = fs.Trigger(ctx, "AfterUpload", file)
 
 	if err != nil {
 		// 上传完成后续处理失败
-		followUpErr := fs.Trigger(ctx, "AfterValidateFailed")
+		followUpErr := fs.Trigger(ctx, "AfterValidateFailed", file)
 		// 失败后再失败...
 		if followUpErr != nil {
 			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", followUpErr)
@@ -79,7 +77,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file FileHeader) (err error) {
 
 // GenerateSavePath 生成要存放文件的路径
 // TODO 完善测试
-func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) string {
+func (fs *FileSystem) GenerateSavePath(ctx context.Context, file fsctx.FileHeader) string {
 	if fs.User.Model.ID != 0 {
 		return path.Join(
 			fs.Policy.GeneratePath(
@@ -116,7 +114,7 @@ func (fs *FileSystem) GenerateSavePath(ctx context.Context, file FileHeader) str
 }
 
 // CancelUpload 监测客户端取消上传
-func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHeader) {
+func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file fsctx.FileHeader) {
 	var reqContext context.Context
 	if ginCtx, ok := ctx.Value(fsctx.GinCtx).(*gin.Context); ok {
 		reqContext = ginCtx.Request.Context()
@@ -137,8 +135,7 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file FileHe
 			if fs.Hooks["AfterUploadCanceled"] == nil {
 				return
 			}
-			ctx = context.WithValue(ctx, fsctx.SavePathCtx, path)
-			err := fs.Trigger(ctx, "AfterUploadCanceled")
+			err := fs.Trigger(ctx, "AfterUploadCanceled", file)
 			if err != nil {
 				util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
 			}
@@ -157,23 +154,22 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 
 	// 进行文件上传预检查
 
-	// 创建上下文环境
-	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, local.FileStream{
+	file := &fsctx.FileStream{
 		Size: size,
 		Name: name,
-	})
+	}
 
 	// 检查上传请求合法性
-	if err := HookValidateFile(ctx, fs); err != nil {
+	if err := HookValidateFile(ctx, fs, file); err != nil {
 		return nil, err
 	}
 
-	if err := HookValidateCapacityWithoutIncrease(ctx, fs); err != nil {
+	if err := HookValidateCapacityWithoutIncrease(ctx, fs, file); err != nil {
 		return nil, err
 	}
 
 	// 生成存储路径
-	savePath := fs.GenerateSavePath(ctx, local.FileStream{Name: name, VirtualPath: path})
+	savePath := fs.GenerateSavePath(ctx, &fsctx.FileStream{Name: name, VirtualPath: path})
 
 	callbackKey := uuid.Must(uuid.NewV4()).String()
 	uploadSession := &serializer.UploadSession{
@@ -188,7 +184,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 	}
 
 	// 获取上传凭证
-	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), uploadSession)
+	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), uploadSession, file)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeEncryptError, "无法获取上传凭证", err)
 	}
@@ -207,17 +203,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 }
 
 // UploadFromStream 从文件流上传文件
-func (fs *FileSystem) UploadFromStream(ctx context.Context, src io.ReadCloser, dst string, size uint64) error {
-	// 构建文件头
-	fileName := path.Base(dst)
-	filePath := path.Dir(dst)
-	fileData := local.FileStream{
-		File:        src,
-		Size:        size,
-		Name:        fileName,
-		VirtualPath: filePath,
-	}
-
+func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStream) error {
 	// 给文件系统分配钩子
 	fs.Lock.Lock()
 	if fs.Hooks == nil {
@@ -233,11 +219,11 @@ func (fs *FileSystem) UploadFromStream(ctx context.Context, src io.ReadCloser, d
 	fs.Lock.Unlock()
 
 	// 开始上传
-	return fs.Upload(ctx, fileData)
+	return fs.Upload(ctx, file)
 }
 
 // UploadFromPath 将本机已有文件上传到用户的文件系统
-func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, resetPolicy bool) error {
+func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, resetPolicy bool, mode fsctx.WriteMode) error {
 	// 重设存储策略
 	if resetPolicy {
 		fs.Policy = &fs.User.Policy
@@ -261,5 +247,11 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, reset
 	size := fi.Size()
 
 	// 开始上传
-	return fs.UploadFromStream(ctx, file, dst, uint64(size))
+	return fs.UploadFromStream(ctx, &fsctx.FileStream{
+		File:        nil,
+		Size:        uint64(size),
+		Name:        path.Base(dst),
+		VirtualPath: path.Dir(dst),
+		Mode:        mode,
+	})
 }

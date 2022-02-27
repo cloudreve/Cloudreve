@@ -11,7 +11,6 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
@@ -307,12 +306,13 @@ func FileUploadStream(c *gin.Context) {
 		return
 	}
 
-	fileData := local.FileStream{
+	fileData := fsctx.FileStream{
 		MIMEType:    c.Request.Header.Get("Content-Type"),
 		File:        c.Request.Body,
 		Size:        fileSize,
 		Name:        fileName,
 		VirtualPath: filePath,
+		Mode:        fsctx.Create,
 	}
 
 	// 创建文件系统
@@ -341,9 +341,8 @@ func FileUploadStream(c *gin.Context) {
 
 	// 执行上传
 	ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
-	ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
-	err = fs.Upload(uploadCtx, fileData)
+	err = fs.Upload(uploadCtx, &fileData)
 	if err != nil {
 		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
 		return

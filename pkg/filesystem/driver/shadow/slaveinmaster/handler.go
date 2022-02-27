@@ -13,7 +13,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"io"
 	"net/url"
 	"time"
 )
@@ -50,7 +49,7 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 }
 
 // Put 将ctx中指定的从机物理文件由从机上传到目标存储策略
-func (d *Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	src, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
 	if !ok {
 		return ErrSlaveSrcPathNotExist
@@ -58,7 +57,7 @@ func (d *Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size u
 
 	req := serializer.SlaveTransferReq{
 		Src:    src,
-		Dst:    dst,
+		Dst:    file.GetSavePath(),
 		Policy: d.policy,
 	}
 
@@ -112,7 +111,7 @@ func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64
 	return "", ErrNotImplemented
 }
 
-func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{}, ErrNotImplemented
 }
 

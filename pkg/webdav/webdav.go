@@ -19,7 +19,6 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -325,7 +324,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	}
 	fileName := path.Base(reqPath)
 	filePath := path.Dir(reqPath)
-	fileData := local.FileStream{
+	fileData := fsctx.FileStream{
 		MIMEType:    r.Header.Get("Content-Type"),
 		File:        r.Body,
 		Size:        fileSize,
@@ -342,7 +341,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fileList, err := model.RemoveFilesWithSoftLinks([]model.File{*originFile})
 		if err == nil && len(fileList) == 0 {
 			// 如果包含软连接，应重新生成新文件副本，并更新source_name
-			originFile.SourceName = fs.GenerateSavePath(ctx, fileData)
+			originFile.SourceName = fs.GenerateSavePath(ctx, &fileData)
 			fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 			fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
 			fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
@@ -373,11 +372,11 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
 
 		// 禁止覆盖
-		ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
+		fileData.Mode = fsctx.Create
 	}
 
 	// 执行上传
-	err = fs.Upload(ctx, fileData)
+	err = fs.Upload(ctx, &fileData)
 	if err != nil {
 		return http.StatusMethodNotAllowed, err
 	}

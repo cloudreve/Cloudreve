@@ -36,7 +36,7 @@ func TestDriver_Token(t *testing.T) {
 	// 无法获取文件路径
 	{
 		ctx := context.WithValue(context.Background(), fsctx.FileSizeCtx, uint64(10))
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.Error(err)
 		asserts.Equal(serializer.UploadCredential{}, res)
 	}
@@ -44,7 +44,7 @@ func TestDriver_Token(t *testing.T) {
 	// 无法获取文件大小
 	{
 		ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "/123")
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.Error(err)
 		asserts.Equal(serializer.UploadCredential{}, res)
 	}
@@ -53,7 +53,7 @@ func TestDriver_Token(t *testing.T) {
 	{
 		ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "/123")
 		ctx = context.WithValue(ctx, fsctx.FileSizeCtx, uint64(10))
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.NoError(err)
 		asserts.Equal(serializer.UploadCredential{}, res)
 	}
@@ -80,7 +80,7 @@ func TestDriver_Token(t *testing.T) {
 		handler.Client.Request = clientMock
 		ctx := context.WithValue(context.Background(), fsctx.SavePathCtx, "/123")
 		ctx = context.WithValue(ctx, fsctx.FileSizeCtx, uint64(20*1024*1024))
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.Error(err)
 		asserts.Equal(serializer.UploadCredential{}, res)
 	}
@@ -114,7 +114,7 @@ func TestDriver_Token(t *testing.T) {
 			time.Sleep(time.Duration(1) * time.Second)
 			FinishCallback("key")
 		}()
-		res, err := handler.Token(ctx, 10, "key")
+		res, err := handler.Token(ctx, 10, "key", nil)
 		asserts.NoError(err)
 		asserts.Equal("123321", res.Policy)
 	}

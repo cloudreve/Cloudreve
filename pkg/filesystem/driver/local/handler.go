@@ -83,12 +83,12 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
-	dst = util.RelativePath(filepath.FromSlash(dst))
+	dst := util.RelativePath(filepath.FromSlash(file.GetSavePath()))
 
-	// 如果禁止了 Overwrite，则检查是否有重名冲突
-	if ctx.Value(fsctx.DisableOverwrite) != nil {
+	// 如果非 Overwrite，则检查是否有重名冲突
+	if file.GetMode() != fsctx.Overwrite {
 		if util.Exists(dst) {
 			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
 			return errors.New("物理同名文件已存在或不可用")
@@ -214,7 +214,7 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	return serializer.UploadCredential{
 		SessionID: uploadSession.Key,
 	}, nil

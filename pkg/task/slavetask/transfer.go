@@ -100,7 +100,6 @@ func (job *TransferTask) Do() {
 	}
 
 	fs.SwitchToShadowHandler(master.Instance, master.URL.String(), master.ID)
-	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
 	file, err := os.Open(util.RelativePath(job.Req.Src))
 	if err != nil {
 		job.SetErrorMsg("无法读取源文件", err)
@@ -118,7 +117,12 @@ func (job *TransferTask) Do() {
 
 	size := fi.Size()
 
-	err = fs.Handler.Put(ctx, file, job.Req.Dst, uint64(size))
+	err = fs.Handler.Put(context.Background(), &fsctx.FileStream{
+		File:     file,
+		Mode:     fsctx.Create,
+		SavePath: job.Req.Dst,
+		Size:     uint64(size),
+	})
 	if err != nil {
 		job.SetErrorMsg("文件上传失败", err)
 		return

@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/cos"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/s3"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -151,15 +150,12 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	}
 
 	// 创建文件头
-	fileHeader := local.FileStream{
+	fileHeader := fsctx.FileStream{
 		Size:        callbackBody.Size,
 		VirtualPath: callbackSession.VirtualPath,
 		Name:        callbackSession.Name,
+		SavePath:    callbackBody.SourceName,
 	}
-
-	// 生成上下文
-	ctx := context.WithValue(context.Background(), fsctx.FileHeaderCtx, fileHeader)
-	ctx = context.WithValue(ctx, fsctx.SavePathCtx, callbackBody.SourceName)
 
 	// 添加钩子
 	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
@@ -169,7 +165,7 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	fs.Use("BeforeAddFileFailed", filesystem.HookDeleteTempFile)
 
 	// 向数据库中添加文件
-	file, err := fs.AddFile(ctx, parentFolder)
+	file, err := fs.AddFile(context.Background(), parentFolder, &fileHeader)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
 	}

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -134,7 +133,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, size uint64) error {
+func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	// 凭证有效期
@@ -142,10 +141,10 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 
 	// 生成上传策略
 	policy := serializer.UploadPolicy{
-		SavePath:   path.Dir(dst),
-		FileName:   path.Base(dst),
+		SavePath:   path.Dir(file.GetSavePath()),
+		FileName:   path.Base(file.GetSavePath()),
 		AutoRename: false,
-		MaxSize:    size,
+		MaxSize:    file.GetSize(),
 	}
 	credential, err := handler.getUploadCredential(ctx, policy, int64(credentialTTL))
 	if err != nil {
@@ -153,11 +152,11 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 	}
 
 	// 对文件名进行URLEncode
-	fileName := url.QueryEscape(path.Base(dst))
+	fileName := url.QueryEscape(path.Base(file.GetSavePath()))
 
 	// 决定是否要禁用文件覆盖
 	overwrite := "true"
-	if ctx.Value(fsctx.DisableOverwrite) != nil {
+	if file.GetMode() != fsctx.Overwrite {
 		overwrite = "false"
 	}
 
@@ -171,7 +170,7 @@ func (handler Driver) Put(ctx context.Context, file io.ReadCloser, dst string, s
 			"X-Cr-FileName":  {fileName},
 			"X-Cr-Overwrite": {overwrite},
 		}),
-		request.WithContentLength(int64(size)),
+		request.WithContentLength(int64(file.GetSize())),
 		request.WithTimeout(time.Duration(0)),
 		request.WithMasterMeta(),
 		request.WithSlaveMeta(handler.Policy.AccessKey),
@@ -305,7 +304,7 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *serializer.UploadSession) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + uploadSession.Key)
@@ -320,7 +319,7 @@ func (handler Driver) Token(ctx context.Context, TTL int64, uploadSession *seria
 		AllowedExtension: handler.Policy.OptionsSerialized.FileType,
 		CallbackURL:      apiURL.String(),
 	}
-	return handler.getUploadCredential(ctx, policy, TTL)
+	return handler.getUploadCredential(ctx, policy, ttl)
 }
 
 func (handler Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {

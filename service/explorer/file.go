@@ -17,7 +17,6 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
@@ -55,18 +54,18 @@ func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
 	// 上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	ctx = context.WithValue(ctx, fsctx.DisableOverwrite, true)
 
 	// 给文件系统分配钩子
 	fs.Use("BeforeUpload", filesystem.HookValidateFile)
 	fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 
 	// 上传空文件
-	err = fs.Upload(ctx, local.FileStream{
+	err = fs.Upload(ctx, &fsctx.FileStream{
 		File:        ioutil.NopCloser(strings.NewReader("")),
 		Size:        0,
 		VirtualPath: path.Dir(service.Path),
 		Name:        path.Base(service.Path),
+		Mode:        fsctx.Create,
 	})
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
@@ -372,7 +371,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		return serializer.ParamErr("无法解析文件尺寸", err)
 	}
 
-	fileData := local.FileStream{
+	fileData := fsctx.FileStream{
 		MIMEType: c.Request.Header.Get("Content-Type"),
 		File:     c.Request.Body,
 		Size:     fileSize,
@@ -397,7 +396,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	fileList, err := model.RemoveFilesWithSoftLinks([]model.File{originFile[0]})
 	if err == nil && len(fileList) == 0 {
 		// 如果包含软连接，应重新生成新文件副本，并更新source_name
-		originFile[0].SourceName = fs.GenerateSavePath(uploadCtx, fileData)
+		originFile[0].SourceName = fs.GenerateSavePath(uploadCtx, &fileData)
 		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
 		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
@@ -417,7 +416,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 
 	// 执行上传
 	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, originFile[0])
-	err = fs.Upload(uploadCtx, fileData)
+	err = fs.Upload(uploadCtx, &fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
 	}

@@ -43,26 +43,25 @@ func (fs *FileSystem) withSpeedLimit(rs response.RSCloser) response.RSCloser {
 }
 
 // AddFile 新增文件记录
-func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model.File, error) {
+func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fsctx.FileHeader) (*model.File, error) {
 	// 添加文件记录前的钩子
-	err := fs.Trigger(ctx, "BeforeAddFile")
+	err := fs.Trigger(ctx, "BeforeAddFile", file)
 	if err != nil {
-		if err := fs.Trigger(ctx, "BeforeAddFileFailed"); err != nil {
+		if err := fs.Trigger(ctx, "BeforeAddFileFailed", file); err != nil {
 			util.Log().Debug("BeforeAddFileFailed 钩子执行失败，%s", err)
 		}
 		return nil, err
 	}
 
-	file := ctx.Value(fsctx.FileHeaderCtx).(FileHeader)
-	filePath := ctx.Value(fsctx.SavePathCtx).(string)
-
 	newFile := model.File{
-		Name:       file.GetFileName(),
-		SourceName: filePath,
-		UserID:     fs.User.ID,
-		Size:       file.GetSize(),
-		FolderID:   parent.ID,
-		PolicyID:   fs.Policy.ID,
+		Name:               file.GetFileName(),
+		SourceName:         file.GetSavePath(),
+		UserID:             fs.User.ID,
+		Size:               file.GetSize(),
+		FolderID:           parent.ID,
+		PolicyID:           fs.Policy.ID,
+		Hidden:             file.IsHidden(),
+		MetadataSerialized: file.GetMetadata(),
 	}
 
 	if fs.Policy.IsThumbExist(file.GetFileName()) {
@@ -72,7 +71,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder) (*model
 	_, err = newFile.Create()
 
 	if err != nil {
-		if err := fs.Trigger(ctx, "AfterValidateFailed"); err != nil {
+		if err := fs.Trigger(ctx, "AfterValidateFailed", file); err != nil {
 			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", err)
 		}
 		return nil, ErrFileExisted.WithError(err)
@@ -153,14 +152,7 @@ func (fs *FileSystem) GetDownloadContent(ctx context.Context, id uint) (response
 
 // GetContent 获取文件内容，path为虚拟路径
 func (fs *FileSystem) GetContent(ctx context.Context, id uint) (response.RSCloser, error) {
-	// 触发`下载前`钩子
-	err := fs.Trigger(ctx, "BeforeFileDownload")
-	if err != nil {
-		util.Log().Debug("BeforeFileDownload 钩子执行失败，%s", err)
-		return nil, err
-	}
-
-	err = fs.resetFileIDIfNotExist(ctx, id)
+	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,6 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -19,7 +18,7 @@ import (
 
 func TestFileSystem_AddFile(t *testing.T) {
 	asserts := assert.New(t)
-	file := local.FileStream{
+	file := fsctx.FileStream{
 		Size: 5,
 		Name: "1.png",
 	}
