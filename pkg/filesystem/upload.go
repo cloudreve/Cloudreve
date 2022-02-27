@@ -20,10 +20,12 @@ import (
    ================
 */
 
+const (
+	UploadSessionMetaKey = "upload_session"
+)
+
 // Upload 上传文件
 func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err error) {
-	ctx = context.WithValue(ctx, fsctx.FileHeaderCtx, file)
-
 	// 上传前的钩子
 	err = fs.Trigger(ctx, "BeforeUpload", file)
 	if err != nil {
@@ -45,10 +47,12 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 	go fs.CancelUpload(ctx, savePath, file)
 
 	// 保存文件
-	err = fs.Handler.Put(ctx, file)
-	if err != nil {
-		fs.Trigger(ctx, "AfterUploadFailed", file)
-		return err
+	if file.Mode != fsctx.Nop {
+		err = fs.Handler.Put(ctx, file)
+		if err != nil {
+			fs.Trigger(ctx, "AfterUploadFailed", file)
+			return err
+		}
 	}
 
 	// 上传完成后的钩子
@@ -150,28 +154,26 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
-	var err error
-
-	// 进行文件上传预检查
-
-	file := &fsctx.FileStream{
-		Size: size,
-		Name: name,
-	}
-
-	// 检查上传请求合法性
-	if err := HookValidateFile(ctx, fs, file); err != nil {
-		return nil, err
-	}
-
-	if err := HookValidateCapacityWithoutIncrease(ctx, fs, file); err != nil {
-		return nil, err
-	}
-
-	// 生成存储路径
-	savePath := fs.GenerateSavePath(ctx, &fsctx.FileStream{Name: name, VirtualPath: path})
-
 	callbackKey := uuid.Must(uuid.NewV4()).String()
+
+	// 创建隐藏的文件，同时校验文件信息
+	file := &fsctx.FileStream{
+		Size:        size,
+		Name:        name,
+		VirtualPath: path,
+		Mode:        fsctx.Nop,
+		Hidden:      true,
+		Metadata: map[string]string{
+			UploadSessionMetaKey: callbackKey,
+		},
+	}
+	fs.Use("BeforeUpload", HookValidateFile)
+	fs.Use("AfterUpload", HookClearFileHeaderSize)
+	fs.Use("AfterUpload", GenericAfterUpload)
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
+	}
+
 	uploadSession := &serializer.UploadSession{
 		Key:         callbackKey,
 		UID:         fs.User.ID,
@@ -179,7 +181,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, path string, size
 		VirtualPath: path,
 		Name:        name,
 		Size:        size,
-		SavePath:    savePath,
+		SavePath:    file.SavePath,
 		ChunkSize:   fs.Policy.OptionsSerialized.ChunkSize,
 	}
 

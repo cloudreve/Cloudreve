@@ -349,7 +349,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	}
 
 	// 生成上传凭证
-	return handler.getUploadCredential(ctx, putPolicy, apiURL)
+	return handler.getUploadCredential(ctx, putPolicy, apiURL, file.GetSavePath())
 }
 
 // Meta 获取文件信息
@@ -376,13 +376,7 @@ func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) 
 
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback *url.URL) (serializer.UploadCredential, error) {
-
-	// 读取上下文中生成的存储路径和文件大小
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback *url.URL, savePath string) (serializer.UploadCredential, error) {
 
 	longDate := time.Now().UTC().Format("20060102T150405Z")
 	shortDate := time.Now().UTC().Format("20060102")

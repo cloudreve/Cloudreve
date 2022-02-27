@@ -88,7 +88,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	dst := util.RelativePath(filepath.FromSlash(file.GetSavePath()))
 
 	// 如果非 Overwrite，则检查是否有重名冲突
-	if file.GetMode() != fsctx.Overwrite {
+	if file.GetMode() == fsctx.Create {
 		if util.Exists(dst) {
 			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
 			return errors.New("物理同名文件已存在或不可用")

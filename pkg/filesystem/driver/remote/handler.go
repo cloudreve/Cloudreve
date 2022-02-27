@@ -156,7 +156,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	// 决定是否要禁用文件覆盖
 	overwrite := "true"
-	if file.GetMode() != fsctx.Overwrite {
+	if file.GetMode() != fsctx.Create {
 		overwrite = "false"
 	}
 

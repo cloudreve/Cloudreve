@@ -260,7 +260,7 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, chunk *
 func (client *Client) Upload(ctx context.Context, file fsctx.FileHeader) error {
 	// 决定是否覆盖文件
 	overwrite := "replace"
-	if file.GetMode() != fsctx.Overwrite {
+	if file.GetMode() != fsctx.Create {
 		overwrite = "fail"
 	}
 

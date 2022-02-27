@@ -237,7 +237,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	// 是否允许覆盖
 	overwrite := true
-	if file.GetMode() != fsctx.Overwrite {
+	if file.GetMode() == fsctx.Create {
 		overwrite = false
 	}
 
@@ -424,16 +424,10 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
-	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl)
+	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, file.GetSavePath())
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64) (serializer.UploadCredential, error) {
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (serializer.UploadCredential, error) {
 	// 处理回调策略
 	callbackPolicyEncoded := ""
 	if callback.CallbackURL != "" {

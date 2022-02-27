@@ -350,20 +350,22 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			}
 		}
 
-		newFile := serializer.Object{
-			ID:            hashid.HashID(file.ID, hashid.FileID),
-			Name:          file.Name,
-			Path:          processedPath,
-			Pic:           file.PicInfo,
-			Size:          file.Size,
-			Type:          "file",
-			Date:          file.CreatedAt,
-			SourceEnabled: file.GetPolicy().IsOriginLinkEnable,
+		if !file.Hidden {
+			newFile := serializer.Object{
+				ID:            hashid.HashID(file.ID, hashid.FileID),
+				Name:          file.Name,
+				Path:          processedPath,
+				Pic:           file.PicInfo,
+				Size:          file.Size,
+				Type:          "file",
+				Date:          file.CreatedAt,
+				SourceEnabled: file.GetPolicy().IsOriginLinkEnable,
+			}
+			if shareKey != "" {
+				newFile.Key = shareKey
+			}
+			objects = append(objects, newFile)
 		}
-		if shareKey != "" {
-			newFile.Key = shareKey
-		}
-		objects = append(objects, newFile)
 	}
 
 	return objects

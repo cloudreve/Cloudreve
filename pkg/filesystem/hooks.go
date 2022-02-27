@@ -284,7 +284,7 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 	// 检查文件是否存在
 	if ok, _ := fs.IsChildFileExist(
 		folder,
-		ctx.Value(fsctx.FileHeaderCtx).(fsctx.FileHeader).GetFileName(),
+		fileHeader.GetFileName(),
 	); ok {
 		return ErrFileExisted
 	}
@@ -305,5 +305,11 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 		}()
 	}
 
+	return nil
+}
+
+// HookClearFileHeaderSize 将FileHeader大小设定为0
+func HookClearFileHeaderSize(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	fileHeader.SetSize(0)
 	return nil
 }

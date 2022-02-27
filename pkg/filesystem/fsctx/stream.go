@@ -9,8 +9,10 @@ type WriteMode int
 
 const (
 	Overwrite WriteMode = iota
+	// Append 只适用于本地策略
 	Append
 	Create
+	Nop
 )
 
 // FileStream 用户传来的文件
@@ -71,6 +73,10 @@ func (file *FileStream) GetSavePath() string {
 	return file.SavePath
 }
 
+func (file *FileStream) SetSize(size uint64) {
+	file.Size = size
+}
+
 // FileHeader 上传来的文件数据处理器
 type FileHeader interface {
 	io.Reader
@@ -84,4 +90,5 @@ type FileHeader interface {
 	GetLastModified() time.Time
 	IsHidden() bool
 	GetSavePath() string
+	SetSize(uint64)
 }

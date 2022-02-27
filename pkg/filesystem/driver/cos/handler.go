@@ -352,7 +352,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
 	}
 
-	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime)
+	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime, file.GetSavePath())
 	if err == nil {
 		res.Callback = apiURL
 		res.Key = uploadSession.Key
@@ -375,13 +375,7 @@ func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) 
 	}, nil
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, keyTime string) (serializer.UploadCredential, error) {
-	// 读取上下文中生成的存储路径
-	savePath, ok := ctx.Value(fsctx.SavePathCtx).(string)
-	if !ok {
-		return serializer.UploadCredential{}, errors.New("无法获取存储路径")
-	}
-
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, keyTime string, savePath string) (serializer.UploadCredential, error) {
 	// 编码上传策略
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
