@@ -159,25 +159,10 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file fsctx.
 // CreateUploadSession 创建上传会话
 func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileStream) (*serializer.UploadCredential, error) {
 	// 获取相关有效期设置
-	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 	callBackSessionTTL := model.GetIntSetting("upload_session_timeout", 86400)
 
 	callbackKey := uuid.Must(uuid.NewV4()).String()
 	fileSize := file.Size
-
-	// 创建占位的文件，同时校验文件信息
-	file.Mode = fsctx.Nop
-	if callbackKey != "" {
-		file.UploadSessionID = &callbackKey
-	}
-
-	fs.Use("BeforeUpload", HookValidateFile)
-	fs.Use("AfterUpload", HookClearFileHeaderSize)
-	// TODO: 只有本机策略才添加文件
-	fs.Use("AfterUpload", GenericAfterUpload)
-	if err := fs.Upload(ctx, file); err != nil {
-		return nil, err
-	}
 
 	uploadSession := &serializer.UploadSession{
 		Key:          callbackKey,
@@ -191,9 +176,30 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	}
 
 	// 获取上传凭证
-	credential, err := fs.Handler.Token(ctx, int64(credentialTTL), uploadSession, file)
+	credential, err := fs.Handler.Token(ctx, int64(callBackSessionTTL), uploadSession, file)
 	if err != nil {
-		return nil, serializer.NewError(serializer.CodeEncryptError, "无法获取上传凭证", err)
+		return nil, err
+	}
+
+	// 创建占位的文件，同时校验文件信息
+	file.Mode = fsctx.Nop
+	if callbackKey != "" {
+		file.UploadSessionID = &callbackKey
+	}
+
+	fs.Use("BeforeUpload", HookValidateFile)
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("BeforeUpload", HookValidateCapacityWithoutIncrease)
+		fs.Use("AfterUpload", HookClearFileHeaderSize)
+	} else {
+		fs.Use("BeforeUpload", HookValidateCapacity)
+		fs.Use("AfterValidateFailed", HookGiveBackCapacity)
+		fs.Use("AfterUploadFailed", HookGiveBackCapacity)
+	}
+
+	fs.Use("AfterUpload", GenericAfterUpload)
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
 	}
 
 	// 创建回调会话
@@ -209,7 +215,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	// 补全上传凭证其他信息
 	credential.Expires = time.Now().Add(time.Duration(callBackSessionTTL) * time.Second).Unix()
 
-	return &credential, nil
+	return credential, nil
 }
 
 // UploadFromStream 从文件流上传文件

@@ -219,14 +219,14 @@ func (policy *Policy) IsTransitUpload(size uint64) bool {
 	return policy.Type == "local"
 }
 
-// IsPathGenerateNeeded 返回此策略是否需要在生成上传凭证时生成存储路径
-func (policy *Policy) IsPathGenerateNeeded() bool {
-	return policy.Type != "remote"
-}
-
 // IsThumbGenerateNeeded 返回此策略是否需要在上传后生成缩略图
 func (policy *Policy) IsThumbGenerateNeeded() bool {
 	return policy.Type == "local"
+}
+
+// IsUploadPlaceholderWithSize 返回此策略创建上传会话时是否需要预留空间
+func (policy *Policy) IsUploadPlaceholderWithSize() bool {
+	return policy.Type == "remote"
 }
 
 // CanStructureBeListed 返回存储策略是否能被前台列物理目录

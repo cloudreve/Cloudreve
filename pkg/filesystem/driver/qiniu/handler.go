@@ -274,7 +274,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64)
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/qiniu/" + uploadSession.Key)
@@ -299,12 +299,12 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 }
 
 // getUploadCredential 签名上传策略
-func (handler Driver) getUploadCredential(ctx context.Context, policy storage.PutPolicy, TTL int64) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy storage.PutPolicy, TTL int64) (*serializer.UploadCredential, error) {
 	policy.Expires = uint64(TTL)
 	mac := qbox.NewMac(handler.Policy.AccessKey, handler.Policy.SecretKey)
 	upToken := policy.UploadToken(mac)
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Token: upToken,
 	}, nil
 }

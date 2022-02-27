@@ -398,7 +398,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
@@ -429,13 +429,13 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, savePath)
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (*serializer.UploadCredential, error) {
 	// 处理回调策略
 	callbackPolicyEncoded := ""
 	if callback.CallbackURL != "" {
 		callbackPolicyJSON, err := json.Marshal(callback)
 		if err != nil {
-			return serializer.UploadCredential{}, err
+			return nil, err
 		}
 		callbackPolicyEncoded = base64.StdEncoding.EncodeToString(callbackPolicyJSON)
 		policy.Conditions = append(policy.Conditions, map[string]string{"callback": callbackPolicyEncoded})
@@ -444,7 +444,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	// 编码上传策略
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
 
@@ -452,11 +452,11 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	hmacSign := hmac.New(sha1.New, []byte(handler.Policy.SecretKey))
 	_, err = io.WriteString(hmacSign, policyEncoded)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	signature := base64.StdEncoding.EncodeToString(hmacSign.Sum(nil))
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Policy:    fmt.Sprintf("%s:%s", callbackPolicyEncoded, policyEncoded),
 		Path:      savePath,
 		AccessKey: handler.Policy.AccessKey,

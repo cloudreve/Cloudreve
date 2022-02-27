@@ -12,7 +12,9 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -48,6 +50,7 @@ func (service *CreateUploadSessionService) Create(ctx context.Context, c *gin.Co
 		Size:        service.Size,
 		Name:        service.Name,
 		VirtualPath: service.Path,
+		File:        ioutil.NopCloser(strings.NewReader("")),
 	}
 	if service.LastModified > 0 {
 		lastModified := time.UnixMilli(service.LastModified)
@@ -132,7 +135,7 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 	}
 
 	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
-	if err != nil || fileSize == 0 || (expectedLength != fileSize) {
+	if err != nil || (expectedLength != fileSize) {
 		return serializer.Err(
 			serializer.CodeInvalidContentLength,
 			fmt.Sprintf("Invalid Content-Length (expected: %d)", expectedLength),

@@ -179,16 +179,9 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 	for policyID, toBeDeletedFiles := range files {
 		// 列举出需要物理删除的文件的物理路径
 		sourceNamesAll := make([]string, 0, len(toBeDeletedFiles))
-		sourceNamesDeleted := make([]string, 0, len(toBeDeletedFiles))
-		sourceNamesTryDeleted := make([]string, 0, len(toBeDeletedFiles))
 
 		for i := 0; i < len(toBeDeletedFiles); i++ {
 			sourceNamesAll = append(sourceNamesAll, toBeDeletedFiles[i].SourceName)
-			if !(toBeDeletedFiles[i].UploadSessionID != nil && toBeDeletedFiles[i].Size == 0) {
-				sourceNamesDeleted = append(sourceNamesDeleted, toBeDeletedFiles[i].SourceName)
-			} else {
-				sourceNamesTryDeleted = append(sourceNamesTryDeleted, toBeDeletedFiles[i].SourceName)
-			}
 
 			if toBeDeletedFiles[i].UploadSessionID != nil {
 				if session, ok := cache.Get(UploadSessionCachePrefix + *toBeDeletedFiles[i].UploadSessionID); ok {
@@ -212,11 +205,8 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		}
 
 		// 执行删除
-		failedFile, _ := fs.Handler.Delete(ctx, sourceNamesDeleted)
+		failedFile, _ := fs.Handler.Delete(ctx, sourceNamesAll)
 		failed[policyID] = failedFile
-
-		// 尝试删除上传会话中大小为0的占位文件。如果失败也忽略
-		fs.Handler.Delete(ctx, sourceNamesTryDeleted)
 	}
 
 	return failed

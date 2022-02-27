@@ -25,6 +25,23 @@ type Driver struct {
 	Client       request.Client
 	Policy       *model.Policy
 	AuthInstance auth.Auth
+
+	client Client
+}
+
+// NewDriver initializes a new Driver from policy
+func NewDriver(policy *model.Policy) (*Driver, error) {
+	client, err := NewClient(policy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Driver{
+		Policy:       policy,
+		Client:       request.NewClient(),
+		AuthInstance: auth.HMACAuth{[]byte(policy.SecretKey)},
+		client:       client,
+	}, nil
 }
 
 // List 列取文件
@@ -305,22 +322,30 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
-	// 生成回调地址
-	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + uploadSession.Key)
-	apiURL := siteURL.ResolveReference(apiBaseURI)
-
-	// 生成上传策略
-	policy := serializer.UploadPolicy{
-		SavePath:         handler.Policy.DirNameRule,
-		FileName:         handler.Policy.FileNameRule,
-		AutoRename:       handler.Policy.AutoRename,
-		MaxSize:          handler.Policy.MaxSize,
-		AllowedExtension: handler.Policy.OptionsSerialized.FileType,
-		CallbackURL:      apiURL.String(),
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	if err := handler.client.CreateUploadSession(uploadSession, ttl); err != nil {
+		return nil, err
 	}
-	return handler.getUploadCredential(ctx, policy, ttl)
+
+	return &serializer.UploadCredential{
+		SessionID: uploadSession.Key,
+		ChunkSize: handler.Policy.OptionsSerialized.ChunkSize,
+	}, nil
+	//// 生成回调地址
+	//siteURL := model.GetSiteURL()
+	//apiBaseURI, _ := url.Parse("/api/v3/callback/remote/" + uploadSession.Key)
+	//apiURL := siteURL.ResolveReference(apiBaseURI)
+	//
+	//// 生成上传策略
+	//policy := serializer.UploadPolicy{
+	//	SavePath:         handler.Policy.DirNameRule,
+	//	FileName:         handler.Policy.FileNameRule,
+	//	AutoRename:       handler.Policy.AutoRename,
+	//	MaxSize:          handler.Policy.MaxSize,
+	//	AllowedExtension: handler.Policy.OptionsSerialized.FileType,
+	//	CallbackURL:      apiURL.String(),
+	//}
+	//return handler.getUploadCredential(ctx, policy, ttl)
 }
 
 func (handler Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {

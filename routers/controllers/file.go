@@ -343,8 +343,8 @@ func FileUpload(c *gin.Context) {
 	//})
 }
 
-// DeleteUploadCredential 删除上传会话
-func DeleteUploadCredential(c *gin.Context) {
+// DeleteUploadSession 删除上传会话
+func DeleteUploadSession(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -358,8 +358,8 @@ func DeleteUploadCredential(c *gin.Context) {
 	}
 }
 
-// DeleteAllCredential 删除全部上传会话
-func DeleteAllCredential(c *gin.Context) {
+// DeleteAllUploadSession 删除全部上传会话
+func DeleteAllUploadSession(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -368,8 +368,8 @@ func DeleteAllCredential(c *gin.Context) {
 	c.JSON(200, res)
 }
 
-// GetUploadCredential 创建上传会话
-func GetUploadCredential(c *gin.Context) {
+// GetUploadSession 创建上传会话
+func GetUploadSession(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

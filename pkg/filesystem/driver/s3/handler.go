@@ -325,7 +325,7 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/s3/" + uploadSession.Key)
@@ -378,7 +378,7 @@ func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) 
 
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback *url.URL, savePath string) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback *url.URL, savePath string) (*serializer.UploadCredential, error) {
 
 	longDate := time.Now().UTC().Format("20060102T150405Z")
 	shortDate := time.Now().UTC().Format("20060102")
@@ -390,7 +390,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	// 编码上传策略
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
 
@@ -401,7 +401,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	signature = getHMAC(signature, []byte("aws4_request"))
 	signature = getHMAC(signature, []byte(policyEncoded))
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Policy:    policyEncoded,
 		Callback:  callback.String(),
 		Token:     hex.EncodeToString(signature),

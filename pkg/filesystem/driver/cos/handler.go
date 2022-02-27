@@ -326,7 +326,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/cos/" + uploadSession.Key)
@@ -383,11 +383,11 @@ func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) 
 	}, nil
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, keyTime string, savePath string) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, keyTime string, savePath string) (*serializer.UploadCredential, error) {
 	// 编码上传策略
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
 
@@ -395,14 +395,14 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	hmacSign := hmac.New(sha1.New, []byte(handler.Policy.SecretKey))
 	_, err = io.WriteString(hmacSign, keyTime)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	signKey := fmt.Sprintf("%x", hmacSign.Sum(nil))
 
 	sha1Sign := sha1.New()
 	_, err = sha1Sign.Write(policyJSON)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	stringToSign := fmt.Sprintf("%x", sha1Sign.Sum(nil))
 
@@ -410,11 +410,11 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	hmacFinalSign := hmac.New(sha1.New, []byte(signKey))
 	_, err = hmacFinalSign.Write([]byte(stringToSign))
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	signature := hmacFinalSign.Sum(nil)
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Policy:    policyEncoded,
 		Path:      savePath,
 		AccessKey: handler.Policy.AccessKey,

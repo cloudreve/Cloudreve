@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
@@ -138,12 +137,12 @@ func (fs *FileSystem) DispatchHandler() error {
 		}
 		return nil
 	case "remote":
-		fs.Handler = remote.Driver{
-			Policy:       currentPolicy,
-			Client:       request.NewClient(),
-			AuthInstance: auth.HMACAuth{[]byte(currentPolicy.SecretKey)},
+		handler, err := remote.NewDriver(currentPolicy)
+		if err != nil {
+			return err
 		}
-		return nil
+
+		fs.Handler = handler
 	case "qiniu":
 		fs.Handler = qiniu.Driver{
 			Policy: currentPolicy,
@@ -186,6 +185,8 @@ func (fs *FileSystem) DispatchHandler() error {
 	default:
 		return ErrUnknownPolicyType
 	}
+
+	return nil
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统
@@ -214,7 +215,6 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 
 	// 重新指向上传策略
 	fs.Policy = &callbackSession.Policy
-	fs.User.Policy = policy
 	err = fs.DispatchHandler()
 
 	return fs, err

@@ -47,8 +47,8 @@ func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64
 	return "", ErrNotImplemented
 }
 
-func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
-	return serializer.UploadCredential{}, ErrNotImplemented
+func (d *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	return nil, ErrNotImplemented
 }
 
 func (d *Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {

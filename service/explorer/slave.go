@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -87,9 +88,7 @@ func (service *SlaveDownloadService) ServeFile(ctx context.Context, c *gin.Conte
 	// 发送文件
 	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, time.Now(), rs)
 
-	return serializer.Response{
-		Code: 0,
-	}
+	return serializer.Response{}
 }
 
 // Delete 通过签名的URL删除从机文件
@@ -114,7 +113,7 @@ func (service *SlaveFilesService) Delete(ctx context.Context, c *gin.Context) se
 			Error: err.Error(),
 		}
 	}
-	return serializer.Response{Code: 0}
+	return serializer.Response{}
 }
 
 // Thumb 通过签名URL获取从机文件缩略图
@@ -142,7 +141,7 @@ func (service *SlaveFileService) Thumb(ctx context.Context, c *gin.Context) seri
 	defer resp.Content.Close()
 	http.ServeContent(c.Writer, c.Request, "thumb.png", time.Now(), resp.Content)
 
-	return serializer.Response{Code: 0}
+	return serializer.Response{}
 }
 
 // CreateTransferTask 创建从机文件转存任务
@@ -163,4 +162,24 @@ func CreateTransferTask(c *gin.Context, req *serializer.SlaveTransferReq) serial
 	}
 
 	return serializer.ParamErr("未知的主机节点ID", nil)
+}
+
+// SlaveListService 从机上传会话服务
+type SlaveCreateUploadSessionService struct {
+	Session serializer.UploadSession `json:"session" binding:"required"`
+	TTL     int64                    `json:"ttl"`
+}
+
+// Create 从机创建上传会话
+func (service *SlaveCreateUploadSessionService) Create(ctx context.Context, c *gin.Context) serializer.Response {
+	err := cache.Set(
+		filesystem.UploadSessionCachePrefix+service.Session.Key,
+		service.Session,
+		int(service.TTL),
+	)
+	if err != nil {
+		return serializer.Err(serializer.CodeCacheOperation, "Failed to create upload session in slave node", err)
+	}
+
+	return serializer.Response{}
 }

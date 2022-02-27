@@ -223,12 +223,12 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 }
 
 // Token 获取上传会话URL
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	fileInfo := file.Info()
 
 	// 如果小于4MB，则由服务端中转
 	if fileInfo.Size <= SmallFileSize {
-		return serializer.UploadCredential{}, nil
+		return nil, nil
 	}
 
 	// 生成回调地址
@@ -238,13 +238,13 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 
 	uploadURL, err := handler.Client.CreateUploadSession(ctx, fileInfo.SavePath, WithConflictBehavior("fail"))
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 
 	// 监控回调及上传
 	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, fileInfo.SavePath, fileInfo.Size, ttl)
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Policy: uploadURL,
 		Token:  apiURL.String(),
 	}, nil

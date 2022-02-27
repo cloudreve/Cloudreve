@@ -90,6 +90,21 @@ func SlaveUpload(c *gin.Context) {
 	})
 }
 
+// SlaveGetUploadSession 从机创建上传会话
+func SlaveGetUploadSession(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.SlaveCreateUploadSessionService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // SlaveDownload 从机文件下载,此请求返回的HTTP状态码不全为200
 func SlaveDownload(c *gin.Context) {
 	// 创建上下文

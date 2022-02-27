@@ -310,7 +310,7 @@ func (handler Driver) signURL(ctx context.Context, path *url.URL, TTL int64) (st
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	// 检查文件大小
 
 	// 生成回调地址
@@ -340,11 +340,11 @@ func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer
 	return nil
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy) (serializer.UploadCredential, error) {
+func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy) (*serializer.UploadCredential, error) {
 	// 生成上传策略
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
-		return serializer.UploadCredential{}, err
+		return nil, err
 	}
 	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
 
@@ -352,7 +352,7 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	elements := []string{"POST", "/" + handler.Policy.BucketName, policyEncoded}
 	signStr := handler.Sign(ctx, elements)
 
-	return serializer.UploadCredential{
+	return &serializer.UploadCredential{
 		Policy: policyEncoded,
 		Token:  signStr,
 	}, nil

@@ -254,8 +254,8 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error) {
-	return serializer.UploadCredential{
+func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	return &serializer.UploadCredential{
 		SessionID: uploadSession.Key,
 		ChunkSize: handler.Policy.OptionsSerialized.ChunkSize,
 	}, nil

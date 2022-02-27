@@ -47,6 +47,8 @@ func InitSlaveRouter() *gin.Engine {
 		v3.POST("heartbeat", controllers.SlaveHeartbeat)
 		// 上传
 		v3.POST("upload", controllers.SlaveUpload)
+		// 创建上传会话上传
+		v3.PUT("upload", controllers.SlaveGetUploadSession)
 		// 下载
 		v3.GET("download/:speed/:path/:name", controllers.SlaveDownload)
 		// 预览 / 外链
@@ -510,11 +512,11 @@ func InitMasterRouter() *gin.Engine {
 					// 文件上传
 					upload.POST(":sessionId/:index", controllers.FileUpload)
 					// 创建上传会话
-					upload.PUT("", controllers.GetUploadCredential)
+					upload.PUT("", controllers.GetUploadSession)
 					// 删除给定上传会话
-					upload.DELETE(":sessionId", controllers.DeleteUploadCredential)
+					upload.DELETE(":sessionId", controllers.DeleteUploadSession)
 					// 删除全部上传会话
-					upload.DELETE("", controllers.DeleteAllCredential)
+					upload.DELETE("", controllers.DeleteAllUploadSession)
 				}
 				// 更新文件
 				file.PUT("update/:id", controllers.PutContent)

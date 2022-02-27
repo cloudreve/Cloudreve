@@ -30,7 +30,7 @@ type Handler interface {
 	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error)
 
 	// Token 获取有效期为ttl的上传凭证和签名
-	Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (serializer.UploadCredential, error)
+	Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error)
 
 	// CancelToken 取消已经创建的有状态上传凭证
 	CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error
