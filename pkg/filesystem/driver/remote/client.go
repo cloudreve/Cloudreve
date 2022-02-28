@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	basePath = "/api/v3/slave"
+	basePath        = "/api/v3/slave"
+	OverwriteHeader = auth.CrHeaderPrefix + "Overwrite"
 )
 
 // Client to operate remote slave server
@@ -79,19 +80,16 @@ func (c *remoteClient) CreateUploadSession(ctx context.Context, session *seriali
 }
 
 func (c *remoteClient) GetUploadURL(ttl int64, sessionID string) (string, string, error) {
-	base, err := url.Parse(c.policy.BaseURL)
+	base, err := url.Parse(c.policy.Server)
 	if err != nil {
 		return "", "", err
 	}
 
-	base.Path = path.Join(base.Path, "upload", sessionID)
-
+	base.Path = path.Join(base.Path, basePath, "upload", sessionID)
 	req, err := http.NewRequest("POST", base.String(), nil)
 	if err != nil {
 		return "", "", err
 	}
-
-	req.Header["X-Cr-Overwrite"] = []string{"true"}
 
 	req = auth.SignRequest(c.authInstance, req, ttl)
 	return req.URL.String(), req.Header["Authorization"][0], nil

@@ -5,9 +5,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
 	"github.com/cloudreve/Cloudreve/v3/service/aria2"
@@ -20,74 +18,87 @@ import (
 func SlaveUpload(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
-	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	defer cancel()
 
-	// 创建匿名文件系统
-	fs, err := filesystem.NewAnonymousFileSystem()
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-		return
-	}
-	fs.Handler = local.Driver{}
-
-	// 从请求中取得上传策略
-	uploadPolicyRaw := c.GetHeader("X-Cr-Policy")
-	if uploadPolicyRaw == "" {
-		c.JSON(200, serializer.ParamErr("未指定上传策略", nil))
-		return
-	}
-
-	// 解析上传策略
-	uploadPolicy, err := serializer.DecodeUploadPolicy(uploadPolicyRaw)
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("上传策略格式有误", err))
-		return
-	}
-	ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, *uploadPolicy)
-
-	// 取得文件大小
-	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
+	var service explorer.UploadService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.SlaveUpload(ctx, c)
+		c.JSON(200, res)
+		request.BlackHole(c.Request.Body)
+	} else {
 		c.JSON(200, ErrorResponse(err))
-		return
 	}
 
-	// 解码文件名和路径
-	fileName, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-FileName"))
-	if err != nil {
-		c.JSON(200, ErrorResponse(err))
-		return
-	}
-
-	fileData := fsctx.FileStream{
-		MIMEType: c.Request.Header.Get("Content-Type"),
-		File:     c.Request.Body,
-		Name:     fileName,
-		Size:     fileSize,
-	}
-
-	// 给文件系统分配钩子
-	fs.Use("BeforeUpload", filesystem.HookSlaveUploadValidate)
-	fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
-	fs.Use("AfterUpload", filesystem.SlaveAfterUpload)
-	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-
-	//// 是否允许覆盖
-	//if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
-	//	fileData.Mode = fsctx.Create
+	//// 创建上下文
+	//ctx, cancel := context.WithCancel(context.Background())
+	//ctx = context.WithValue(ctx, fsctx.GinCtx, c)
+	//defer cancel()
+	//
+	//// 创建匿名文件系统
+	//fs, err := filesystem.NewAnonymousFileSystem()
+	//if err != nil {
+	//	c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
+	//	return
 	//}
-
-	// 执行上传
-	err = fs.Upload(ctx, &fileData)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
-		return
-	}
-
-	c.JSON(200, serializer.Response{
-		Code: 0,
-	})
+	//fs.Handler = local.Driver{}
+	//
+	//// 从请求中取得上传策略
+	//uploadPolicyRaw := c.GetHeader("X-Cr-Policy")
+	//if uploadPolicyRaw == "" {
+	//	c.JSON(200, serializer.ParamErr("未指定上传策略", nil))
+	//	return
+	//}
+	//
+	//// 解析上传策略
+	//uploadPolicy, err := serializer.DecodeUploadPolicy(uploadPolicyRaw)
+	//if err != nil {
+	//	c.JSON(200, serializer.ParamErr("上传策略格式有误", err))
+	//	return
+	//}
+	//ctx = context.WithValue(ctx, fsctx.UploadPolicyCtx, *uploadPolicy)
+	//
+	//// 取得文件大小
+	//fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
+	//if err != nil {
+	//	c.JSON(200, ErrorResponse(err))
+	//	return
+	//}
+	//
+	//// 解码文件名和路径
+	//fileName, err := url.QueryUnescape(c.Request.Header.Get("X-Cr-FileName"))
+	//if err != nil {
+	//	c.JSON(200, ErrorResponse(err))
+	//	return
+	//}
+	//
+	//fileData := fsctx.FileStream{
+	//	MIMEType: c.Request.Header.Get("Content-Type"),
+	//	File:     c.Request.Body,
+	//	Name:     fileName,
+	//	Size:     fileSize,
+	//}
+	//
+	//// 给文件系统分配钩子
+	//fs.Use("BeforeUpload", filesystem.HookSlaveUploadValidate)
+	//fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
+	//fs.Use("AfterUpload", filesystem.SlaveAfterUpload)
+	//fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
+	//
+	////// 是否允许覆盖
+	////if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
+	////	fileData.Mode = fsctx.Create
+	////}
+	//
+	//// 执行上传
+	//err = fs.LocalUpload(ctx, &fileData)
+	//if err != nil {
+	//	c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
+	//	return
+	//}
+	//
+	//c.JSON(200, serializer.Response{
+	//	Code: 0,
+	//})
 }
 
 // SlaveGetUploadSession 从机创建上传会话

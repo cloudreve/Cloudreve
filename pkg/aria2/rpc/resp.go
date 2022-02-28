@@ -11,7 +11,7 @@ type StatusInfo struct {
 	UploadLength    string     `json:"uploadLength"`    // Uploaded length of the download in bytes.
 	BitField        string     `json:"bitfield"`        // Hexadecimal representation of the download progress. The highest bit corresponds to the piece at index 0. Any set bits indicate loaded pieces, while unset bits indicate not yet loaded and/or missing pieces. Any overflow bits at the end are set to zero. When the download was not started yet, this key will not be included in the response.
 	DownloadSpeed   string     `json:"downloadSpeed"`   // Download speed of this download measured in bytes/sec.
-	UploadSpeed     string     `json:"uploadSpeed"`     // Upload speed of this download measured in bytes/sec.
+	UploadSpeed     string     `json:"uploadSpeed"`     // LocalUpload speed of this download measured in bytes/sec.
 	InfoHash        string     `json:"infoHash"`        // InfoHash. BitTorrent only.
 	NumSeeders      string     `json:"numSeeders"`      // The number of seeders aria2 has connected to. BitTorrent only.
 	Seeder          string     `json:"seeder"`          // true if the local endpoint is a seeder. Otherwise false. BitTorrent only.
@@ -60,7 +60,7 @@ type PeerInfo struct {
 	AmChoking     string `json:"amChoking"`     // true if aria2 is choking the peer. Otherwise false.
 	PeerChoking   string `json:"peerChoking"`   // true if the peer is choking aria2. Otherwise false.
 	DownloadSpeed string `json:"downloadSpeed"` // Download speed (byte/sec) that this client obtains from the peer.
-	UploadSpeed   string `json:"uploadSpeed"`   // Upload speed(byte/sec) that this client uploads to the peer.
+	UploadSpeed   string `json:"uploadSpeed"`   // LocalUpload speed(byte/sec) that this client uploads to the peer.
 	Seeder        string `json:"seeder"`        // true if this peer is a seeder. Otherwise false.
 }
 

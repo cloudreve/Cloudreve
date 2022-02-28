@@ -23,6 +23,8 @@ var (
 	ErrExpired           = serializer.NewError(serializer.CodeSignExpired, "签名已过期", nil)
 )
 
+const CrHeaderPrefix = "X-Cr-"
+
 // General 通用的认证接口
 var General Auth
 
@@ -69,7 +71,7 @@ func CheckRequest(instance Auth, r *http.Request) error {
 func getSignContent(r *http.Request) (rawSignString string) {
 	// 读取所有body正文
 	var body = []byte{}
-	if strings.Contains(r.URL.Path, "/api/v3/slave/upload/") {
+	if !strings.Contains(r.URL.Path, "/api/v3/slave/upload/") {
 		if r.Body != nil {
 			body, _ = ioutil.ReadAll(r.Body)
 			_ = r.Body.Close()
@@ -80,7 +82,7 @@ func getSignContent(r *http.Request) (rawSignString string) {
 	// 决定要签名的header
 	var signedHeader []string
 	for k, _ := range r.Header {
-		if strings.HasPrefix(k, "X-Cr-") && k != "X-Cr-Filename" {
+		if strings.HasPrefix(k, CrHeaderPrefix) && k != CrHeaderPrefix+"Filename" {
 			signedHeader = append(signedHeader, fmt.Sprintf("%s=%s", k, r.Header.Get(k)))
 		}
 	}

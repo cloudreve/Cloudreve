@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -50,31 +51,6 @@ func (fs *FileSystem) Trigger(ctx context.Context, name string, file fsctx.FileH
 			}
 		}
 	}
-	return nil
-}
-
-// HookSlaveUploadValidate Slave模式下对文件上传的一系列验证
-func HookSlaveUploadValidate(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
-	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
-	fileInfo := file.Info()
-
-	// 验证单文件尺寸
-	if policy.MaxSize > 0 {
-		if fileInfo.Size > policy.MaxSize {
-			return ErrFileSizeTooBig
-		}
-	}
-
-	// 验证文件名
-	if !fs.ValidateLegalName(ctx, fileInfo.FileName) {
-		return ErrIllegalObjectName
-	}
-
-	// 验证扩展名
-	if len(policy.AllowedExtension) > 0 && !IsInExtensionList(policy.AllowedExtension, fileInfo.FileName) {
-		return ErrFileExtensionNotAllowed
-	}
-
 	return nil
 }
 
@@ -151,7 +127,7 @@ func HookCleanFileContent(ctx context.Context, fs *FileSystem, file fsctx.FileHe
 		File:     ioutil.NopCloser(strings.NewReader("")),
 		SavePath: file.Info().SavePath,
 		Size:     0,
-		Model:    fsctx.Overwrite,
+		Mode:     fsctx.Overwrite,
 	})
 }
 
@@ -203,6 +179,7 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 
 // SlaveAfterUpload Slave模式下上传完成钩子
 func SlaveAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+	return errors.New("")
 	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
 	fileInfo := fileHeader.Info()
 
@@ -287,10 +264,8 @@ func HookClearFileHeaderSize(ctx context.Context, fs *FileSystem, fileHeader fsc
 // HookTruncateFileTo 将物理文件截断至 size
 func HookTruncateFileTo(size uint64) Hook {
 	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-		if fs.Policy.Type == "local" {
-			if driver, ok := fs.Handler.(local.Driver); ok {
-				return driver.Truncate(ctx, fileHeader.Info().SavePath, size)
-			}
+		if handler, ok := fs.Handler.(local.Driver); ok {
+			return handler.Truncate(ctx, fileHeader.Info().SavePath, size)
 		}
 
 		return nil

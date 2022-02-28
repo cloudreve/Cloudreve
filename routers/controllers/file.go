@@ -289,7 +289,7 @@ func FileUpload(c *gin.Context) {
 
 	var service explorer.UploadService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Upload(ctx, c)
+		res := service.LocalUpload(ctx, c)
 		c.JSON(200, res)
 		request.BlackHole(c.Request.Body)
 	} else {

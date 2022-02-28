@@ -374,7 +374,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		MIMEType: c.Request.Header.Get("Content-Type"),
 		File:     c.Request.Body,
 		Size:     fileSize,
-		Model:    fsctx.Overwrite,
+		Mode:     fsctx.Overwrite,
 	}
 
 	// 创建文件系统

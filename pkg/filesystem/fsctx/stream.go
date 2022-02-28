@@ -10,8 +10,8 @@ type WriteMode int
 const (
 	Overwrite WriteMode = 0x00001
 	// Append 只适用于本地策略
-	Append = 0x00002
-	Nop    = 0x00004
+	Append WriteMode = 0x00002
+	Nop    WriteMode = 0x00004
 )
 
 type UploadTaskInfo struct {
