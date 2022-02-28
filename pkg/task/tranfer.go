@@ -123,11 +123,10 @@ func (job *TransferTask) Do() {
 				Size:        job.TaskProps.SrcSizes[file],
 				Name:        path.Base(dst),
 				VirtualPath: path.Dir(dst),
-				Mode:        fsctx.Create,
 			})
 		} else {
 			// 主机节点中转
-			err = fs.UploadFromPath(context.Background(), file, dst, true, fsctx.Create)
+			err = fs.UploadFromPath(context.Background(), file, dst, true, 0)
 		}
 
 		if err != nil {

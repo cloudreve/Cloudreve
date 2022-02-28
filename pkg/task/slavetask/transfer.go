@@ -119,7 +119,6 @@ func (job *TransferTask) Do() {
 
 	err = fs.Handler.Put(context.Background(), &fsctx.FileStream{
 		File:     file,
-		Mode:     fsctx.Create,
 		SavePath: job.Req.Dst,
 		Size:     uint64(size),
 	})

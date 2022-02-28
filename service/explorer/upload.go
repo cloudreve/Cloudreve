@@ -148,7 +148,7 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 		Name:         session.Name,
 		VirtualPath:  session.VirtualPath,
 		SavePath:     session.SavePath,
-		Mode:         fsctx.Append,
+		Mode:         fsctx.Append | fsctx.Overwrite,
 		AppendStart:  chunkSize * uint64(index),
 		Model:        file,
 		LastModified: session.LastModified,

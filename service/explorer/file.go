@@ -65,7 +65,6 @@ func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
 		Size:        0,
 		VirtualPath: path.Dir(service.Path),
 		Name:        path.Base(service.Path),
-		Mode:        fsctx.Create,
 	})
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
@@ -375,6 +374,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		MIMEType: c.Request.Header.Get("Content-Type"),
 		File:     c.Request.Body,
 		Size:     fileSize,
+		Model:    fsctx.Overwrite,
 	}
 
 	// 创建文件系统

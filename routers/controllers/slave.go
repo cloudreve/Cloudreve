@@ -73,10 +73,10 @@ func SlaveUpload(c *gin.Context) {
 	fs.Use("AfterUpload", filesystem.SlaveAfterUpload)
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 
-	// 是否允许覆盖
-	if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
-		fileData.Mode = fsctx.Create
-	}
+	//// 是否允许覆盖
+	//if c.Request.Header.Get("X-Cr-Overwrite") == "false" {
+	//	fileData.Mode = fsctx.Create
+	//}
 
 	// 执行上传
 	err = fs.Upload(ctx, &fileData)

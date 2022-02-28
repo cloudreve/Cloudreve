@@ -51,7 +51,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 	go fs.CancelUpload(ctx, savePath, file)
 
 	// 保存文件
-	if file.Mode != fsctx.Nop {
+	if file.Mode&fsctx.Nop != fsctx.Nop {
 		err = fs.Handler.Put(ctx, file)
 		if err != nil {
 			fs.Trigger(ctx, "AfterUploadFailed", file)
@@ -73,7 +73,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		return err
 	}
 
-	if file.Mode == fsctx.Create {
+	if file.Mode&fsctx.Overwrite == 0 {
 		fileInfo := file.Info()
 		util.Log().Info(
 			"新文件PUT:%s , 大小:%d, 上传者:%s",

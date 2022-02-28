@@ -355,6 +355,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
 		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, *originFile)
+		fileData.Mode |= fsctx.Overwrite
 	} else {
 		// 给文件系统分配钩子
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
@@ -364,9 +365,6 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterUpload", filesystem.GenericAfterUpload)
 		fs.Use("AfterUpload", filesystem.HookGenerateThumb)
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-
-		// 禁止覆盖
-		fileData.Mode = fsctx.Create
 	}
 
 	// 执行上传

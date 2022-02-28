@@ -8,11 +8,10 @@ import (
 type WriteMode int
 
 const (
-	Overwrite WriteMode = iota
+	Overwrite WriteMode = 0x00001
 	// Append 只适用于本地策略
-	Append
-	Create
-	Nop
+	Append = 0x00002
+	Nop    = 0x00004
 )
 
 type UploadTaskInfo struct {

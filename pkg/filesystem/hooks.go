@@ -151,6 +151,7 @@ func HookCleanFileContent(ctx context.Context, fs *FileSystem, file fsctx.FileHe
 		File:     ioutil.NopCloser(strings.NewReader("")),
 		SavePath: file.Info().SavePath,
 		Size:     0,
+		Model:    fsctx.Overwrite,
 	})
 }
 

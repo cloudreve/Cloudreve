@@ -173,9 +173,9 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	fileName := url.QueryEscape(path.Base(fileInfo.SavePath))
 
 	// 决定是否要禁用文件覆盖
-	overwrite := "true"
-	if fileInfo.Mode != fsctx.Create {
-		overwrite = "false"
+	overwrite := "false"
+	if fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite {
+		overwrite = "true"
 	}
 
 	// 上传文件

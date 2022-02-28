@@ -308,7 +308,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 					Size:        uint64(size),
 					Name:        path.Base(dst),
 					VirtualPath: path.Dir(dst),
-					Mode:        fsctx.Create,
+					Mode:        0,
 				})
 				fileStream.Close()
 				if err != nil {

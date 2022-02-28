@@ -93,7 +93,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	dst := util.RelativePath(filepath.FromSlash(fileInfo.SavePath))
 
 	// 如果非 Overwrite，则检查是否有重名冲突
-	if fileInfo.Mode == fsctx.Create {
+	if fileInfo.Mode&fsctx.Overwrite != fsctx.Overwrite {
 		if util.Exists(dst) {
 			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
 			return errors.New("物理同名文件已存在或不可用")
@@ -115,21 +115,21 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 		err error
 	)
 
-	if fileInfo.Mode == fsctx.Append {
-		// 如果是追加模式，则直接打开文件
-		out, err = os.OpenFile(dst, os.O_APPEND|os.O_CREATE|os.O_WRONLY, Perm)
+	openMode := os.O_CREATE | os.O_RDWR
+	if fileInfo.Mode&fsctx.Append == fsctx.Append {
+		openMode |= os.O_APPEND
 	} else {
-		// 创建或覆盖目标文件
-		out, err = os.Create(dst)
+		openMode |= os.O_TRUNC
 	}
 
+	out, err = os.OpenFile(dst, openMode, Perm)
 	if err != nil {
 		util.Log().Warning("无法打开或创建文件，%s", err)
 		return err
 	}
 	defer out.Close()
 
-	if fileInfo.Mode == fsctx.Append {
+	if fileInfo.Mode&fsctx.Append == fsctx.Append {
 		stat, err := out.Stat()
 		if err != nil {
 			util.Log().Warning("无法读取文件信息，%s", err)
@@ -144,7 +144,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 				return fmt.Errorf("覆盖分片时发生错误: %w", err)
 			}
 
-			out, err = os.OpenFile(dst, os.O_APPEND|os.O_CREATE|os.O_WRONLY, Perm)
+			out, err = os.OpenFile(dst, openMode, Perm)
 			defer out.Close()
 			if err != nil {
 				util.Log().Warning("无法打开或创建文件，%s", err)

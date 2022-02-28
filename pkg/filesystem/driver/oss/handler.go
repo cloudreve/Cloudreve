@@ -237,11 +237,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
 
 	// 是否允许覆盖
-	overwrite := true
-	if fileInfo.Mode == fsctx.Create {
-		overwrite = false
-	}
-
+	overwrite := fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite
 	options := []oss.Option{
 		oss.Expires(time.Now().Add(time.Duration(credentialTTL) * time.Second)),
 		oss.ForbidOverWrite(!overwrite),
