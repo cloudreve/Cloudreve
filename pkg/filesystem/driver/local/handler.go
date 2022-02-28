@@ -136,8 +136,20 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 			return err
 		}
 
-		if uint64(stat.Size()) != fileInfo.AppendStart {
+		if uint64(stat.Size()) < fileInfo.AppendStart {
 			return errors.New("未上传完成的文件分片与预期大小不一致")
+		} else if uint64(stat.Size()) > fileInfo.AppendStart {
+			out.Close()
+			if err := handler.Truncate(ctx, dst, fileInfo.AppendStart); err != nil {
+				return fmt.Errorf("覆盖分片时发生错误: %w", err)
+			}
+
+			out, err = os.OpenFile(dst, os.O_APPEND|os.O_CREATE|os.O_WRONLY, Perm)
+			defer out.Close()
+			if err != nil {
+				util.Log().Warning("无法打开或创建文件，%s", err)
+				return err
+			}
 		}
 	}
 

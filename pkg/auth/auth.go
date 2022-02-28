@@ -64,12 +64,12 @@ func CheckRequest(instance Auth, r *http.Request) error {
 	return instance.Check(getSignContent(r), sign[0])
 }
 
-// getSignContent 签名请求 path、正文、以`X-`开头的 Header. 如果 Header 中包含 `X-Policy`，
+// getSignContent 签名请求 path、正文、以`X-`开头的 Header. 如果请求 path 为从机上传 API，
 // 则不对正文签名。返回待签名/验证的字符串
 func getSignContent(r *http.Request) (rawSignString string) {
 	// 读取所有body正文
 	var body = []byte{}
-	if _, ok := r.Header["X-Cr-Policy"]; !ok {
+	if strings.Contains(r.URL.Path, "/api/v3/slave/upload/") {
 		if r.Body != nil {
 			body, _ = ioutil.ReadAll(r.Body)
 			_ = r.Body.Close()

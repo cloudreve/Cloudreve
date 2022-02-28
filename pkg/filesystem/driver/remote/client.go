@@ -1,18 +1,26 @@
 package remote
 
 import (
+	"context"
 	"encoding/json"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"net/http"
 	"net/url"
+	"path"
 	"strings"
+)
+
+const (
+	basePath = "/api/v3/slave"
 )
 
 // Client to operate remote slave server
 type Client interface {
-	CreateUploadSession(session *serializer.UploadSession, ttl int64) error
+	CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64) error
+	GetUploadURL(ttl int64, sessionID string) (string, string, error)
 }
 
 // NewClient creates new Client from given policy
@@ -23,7 +31,7 @@ func NewClient(policy *model.Policy) (Client, error) {
 		return nil, err
 	}
 
-	base, _ := url.Parse("/api/v3/slave")
+	base, _ := url.Parse(basePath)
 	signTTL := model.GetIntSetting("slave_api_timeout", 60)
 
 	return &remoteClient{
@@ -43,7 +51,7 @@ type remoteClient struct {
 	httpClient   request.Client
 }
 
-func (c *remoteClient) CreateUploadSession(session *serializer.UploadSession, ttl int64) error {
+func (c *remoteClient) CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64) error {
 	reqBodyEncoded, err := json.Marshal(map[string]interface{}{
 		"session": session,
 		"ttl":     ttl,
@@ -57,6 +65,7 @@ func (c *remoteClient) CreateUploadSession(session *serializer.UploadSession, tt
 		"PUT",
 		"upload",
 		bodyReader,
+		request.WithContext(ctx),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
 		return err
@@ -67,4 +76,23 @@ func (c *remoteClient) CreateUploadSession(session *serializer.UploadSession, tt
 	}
 
 	return nil
+}
+
+func (c *remoteClient) GetUploadURL(ttl int64, sessionID string) (string, string, error) {
+	base, err := url.Parse(c.policy.BaseURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	base.Path = path.Join(base.Path, "upload", sessionID)
+
+	req, err := http.NewRequest("POST", base.String(), nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	req.Header["X-Cr-Overwrite"] = []string{"true"}
+
+	req = auth.SignRequest(c.authInstance, req, ttl)
+	return req.URL.String(), req.Header["Authorization"][0], nil
 }

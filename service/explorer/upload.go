@@ -66,10 +66,10 @@ func (service *CreateUploadSessionService) Create(ctx context.Context, c *gin.Co
 	}
 }
 
-// UploadService 本机策略上传服务
+// UploadService 本机及从机策略上传服务
 type UploadService struct {
 	ID    string `uri:"sessionId" binding:"required"`
-	Index int    `uri:"index" binding:"min=0"`
+	Index int    `uri:"index" form:"index" binding:"min=0"`
 }
 
 // Upload 处理本机文件分片上传
@@ -117,8 +117,7 @@ func (service *UploadService) Upload(ctx context.Context, c *gin.Context) serial
 	}
 
 	if expectedSizeStart > actualSizeStart {
-		util.Log().Warning("尝试上传覆盖分片[%d]，数据将被忽略", service.Index)
-		return serializer.Response{}
+		util.Log().Info("尝试上传覆盖分片[%d] Start=%d", service.Index, actualSizeStart)
 	}
 
 	return processChunkUpload(ctx, c, fs, &uploadSession, service.Index, file)

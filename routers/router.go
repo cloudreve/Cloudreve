@@ -46,7 +46,7 @@ func InitSlaveRouter() *gin.Engine {
 		// 接收主机心跳包
 		v3.POST("heartbeat", controllers.SlaveHeartbeat)
 		// 上传
-		v3.POST("upload", controllers.SlaveUpload)
+		v3.POST("upload/:sessionId", controllers.SlaveUpload)
 		// 创建上传会话上传
 		v3.PUT("upload", controllers.SlaveGetUploadSession)
 		// 下载

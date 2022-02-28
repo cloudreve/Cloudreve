@@ -301,7 +301,7 @@ func HookChunkUploaded(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fil
 	fileInfo := fileHeader.Info()
 
 	// 更新文件大小
-	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.Model.(*model.File).GetSize() + fileInfo.Size)
+	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.AppendStart + fileInfo.Size)
 }
 
 // HookChunkUploadFailed 单个分片上传失败后
@@ -309,7 +309,7 @@ func HookChunkUploadFailed(ctx context.Context, fs *FileSystem, fileHeader fsctx
 	fileInfo := fileHeader.Info()
 
 	// 更新文件大小
-	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.Model.(*model.File).GetSize() - fileInfo.Size)
+	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.AppendStart)
 }
 
 // HookChunkUploadFinished 分片上传结束后处理文件
