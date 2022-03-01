@@ -1,15 +1,15 @@
-name: Build and push dev-build docker image
+name: Build and push docker image
 
 on:
   push:
     tags:
       - 3.* # on push releast with tag 3.*
     branches:
-      - master
+      - master # every push on `master` branch
   workflow_dispatch: # on button click
 
 jobs:
-  dev-docker-build:
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,6 +24,7 @@ jobs:
           DOCKER_IMAGE="cloudreve/cloudreve"
           TAGS="${DOCKER_IMAGE}:latest,${DOCKER_IMAGE}:${CLOUDREVE_LATEST_VERSION}"
 
+          echo "CLOUDREVE_LATEST_VERSION:${CLOUDREVE_LATEST_VERSION}"
           echo ::set-output name=tags::${TAGS}
       - name: Setup QEMU Emulator
         uses: docker/setup-qemu-action@master
