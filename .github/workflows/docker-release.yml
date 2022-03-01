@@ -12,9 +12,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          clean: false
-          submodules: "recursive"
       - name: Setup Environments
         id: envs
         run: |
