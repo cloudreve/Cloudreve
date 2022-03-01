@@ -16,8 +16,7 @@ RUN cd ./Cloudreve/assets \
 RUN cd ./Cloudreve \
     && go get github.com/rakyll/statik \
     && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
-    && tag_name=$(git describe --tags --abbrev=0) \
-    && git checkout ${tag_name} \
+    && tag_name=$(git describe --tags) \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
     && go build -a -o cloudreve -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$tag_name' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
 
