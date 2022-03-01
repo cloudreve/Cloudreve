@@ -12,10 +12,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - run: git fetch --prune --unshallow
       - name: Setup Environments
         id: envs
         run: |
-          ls -la
           CLOUDREVE_LATEST_TAG=$(git describe --tags --abbrev=0)
           DOCKER_IMAGE="cloudreve/cloudreve"
 
