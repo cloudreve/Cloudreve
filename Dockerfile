@@ -14,7 +14,7 @@ RUN set -ex \
     && yarn run build
 
 # build backend
-FROM golang:1.15.1-alpine3.12 AS be-builder
+FROM golang:1.17.7-alpine3.12 AS be-builder
 
 ENV GO111MODULE on
 
