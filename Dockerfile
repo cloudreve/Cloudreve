@@ -9,6 +9,7 @@ RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild bi
 # build frontend
 RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 RUN cd ./Cloudreve/assets \
+    && yarn config set registry https://registry.npmjs.org  \
     && yarn install --network-timeout 1000000 \
     && yarn run build
 
