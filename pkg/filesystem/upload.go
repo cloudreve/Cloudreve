@@ -182,14 +182,15 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	}
 
 	uploadSession := &serializer.UploadSession{
-		Key:          callbackKey,
-		UID:          fs.User.ID,
-		Policy:       *fs.Policy,
-		VirtualPath:  file.VirtualPath,
-		Name:         file.Name,
-		Size:         fileSize,
-		SavePath:     file.SavePath,
-		LastModified: file.LastModified,
+		Key:            callbackKey,
+		UID:            fs.User.ID,
+		Policy:         *fs.Policy,
+		VirtualPath:    file.VirtualPath,
+		Name:           file.Name,
+		Size:           fileSize,
+		SavePath:       file.SavePath,
+		LastModified:   file.LastModified,
+		CallbackSecret: util.RandStringRunes(32),
 	}
 
 	// 获取上传凭证

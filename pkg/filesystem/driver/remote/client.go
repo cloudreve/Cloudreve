@@ -20,7 +20,9 @@ const (
 
 // Client to operate remote slave server
 type Client interface {
+	// CreateUploadSession creates remote upload session
 	CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64) error
+	// GetUploadURL signs an url for uploading file
 	GetUploadURL(ttl int64, sessionID string) (string, string, error)
 }
 

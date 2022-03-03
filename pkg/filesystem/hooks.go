@@ -2,13 +2,12 @@ package filesystem
 
 import (
 	"context"
-	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io/ioutil"
@@ -178,30 +177,30 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 }
 
 // SlaveAfterUpload Slave模式下上传完成钩子
-func SlaveAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-	return errors.New("")
-	policy := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy)
-	fileInfo := fileHeader.Info()
+func SlaveAfterUpload(session *serializer.UploadSession) Hook {
+	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+		fileInfo := fileHeader.Info()
 
-	// 构造一个model.File，用于生成缩略图
-	file := model.File{
-		Name:       fileInfo.FileName,
-		SourceName: fileInfo.SavePath,
-	}
-	fs.GenerateThumbnail(ctx, &file)
+		// 构造一个model.File，用于生成缩略图
+		file := model.File{
+			Name:       fileInfo.FileName,
+			SourceName: fileInfo.SavePath,
+		}
+		fs.GenerateThumbnail(ctx, &file)
 
-	if policy.CallbackURL == "" {
-		return nil
-	}
+		if session.Callback == "" {
+			return nil
+		}
 
-	// 发送回调请求
-	callbackBody := serializer.UploadCallback{
-		Name:       file.Name,
-		SourceName: file.SourceName,
-		PicInfo:    file.PicInfo,
-		Size:       fileInfo.Size,
+		// 发送回调请求
+		callbackBody := serializer.UploadCallback{
+			SourceName: file.SourceName,
+			PicInfo:    file.PicInfo,
+			Size:       fileInfo.Size,
+		}
+
+		return cluster.RemoteCallback(session.Callback, callbackBody)
 	}
-	return request.RemoteCallback(policy.CallbackURL, callbackBody)
 }
 
 // GenericAfterUpload 文件上传完成后，包含数据库操作

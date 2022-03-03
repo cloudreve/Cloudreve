@@ -323,7 +323,12 @@ func (handler Driver) Source(
 
 // Token 获取上传策略和认证Token
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	siteURL := model.GetSiteURL()
+	apiBaseURI, _ := url.Parse(path.Join("/api/v3/callback/remote" + uploadSession.Key + uploadSession.CallbackSecret))
+	apiURL := siteURL.ResolveReference(apiBaseURI)
+
 	// 在从机端创建上传会话
+	uploadSession.Callback = apiURL.String()
 	if err := handler.client.CreateUploadSession(ctx, uploadSession, ttl); err != nil {
 		return nil, err
 	}
@@ -331,7 +336,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	// 获取上传地址
 	uploadURL, sign, err := handler.client.GetUploadURL(ttl, uploadSession.Key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to sign upload url: %w", err)
 	}
 
 	return &serializer.UploadCredential{

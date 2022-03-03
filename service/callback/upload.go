@@ -70,7 +70,6 @@ type S3Callback struct {
 // GetBody 返回回调正文
 func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	res := serializer.UploadCallback{
-		Name:       session.Name,
 		SourceName: service.SourceName,
 		Size:       service.Size,
 	}
@@ -84,7 +83,6 @@ func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) s
 // GetBody 返回回调正文
 func (service UploadCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       service.Name,
 		SourceName: service.SourceName,
 		PicInfo:    service.PicInfo,
 		Size:       service.Size,
@@ -98,7 +96,6 @@ func (service OneDriveCallback) GetBody(session *serializer.UploadSession) seria
 		picInfo = fmt.Sprintf("%d,%d", service.Meta.Image.Width, service.Meta.Image.Height)
 	}
 	return serializer.UploadCallback{
-		Name:       session.Name,
 		SourceName: session.SavePath,
 		PicInfo:    picInfo,
 		Size:       session.Size,
@@ -108,7 +105,6 @@ func (service OneDriveCallback) GetBody(session *serializer.UploadSession) seria
 // GetBody 返回回调正文
 func (service COSCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       session.Name,
 		SourceName: session.SavePath,
 		PicInfo:    "",
 		Size:       session.Size,
@@ -118,7 +114,6 @@ func (service COSCallback) GetBody(session *serializer.UploadSession) serializer
 // GetBody 返回回调正文
 func (service S3Callback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       session.Name,
 		SourceName: session.SavePath,
 		PicInfo:    "",
 		Size:       session.Size,

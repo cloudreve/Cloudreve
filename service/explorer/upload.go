@@ -120,7 +120,7 @@ func (service *UploadService) LocalUpload(ctx context.Context, c *gin.Context) s
 		util.Log().Info("尝试上传覆盖分片[%d] Start=%d", service.Index, actualSizeStart)
 	}
 
-	return processChunkUpload(ctx, c, fs, &uploadSession, service.Index, file, fsctx.Append|fsctx.Overwrite)
+	return processChunkUpload(ctx, c, fs, &uploadSession, service.Index, file, fsctx.Append)
 }
 
 // SlaveUpload 处理从机文件分片上传
@@ -165,6 +165,11 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 		)
 	}
 
+	// 非首个分片时需要允许覆盖
+	if index > 0 {
+		mode |= fsctx.Overwrite
+	}
+
 	fileData := fsctx.FileStream{
 		MIMEType:     c.Request.Header.Get("Content-Type"),
 		File:         c.Request.Body,
@@ -193,7 +198,7 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 		}
 	} else {
 		if isLastChunk {
-			fs.Use("AfterUpload", filesystem.SlaveAfterUpload)
+			fs.Use("AfterUpload", filesystem.SlaveAfterUpload(session))
 		}
 	}
 

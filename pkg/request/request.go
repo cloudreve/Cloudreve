@@ -51,7 +51,7 @@ func NewClient(opts ...Option) Client {
 }
 
 // Request 发送HTTP请求
-func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
+func (c *HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
 	c.mu.Lock()
 	options := *c.options
