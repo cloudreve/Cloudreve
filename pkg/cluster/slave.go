@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
@@ -437,14 +438,12 @@ func RemoteCallback(url string, body serializer.UploadCallback) error {
 	}
 
 	// 解析回调服务端响应
-	resp = resp.CheckHTTPResponse(200)
-	if resp.Err != nil {
-		return serializer.NewError(serializer.CodeCallbackError, "主机服务器返回异常响应", resp.Err)
-	}
 	response, err := resp.DecodeResponse()
 	if err != nil {
-		return serializer.NewError(serializer.CodeCallbackError, "从机无法解析主机返回的响应", err)
+		msg := fmt.Sprintf("从机无法解析主机返回的响应 (StatusCode=%d)", resp.Response.StatusCode)
+		return serializer.NewError(serializer.CodeCallbackError, msg, err)
 	}
+
 	if response.Code != 0 {
 		return serializer.NewError(response.Code, response.Msg, errors.New(response.Error))
 	}

@@ -194,9 +194,7 @@ func SlaveAfterUpload(session *serializer.UploadSession) Hook {
 
 		// 发送回调请求
 		callbackBody := serializer.UploadCallback{
-			SourceName: file.SourceName,
-			PicInfo:    file.PicInfo,
-			Size:       fileInfo.Size,
+			PicInfo: file.PicInfo,
 		}
 
 		return cluster.RemoteCallback(session.Callback, callbackBody)
@@ -287,12 +285,13 @@ func HookChunkUploadFailed(ctx context.Context, fs *FileSystem, fileHeader fsctx
 	return fileInfo.Model.(*model.File).UpdateSize(fileInfo.AppendStart)
 }
 
-// HookChunkUploadFinished 分片上传结束后处理文件
-func HookChunkUploadFinished(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-	fileInfo := fileHeader.Info()
-	fileModel := fileInfo.Model.(*model.File)
-
-	return fileModel.PopChunkToFile(fileInfo.LastModified)
+// HookPopPlaceholderToFile 将占位文件提升为正式文件
+func HookPopPlaceholderToFile(picInfo string) Hook {
+	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+		fileInfo := fileHeader.Info()
+		fileModel := fileInfo.Model.(*model.File)
+		return fileModel.PopChunkToFile(fileInfo.LastModified, picInfo)
+	}
 }
 
 // HookChunkUploadFinished 分片上传结束后处理文件

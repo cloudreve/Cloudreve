@@ -299,7 +299,7 @@ func (file *File) UpdateSourceName(value string) error {
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
 }
 
-func (file *File) PopChunkToFile(lastModified *time.Time) error {
+func (file *File) PopChunkToFile(lastModified *time.Time, picInfo string) error {
 	file.UploadSessionID = nil
 	if lastModified != nil {
 		file.UpdatedAt = *lastModified
@@ -308,6 +308,7 @@ func (file *File) PopChunkToFile(lastModified *time.Time) error {
 	return DB.Model(file).UpdateColumns(map[string]interface{}{
 		"upload_session_id": file.UploadSessionID,
 		"updated_at":        file.UpdatedAt,
+		"pic_info":          picInfo,
 	}).Error
 }
 

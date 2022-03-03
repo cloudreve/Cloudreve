@@ -223,7 +223,8 @@ func InitMasterRouter() *gin.Engine {
 		{
 			// 远程策略上传回调
 			callback.POST(
-				"remote/:key",
+				"remote/:sessionID/:key",
+				middleware.UseUploadSession("remote"),
 				middleware.RemoteCallbackAuth(),
 				controllers.RemoteCallback,
 			)

@@ -23,6 +23,8 @@ import (
 
 const (
 	UploadSessionMetaKey     = "upload_session"
+	UploadSessionCtx         = "uploadSession"
+	UserCtx                  = "user"
 	UploadSessionCachePrefix = "callback_"
 )
 
@@ -47,11 +49,11 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		file.SavePath = savePath
 	}
 
-	// 处理客户端未完成上传时，关闭连接
-	go fs.CancelUpload(ctx, savePath, file)
-
 	// 保存文件
 	if file.Mode&fsctx.Nop != fsctx.Nop {
+		// 处理客户端未完成上传时，关闭连接
+		go fs.CancelUpload(ctx, savePath, file)
+
 		err = fs.Handler.Put(ctx, file)
 		if err != nil {
 			fs.Trigger(ctx, "AfterUploadFailed", file)
@@ -202,7 +204,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	// 创建回调会话
 	err = cache.Set(
 		UploadSessionCachePrefix+callbackKey,
-		uploadSession,
+		*uploadSession,
 		callBackSessionTTL,
 	)
 	if err != nil {

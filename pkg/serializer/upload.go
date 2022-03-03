@@ -51,9 +51,7 @@ type UploadSession struct {
 
 // UploadCallback 上传回调正文
 type UploadCallback struct {
-	SourceName string `json:"source_name"`
-	PicInfo    string `json:"pic_info"`
-	Size       uint64 `json:"size"`
+	PicInfo string `json:"pic_info"`
 }
 
 // GeneralUploadCallbackFailed 存储策略上传回调失败响应

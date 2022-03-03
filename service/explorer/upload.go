@@ -192,13 +192,14 @@ func processChunkUpload(ctx context.Context, c *gin.Context, fs *filesystem.File
 		fs.Use("AfterUpload", filesystem.HookChunkUploaded)
 		fs.Use("AfterValidateFailed", filesystem.HookChunkUploadFailed)
 		if isLastChunk {
-			fs.Use("AfterUpload", filesystem.HookChunkUploadFinished)
+			fs.Use("AfterUpload", filesystem.HookPopPlaceholderToFile(""))
 			fs.Use("AfterUpload", filesystem.HookGenerateThumb)
 			fs.Use("AfterUpload", filesystem.HookDeleteUploadSession(session.Key))
 		}
 	} else {
 		if isLastChunk {
 			fs.Use("AfterUpload", filesystem.SlaveAfterUpload(session))
+			fs.Use("AfterUpload", filesystem.HookDeleteUploadSession(session.Key))
 		}
 	}
 

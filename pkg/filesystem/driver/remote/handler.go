@@ -45,7 +45,7 @@ func NewDriver(policy *model.Policy) (*Driver, error) {
 }
 
 // List 列取文件
-func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
+func (handler *Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
 	var res []response.Object
 
 	reqBody := serializer.ListRequest{
@@ -87,7 +87,7 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 }
 
 // getAPIUrl 获取接口请求地址
-func (handler Driver) getAPIUrl(scope string, routes ...string) string {
+func (handler *Driver) getAPIUrl(scope string, routes ...string) string {
 	serverURL, err := url.Parse(handler.Policy.Server)
 	if err != nil {
 		return ""
@@ -113,7 +113,7 @@ func (handler Driver) getAPIUrl(scope string, routes ...string) string {
 }
 
 // Get 获取文件内容
-func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 尝试获取速度限制
 	speedLimit := 0
 	if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
@@ -150,7 +150,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	// 凭证有效期
@@ -206,7 +206,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件，及遇到的最后一个错误
-func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
+func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 封装接口请求正文
 	reqBody := serializer.RemoteDeleteRequest{
 		Files: files,
@@ -252,7 +252,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 }
 
 // Thumb 获取文件缩略图
-func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
 	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("preview_timeout", 60)
@@ -268,7 +268,7 @@ func (handler Driver) Thumb(ctx context.Context, path string) (*response.Content
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(
+func (handler *Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -322,9 +322,9 @@ func (handler Driver) Source(
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse(path.Join("/api/v3/callback/remote" + uploadSession.Key + uploadSession.CallbackSecret))
+	apiBaseURI, _ := url.Parse(path.Join("/api/v3/callback/remote", uploadSession.Key, uploadSession.CallbackSecret))
 	apiURL := siteURL.ResolveReference(apiBaseURI)
 
 	// 在从机端创建上传会话
@@ -347,7 +347,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	}, nil
 }
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
+func (handler *Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
 	policyEncoded, err := policy.EncodeUploadPolicy()
 	if err != nil {
 		return serializer.UploadCredential{}, err
@@ -371,6 +371,6 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy serializer
 }
 
 // 取消上传凭证
-func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+func (handler *Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
 	return nil
 }
