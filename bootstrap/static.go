@@ -1,20 +1,26 @@
 package bootstrap
 
 import (
+	"bufio"
+	"embed"
 	"encoding/json"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"net/http"
-	"path"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	_ "github.com/cloudreve/Cloudreve/v3/statik"
+
 	"github.com/gin-contrib/static"
-	"github.com/rakyll/statik/fs"
 )
 
 const StaticFolder = "statics"
+
+var StaticEmbed embed.FS
 
 type GinFS struct {
 	FS http.FileSystem
@@ -35,124 +41,105 @@ func (b *GinFS) Open(name string) (http.File, error) {
 
 // Exists 文件是否存在
 func (b *GinFS) Exists(prefix string, filepath string) bool {
-
 	if _, err := b.FS.Open(filepath); err != nil {
 		return false
 	}
 	return true
-
 }
 
 // InitStatic 初始化静态资源文件
 func InitStatic() {
-	var err error
-
 	if util.Exists(util.RelativePath(StaticFolder)) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
 		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
-
-		// 检查静态资源的版本
-		f, err := StaticFS.Open("version.json")
-		if err != nil {
-			util.Log().Warning("静态资源版本标识文件不存在，请重新构建或删除 statics 目录")
-			return
-		}
-
-		b, err := ioutil.ReadAll(f)
-		if err != nil {
-			util.Log().Warning("无法读取静态资源文件版本，请重新构建或删除 statics 目录")
-			return
-		}
-
-		var v staticVersion
-		if err := json.Unmarshal(b, &v); err != nil {
-			util.Log().Warning("无法解析静态资源文件版本, %s", err)
-			return
-		}
-
-		staticName := "cloudreve-frontend"
-		if conf.IsPro == "true" {
-			staticName += "-pro"
-		}
-
-		if v.Name != staticName {
-			util.Log().Warning("静态资源版本不匹配，请重新构建或删除 statics 目录")
-			return
-		}
-
-		if v.Version != conf.RequiredStaticVersion {
-			util.Log().Warning("静态资源版本不匹配 [当前 %s, 需要: %s]，请重新构建或删除 statics 目录", v.Version, conf.RequiredStaticVersion)
-			return
-		}
-
 	} else {
-		StaticFS = &GinFS{}
-		StaticFS.(*GinFS).FS, err = fs.New()
+		// 初始化静态资源
+		embedFS, err := fs.Sub(StaticEmbed, "assets/build")
 		if err != nil {
 			util.Log().Panic("无法初始化静态资源, %s", err)
 		}
+
+		StaticFS = &GinFS{}
+		StaticFS.(*GinFS).FS = http.FS(embedFS)
+	}
+	// 检查静态资源的版本
+	f, err := StaticFS.Open("version.json")
+	if err != nil {
+		util.Log().Warning("静态资源版本标识文件不存在，请重新构建或删除 statics 目录")
+		return
 	}
 
+	b, err := io.ReadAll(f)
+	if err != nil {
+		util.Log().Warning("无法读取静态资源文件版本，请重新构建或删除 statics 目录")
+		return
+	}
+
+	var v staticVersion
+	if err := json.Unmarshal(b, &v); err != nil {
+		util.Log().Warning("无法解析静态资源文件版本, %s", err)
+		return
+	}
+
+	staticName := "cloudreve-frontend"
+	if conf.IsPro == "true" {
+		staticName += "-pro"
+	}
+
+	if v.Name != staticName {
+		util.Log().Warning("静态资源版本不匹配，请重新构建或删除 statics 目录")
+		return
+	}
+
+	if v.Version != conf.RequiredStaticVersion {
+		util.Log().Warning("静态资源版本不匹配 [当前 %s, 需要: %s]，请重新构建或删除 statics 目录", v.Version, conf.RequiredStaticVersion)
+		return
+	}
 }
 
 // Eject 抽离内置静态资源
 func Eject() {
-	staticFS, err := fs.New()
+	// 初始化静态资源
+	embedFS, err := fs.Sub(StaticEmbed, "assets/build")
 	if err != nil {
 		util.Log().Panic("无法初始化静态资源, %s", err)
 	}
 
-	root, err := staticFS.Open("/")
-	if err != nil {
-		util.Log().Panic("根目录不存在, %s", err)
-	}
-
-	var walk func(relPath string, object http.File)
-	walk = func(relPath string, object http.File) {
-		stat, err := object.Stat()
+	var walk func(relPath string, d fs.DirEntry, err error) error
+	walk = func(relPath string, d fs.DirEntry, err error) error {
 		if err != nil {
-			util.Log().Error("无法获取[%s]的信息, %s, 跳过...", relPath, err)
-			return
+			return errors.Errorf("无法获取[%s]的信息, %s, 跳过...", relPath, err)
 		}
 
-		if !stat.IsDir() {
+		if !d.IsDir() {
 			// 写入文件
-			out, err := util.CreatNestedFile(util.RelativePath(StaticFolder + relPath))
+			out, err := util.CreatNestedFile(filepath.Join(util.ExecPath(), StaticFolder, relPath))
 			defer out.Close()
 
 			if err != nil {
-				util.Log().Error("无法创建文件[%s], %s, 跳过...", relPath, err)
-				return
+				return errors.Errorf("无法创建文件[%s], %s, 跳过...", relPath, err)
 			}
 
 			util.Log().Info("导出 [%s]...", relPath)
-			if _, err := io.Copy(out, object); err != nil {
-				util.Log().Error("无法写入文件[%s], %s, 跳过...", relPath, err)
-				return
+			obj, _ := embedFS.Open(relPath)
+			if _, err := io.Copy(out, bufio.NewReader(obj)); err != nil {
+				return errors.Errorf("无法写入文件[%s], %s, 跳过...", relPath, err)
 			}
 		} else {
-			// 列出目录
-			objects, err := object.Readdir(0)
-			if err != nil {
-				util.Log().Error("无法步入子目录[%s], %s, 跳过...", relPath, err)
-				return
+			// 创建目录
+			if err := os.MkdirAll(filepath.Join(util.ExecPath(), StaticFolder, relPath), 0755); err != nil {
+				return errors.Errorf("无法创建目录[%s], %s, 跳过...", relPath, err)
 			}
-
-			// 递归遍历子目录
-			for _, newObject := range objects {
-				newPath := path.Join(relPath, newObject.Name())
-				newRoot, err := staticFS.Open(newPath)
-				if err != nil {
-					util.Log().Error("无法打开对象[%s], %s, 跳过...", newPath, err)
-					continue
-				}
-				walk(newPath, newRoot)
-			}
-
+			util.Log().Info("创建目录 [%s]...", relPath)
 		}
+		return nil
 	}
 
-	util.Log().Info("开始导出内置静态资源...")
-	walk("/", root)
+	// util.Log().Info("开始导出内置静态资源...")
+	err = fs.WalkDir(embedFS, ".", walk)
+	if err != nil {
+		util.Log().Error("导出内置静态资源遇到错误：, %s", err)
+		return
+	}
 	util.Log().Info("内置静态资源导出完成")
 }
