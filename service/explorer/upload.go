@@ -7,6 +7,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -136,6 +137,8 @@ func (service *UploadService) SlaveUpload(ctx context.Context, c *gin.Context) s
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
+
+	fs.Handler = local.Driver{}
 
 	// 解析需要的参数
 	service.Index, _ = strconv.Atoi(c.Query("chunk"))

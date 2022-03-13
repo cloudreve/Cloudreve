@@ -52,14 +52,10 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
-	src, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
-	if !ok {
-		return ErrSlaveSrcPathNotExist
-	}
-
+	fileInfo := file.Info()
 	req := serializer.SlaveTransferReq{
-		Src:    src,
-		Dst:    file.Info().SavePath,
+		Src:    fileInfo.Src,
+		Dst:    fileInfo.SavePath,
 		Policy: d.policy,
 	}
 

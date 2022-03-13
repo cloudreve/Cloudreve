@@ -57,6 +57,7 @@ func NewClient(policy *model.Policy) (Client, error) {
 			request.WithEndpoint(serverURL.ResolveReference(base).String()),
 			request.WithCredential(authInstance, int64(signTTL)),
 			request.WithMasterMeta(),
+			request.WithSlaveMeta(policy.AccessKey),
 		),
 	}, nil
 }

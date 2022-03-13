@@ -219,7 +219,15 @@ func InitMasterRouter() *gin.Engine {
 			// 事件通知
 			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
 			// 上传
-			slave.POST("upload", controllers.SlaveUpload)
+			upload := slave.Group("upload")
+			{
+				// 上传分片
+				upload.POST(":sessionId", controllers.SlaveUpload)
+				// 创建上传会话上传
+				upload.PUT("", controllers.SlaveGetUploadSession)
+				// 删除上传会话
+				upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
+			}
 			// OneDrive 存储策略凭证
 			slave.GET("credential/onedrive/:id", controllers.SlaveGetOneDriveCredential)
 		}

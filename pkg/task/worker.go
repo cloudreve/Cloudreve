@@ -1,6 +1,9 @@
 package task
 
-import "github.com/cloudreve/Cloudreve/v3/pkg/util"
+import (
+	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+)
 
 // Worker 处理任务的对象
 type Worker interface {
@@ -20,7 +23,7 @@ func (worker *GeneralWorker) Do(job Job) {
 		// 致命错误捕获
 		if err := recover(); err != nil {
 			util.Log().Debug("任务执行出错，%s", err)
-			job.SetError(&JobError{Msg: "致命错误"})
+			job.SetError(&JobError{Msg: "致命错误", Error: fmt.Sprintf("%s", err)})
 			job.SetStatus(Error)
 		}
 	}()
