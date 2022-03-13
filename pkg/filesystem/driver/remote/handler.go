@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -26,10 +25,11 @@ type Driver struct {
 	Policy       *model.Policy
 	AuthInstance auth.Auth
 
-	client Client
+	uploadClient Client
 }
 
 // NewDriver initializes a new Driver from policy
+// TODO: refactor all method into upload client
 func NewDriver(policy *model.Policy) (*Driver, error) {
 	client, err := NewClient(policy)
 	if err != nil {
@@ -40,7 +40,7 @@ func NewDriver(policy *model.Policy) (*Driver, error) {
 		Policy:       policy,
 		Client:       request.NewClient(),
 		AuthInstance: auth.HMACAuth{[]byte(policy.SecretKey)},
-		client:       client,
+		uploadClient: client,
 	}, nil
 }
 
@@ -153,7 +153,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
-	return handler.client.Upload(ctx, file)
+	return handler.uploadClient.Upload(ctx, file)
 }
 
 // Delete 删除一个或多个文件，
@@ -281,12 +281,12 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 
 	// 在从机端创建上传会话
 	uploadSession.Callback = apiURL.String()
-	if err := handler.client.CreateUploadSession(ctx, uploadSession, ttl); err != nil {
+	if err := handler.uploadClient.CreateUploadSession(ctx, uploadSession, ttl); err != nil {
 		return nil, err
 	}
 
 	// 获取上传地址
-	uploadURL, sign, err := handler.client.GetUploadURL(ttl, uploadSession.Key)
+	uploadURL, sign, err := handler.uploadClient.GetUploadURL(ttl, uploadSession.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign upload url: %w", err)
 	}
@@ -299,30 +299,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	}, nil
 }
 
-func (handler *Driver) getUploadCredential(ctx context.Context, policy serializer.UploadPolicy, TTL int64) (serializer.UploadCredential, error) {
-	policyEncoded, err := policy.EncodeUploadPolicy()
-	if err != nil {
-		return serializer.UploadCredential{}, err
-	}
-
-	// 签名上传策略
-	uploadRequest, _ := http.NewRequest("POST", "/api/v3/slave/upload", nil)
-	uploadRequest.Header = map[string][]string{
-		"X-Cr-Policy":    {policyEncoded},
-		"X-Cr-Overwrite": {"false"},
-	}
-	auth.SignRequest(handler.AuthInstance, uploadRequest, TTL)
-
-	if credential, ok := uploadRequest.Header["Authorization"]; ok && len(credential) == 1 {
-		return serializer.UploadCredential{
-			Token:  credential[0],
-			Policy: policyEncoded,
-		}, nil
-	}
-	return serializer.UploadCredential{}, errors.New("无法签名上传策略")
-}
-
 // 取消上传凭证
 func (handler *Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return nil
+	return handler.uploadClient.DeleteUploadSession(ctx, uploadSession.Key)
 }

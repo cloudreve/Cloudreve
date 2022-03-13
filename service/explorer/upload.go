@@ -230,7 +230,7 @@ func (service *UploadSessionService) Delete(ctx context.Context, c *gin.Context)
 	// 查找需要删除的上传会话的占位文件
 	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session file placeholder not exist", err)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Local Upload session file placeholder not exist", err)
 	}
 
 	// 删除文件
@@ -238,6 +238,28 @@ func (service *UploadSessionService) Delete(ctx context.Context, c *gin.Context)
 		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete upload session", err)
 	}
 
+	return serializer.Response{}
+}
+
+// SlaveDelete 从机删除指定上传会话
+func (service *UploadSessionService) SlaveDelete(ctx context.Context, c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewAnonymousFileSystem()
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	session, ok := cache.Get(filesystem.UploadSessionCachePrefix + service.ID)
+	if !ok {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Slave Upload session file placeholder not exist", nil)
+	}
+
+	if _, err := fs.Handler.Delete(ctx, []string{session.(serializer.UploadSession).SavePath}); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete temp file", err)
+	}
+
+	cache.Deletes([]string{service.ID}, filesystem.UploadSessionCachePrefix)
 	return serializer.Response{}
 }
 

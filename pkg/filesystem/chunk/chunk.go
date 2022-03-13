@@ -49,7 +49,7 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 	err := processor(c, io.LimitReader(c.file, int64(c.chunkSize)))
 	if err != nil {
 		if err != context.Canceled && c.file.Seekable() && c.backoff.Next() {
-			if _, seekErr := c.file.Seek(c.Start(), io.SeekStart); err != nil {
+			if _, seekErr := c.file.Seek(c.Start(), io.SeekStart); seekErr != nil {
 				return fmt.Errorf("failed to seek back to chunk start: %w, last error: %w", seekErr, err)
 			}
 

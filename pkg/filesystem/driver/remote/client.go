@@ -11,6 +11,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gofrs/uuid"
 	"io"
 	"net/http"
@@ -26,7 +27,7 @@ const (
 	chunkRetrySleep = time.Duration(5) * time.Second
 )
 
-// Client to operate remote slave server
+// Client to operate uploading to remote slave server
 type Client interface {
 	// CreateUploadSession creates remote upload session
 	CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64) error
@@ -34,6 +35,8 @@ type Client interface {
 	GetUploadURL(ttl int64, sessionID string) (string, string, error)
 	// Upload uploads file to remote server
 	Upload(ctx context.Context, file fsctx.FileHeader) error
+	// DeleteUploadSession deletes remote upload session
+	DeleteUploadSession(ctx context.Context, sessionID string) error
 }
 
 // NewClient creates new Client from given policy
@@ -84,7 +87,7 @@ func (c *remoteClient) Upload(ctx context.Context, file fsctx.FileHeader) error 
 
 	overwrite := fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite
 
-	// Upload chunks
+	// Initial chunk groups
 	chunks := chunk.NewChunkGroup(file, c.policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
 		Max:   model.GetIntSetting("onedrive_chunk_retries", 1),
 		Sleep: chunkRetrySleep,
@@ -94,11 +97,33 @@ func (c *remoteClient) Upload(ctx context.Context, file fsctx.FileHeader) error 
 		return c.uploadChunk(ctx, session.Key, current.Index(), content, overwrite, current.Length())
 	}
 
+	// upload chunks
 	for chunks.Next() {
 		if err := chunks.Process(uploadFunc); err != nil {
-			// TODO 删除上传会话
+			if err := c.DeleteUploadSession(ctx, session.Key); err != nil {
+				util.Log().Warning("failed to delete upload session: %s", err)
+			}
+
 			return fmt.Errorf("failed to upload chunk #%d: %w", chunks.Index(), err)
 		}
+	}
+
+	return nil
+}
+
+func (c *remoteClient) DeleteUploadSession(ctx context.Context, sessionID string) error {
+	resp, err := c.httpClient.Request(
+		"DELETE",
+		"upload/"+sessionID,
+		nil,
+		request.WithContext(ctx),
+	).CheckHTTPResponse(200).DecodeResponse()
+	if err != nil {
+		return err
+	}
+
+	if resp.Code != 0 {
+		return serializer.NewErrorFromResponse(resp)
 	}
 
 	return nil

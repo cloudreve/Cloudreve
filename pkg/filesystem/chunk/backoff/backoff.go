@@ -18,7 +18,7 @@ type ConstantBackoff struct {
 
 func (c *ConstantBackoff) Next() bool {
 	c.tried++
-	if c.tried >= c.Max {
+	if c.tried > c.Max {
 		return false
 	}
 
