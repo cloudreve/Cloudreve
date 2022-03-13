@@ -178,7 +178,7 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 		fs.Use("AfterUpload", HookClearFileHeaderSize)
 	}
 
-	fs.Use("AfterUpload", GenericAfterUpload)
+	// 验证文件规格
 	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err
 	}
@@ -198,6 +198,12 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	// 获取上传凭证
 	credential, err := fs.Handler.Token(ctx, int64(callBackSessionTTL), uploadSession, file)
 	if err != nil {
+		return nil, err
+	}
+
+	// 创建占位符
+	fs.Use("AfterUpload", GenericAfterUpload)
+	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err
 	}
 

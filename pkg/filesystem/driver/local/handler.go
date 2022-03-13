@@ -267,6 +267,10 @@ func (handler Driver) Source(
 
 // Token 获取上传策略和认证Token，本地策略直接返回空值
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	if util.Exists(uploadSession.SavePath) {
+		return nil, errors.New("placeholder file already exist")
+	}
+
 	return &serializer.UploadCredential{
 		SessionID: uploadSession.Key,
 		ChunkSize: handler.Policy.OptionsSerialized.ChunkSize,

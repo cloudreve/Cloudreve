@@ -54,6 +54,8 @@ const (
 	CodeNoPermissionErr = 403
 	// CodeNotFound 资源未找到
 	CodeNotFound = 404
+	// CodeConflict 资源冲突
+	CodeConflict = 409
 	// CodeUploadFailed 上传出错
 	CodeUploadFailed = 40002
 	// CodeCredentialInvalid 凭证无效
