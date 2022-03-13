@@ -7,7 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"path"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -51,7 +51,7 @@ func NewClient(opts ...Option) Client {
 }
 
 // Request 发送HTTP请求
-func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
+func (c *HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
 	c.mu.Lock()
 	options := *c.options
@@ -70,9 +70,13 @@ func (c HTTPClient) Request(method, target string, body io.Reader, opts ...Optio
 
 	// 确定请求URL
 	if options.endpoint != nil {
+		targetPath, err := url.Parse(target)
+		if err != nil {
+			return &Response{Err: err}
+		}
+
 		targetURL := *options.endpoint
-		targetURL.Path = path.Join(targetURL.Path, target)
-		target = targetURL.String()
+		target = targetURL.ResolveReference(targetPath).String()
 	}
 
 	// 创建请求

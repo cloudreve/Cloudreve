@@ -37,22 +37,21 @@ type UploadCredential struct {
 
 // UploadSession 上传会话
 type UploadSession struct {
-	Key          string     // 上传会话 GUID
-	UID          uint       // 发起者
-	VirtualPath  string     // 用户文件路径，不含文件名
-	Name         string     // 文件名
-	Size         uint64     // 文件大小
-	SavePath     string     // 物理存储路径，包含物理文件名
-	LastModified *time.Time // 可选的文件最后修改日期
-	Policy       model.Policy
+	Key            string     // 上传会话 GUID
+	UID            uint       // 发起者
+	VirtualPath    string     // 用户文件路径，不含文件名
+	Name           string     // 文件名
+	Size           uint64     // 文件大小
+	SavePath       string     // 物理存储路径，包含物理文件名
+	LastModified   *time.Time // 可选的文件最后修改日期
+	Policy         model.Policy
+	Callback       string // 回调 URL 地址
+	CallbackSecret string // 回调 URL
 }
 
 // UploadCallback 上传回调正文
 type UploadCallback struct {
-	Name       string `json:"name"`
-	SourceName string `json:"source_name"`
-	PicInfo    string `json:"pic_info"`
-	Size       uint64 `json:"size"`
+	PicInfo string `json:"pic_info"`
 }
 
 // GeneralUploadCallbackFailed 存储策略上传回调失败响应

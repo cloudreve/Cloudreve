@@ -3,6 +3,7 @@ package callback
 import (
 	"context"
 	"fmt"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"strings"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
@@ -11,13 +12,12 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/s3"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
 // CallbackProcessService 上传请求回调正文接口
 type CallbackProcessService interface {
-	GetBody(*serializer.UploadSession) serializer.UploadCallback
+	GetBody() serializer.UploadCallback
 }
 
 // RemoteUploadCallbackService 远程存储上传回调请求服务
@@ -26,7 +26,7 @@ type RemoteUploadCallbackService struct {
 }
 
 // GetBody 返回回调正文
-func (service RemoteUploadCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+func (service RemoteUploadCallbackService) GetBody() serializer.UploadCallback {
 	return service.Data
 }
 
@@ -68,12 +68,8 @@ type S3Callback struct {
 }
 
 // GetBody 返回回调正文
-func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
-	res := serializer.UploadCallback{
-		Name:       session.Name,
-		SourceName: service.SourceName,
-		Size:       service.Size,
-	}
+func (service UpyunCallbackService) GetBody() serializer.UploadCallback {
+	res := serializer.UploadCallback{}
 	if service.Width != "" {
 		res.PicInfo = service.Width + "," + service.Height
 	}
@@ -82,51 +78,41 @@ func (service UpyunCallbackService) GetBody(session *serializer.UploadSession) s
 }
 
 // GetBody 返回回调正文
-func (service UploadCallbackService) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+func (service UploadCallbackService) GetBody() serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       service.Name,
-		SourceName: service.SourceName,
-		PicInfo:    service.PicInfo,
-		Size:       service.Size,
+		PicInfo: service.PicInfo,
 	}
 }
 
 // GetBody 返回回调正文
-func (service OneDriveCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+func (service OneDriveCallback) GetBody() serializer.UploadCallback {
 	var picInfo = "0,0"
 	if service.Meta.Image.Width != 0 {
 		picInfo = fmt.Sprintf("%d,%d", service.Meta.Image.Width, service.Meta.Image.Height)
 	}
 	return serializer.UploadCallback{
-		Name:       session.Name,
-		SourceName: session.SavePath,
-		PicInfo:    picInfo,
-		Size:       session.Size,
+		PicInfo: picInfo,
 	}
 }
 
 // GetBody 返回回调正文
-func (service COSCallback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+func (service COSCallback) GetBody() serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       session.Name,
-		SourceName: session.SavePath,
-		PicInfo:    "",
-		Size:       session.Size,
+		PicInfo: "",
 	}
 }
 
 // GetBody 返回回调正文
-func (service S3Callback) GetBody(session *serializer.UploadSession) serializer.UploadCallback {
+func (service S3Callback) GetBody() serializer.UploadCallback {
 	return serializer.UploadCallback{
-		Name:       session.Name,
-		SourceName: session.SavePath,
-		PicInfo:    "",
-		Size:       session.Size,
+		PicInfo: "",
 	}
 }
 
 // ProcessCallback 处理上传结果回调
 func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.Response {
+	callbackBody := service.GetBody()
+
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
@@ -134,51 +120,39 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	}
 	defer fs.Recycle()
 
-	// 获取回调会话
-	callbackSessionRaw, _ := c.Get("callbackSession")
-	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
-	callbackBody := service.GetBody(callbackSession)
+	// 获取上传会话
+	uploadSession := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
 
-	// 获取父目录
-	exist, parentFolder := fs.IsPathExist(callbackSession.VirtualPath)
-	if !exist {
-		newFolder, err := fs.CreateDirectory(context.Background(), callbackSession.VirtualPath)
-		if err != nil {
-			return serializer.Err(serializer.CodeParamErr, "指定目录不存在", err)
-		}
-		parentFolder = newFolder
+	// 查找上传会话创建的占位文件
+	file, err := model.GetFilesByUploadSession(uploadSession.Key, fs.User.ID)
+	if err != nil {
+		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session file placeholder not exist", err)
 	}
 
-	// 创建文件头
-	fileHeader := fsctx.FileStream{
-		Size:        callbackBody.Size,
-		VirtualPath: callbackSession.VirtualPath,
-		Name:        callbackSession.Name,
-		SavePath:    callbackBody.SourceName,
+	fileData := fsctx.FileStream{
+		Size:         uploadSession.Size,
+		Name:         uploadSession.Name,
+		VirtualPath:  uploadSession.VirtualPath,
+		SavePath:     uploadSession.SavePath,
+		Mode:         fsctx.Nop,
+		Model:        file,
+		LastModified: uploadSession.LastModified,
 	}
 
-	// 添加钩子
-	fs.Use("BeforeAddFile", filesystem.HookValidateFile)
-	fs.Use("BeforeAddFile", filesystem.HookValidateCapacity)
+	// 占位符未扣除容量需要校验和扣除
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("AfterUpload", filesystem.HookValidateCapacity)
+		fs.Use("AfterUpload", filesystem.HookChunkUploaded)
+	}
+
+	fs.Use("AfterUpload", filesystem.HookPopPlaceholderToFile(callbackBody.PicInfo))
 	fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-	fs.Use("BeforeAddFileFailed", filesystem.HookDeleteTempFile)
-
-	// 向数据库中添加文件
-	file, err := fs.AddFile(context.Background(), parentFolder, &fileHeader)
+	err = fs.Upload(context.Background(), &fileData)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
 	}
 
-	// 如果是图片，则更新图片信息
-	if callbackBody.PicInfo != "" {
-		if err := file.UpdatePicInfo(callbackBody.PicInfo); err != nil {
-			util.Log().Debug("无法更新回调文件的图片信息：%s", err)
-		}
-	}
-
-	return serializer.Response{
-		Code: 0,
-	}
+	return serializer.Response{}
 }
 
 // PreProcess 对OneDrive客户端回调进行预处理验证

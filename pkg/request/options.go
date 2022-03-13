@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -103,6 +104,10 @@ func WithSlaveMeta(s string) Option {
 
 // Endpoint 使用同一的请求Endpoint
 func WithEndpoint(endpoint string) Option {
+	if !strings.HasSuffix(endpoint, "/") {
+		endpoint += "/"
+	}
+
 	endpointURL, _ := url.Parse(endpoint)
 	return optionFunc(func(o *options) {
 		o.endpoint = endpointURL

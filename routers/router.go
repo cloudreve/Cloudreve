@@ -46,9 +46,15 @@ func InitSlaveRouter() *gin.Engine {
 		// 接收主机心跳包
 		v3.POST("heartbeat", controllers.SlaveHeartbeat)
 		// 上传
-		v3.POST("upload/:sessionId", controllers.SlaveUpload)
-		// 创建上传会话上传
-		v3.PUT("upload", controllers.SlaveGetUploadSession)
+		upload := v3.Group("upload")
+		{
+			// 上传分片
+			upload.POST(":sessionId", controllers.SlaveUpload)
+			// 创建上传会话上传
+			upload.PUT("", controllers.SlaveGetUploadSession)
+			// 删除上传会话
+			upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
+		}
 		// 下载
 		v3.GET("download/:speed/:path/:name", controllers.SlaveDownload)
 		// 预览 / 外链
@@ -213,7 +219,15 @@ func InitMasterRouter() *gin.Engine {
 			// 事件通知
 			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
 			// 上传
-			slave.POST("upload", controllers.SlaveUpload)
+			upload := slave.Group("upload")
+			{
+				// 上传分片
+				upload.POST(":sessionId", controllers.SlaveUpload)
+				// 创建上传会话上传
+				upload.PUT("", controllers.SlaveGetUploadSession)
+				// 删除上传会话
+				upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
+			}
 			// OneDrive 存储策略凭证
 			slave.GET("credential/onedrive/:id", controllers.SlaveGetOneDriveCredential)
 		}
@@ -223,7 +237,8 @@ func InitMasterRouter() *gin.Engine {
 		{
 			// 远程策略上传回调
 			callback.POST(
-				"remote/:key",
+				"remote/:sessionID/:key",
+				middleware.UseUploadSession("remote"),
 				middleware.RemoteCallbackAuth(),
 				controllers.RemoteCallback,
 			)

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task/slavetask"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"net/http"
@@ -172,6 +173,10 @@ type SlaveCreateUploadSessionService struct {
 
 // Create 从机创建上传会话
 func (service *SlaveCreateUploadSessionService) Create(ctx context.Context, c *gin.Context) serializer.Response {
+	if util.Exists(service.Session.SavePath) {
+		return serializer.Err(serializer.CodeConflict, "placeholder file already exist", nil)
+	}
+
 	err := cache.Set(
 		filesystem.UploadSessionCachePrefix+service.Session.Key,
 		service.Session,

@@ -23,6 +23,8 @@ import (
 
 const (
 	UploadSessionMetaKey     = "upload_session"
+	UploadSessionCtx         = "uploadSession"
+	UserCtx                  = "user"
 	UploadSessionCachePrefix = "callback_"
 )
 
@@ -47,11 +49,11 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		file.SavePath = savePath
 	}
 
-	// 处理客户端未完成上传时，关闭连接
-	go fs.CancelUpload(ctx, savePath, file)
-
 	// 保存文件
 	if file.Mode&fsctx.Nop != fsctx.Nop {
+		// 处理客户端未完成上传时，关闭连接
+		go fs.CancelUpload(ctx, savePath, file)
+
 		err = fs.Handler.Put(ctx, file)
 		if err != nil {
 			fs.Trigger(ctx, "AfterUploadFailed", file)
@@ -176,20 +178,21 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 		fs.Use("AfterUpload", HookClearFileHeaderSize)
 	}
 
-	fs.Use("AfterUpload", GenericAfterUpload)
+	// 验证文件规格
 	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err
 	}
 
 	uploadSession := &serializer.UploadSession{
-		Key:          callbackKey,
-		UID:          fs.User.ID,
-		Policy:       *fs.Policy,
-		VirtualPath:  file.VirtualPath,
-		Name:         file.Name,
-		Size:         fileSize,
-		SavePath:     file.SavePath,
-		LastModified: file.LastModified,
+		Key:            callbackKey,
+		UID:            fs.User.ID,
+		Policy:         *fs.Policy,
+		VirtualPath:    file.VirtualPath,
+		Name:           file.Name,
+		Size:           fileSize,
+		SavePath:       file.SavePath,
+		LastModified:   file.LastModified,
+		CallbackSecret: util.RandStringRunes(32),
 	}
 
 	// 获取上传凭证
@@ -198,10 +201,16 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 		return nil, err
 	}
 
+	// 创建占位符
+	fs.Use("AfterUpload", GenericAfterUpload)
+	if err := fs.Upload(ctx, file); err != nil {
+		return nil, err
+	}
+
 	// 创建回调会话
 	err = cache.Set(
 		UploadSessionCachePrefix+callbackKey,
-		uploadSession,
+		*uploadSession,
 		callBackSessionTTL,
 	)
 	if err != nil {
@@ -215,7 +224,16 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 }
 
 // UploadFromStream 从文件流上传文件
-func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStream) error {
+func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStream, resetPolicy bool) error {
+	if resetPolicy {
+		// 重设存储策略
+		fs.Policy = &fs.User.Policy
+		err := fs.DispatchHandler()
+		if err != nil {
+			return err
+		}
+	}
+
 	// 给文件系统分配钩子
 	fs.Lock.Lock()
 	if fs.Hooks == nil {
@@ -233,16 +251,7 @@ func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStre
 }
 
 // UploadFromPath 将本机已有文件上传到用户的文件系统
-func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, resetPolicy bool, mode fsctx.WriteMode) error {
-	// 重设存储策略
-	if resetPolicy {
-		fs.Policy = &fs.User.Policy
-		err := fs.DispatchHandler()
-		if err != nil {
-			return err
-		}
-	}
-
+func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, mode fsctx.WriteMode) error {
 	file, err := os.Open(util.RelativePath(src))
 	if err != nil {
 		return err
@@ -258,10 +267,11 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, reset
 
 	// 开始上传
 	return fs.UploadFromStream(ctx, &fsctx.FileStream{
-		File:        nil,
+		File:        file,
+		Seeker:      file,
 		Size:        uint64(size),
 		Name:        path.Base(dst),
 		VirtualPath: path.Dir(dst),
 		Mode:        mode,
-	})
+	}, true)
 }

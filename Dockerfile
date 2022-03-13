@@ -1,4 +1,4 @@
-FROM golang:alpine as cloudreve_builder
+FROM golang:1.17.7-alpine as cloudreve_builder
 
 
 # install dependencies and build tools

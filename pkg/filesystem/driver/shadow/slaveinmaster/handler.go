@@ -30,7 +30,7 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 	var endpoint *url.URL
 	if serverURL, err := url.Parse(node.DBModel().Server); err == nil {
 		var controller *url.URL
-		controller, _ = url.Parse("/api/v3/slave")
+		controller, _ = url.Parse("/api/v3/slave/")
 		endpoint = serverURL.ResolveReference(controller)
 	}
 
@@ -52,14 +52,10 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 func (d *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
-	src, ok := ctx.Value(fsctx.SlaveSrcPath).(string)
-	if !ok {
-		return ErrSlaveSrcPathNotExist
-	}
-
+	fileInfo := file.Info()
 	req := serializer.SlaveTransferReq{
-		Src:    src,
-		Dst:    file.Info().SavePath,
+		Src:    fileInfo.Src,
+		Dst:    fileInfo.SavePath,
 		Policy: d.policy,
 	}
 

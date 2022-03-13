@@ -1,11 +1,15 @@
 package cluster
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -40,7 +44,7 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 	var endpoint *url.URL
 	if serverURL, err := url.Parse(node.Model.Server); err == nil {
 		var controller *url.URL
-		controller, _ = url.Parse("/api/v3/slave")
+		controller, _ = url.Parse("/api/v3/slave/")
 		endpoint = serverURL.ResolveReference(controller)
 	}
 
@@ -407,4 +411,42 @@ func getAria2RequestBody(body *serializer.SlaveAria2Call) (io.Reader, error) {
 	}
 
 	return strings.NewReader(string(reqBodyEncoded)), nil
+}
+
+// TODO: move to slave pkg
+// RemoteCallback 发送远程存储策略上传回调请求
+func RemoteCallback(url string, body serializer.UploadCallback) error {
+	callbackBody, err := json.Marshal(struct {
+		Data serializer.UploadCallback `json:"data"`
+	}{
+		Data: body,
+	})
+	if err != nil {
+		return serializer.NewError(serializer.CodeCallbackError, "无法编码回调正文", err)
+	}
+
+	resp := request.GeneralClient.Request(
+		"POST",
+		url,
+		bytes.NewReader(callbackBody),
+		request.WithTimeout(time.Duration(conf.SlaveConfig.CallbackTimeout)*time.Second),
+		request.WithCredential(auth.General, int64(conf.SlaveConfig.SignatureTTL)),
+	)
+
+	if resp.Err != nil {
+		return serializer.NewError(serializer.CodeCallbackError, "从机无法发起回调请求", resp.Err)
+	}
+
+	// 解析回调服务端响应
+	response, err := resp.DecodeResponse()
+	if err != nil {
+		msg := fmt.Sprintf("从机无法解析主机返回的响应 (StatusCode=%d)", resp.Response.StatusCode)
+		return serializer.NewError(serializer.CodeCallbackError, msg, err)
+	}
+
+	if response.Code != 0 {
+		return serializer.NewError(response.Code, response.Msg, errors.New(response.Error))
+	}
+
+	return nil
 }
