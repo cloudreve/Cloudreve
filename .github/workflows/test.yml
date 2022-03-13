@@ -2,13 +2,12 @@ name: Test
 
 on:
   pull_request:
-      branches:
+    branches:
       - master
   push:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-
   test:
     name: Test
     runs-on: ubuntu-18.04
@@ -26,10 +25,8 @@ jobs:
 
       - name: Build static files
         run: |
-          cd assets
-          mkdir build
-          cd build
-          touch test.html
+          mkdir assets/build
+          touch assets/build/test.html
 
       - name: Test
         run: go test -coverprofile=coverage.txt -covermode=atomic ./...

@@ -57,9 +57,3 @@ func RelativePath(name string) string {
 	return filepath.Join(filepath.Dir(e), name)
 }
 
-
-// ExecPath 获取可执行文件的路径
-func ExecPath() string {
-	e, _ := os.Executable()
-	return filepath.Dir(e)
-}

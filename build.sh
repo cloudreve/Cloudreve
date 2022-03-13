@@ -27,7 +27,6 @@ buildAssets() {
 
   cd $REPO/assets
 
-  yarn --update-checksums
   yarn install
   yarn run build
   cd build

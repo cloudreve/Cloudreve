@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -59,8 +58,9 @@ func InitStatic() {
 			util.Log().Panic("无法初始化静态资源, %s", err)
 		}
 
-		StaticFS = &GinFS{}
-		StaticFS.(*GinFS).FS = http.FS(embedFS)
+		StaticFS = &GinFS{
+			FS: http.FS(embedFS),
+		}
 	}
 	// 检查静态资源的版本
 	f, err := StaticFS.Open("version.json")
@@ -113,7 +113,7 @@ func Eject() {
 
 		if !d.IsDir() {
 			// 写入文件
-			out, err := util.CreatNestedFile(filepath.Join(util.ExecPath(), StaticFolder, relPath))
+			out, err := util.CreatNestedFile(filepath.Join(util.RelativePath(""), StaticFolder, relPath))
 			defer out.Close()
 
 			if err != nil {
@@ -125,12 +125,6 @@ func Eject() {
 			if _, err := io.Copy(out, bufio.NewReader(obj)); err != nil {
 				return errors.Errorf("无法写入文件[%s], %s, 跳过...", relPath, err)
 			}
-		} else {
-			// 创建目录
-			if err := os.MkdirAll(filepath.Join(util.ExecPath(), StaticFolder, relPath), 0755); err != nil {
-				return errors.Errorf("无法创建目录[%s], %s, 跳过...", relPath, err)
-			}
-			util.Log().Info("创建目录 [%s]...", relPath)
 		}
 		return nil
 	}
@@ -138,7 +132,7 @@ func Eject() {
 	// util.Log().Info("开始导出内置静态资源...")
 	err = fs.WalkDir(embedFS, ".", walk)
 	if err != nil {
-		util.Log().Error("导出内置静态资源遇到错误：, %s", err)
+		util.Log().Error("导出内置静态资源遇到错误：%s", err)
 		return
 	}
 	util.Log().Info("内置静态资源导出完成")

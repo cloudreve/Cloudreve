@@ -86,21 +86,11 @@ yarn install
 # 开始构建
 yarn run build
 
-# 可选: 删除map文件
-cd build
-find . -name "*.map" | xargs rm -f
 ```
-
-#### 嵌入静态资源
-
-当前版本无需手动嵌入静态资源，请直接进行下一步。
 
 #### 编译项目
 
 ```shell
-# 回到项目主目录
-cd ../
-
 # 获得当前版本号、Commit
 export COMMIT_SHA=$(git rev-parse --short HEAD)
 export VERSION=$(git describe --tags)
