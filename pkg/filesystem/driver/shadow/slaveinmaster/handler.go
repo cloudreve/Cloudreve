@@ -30,7 +30,7 @@ func NewDriver(node cluster.Node, handler driver.Handler, policy *model.Policy) 
 	var endpoint *url.URL
 	if serverURL, err := url.Parse(node.DBModel().Server); err == nil {
 		var controller *url.URL
-		controller, _ = url.Parse("/api/v3/slave")
+		controller, _ = url.Parse("/api/v3/slave/")
 		endpoint = serverURL.ResolveReference(controller)
 	}
 

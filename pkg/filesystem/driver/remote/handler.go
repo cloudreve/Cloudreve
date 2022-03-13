@@ -153,55 +153,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
-	// 凭证有效期
-	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
-
-	// 生成上传策略
-	fileInfo := file.Info()
-	policy := serializer.UploadPolicy{
-		SavePath:   path.Dir(fileInfo.SavePath),
-		FileName:   path.Base(fileInfo.FileName),
-		AutoRename: false,
-		MaxSize:    fileInfo.Size,
-	}
-	credential, err := handler.getUploadCredential(ctx, policy, int64(credentialTTL))
-	if err != nil {
-		return err
-	}
-
-	// 对文件名进行URLEncode
-	fileName := url.QueryEscape(path.Base(fileInfo.SavePath))
-
-	// 决定是否要禁用文件覆盖
-	overwrite := "false"
-	if fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite {
-		overwrite = "true"
-	}
-
-	// 上传文件
-	resp, err := handler.Client.Request(
-		"POST",
-		handler.Policy.GetUploadURL(),
-		file,
-		request.WithHeader(map[string][]string{
-			"X-Cr-Policy":    {credential.Policy},
-			"X-Cr-FileName":  {fileName},
-			"X-Cr-Overwrite": {overwrite},
-		}),
-		request.WithContentLength(int64(fileInfo.Size)),
-		request.WithTimeout(time.Duration(0)),
-		request.WithMasterMeta(),
-		request.WithSlaveMeta(handler.Policy.AccessKey),
-		request.WithCredential(handler.AuthInstance, int64(credentialTTL)),
-	).CheckHTTPResponse(200).DecodeResponse()
-	if err != nil {
-		return err
-	}
-	if resp.Code != 0 {
-		return errors.New(resp.Msg)
-	}
-
-	return nil
+	return handler.client.Upload(ctx, file)
 }
 
 // Delete 删除一个或多个文件，

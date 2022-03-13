@@ -261,7 +261,8 @@ func (fs *FileSystem) UploadFromPath(ctx context.Context, src, dst string, reset
 
 	// 开始上传
 	return fs.UploadFromStream(ctx, &fsctx.FileStream{
-		File:        nil,
+		File:        file,
+		Seeker:      file,
 		Size:        uint64(size),
 		Name:        path.Base(dst),
 		VirtualPath: path.Dir(dst),

@@ -32,9 +32,11 @@ type UploadTaskInfo struct {
 type FileHeader interface {
 	io.Reader
 	io.Closer
+	io.Seeker
 	Info() *UploadTaskInfo
 	SetSize(uint64)
 	SetModel(fileModel interface{})
+	Seekable() bool
 }
 
 // FileStream 用户传来的文件
@@ -43,6 +45,7 @@ type FileStream struct {
 	LastModified    *time.Time
 	Metadata        map[string]string
 	File            io.ReadCloser
+	Seeker          io.Seeker
 	Size            uint64
 	VirtualPath     string
 	Name            string
@@ -59,6 +62,14 @@ func (file *FileStream) Read(p []byte) (n int, err error) {
 
 func (file *FileStream) Close() error {
 	return file.File.Close()
+}
+
+func (file *FileStream) Seek(offset int64, whence int) (int64, error) {
+	return file.Seeker.Seek(offset, whence)
+}
+
+func (file *FileStream) Seekable() bool {
+	return file.Seeker != nil
 }
 
 func (file *FileStream) Info() *UploadTaskInfo {

@@ -125,6 +125,7 @@ func addDefaultSettings() {
 		{Name: "onedrive_callback_check", Value: `20`, Type: "timeout"},
 		{Name: "folder_props_timeout", Value: `300`, Type: "timeout"},
 		{Name: "onedrive_chunk_retries", Value: `1`, Type: "retry"},
+		{Name: "slave_chunk_retries", Value: `1`, Type: "retry"},
 		{Name: "onedrive_source_timeout", Value: `1800`, Type: "timeout"},
 		{Name: "reset_after_upload_failed", Value: `0`, Type: "upload"},
 		{Name: "login_captcha", Value: `0`, Type: "login"},

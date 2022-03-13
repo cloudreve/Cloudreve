@@ -44,7 +44,7 @@ func (node *SlaveNode) Init(nodeModel *model.Node) {
 	var endpoint *url.URL
 	if serverURL, err := url.Parse(node.Model.Server); err == nil {
 		var controller *url.URL
-		controller, _ = url.Parse("/api/v3/slave")
+		controller, _ = url.Parse("/api/v3/slave/")
 		endpoint = serverURL.ResolveReference(controller)
 	}
 

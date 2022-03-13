@@ -87,13 +87,13 @@ func (service *UploadService) LocalUpload(ctx context.Context, c *gin.Context) s
 	}
 
 	if uploadSession.UID != fs.User.ID {
-		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session expired or not exist", nil)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Local upload session expired or not exist", nil)
 	}
 
 	// 查找上传会话创建的占位文件
 	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session file placeholder not exist", err)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Local upload session file placeholder not exist", err)
 	}
 
 	// 重设 fs 存储策略
@@ -127,7 +127,7 @@ func (service *UploadService) LocalUpload(ctx context.Context, c *gin.Context) s
 func (service *UploadService) SlaveUpload(ctx context.Context, c *gin.Context) serializer.Response {
 	uploadSessionRaw, ok := cache.Get(filesystem.UploadSessionCachePrefix + service.ID)
 	if !ok {
-		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session expired or not exist", nil)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "Slave upload session expired or not exist", nil)
 	}
 
 	uploadSession := uploadSessionRaw.(serializer.UploadSession)
