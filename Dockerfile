@@ -1,21 +1,20 @@
 FROM golang:alpine as cloudreve_builder
 
-WORKDIR /cloudreve_builder
-
 
 # install dependencies and build tools
 RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild binutils binutils-doc gcc-doc
 
-# build frontend
+WORKDIR /cloudreve_builder
 RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
-RUN cd ./Cloudreve/assets \
-    && yarn --update-checksums \
-    && yarn install --network-timeout 1000000 \
-    && yarn run build
+
+# build frontend
+WORKDIR /cloudreve_builder/Cloudreve/assets
+RUN yarn install --network-timeout 1000000
+RUN yarn run build
 
 # build backend
-RUN cd ./Cloudreve \
-    && go get github.com/rakyll/statik \
+WORKDIR /cloudreve_builder/Cloudreve
+RUN go get github.com/rakyll/statik \
     && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
     && tag_name=$(git describe --tags) \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
