@@ -42,9 +42,14 @@ func SiteConfig(c *gin.Context) {
 
 // Ping 状态检查页面
 func Ping(c *gin.Context) {
+	version := conf.BackendVersion
+	if conf.IsPro == "true" {
+		version += "-pro"
+	}
+
 	c.JSON(200, serializer.Response{
 		Code: 0,
-		Data: conf.BackendVersion,
+		Data: conf.BackendVersion + conf.IsPro,
 	})
 }
 
