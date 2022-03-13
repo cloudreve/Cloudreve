@@ -6,9 +6,10 @@ import (
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/retry"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gofrs/uuid"
 	"io"
@@ -84,36 +85,20 @@ func (c *remoteClient) Upload(ctx context.Context, file fsctx.FileHeader) error 
 	overwrite := fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite
 
 	// Upload chunks
-	offset := uint64(0)
-	chunkSize := session.Policy.OptionsSerialized.ChunkSize
-	if chunkSize == 0 {
-		chunkSize = fileInfo.Size
+	chunks := chunk.NewChunkGroup(file, c.policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
+		Max:   model.GetIntSetting("onedrive_chunk_retries", 1),
+		Sleep: chunkRetrySleep,
+	})
+
+	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
+		return c.uploadChunk(ctx, session.Key, current.Index(), content, overwrite, current.Length())
 	}
 
-	chunkNum := fileInfo.Size / chunkSize
-	if fileInfo.Size%chunkSize != 0 {
-		chunkNum++
-	}
-
-	for i := 0; i < int(chunkNum); i++ {
-		uploadFunc := func(index int, chunk io.Reader) error {
-			contentLength := chunkSize
-			if index == int(chunkNum-1) {
-				contentLength = fileInfo.Size - chunkSize*(chunkNum-1)
-			}
-
-			return c.uploadChunk(ctx, session.Key, index, chunk, overwrite, contentLength)
-		}
-
-		if err := retry.Chunk(i, chunkSize, file, uploadFunc, retry.ConstantBackoff{
-			Max:   model.GetIntSetting("onedrive_chunk_retries", 1),
-			Sleep: chunkRetrySleep,
-		}); err != nil {
+	for chunks.Next() {
+		if err := chunks.Process(uploadFunc); err != nil {
 			// TODO 删除上传会话
-			return fmt.Errorf("failed to upload chunk #%d: %w", i, err)
+			return fmt.Errorf("failed to upload chunk #%d: %w", chunks.Index(), err)
 		}
-
-		offset += chunkSize
 	}
 
 	return nil
@@ -162,14 +147,14 @@ func (c *remoteClient) GetUploadURL(ttl int64, sessionID string) (string, string
 	return req.URL.String(), req.Header["Authorization"][0], nil
 }
 
-func (c *remoteClient) uploadChunk(ctx context.Context, sessionID string, index int, chunk io.Reader, overwrite bool, size uint64) error {
+func (c *remoteClient) uploadChunk(ctx context.Context, sessionID string, index int, chunk io.Reader, overwrite bool, size int64) error {
 	resp, err := c.httpClient.Request(
 		"POST",
 		fmt.Sprintf("upload/%s?chunk=%d", sessionID, index),
-		io.LimitReader(chunk, int64(size)),
+		chunk,
 		request.WithContext(ctx),
 		request.WithTimeout(time.Duration(0)),
-		request.WithContentLength(int64(size)),
+		request.WithContentLength(size),
 		request.WithHeader(map[string][]string{OverwriteHeader: {fmt.Sprintf("%t", overwrite)}}),
 	).CheckHTTPResponse(200).DecodeResponse()
 	if err != nil {
