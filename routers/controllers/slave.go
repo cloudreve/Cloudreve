@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"net/url"
-	"strconv"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
