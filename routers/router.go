@@ -286,8 +286,8 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// AWS S3策略上传回调
 			callback.GET(
-				"s3/:key",
-				middleware.S3CallbackAuth(),
+				"s3/:sessionID",
+				middleware.UseUploadSession("s3"),
 				controllers.S3Callback,
 			)
 		}

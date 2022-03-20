@@ -61,9 +61,6 @@ type COSCallback struct {
 
 // S3Callback S3 客户端回调正文
 type S3Callback struct {
-	Bucket string `form:"bucket"`
-	Etag   string `form:"etag"`
-	Key    string `form:"key"`
 }
 
 // GetBody 返回回调正文
@@ -226,17 +223,16 @@ func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
 	defer fs.Recycle()
 
 	// 获取回调会话
-	callbackSessionRaw, _ := c.Get("callbackSession")
-	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+	uploadSession := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
 
 	// 获取文件信息
-	info, err := fs.Handler.(s3.Driver).Meta(context.Background(), callbackSession.SavePath)
+	info, err := fs.Handler.(*s3.Driver).Meta(context.Background(), uploadSession.SavePath)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
 
 	// 验证实际文件信息与回调会话中是否一致
-	if callbackSession.Size != info.Size || service.Etag != info.Etag {
+	if uploadSession.Size != info.Size {
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
 

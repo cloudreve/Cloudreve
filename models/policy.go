@@ -229,7 +229,7 @@ func (policy *Policy) IsUploadPlaceholderWithSize() bool {
 		return true
 	}
 
-	if util.ContainsString([]string{"onedrive", "oss", "qiniu", "cos"}, policy.Type) {
+	if util.ContainsString([]string{"onedrive", "oss", "qiniu", "cos", "s3"}, policy.Type) {
 		return policy.OptionsSerialized.PlaceholderWithSize
 	}
 

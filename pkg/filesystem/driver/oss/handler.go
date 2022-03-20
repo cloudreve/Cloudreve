@@ -467,11 +467,11 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	}
 
 	return &serializer.UploadCredential{
-		SessionID:  uploadSession.Key,
-		ChunkSize:  handler.Policy.OptionsSerialized.ChunkSize,
-		UploadID:   imur.UploadID,
-		UploadURLs: urls,
-		Callback:   completeURL,
+		SessionID:   uploadSession.Key,
+		ChunkSize:   handler.Policy.OptionsSerialized.ChunkSize,
+		UploadID:    imur.UploadID,
+		UploadURLs:  urls,
+		CompleteURL: completeURL,
 	}, nil
 }
 

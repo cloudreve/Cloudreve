@@ -174,9 +174,11 @@ func (service *PolicyService) AddCORS() serializer.Response {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
 	case "s3":
-		handler := s3.Driver{
-			Policy: &policy,
+		handler, err := s3.NewDriver(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
+
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}

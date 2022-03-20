@@ -174,10 +174,9 @@ func (fs *FileSystem) DispatchHandler() error {
 		}
 		return nil
 	case "s3":
-		fs.Handler = s3.Driver{
-			Policy: currentPolicy,
-		}
-		return nil
+		handler, err := s3.NewDriver(currentPolicy)
+		fs.Handler = handler
+		return err
 	default:
 		return ErrUnknownPolicyType
 	}
