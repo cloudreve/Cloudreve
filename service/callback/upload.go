@@ -243,3 +243,24 @@ func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
 
 	return ProcessCallback(service, c)
 }
+
+// PreProcess 对OneDrive客户端回调进行预处理验证
+func (service *UploadCallbackService) PreProcess(c *gin.Context) serializer.Response {
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystemFromCallback(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 获取回调会话
+	uploadSession := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
+
+	// 验证文件大小
+	if uploadSession.Size != service.Size {
+		fs.Handler.Delete(context.Background(), []string{uploadSession.SavePath})
+		return serializer.Err(serializer.CodeUploadFailed, "文件大小不一致", nil)
+	}
+
+	return ProcessCallback(service, c)
+}

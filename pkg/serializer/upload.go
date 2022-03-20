@@ -23,8 +23,10 @@ type UploadCredential struct {
 	SessionID  string   `json:"sessionID"`
 	ChunkSize  uint64   `json:"chunkSize"` // 分块大小，0 为部分快
 	Expires    int64    `json:"expires"`   // 上传凭证过期时间， Unix 时间戳
-	UploadURLs []string `json:"uploadURLs"`
-	Credential string   `json:"credential"`
+	UploadURLs []string `json:"uploadURLs,omitempty"`
+	Credential string   `json:"credential,omitempty"`
+	UploadID   string   `json:"uploadID,omitempty"`
+	Callback   string   `json:"callback,omitempty"` // 回调地址
 
 	Token     string `json:"token"`
 	Policy    string `json:"policy"`
@@ -32,7 +34,6 @@ type UploadCredential struct {
 	AccessKey string `json:"ak"`
 	KeyTime   string `json:"key_time,omitempty"` // COS用有效期
 	Key       string `json:"key,omitempty"`      // 文件标识符，通常为回调key
-	Callback  string `json:"callback,omitempty"` // 回调地址
 }
 
 // UploadSession 上传会话
@@ -48,6 +49,7 @@ type UploadSession struct {
 	Callback          string // 回调 URL 地址
 	CallbackSecret    string // 回调 URL
 	OneDriveUploadURL string
+	OSSUploadID       string
 }
 
 // UploadCallback 上传回调正文

@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
-	github.com/aliyun/aliyun-oss-go-sdk v2.0.5+incompatible
+	github.com/HFO4/aliyun-oss-go-sdk v2.2.2+incompatible
 	github.com/aws/aws-sdk-go v1.31.5
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/duo-labs/webauthn v0.0.0-20191119193225-4bf9a0f776d4
@@ -20,12 +20,11 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/go-querystring v1.0.0
 	github.com/gorilla/websocket v1.4.1
-	github.com/hashicorp/go-version v1.2.0
+	github.com/hashicorp/go-version v1.3.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/juju/ratelimit v1.0.1
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.2.0
 	github.com/qiniu/api.v7/v7 v7.4.0

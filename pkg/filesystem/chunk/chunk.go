@@ -74,6 +74,11 @@ func (c *ChunkGroup) Total() int64 {
 	return int64(c.fileInfo.Size)
 }
 
+// Num returns the total chunk number
+func (c *ChunkGroup) Num() int {
+	return int(c.chunkNum)
+}
+
 // RangeHeader returns header value of Content-Range
 func (c *ChunkGroup) RangeHeader() string {
 	return fmt.Sprintf("bytes %d-%d/%d", c.Start(), c.Start()+c.Length()-1, c.Total())

@@ -60,6 +60,8 @@ type PolicyOption struct {
 	ServerSideEndpoint string `json:"server_side_endpoint,omitempty"`
 	// 分片上传的分片大小
 	ChunkSize uint64 `json:"chunk_size,omitempty"`
+	// 分片上传时是否需要预留空间
+	PlaceholderWithSize bool `json:"placeholder_with_size,omitempty"`
 }
 
 var thumbSuffix = map[string][]string{
@@ -226,7 +228,15 @@ func (policy *Policy) IsThumbGenerateNeeded() bool {
 
 // IsUploadPlaceholderWithSize 返回此策略创建上传会话时是否需要预留空间
 func (policy *Policy) IsUploadPlaceholderWithSize() bool {
-	return policy.Type == "remote"
+	if policy.Type == "remote" {
+		return true
+	}
+
+	if policy.Type == "onedrive" || policy.Type == "oss" {
+		return policy.OptionsSerialized.PlaceholderWithSize
+	}
+
+	return false
 }
 
 // CanStructureBeListed 返回存储策略是否能被前台列物理目录

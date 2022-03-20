@@ -2,8 +2,6 @@ package oss
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,8 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/HFO4/aliyun-oss-go-sdk/oss"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
@@ -48,6 +48,10 @@ type Driver struct {
 type key int
 
 const (
+	chunkRetrySleep = time.Duration(5) * time.Second
+
+	// MultiPartUploadThreshold 服务端使用分片上传的阈值
+	MultiPartUploadThreshold uint64 = 5 * (1 << 30) // 5GB
 	// VersionID 文件版本标识
 	VersionID key = iota
 )
@@ -244,12 +248,34 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	}
 
 	// 上传文件
-	err := handler.bucket.PutObject(fileInfo.SavePath, file, options...)
+	//err := handler.bucket.PutObject(fileInfo.SavePath, file, options...)
+	//if err != nil {
+	//	return err
+	//}
+
+	imur, err := handler.bucket.InitiateMultipartUpload(fileInfo.SavePath, options...)
 	if err != nil {
+		return fmt.Errorf("failed to initiate multipart upload: %w", err)
+	}
+
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
+		Max:   model.GetIntSetting("chunk_retries", 5),
+		Sleep: chunkRetrySleep,
+	})
+
+	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
+		_, err := handler.bucket.UploadPart(imur, content, current.Length(), current.Index()+1)
 		return err
 	}
 
-	return nil
+	for chunks.Next() {
+		if err := chunks.Process(uploadFunc); err != nil {
+			return fmt.Errorf("failed to upload chunk #%d: %w", chunks.Index(), err)
+		}
+	}
+
+	_, err = handler.bucket.CompleteMultipartUpload(imur, oss.CompleteAll("yes"), oss.ForbidOverWrite(!overwrite))
+	return err
 }
 
 // Delete 删除一个或多个文件，
@@ -395,6 +421,10 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 
 // Token 获取上传策略和认证Token
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	if err := handler.InitOSSClient(false); err != nil {
+		return nil, err
+	}
+
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
@@ -406,61 +436,69 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 		CallbackBody:     `{"name":${x:fname},"source_name":${object},"size":${size},"pic_info":"${imageInfo.width},${imageInfo.height}"}`,
 		CallbackBodyType: "application/json",
 	}
-
-	// 上传策略
-	savePath := file.Info().SavePath
-	postPolicy := UploadPolicy{
-		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
-		Conditions: []interface{}{
-			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", path.Dir(savePath)},
-		},
+	callbackPolicyJSON, err := json.Marshal(callbackPolicy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode callback policy: %w", err)
 	}
+	callbackPolicyEncoded := base64.StdEncoding.EncodeToString(callbackPolicyJSON)
 
-	if handler.Policy.MaxSize > 0 {
-		postPolicy.Conditions = append(postPolicy.Conditions,
-			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
+	// 初始化分片上传
+	fileInfo := file.Info()
+	options := []oss.Option{
+		oss.Expires(time.Now().Add(time.Duration(ttl) * time.Second)),
+		oss.ForbidOverWrite(true),
 	}
+	imur, err := handler.bucket.InitiateMultipartUpload(fileInfo.SavePath, options...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize multipart upload: %w", err)
+	}
+	uploadSession.OSSUploadID = imur.UploadID
 
-	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, savePath)
-}
+	// 为每个分片签名上传 URL
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{})
+	urls := make([]string, chunks.Num())
+	for chunks.Next() {
+		err := chunks.Process(func(c *chunk.ChunkGroup, chunk io.Reader) error {
+			signedURL, err := handler.bucket.SignURL(fileInfo.SavePath, oss.HTTPPut, ttl,
+				oss.PartNumber(c.Index()+1),
+				oss.UploadID(imur.UploadID),
+				oss.ContentType("application/octet-stream"))
+			if err != nil {
+				return err
+			}
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (*serializer.UploadCredential, error) {
-	// 处理回调策略
-	callbackPolicyEncoded := ""
-	if callback.CallbackURL != "" {
-		callbackPolicyJSON, err := json.Marshal(callback)
+			urls[c.Index()] = signedURL
+			return nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		callbackPolicyEncoded = base64.StdEncoding.EncodeToString(callbackPolicyJSON)
-		policy.Conditions = append(policy.Conditions, map[string]string{"callback": callbackPolicyEncoded})
 	}
 
-	// 编码上传策略
-	policyJSON, err := json.Marshal(policy)
+	// 签名完成分片上传的URL
+	completeURL, err := handler.bucket.SignURL(fileInfo.SavePath, oss.HTTPPost, ttl,
+		oss.UploadID(imur.UploadID),
+		oss.Expires(time.Now().Add(time.Duration(ttl)*time.Second)),
+		oss.CompleteAll("yes"),
+		oss.ForbidOverWrite(true),
+		oss.CallbackParam(callbackPolicyEncoded))
 	if err != nil {
 		return nil, err
 	}
-	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
-
-	// 签名上传策略
-	hmacSign := hmac.New(sha1.New, []byte(handler.Policy.SecretKey))
-	_, err = io.WriteString(hmacSign, policyEncoded)
-	if err != nil {
-		return nil, err
-	}
-	signature := base64.StdEncoding.EncodeToString(hmacSign.Sum(nil))
 
 	return &serializer.UploadCredential{
-		Policy:    fmt.Sprintf("%s:%s", callbackPolicyEncoded, policyEncoded),
-		Path:      savePath,
-		AccessKey: handler.Policy.AccessKey,
-		Token:     signature,
+		SessionID:  uploadSession.Key,
+		ChunkSize:  handler.Policy.OptionsSerialized.ChunkSize,
+		UploadID:   imur.UploadID,
+		UploadURLs: urls,
+		Callback:   completeURL,
 	}, nil
 }
 
 // 取消上传凭证
 func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return nil
+	if err := handler.InitOSSClient(false); err != nil {
+		return err
+	}
+	return handler.bucket.AbortMultipartUpload(oss.InitiateMultipartUploadResult{UploadID: uploadSession.OSSUploadID, Key: uploadSession.SavePath}, nil)
 }

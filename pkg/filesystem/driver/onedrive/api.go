@@ -279,7 +279,7 @@ func (client *Client) Upload(ctx context.Context, file fsctx.FileHeader) error {
 
 	// Initial chunk groups
 	chunks := chunk.NewChunkGroup(file, client.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
-		Max:   model.GetIntSetting("onedrive_chunk_retries", 5),
+		Max:   model.GetIntSetting("chunk_retries", 5),
 		Sleep: chunkRetrySleep,
 	})
 
@@ -327,7 +327,7 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 		if v, ok := ctx.Value(fsctx.RetryCtx).(int); ok {
 			retried = v
 		}
-		if retried < model.GetIntSetting("onedrive_chunk_retries", 5) {
+		if retried < model.GetIntSetting("chunk_retries", 5) {
 			retried++
 			util.Log().Debug("文件[%s]上传失败[%s]，5秒钟后重试", dst, err)
 			time.Sleep(time.Duration(5) * time.Second)

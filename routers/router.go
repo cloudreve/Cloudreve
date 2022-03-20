@@ -250,7 +250,8 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// 阿里云OSS策略上传回调
 			callback.POST(
-				"oss/:key",
+				"oss/:sessionID",
+				middleware.UseUploadSession("oss"),
 				middleware.OSSCallbackAuth(),
 				controllers.OSSCallback,
 			)

@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -209,21 +211,13 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 // OSSCallbackAuth 阿里云OSS回调签名验证
 func OSSCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//err := oss.VerifyCallbackSignature(c.Request)
-		//if err != nil {
-		//	util.Log().Debug("回调签名验证失败，%s", err)
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
-		//	c.Abort()
-		//	return
-		//}
+		err := oss.VerifyCallbackSignature(c.Request)
+		if err != nil {
+			util.Log().Debug("回调签名验证失败，%s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}

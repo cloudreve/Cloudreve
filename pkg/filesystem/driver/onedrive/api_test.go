@@ -535,7 +535,7 @@ func TestClient_UploadChunk(t *testing.T) {
 
 	// 最后分片，第一次失败，重试后成功
 	{
-		cache.Set("setting_onedrive_chunk_retries", "1", 0)
+		cache.Set("setting_chunk_retries", "1", 0)
 		client.Credential.ExpiresIn = 0
 		go func() {
 			time.Sleep(time.Duration(2) * time.Second)
@@ -641,7 +641,7 @@ func TestClient_SimpleUpload(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-	cache.Set("setting_onedrive_chunk_retries", "1", 0)
+	cache.Set("setting_chunk_retries", "1", 0)
 
 	// 请求失败，并重试
 	{
@@ -651,7 +651,7 @@ func TestClient_SimpleUpload(t *testing.T) {
 		asserts.Nil(res)
 	}
 
-	cache.Set("setting_onedrive_chunk_retries", "0", 0)
+	cache.Set("setting_chunk_retries", "0", 0)
 	// 返回未知响应
 	{
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
