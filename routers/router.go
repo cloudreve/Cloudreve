@@ -258,7 +258,8 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// 又拍云策略上传回调
 			callback.POST(
-				"upyun/:key",
+				"upyun/:sessionID",
+				middleware.UseUploadSession("upyun"),
 				middleware.UpyunCallbackAuth(),
 				controllers.UpyunCallback,
 			)

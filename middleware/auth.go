@@ -1,11 +1,17 @@
 package middleware
 
 import (
+	"bytes"
+	"context"
+	"crypto/md5"
+	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"io/ioutil"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -221,53 +227,47 @@ func OSSCallbackAuth() gin.HandlerFunc {
 // UpyunCallbackAuth 又拍云回调签名验证
 func UpyunCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, user := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 获取请求正文
-		//body, err := ioutil.ReadAll(c.Request.Body)
-		//c.Request.Body.Close()
-		//if err != nil {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: err.Error()})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
-		//
-		//// 准备验证Upyun回调签名
-		//handler := upyun.Driver{Policy: &user.Policy}
-		//contentMD5 := c.Request.Header.Get("Content-Md5")
-		//date := c.Request.Header.Get("Date")
-		//actualSignature := c.Request.Header.Get("Authorization")
-		//
-		//// 计算正文MD5
-		//actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
-		//if actualContentMD5 != contentMD5 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 计算理论签名
-		//signature := handler.Sign(context.Background(), []string{
-		//	"POST",
-		//	c.Request.URL.Path,
-		//	date,
-		//	contentMD5,
-		//})
-		//
-		//// 对比签名
-		//if signature != actualSignature {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
-		//	c.Abort()
-		//	return
-		//}
+		session := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
+
+		// 获取请求正文
+		body, err := ioutil.ReadAll(c.Request.Body)
+		c.Request.Body.Close()
+		if err != nil {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: err.Error()})
+			c.Abort()
+			return
+		}
+
+		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+		// 准备验证Upyun回调签名
+		handler := upyun.Driver{Policy: &session.Policy}
+		contentMD5 := c.Request.Header.Get("Content-Md5")
+		date := c.Request.Header.Get("Date")
+		actualSignature := c.Request.Header.Get("Authorization")
+
+		// 计算正文MD5
+		actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
+		if actualContentMD5 != contentMD5 {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
+			c.Abort()
+			return
+		}
+
+		// 计算理论签名
+		signature := handler.Sign(context.Background(), []string{
+			"POST",
+			c.Request.URL.Path,
+			date,
+			contentMD5,
+		})
+
+		// 对比签名
+		if signature != actualSignature {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
