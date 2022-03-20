@@ -60,12 +60,23 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 		return err
 	}
 
+	util.Log().Debug("Chunk %d processed", c.currentIndex)
 	return nil
 }
 
 // Start returns the byte index of current chunk
 func (c *ChunkGroup) Start() int64 {
 	return int64(uint64(c.Index()) * c.chunkSize)
+}
+
+// Total returns the total length current chunk
+func (c *ChunkGroup) Total() int64 {
+	return int64(c.fileInfo.Size)
+}
+
+// RangeHeader returns header value of Content-Range
+func (c *ChunkGroup) RangeHeader() string {
+	return fmt.Sprintf("bytes %d-%d/%d", c.Start(), c.Start()+c.Length()-1, c.Total())
 }
 
 // Index returns current chunk index, starts from 0
@@ -88,4 +99,9 @@ func (c *ChunkGroup) Length() int64 {
 	}
 
 	return int64(contentLength)
+}
+
+// IsLast returns if current chunk is the last one
+func (c *ChunkGroup) IsLast() bool {
+	return c.Index() == int(c.chunkNum-1)
 }
