@@ -264,11 +264,12 @@ func InitMasterRouter() *gin.Engine {
 			{
 				// 文件上传完成
 				onedrive.POST(
-					"finish/:key",
+					"finish/:sessionID",
+					middleware.UseUploadSession("onedrive"),
 					middleware.OneDriveCallbackAuth(),
 					controllers.OneDriveCallback,
 				)
-				// 文件上传完成
+				// OAuth 完成
 				onedrive.GET(
 					"auth",
 					controllers.OneDriveOAuth,

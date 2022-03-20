@@ -50,7 +50,6 @@ type UpyunCallbackService struct {
 
 // OneDriveCallback OneDrive 客户端回调正文
 type OneDriveCallback struct {
-	ID   string `json:"id" binding:"required"`
 	Meta *onedrive.FileInfo
 }
 
@@ -165,22 +164,21 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 	defer fs.Recycle()
 
 	// 获取回调会话
-	callbackSessionRaw, _ := c.Get("callbackSession")
-	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
+	uploadSession := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
 
 	// 获取文件信息
-	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), service.ID, "")
+	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), "", uploadSession.SavePath)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadFailed, "文件元信息查询失败", err)
 	}
 
 	// 验证与回调会话中是否一致
-	actualPath := strings.TrimPrefix(callbackSession.SavePath, "/")
-	isSizeCheckFailed := callbackSession.Size != info.Size
+	actualPath := strings.TrimPrefix(uploadSession.SavePath, "/")
+	isSizeCheckFailed := uploadSession.Size != info.Size
 
-	// SharePoint 会对 Office 文档增加 meta data 导致文件大小不一致，这里增加 10 KB 宽容
+	// SharePoint 会对 Office 文档增加 meta data 导致文件大小不一致，这里增加 100 KB 宽容
 	// See: https://github.com/OneDrive/onedrive-api-docs/issues/935
-	if strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.com") && isSizeCheckFailed && (info.Size > callbackSession.Size) && (info.Size-callbackSession.Size <= 10240) {
+	if strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.com") && isSizeCheckFailed && (info.Size > uploadSession.Size) && (info.Size-uploadSession.Size <= 102400) {
 		isSizeCheckFailed = false
 	}
 

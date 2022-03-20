@@ -3,7 +3,6 @@ package onedrive
 import (
 	"encoding/gob"
 	"net/url"
-	"sync"
 )
 
 // RespError 接口返回错误
@@ -148,5 +147,3 @@ func init() {
 func (chunk *Chunk) IsLast() bool {
 	return chunk.Total-chunk.Offset == chunk.ChunkSize
 }
-
-var callbackSignal sync.Map

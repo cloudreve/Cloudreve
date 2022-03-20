@@ -90,7 +90,7 @@ func (c *remoteClient) Upload(ctx context.Context, file fsctx.FileHeader) error 
 
 	// Initial chunk groups
 	chunks := chunk.NewChunkGroup(file, c.policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
-		Max:   model.GetIntSetting("onedrive_chunk_retries", 1),
+		Max:   model.GetIntSetting("slave_chunk_retries", 5),
 		Sleep: chunkRetrySleep,
 	})
 

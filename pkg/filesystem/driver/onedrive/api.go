@@ -19,6 +19,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -487,9 +488,9 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 // MonitorUpload 监控客户端分片上传进度
 func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size uint64, ttl int64) {
 	// 回调完成通知chan
-	callbackChan := make(chan bool)
-	callbackSignal.Store(callbackKey, callbackChan)
-	defer callbackSignal.Delete(callbackKey)
+	callbackChan := mq.GlobalMQ.Subscribe(callbackKey, 1)
+	defer mq.GlobalMQ.Unsubscribe(callbackKey, callbackChan)
+
 	timeout := model.GetIntSetting("onedrive_monitor_timeout", 600)
 	interval := model.GetIntSetting("onedrive_callback_check", 20)
 
@@ -514,16 +515,16 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 				if resErr, ok := err.(*RespError); ok {
 					if resErr.APIError.Code == "itemNotFound" {
 						util.Log().Debug("上传会话已完成，稍后检查回调")
-						time.Sleep(time.Duration(interval) * time.Second)
-						util.Log().Debug("开始检查回调")
-						_, ok := cache.Get("callback_" + callbackKey)
-						if ok {
+						select {
+						case <-time.After(time.Duration(interval) * time.Second):
 							util.Log().Warning("未发送回调，删除文件")
 							cache.Deletes([]string{callbackKey}, "callback_")
 							_, err = client.Delete(context.Background(), []string{path})
 							if err != nil {
 								util.Log().Warning("无法删除未回调的文件，%s", err)
 							}
+						case <-callbackChan:
+							util.Log().Debug("客户端完成回调")
 						}
 						return
 					}
@@ -556,15 +557,6 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 				return
 			}
 
-		}
-	}
-}
-
-// FinishCallback 向Monitor发送回调结束信号
-func FinishCallback(key string) {
-	if signal, ok := callbackSignal.Load(key); ok {
-		if signalChan, ok := signal.(chan bool); ok {
-			close(signalChan)
 		}
 	}
 }

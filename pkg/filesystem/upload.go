@@ -174,9 +174,6 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 	fs.Use("BeforeUpload", HookValidateFile)
 	fs.Use("BeforeUpload", HookValidateCapacity)
-	if !fs.Policy.IsUploadPlaceholderWithSize() {
-		fs.Use("AfterUpload", HookClearFileHeaderSize)
-	}
 
 	// 验证文件规格
 	if err := fs.Upload(ctx, file); err != nil {
@@ -202,6 +199,9 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	}
 
 	// 创建占位符
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("AfterUpload", HookClearFileHeaderSize)
+	}
 	fs.Use("AfterUpload", GenericAfterUpload)
 	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err

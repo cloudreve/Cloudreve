@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -284,19 +285,10 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 }
 
 // OneDriveCallbackAuth OneDrive回调签名验证
-// TODO 解耦
 func OneDriveCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 发送回调结束信号
-		//onedrive.FinishCallback(c.Param("key"))
+		// 发送回调结束信号
+		mq.GlobalMQ.Publish(c.Param("sessionID"), mq.Message{})
 
 		c.Next()
 	}
