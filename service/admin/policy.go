@@ -207,8 +207,12 @@ func (service *SlavePingService) Test() serializer.Response {
 		return serializer.ParamErr("从机无法向主机发送回调请求，请检查主机端 参数设置 - 站点信息 - 站点URL设置，并确保从机可以连接到此地址，"+err.Error(), nil)
 	}
 
-	if res.Data.(string) != conf.BackendVersion {
-		return serializer.ParamErr("Cloudreve版本不一致，主机："+res.Data.(string)+"，从机："+conf.BackendVersion, nil)
+	version := conf.BackendVersion
+	if conf.IsPro == "true" {
+		version += "-pro"
+	}
+	if res.Data.(string) != version {
+		return serializer.ParamErr("Cloudreve版本不一致，主机："+res.Data.(string)+"，从机："+version, nil)
 	}
 
 	return serializer.Response{}
