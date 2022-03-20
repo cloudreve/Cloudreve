@@ -149,9 +149,9 @@ func (service *PolicyService) AddCORS() serializer.Response {
 
 	switch policy.Type {
 	case "oss":
-		handler := oss.Driver{
-			Policy:     &policy,
-			HTTPClient: request.NewClient(),
+		handler, err := oss.NewDriver(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
@@ -169,6 +169,7 @@ func (service *PolicyService) AddCORS() serializer.Response {
 				},
 			}),
 		}
+
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}

@@ -5,6 +5,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -181,28 +182,22 @@ func RemoteCallbackAuth() gin.HandlerFunc {
 // QiniuCallbackAuth 七牛回调签名验证
 func QiniuCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, user := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 验证回调是否来自qiniu
-		//mac := qbox.NewMac(user.Policy.AccessKey, user.Policy.SecretKey)
-		//ok, err := mac.VerifyCallback(c.Request)
-		//if err != nil {
-		//	util.Log().Debug("无法验证回调请求，%s", err)
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
-		//	c.Abort()
-		//	return
-		//}
-		//if !ok {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
-		//	c.Abort()
-		//	return
-		//}
+		session := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
+
+		// 验证回调是否来自qiniu
+		mac := qbox.NewMac(session.Policy.AccessKey, session.Policy.SecretKey)
+		ok, err := mac.VerifyCallback(c.Request)
+		if err != nil {
+			util.Log().Debug("无法验证回调请求，%s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
+			c.Abort()
+			return
+		}
+		if !ok {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
@@ -289,7 +284,6 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 }
 
 // COSCallbackAuth 腾讯云COS回调签名验证
-// TODO 解耦 测试
 func COSCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//// 验证key并查找用户

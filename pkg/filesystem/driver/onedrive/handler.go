@@ -234,7 +234,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	// 监控回调及上传
 	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, fileInfo.SavePath, fileInfo.Size, ttl)
 
-	uploadSession.OneDriveUploadURL = uploadURL
+	uploadSession.UploadURL = uploadURL
 	return &serializer.UploadCredential{
 		SessionID:  uploadSession.Key,
 		ChunkSize:  handler.Policy.OptionsSerialized.ChunkSize,
@@ -244,5 +244,5 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 
 // 取消上传凭证
 func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return handler.Client.DeleteUploadSession(ctx, uploadSession.OneDriveUploadURL)
+	return handler.Client.DeleteUploadSession(ctx, uploadSession.UploadURL)
 }

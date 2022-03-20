@@ -17,7 +17,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/stretchr/testify/assert"
 )
 

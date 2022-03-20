@@ -152,7 +152,7 @@ func (policy *Policy) GeneratePath(uid uint, origin string) string {
 func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	// 未开启自动重命名时，直接返回原始文件名
 	if !policy.AutoRename {
-		return policy.getOriginNameRule(origin)
+		return origin
 	}
 
 	fileRule := policy.FileNameRule
@@ -171,9 +171,8 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 		"{hour}":           time.Now().Format("15"),
 		"{minute}":         time.Now().Format("04"),
 		"{second}":         time.Now().Format("05"),
+		"{originname}":     origin,
 	}
-
-	replaceTable["{originname}"] = policy.getOriginNameRule(origin)
 
 	fileRule = util.Replace(replaceTable, fileRule)
 	return fileRule
@@ -232,7 +231,7 @@ func (policy *Policy) IsUploadPlaceholderWithSize() bool {
 		return true
 	}
 
-	if policy.Type == "onedrive" || policy.Type == "oss" {
+	if util.ContainsString([]string{"onedrive", "oss", "qiniu"}, policy.Type) {
 		return policy.OptionsSerialized.PlaceholderWithSize
 	}
 

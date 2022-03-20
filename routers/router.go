@@ -244,7 +244,8 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// 七牛策略上传回调
 			callback.POST(
-				"qiniu/:key",
+				"qiniu/:sessionID",
+				middleware.UseUploadSession("qiniu"),
 				middleware.QiniuCallbackAuth(),
 				controllers.QiniuCallback,
 			)

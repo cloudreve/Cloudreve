@@ -144,16 +144,12 @@ func (fs *FileSystem) DispatchHandler() error {
 
 		fs.Handler = handler
 	case "qiniu":
-		fs.Handler = qiniu.Driver{
-			Policy: currentPolicy,
-		}
+		fs.Handler = qiniu.NewDriver(currentPolicy)
 		return nil
 	case "oss":
-		fs.Handler = oss.Driver{
-			Policy:     currentPolicy,
-			HTTPClient: request.NewClient(),
-		}
-		return nil
+		handler, err := oss.NewDriver(currentPolicy)
+		fs.Handler = handler
+		return err
 	case "upyun":
 		fs.Handler = upyun.Driver{
 			Policy: currentPolicy,
