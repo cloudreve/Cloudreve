@@ -283,21 +283,6 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 	}
 }
 
-// COSCallbackAuth 腾讯云COS回调签名验证
-func COSCallbackAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-
-		c.Next()
-	}
-}
-
 // S3CallbackAuth Amazon S3回调签名验证
 func S3CallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {

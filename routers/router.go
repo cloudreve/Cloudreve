@@ -279,8 +279,8 @@ func InitMasterRouter() *gin.Engine {
 			}
 			// 腾讯云COS策略上传回调
 			callback.GET(
-				"cos/:key",
-				middleware.COSCallbackAuth(),
+				"cos/:sessionID",
+				middleware.UseUploadSession("cos"),
 				controllers.COSCallback,
 			)
 			// AWS S3策略上传回调

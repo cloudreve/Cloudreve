@@ -3,8 +3,6 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
-	"fmt"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -231,7 +229,7 @@ func (policy *Policy) IsUploadPlaceholderWithSize() bool {
 		return true
 	}
 
-	if util.ContainsString([]string{"onedrive", "oss", "qiniu"}, policy.Type) {
+	if util.ContainsString([]string{"onedrive", "oss", "qiniu", "cos"}, policy.Type) {
 		return policy.OptionsSerialized.PlaceholderWithSize
 	}
 
@@ -241,39 +239,6 @@ func (policy *Policy) IsUploadPlaceholderWithSize() bool {
 // CanStructureBeListed 返回存储策略是否能被前台列物理目录
 func (policy *Policy) CanStructureBeListed() bool {
 	return policy.Type != "local" && policy.Type != "remote"
-}
-
-// GetUploadURL 获取文件上传服务API地址
-func (policy *Policy) GetUploadURL() string {
-	server, err := url.Parse(policy.Server)
-	if err != nil {
-		return policy.Server
-	}
-
-	controller, _ := url.Parse("")
-	switch policy.Type {
-	case "local", "onedrive":
-		return "/api/v3/file/upload"
-	case "remote":
-		controller, _ = url.Parse("/api/v3/slave/upload")
-	case "oss":
-		return "https://" + policy.BucketName + "." + policy.Server
-	case "cos":
-		return policy.Server
-	case "upyun":
-		return "https://v0.api.upyun.com/" + policy.BucketName
-	case "s3":
-		if policy.Server == "" {
-			return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/", policy.BucketName,
-				policy.OptionsSerialized.Region)
-		}
-
-		if !strings.Contains(policy.Server, policy.BucketName) {
-			controller, _ = url.Parse("/" + policy.BucketName)
-		}
-	}
-
-	return server.ResolveReference(controller).String()
 }
 
 // SaveAndClearCache 更新并清理缓存

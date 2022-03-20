@@ -27,13 +27,12 @@ type UploadCredential struct {
 	Credential string   `json:"credential,omitempty"`
 	UploadID   string   `json:"uploadID,omitempty"`
 	Callback   string   `json:"callback,omitempty"` // 回调地址
+	Path       string   `json:"path,omitempty"`     // 存储路径
+	AccessKey  string   `json:"ak,omitempty"`
+	KeyTime    string   `json:"keyTime,omitempty"` // COS用有效期
+	Policy     string   `json:"policy,omitempty"`
 
-	Token     string `json:"token"`
-	Policy    string `json:"policy"`
-	Path      string `json:"path"` // 存储路径
-	AccessKey string `json:"ak"`
-	KeyTime   string `json:"key_time,omitempty"` // COS用有效期
-	Key       string `json:"key,omitempty"`      // 文件标识符，通常为回调key
+	Token string `json:"token,omitempty"`
 }
 
 // UploadSession 上传会话
