@@ -199,6 +199,7 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
 		if !ok {
 			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
 			c.Abort()
@@ -278,21 +279,6 @@ func OneDriveCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 发送回调结束信号
 		mq.GlobalMQ.Publish(c.Param("sessionID"), mq.Message{})
-
-		c.Next()
-	}
-}
-
-// S3CallbackAuth Amazon S3回调签名验证
-func S3CallbackAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
 
 		c.Next()
 	}
