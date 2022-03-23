@@ -221,6 +221,15 @@ func (fs *FileSystem) ListDeleteDirs(ctx context.Context, ids []uint) error {
 	if err != nil {
 		return ErrDBListObjects.WithError(err)
 	}
+
+	// 忽略根目录
+	for i := 0; i < len(folders); i++ {
+		if folders[i].ParentID == nil {
+			folders = append(folders[:i], folders[i+1:]...)
+			break
+		}
+	}
+
 	fs.SetTargetDir(&folders)
 
 	// 检索目录下的子文件
