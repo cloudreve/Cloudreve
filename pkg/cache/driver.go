@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,8 +11,6 @@ var Store Driver = NewMemoStore()
 
 // Init 初始化缓存
 func Init() {
-	//Store = NewRedisStore(10, "tcp", "127.0.0.1:6379", "", "0")
-	//return
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		Store = NewRedisStore(
 			10,
@@ -20,6 +19,13 @@ func Init() {
 			conf.RedisConfig.Password,
 			conf.RedisConfig.DB,
 		)
+	}
+
+	if conf.SystemConfig.Mode == "slave" {
+		err := Store.Sets(conf.OptionOverwrite, "setting_")
+		if err != nil {
+			util.Log().Warning("无法覆盖数据库设置: %s", err)
+		}
 	}
 }
 

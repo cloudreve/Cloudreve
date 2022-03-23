@@ -131,7 +131,6 @@ func Init(path string) {
 		"System":     SystemConfig,
 		"SSL":        SSLConfig,
 		"UnixSocket": UnixConfig,
-		"Captcha":    CaptchaConfig,
 		"Redis":      RedisConfig,
 		"Thumbnail":  ThumbConfig,
 		"CORS":       CORSConfig,
@@ -142,6 +141,11 @@ func Init(path string) {
 		if err != nil {
 			util.Log().Panic("配置文件 %s 分区解析失败: %s", sectionName, err)
 		}
+	}
+
+	// 映射数据库配置覆盖
+	for _, key := range cfg.Section("OptionOverwrite").Keys() {
+		OptionOverwrite[key.Name()] = key.Value()
 	}
 
 	// 重设log等级
