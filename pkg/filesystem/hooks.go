@@ -5,7 +5,6 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -245,7 +244,7 @@ func HookGenerateThumb(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fil
 		fs.recycleLock.Lock()
 		go func() {
 			defer fs.recycleLock.Unlock()
-			_, _ = fs.Handler.Delete(ctx, []string{fileMode.SourceName + conf.ThumbConfig.FileSuffix})
+			_, _ = fs.Handler.Delete(ctx, []string{fileMode.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")})
 			fs.GenerateThumbnail(ctx, fileMode)
 		}()
 	}

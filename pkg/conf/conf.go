@@ -45,38 +45,12 @@ type slave struct {
 	SignatureTTL    int    `validate:"omitempty,gte=1"`
 }
 
-// captcha 验证码配置
-type captcha struct {
-	Height             int `validate:"gte=0"`
-	Width              int `validate:"gte=0"`
-	Mode               int `validate:"gte=0,lte=3"`
-	ComplexOfNoiseText int `validate:"gte=0,lte=2"`
-	ComplexOfNoiseDot  int `validate:"gte=0,lte=2"`
-	IsShowHollowLine   bool
-	IsShowNoiseDot     bool
-	IsShowNoiseText    bool
-	IsShowSlimeLine    bool
-	IsShowSineLine     bool
-	CaptchaLen         int `validate:"gt=0"`
-}
-
 // redis 配置
 type redis struct {
 	Network  string
 	Server   string
 	Password string
 	DB       string
-}
-
-// 缩略图 配置
-type thumb struct {
-	MaxWidth      uint
-	MaxHeight     uint
-	FileSuffix    string `validate:"min=1"`
-	MaxTaskCount  int
-	EncodeMethod  string `validate:"eq=jpg|eq=png"`
-	EncodeQuality int    `validate:"gte=1,lte=100"`
-	GCAfterGen    bool
 }
 
 // 跨域配置
@@ -132,7 +106,6 @@ func Init(path string) {
 		"SSL":        SSLConfig,
 		"UnixSocket": UnixConfig,
 		"Redis":      RedisConfig,
-		"Thumbnail":  ThumbConfig,
 		"CORS":       CORSConfig,
 		"Slave":      SlaveConfig,
 	}
