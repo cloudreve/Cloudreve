@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
+	"github.com/gofrs/uuid"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -170,6 +171,8 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 		"{minute}":         time.Now().Format("04"),
 		"{second}":         time.Now().Format("05"),
 		"{originname}":     origin,
+		"{ext}":            filepath.Ext(origin),
+		"{uuid}":           uuid.Must(uuid.NewV4()).String(),
 	}
 
 	fileRule = util.Replace(replaceTable, fileRule)
