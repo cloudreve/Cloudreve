@@ -179,27 +179,6 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	return fileRule
 }
 
-func (policy Policy) getOriginNameRule(origin string) string {
-	// 部分存储策略可以使用{origin}代表原始文件名
-	if origin == "" {
-		// 如果上游未传回原始文件名，则使用占位符，让云存储端替换
-		switch policy.Type {
-		case "qiniu":
-			// 七牛会将$(fname)自动替换为原始文件名
-			return "$(fname)"
-		case "local", "remote":
-			return origin
-		case "oss", "cos":
-			// OSS会将${filename}自动替换为原始文件名
-			return "${filename}"
-		case "upyun":
-			// Upyun会将{filename}{.suffix}自动替换为原始文件名
-			return "{filename}{.suffix}"
-		}
-	}
-	return origin
-}
-
 // IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
 func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
