@@ -92,7 +92,7 @@ func (c *remoteClient) Upload(ctx context.Context, file fsctx.FileHeader) error 
 	chunks := chunk.NewChunkGroup(file, c.policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
 		Max:   model.GetIntSetting("chunk_retries", 5),
 		Sleep: chunkRetrySleep,
-	})
+	}, model.IsTrueVal(model.GetSettingByName("use_temp_chunk_buffer")))
 
 	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
 		return c.uploadChunk(ctx, session.Key, current.Index(), content, overwrite, current.Length())

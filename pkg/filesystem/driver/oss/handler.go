@@ -252,7 +252,7 @@ func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
 		Max:   model.GetIntSetting("chunk_retries", 5),
 		Sleep: chunkRetrySleep,
-	})
+	}, model.IsTrueVal(model.GetSettingByName("use_temp_chunk_buffer")))
 
 	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
 		_, err := handler.bucket.UploadPart(imur, content, current.Length(), current.Index()+1)
@@ -435,7 +435,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	uploadSession.UploadID = imur.UploadID
 
 	// 为每个分片签名上传 URL
-	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{})
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{}, false)
 	urls := make([]string, chunks.Num())
 	for chunks.Next() {
 		err := chunks.Process(func(c *chunk.ChunkGroup, chunk io.Reader) error {

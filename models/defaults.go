@@ -45,6 +45,7 @@ var defaultSettings = []Setting{
 	{Name: "chunk_retries", Value: `5`, Type: "retry"},
 	{Name: "onedrive_source_timeout", Value: `1800`, Type: "timeout"},
 	{Name: "reset_after_upload_failed", Value: `0`, Type: "upload"},
+	{Name: "use_temp_chunk_buffer", Value: `1`, Type: "upload"},
 	{Name: "login_captcha", Value: `0`, Type: "login"},
 	{Name: "reg_captcha", Value: `0`, Type: "login"},
 	{Name: "email_active", Value: `0`, Type: "register"},

@@ -342,7 +342,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	uploadSession.UploadID = *res.UploadId
 
 	// 为每个分片签名上传 URL
-	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{})
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{}, false)
 	urls := make([]string, chunks.Num())
 	for chunks.Next() {
 		err := chunks.Process(func(c *chunk.ChunkGroup, chunk io.Reader) error {

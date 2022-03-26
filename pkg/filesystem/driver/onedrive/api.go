@@ -221,8 +221,16 @@ func (client *Client) GetUploadSessionStatus(ctx context.Context, uploadURL stri
 	return &uploadSession, nil
 }
 
+var index = 0
+
 // UploadChunk 上传分片
 func (client *Client) UploadChunk(ctx context.Context, uploadURL string, content io.Reader, current *chunk.ChunkGroup) (*UploadSessionResponse, error) {
+	index++
+	if index == 1 || index == 2 {
+		request.BlackHole(content)
+		return nil, errors.New("error")
+	}
+
 	res, err := client.request(
 		ctx, "PUT", uploadURL, content,
 		request.WithContentLength(current.Length()),
@@ -281,7 +289,7 @@ func (client *Client) Upload(ctx context.Context, file fsctx.FileHeader) error {
 	chunks := chunk.NewChunkGroup(file, client.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
 		Max:   model.GetIntSetting("chunk_retries", 5),
 		Sleep: chunkRetrySleep,
-	})
+	}, model.IsTrueVal(model.GetSettingByName("use_temp_chunk_buffer")))
 
 	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
 		_, err := client.UploadChunk(ctx, uploadURL, content, current)
