@@ -56,6 +56,10 @@ func TestInit(t *testing.T) {
 	asserts := assert.New(t)
 
 	asserts.NotPanics(func() {
-		Init()
+		Init(false)
+	})
+
+	asserts.NotPanics(func() {
+		Init(true)
 	})
 }

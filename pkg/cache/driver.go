@@ -10,7 +10,7 @@ import (
 var Store Driver = NewMemoStore()
 
 // Init 初始化缓存
-func Init() {
+func Init(isSlave bool) {
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		Store = NewRedisStore(
 			10,
@@ -21,7 +21,7 @@ func Init() {
 		)
 	}
 
-	if conf.SystemConfig.Mode == "slave" {
+	if isSlave {
 		err := Store.Sets(conf.OptionOverwrite, "setting_")
 		if err != nil {
 			util.Log().Warning("无法覆盖数据库设置: %s", err)
