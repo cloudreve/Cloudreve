@@ -161,7 +161,7 @@ func (handler Driver) Truncate(ctx context.Context, src string, size uint64) err
 	util.Log().Warning("截断文件 [%s] 至 [%d]", src, size)
 	out, err := os.OpenFile(src, os.O_WRONLY, Perm)
 	if err != nil {
-		util.Log().Warning("无法打开或创建文件，%s", err)
+		util.Log().Warning("无法打开文件，%s", err)
 		return err
 	}
 

@@ -42,9 +42,13 @@ func NewChunkGroup(file fsctx.FileHeader, chunkSize uint64, backoff backoff.Back
 		c.chunkSize = c.fileInfo.Size
 	}
 
-	c.chunkNum = c.fileInfo.Size / c.chunkSize
-	if c.fileInfo.Size%c.chunkSize != 0 || c.fileInfo.Size == 0 {
-		c.chunkNum++
+	if c.fileInfo.Size == 0 {
+		c.chunkNum = 1
+	} else {
+		c.chunkNum = c.fileInfo.Size / c.chunkSize
+		if c.fileInfo.Size%c.chunkSize != 0 {
+			c.chunkNum++
+		}
 	}
 
 	return c
@@ -95,7 +99,7 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 		if err != context.Canceled && (c.file.Seekable() || c.TempAvailable()) && c.backoff.Next() {
 			if c.file.Seekable() {
 				if _, seekErr := c.file.Seek(c.Start(), io.SeekStart); seekErr != nil {
-					return fmt.Errorf("failed to seek back to chunk start: %w, last error: %w", seekErr, err)
+					return fmt.Errorf("failed to seek back to chunk start: %w, last error: %s", seekErr, err)
 				}
 			}
 
@@ -115,7 +119,7 @@ func (c *ChunkGroup) Start() int64 {
 	return int64(uint64(c.Index()) * c.chunkSize)
 }
 
-// Total returns the total length current chunk
+// Total returns the total length
 func (c *ChunkGroup) Total() int64 {
 	return int64(c.fileInfo.Size)
 }

@@ -221,16 +221,8 @@ func (client *Client) GetUploadSessionStatus(ctx context.Context, uploadURL stri
 	return &uploadSession, nil
 }
 
-var index = 0
-
 // UploadChunk 上传分片
 func (client *Client) UploadChunk(ctx context.Context, uploadURL string, content io.Reader, current *chunk.ChunkGroup) (*UploadSessionResponse, error) {
-	index++
-	if index == 1 || index == 2 {
-		request.BlackHole(content)
-		return nil, errors.New("error")
-	}
-
 	res, err := client.request(
 		ctx, "PUT", uploadURL, content,
 		request.WithContentLength(current.Length()),
@@ -331,16 +323,6 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 		request.WithTimeout(time.Duration(150)*time.Second),
 	)
 	if err != nil {
-		retried := 0
-		if v, ok := ctx.Value(fsctx.RetryCtx).(int); ok {
-			retried = v
-		}
-		if retried < model.GetIntSetting("chunk_retries", 5) {
-			retried++
-			util.Log().Debug("文件[%s]上传失败[%s]，5秒钟后重试", dst, err)
-			time.Sleep(time.Duration(5) * time.Second)
-			return client.SimpleUpload(context.WithValue(ctx, fsctx.RetryCtx, retried), dst, body, size, opts...)
-		}
 		return nil, err
 	}
 
