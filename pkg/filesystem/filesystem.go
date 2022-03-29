@@ -121,12 +121,11 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 
 // DispatchHandler 根据存储策略分配文件适配器
 func (fs *FileSystem) DispatchHandler() error {
-	currentPolicy := fs.Policy
-	policyType := currentPolicy.Type
-
-	if currentPolicy == nil {
-		return ErrUnknownPolicyType
+	if fs.Policy == nil {
+		return errors.New("未设置存储策略")
 	}
+	policyType := fs.Policy.Type
+	currentPolicy := fs.Policy
 
 	switch policyType {
 	case "mock", "anonymous":

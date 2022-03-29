@@ -2,6 +2,9 @@ package remote
 
 import (
 	"context"
+	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/remoteclientmock"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,45 +17,26 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
 )
 
-func TestHandler_Token(t *testing.T) {
-	asserts := assert.New(t)
-	handler := Driver{
-		Policy: &model.Policy{
-			MaxSize:      10,
-			AutoRename:   true,
-			DirNameRule:  "dir",
-			FileNameRule: "file",
-			OptionsSerialized: model.PolicyOption{
-				FileType: []string{"txt"},
-			},
-			Server: "http://test.com",
-		},
-		AuthInstance: auth.HMACAuth{},
+func TestNewDriver(t *testing.T) {
+	a := assert.New(t)
+
+	// remoteClient 初始化失败
+	{
+		d, err := NewDriver(&model.Policy{Server: string([]byte{0x7f})})
+		a.Error(err)
+		a.Nil(d)
 	}
-	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
-	auth.General = auth.HMACAuth{SecretKey: []byte("test")}
 
 	// 成功
 	{
-		cache.Set("setting_siteURL", "http://test.cloudreve.org", 0)
-		credential, err := handler.Token(ctx, 10, "123", nil)
-		asserts.NoError(err)
-		policy, err := serializer.DecodeUploadPolicy(credential.Policy)
-		asserts.NoError(err)
-		asserts.Equal("http://test.cloudreve.org/api/v3/callback/remote/123", policy.CallbackURL)
-		asserts.Equal(uint64(10), policy.MaxSize)
-		asserts.Equal(true, policy.AutoRename)
-		asserts.Equal("dir", policy.SavePath)
-		asserts.Equal("file", policy.FileName)
-		asserts.Equal("file", policy.FileName)
-		asserts.Equal([]string{"txt"}, policy.AllowedExtension)
+		d, err := NewDriver(&model.Policy{})
+		a.NoError(err)
+		a.NotNil(d)
 	}
-
 }
 
 func TestHandler_Source(t *testing.T) {
@@ -369,87 +353,17 @@ func TestHandler_Get(t *testing.T) {
 }
 
 func TestHandler_Put(t *testing.T) {
-	asserts := assert.New(t)
-	handler := Driver{
-		Policy: &model.Policy{
-			Type:      "remote",
-			SecretKey: "test",
-			Server:    "http://test.com",
-		},
-		AuthInstance: auth.HMACAuth{},
-	}
-	ctx := context.Background()
-	asserts.NoError(cache.Set("setting_upload_credential_timeout", "3600", 0))
-
-	// 成功
-	{
-		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			"http://test.com/api/v3/slave/upload",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
-			},
-		})
-		handler.Client = clientMock
-		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
-		clientMock.AssertExpectations(t)
-		asserts.NoError(err)
-	}
-
-	// 请求失败
-	{
-		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			"http://test.com/api/v3/slave/upload",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 404,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"code":0}`)),
-			},
-		})
-		handler.Client = clientMock
-		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
-		clientMock.AssertExpectations(t)
-		asserts.Error(err)
-	}
-
-	// 返回错误
-	{
-		ctx = context.WithValue(ctx, fsctx.UserCtx, model.User{})
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			"http://test.com/api/v3/slave/upload",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"code":1}`)),
-			},
-		})
-		handler.Client = clientMock
-		err := handler.Put(ctx, ioutil.NopCloser(strings.NewReader("test input file")), "/", 15)
-		clientMock.AssertExpectations(t)
-		asserts.Error(err)
-	}
-
+	a := assert.New(t)
+	handler, _ := NewDriver(&model.Policy{
+		Type:      "remote",
+		SecretKey: "test",
+		Server:    "http://test.com",
+	})
+	clientMock := &remoteclientmock.RemoteClientMock{}
+	handler.uploadClient = clientMock
+	clientMock.On("Upload", testMock.Anything, testMock.Anything).Return(errors.New("error"))
+	a.Error(handler.Put(context.Background(), &fsctx.FileStream{}))
+	clientMock.AssertExpectations(t)
 }
 
 func TestHandler_Thumb(t *testing.T) {
@@ -467,4 +381,61 @@ func TestHandler_Thumb(t *testing.T) {
 	resp, err := handler.Thumb(ctx, "/1.txt")
 	asserts.NoError(err)
 	asserts.True(resp.Redirect)
+}
+
+func TestHandler_Token(t *testing.T) {
+	a := assert.New(t)
+	handler, _ := NewDriver(&model.Policy{})
+
+	// 无法创建上传会话
+	{
+		clientMock := &remoteclientmock.RemoteClientMock{}
+		handler.uploadClient = clientMock
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(errors.New("error"))
+		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
+		a.Error(err)
+		a.Contains(err.Error(), "error")
+		a.Nil(res)
+		clientMock.AssertExpectations(t)
+	}
+
+	// 无法创建上传地址
+	{
+		clientMock := &remoteclientmock.RemoteClientMock{}
+		handler.uploadClient = clientMock
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(nil)
+		clientMock.On("GetUploadURL", int64(10), "").Return("", "", errors.New("error"))
+		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
+		a.Error(err)
+		a.Contains(err.Error(), "error")
+		a.Nil(res)
+		clientMock.AssertExpectations(t)
+	}
+
+	// 成功
+	{
+		clientMock := &remoteclientmock.RemoteClientMock{}
+		handler.uploadClient = clientMock
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(nil)
+		clientMock.On("GetUploadURL", int64(10), "").Return("1", "2", nil)
+		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
+		a.NoError(err)
+		a.NotNil(res)
+		a.Equal("1", res.UploadURLs[0])
+		a.Equal("2", res.Credential)
+		clientMock.AssertExpectations(t)
+	}
+}
+
+func TestDriver_CancelToken(t *testing.T) {
+	a := assert.New(t)
+	handler, _ := NewDriver(&model.Policy{})
+
+	clientMock := &remoteclientmock.RemoteClientMock{}
+	handler.uploadClient = clientMock
+	clientMock.On("DeleteUploadSession", testMock.Anything, "key").Return(errors.New("error"))
+	err := handler.CancelToken(context.Background(), &serializer.UploadSession{Key: "key"})
+	a.Error(err)
+	a.Contains(err.Error(), "error")
+	clientMock.AssertExpectations(t)
 }

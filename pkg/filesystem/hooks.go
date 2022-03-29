@@ -148,7 +148,6 @@ func HookCancelContext(ctx context.Context, fs *FileSystem, file fsctx.FileHeade
 }
 
 // HookUpdateSourceName 更新文件SourceName
-// TODO：测试
 func HookUpdateSourceName(ctx context.Context, fs *FileSystem, file fsctx.FileHeader) error {
 	originFile, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {

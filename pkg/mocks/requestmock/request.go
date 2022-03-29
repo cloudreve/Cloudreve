@@ -1,4 +1,4 @@
-package controllermock
+package requestmock
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"

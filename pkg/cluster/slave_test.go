@@ -451,7 +451,7 @@ func TestRemoteCallback(t *testing.T) {
 
 	// 回调成功
 	{
-		clientMock := controllermock.RequestMock{}
+		clientMock := requestmock.RequestMock{}
 		mockResp, _ := json.Marshal(serializer.Response{Code: 0})
 		clientMock.On(
 			"Request",
@@ -474,7 +474,7 @@ func TestRemoteCallback(t *testing.T) {
 
 	// 服务端返回业务错误
 	{
-		clientMock := controllermock.RequestMock{}
+		clientMock := requestmock.RequestMock{}
 		mockResp, _ := json.Marshal(serializer.Response{Code: 401})
 		clientMock.On(
 			"Request",
@@ -497,7 +497,7 @@ func TestRemoteCallback(t *testing.T) {
 
 	// 无法解析回调响应
 	{
-		clientMock := controllermock.RequestMock{}
+		clientMock := requestmock.RequestMock{}
 		clientMock.On(
 			"Request",
 			"POST",
@@ -519,7 +519,7 @@ func TestRemoteCallback(t *testing.T) {
 
 	// HTTP状态码非200
 	{
-		clientMock := controllermock.RequestMock{}
+		clientMock := requestmock.RequestMock{}
 		clientMock.On(
 			"Request",
 			"POST",
@@ -541,7 +541,7 @@ func TestRemoteCallback(t *testing.T) {
 
 	// 无法发起回调
 	{
-		clientMock := controllermock.RequestMock{}
+		clientMock := requestmock.RequestMock{}
 		clientMock.On(
 			"Request",
 			"POST",
