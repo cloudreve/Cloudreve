@@ -229,7 +229,7 @@ func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	fileInfo := file.Info()
 
 	// 凭证有效期
-	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+	credentialTTL := model.GetIntSetting("upload_session_timeout", 3600)
 
 	// 是否允许覆盖
 	overwrite := fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite

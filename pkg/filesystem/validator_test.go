@@ -68,10 +68,9 @@ func TestFileSystem_ValidateFileSize(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()
 	fs := FileSystem{
-		User: &model.User{
-			Policy: model.Policy{
-				MaxSize: 10,
-			},
+		User: &model.User{},
+		Policy: &model.Policy{
+			MaxSize: 10,
 		},
 	}
 
@@ -80,7 +79,7 @@ func TestFileSystem_ValidateFileSize(t *testing.T) {
 	asserts.False(fs.ValidateFileSize(ctx, 11))
 
 	// 无限制
-	fs.User.Policy.MaxSize = 0
+	fs.Policy.MaxSize = 0
 	asserts.True(fs.ValidateFileSize(ctx, 11))
 }
 
@@ -88,11 +87,10 @@ func TestFileSystem_ValidateExtension(t *testing.T) {
 	asserts := assert.New(t)
 	ctx := context.Background()
 	fs := FileSystem{
-		User: &model.User{
-			Policy: model.Policy{
-				OptionsSerialized: model.PolicyOption{
-					FileType: nil,
-				},
+		User: &model.User{},
+		Policy: &model.Policy{
+			OptionsSerialized: model.PolicyOption{
+				FileType: nil,
 			},
 		},
 	}
@@ -100,11 +98,11 @@ func TestFileSystem_ValidateExtension(t *testing.T) {
 	asserts.True(fs.ValidateExtension(ctx, "1"))
 	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
 
-	fs.User.Policy.OptionsSerialized.FileType = []string{}
+	fs.Policy.OptionsSerialized.FileType = []string{}
 	asserts.True(fs.ValidateExtension(ctx, "1"))
 	asserts.True(fs.ValidateExtension(ctx, "1.txt"))
 
-	fs.User.Policy.OptionsSerialized.FileType = []string{"txt", "jpg"}
+	fs.Policy.OptionsSerialized.FileType = []string{"txt", "jpg"}
 	asserts.False(fs.ValidateExtension(ctx, "1"))
 	asserts.False(fs.ValidateExtension(ctx, "1.jpg.png"))
 	asserts.True(fs.ValidateExtension(ctx, "1.txt"))

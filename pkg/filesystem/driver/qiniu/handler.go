@@ -156,7 +156,7 @@ func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 
 	// 凭证有效期
-	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+	credentialTTL := model.GetIntSetting("upload_session_timeout", 3600)
 
 	// 生成上传策略
 	fileInfo := file.Info()

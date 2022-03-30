@@ -31,7 +31,6 @@ var defaultSettings = []Setting{
 	{Name: "download_timeout", Value: `60`, Type: "timeout"},
 	{Name: "preview_timeout", Value: `60`, Type: "timeout"},
 	{Name: "doc_preview_timeout", Value: `60`, Type: "timeout"},
-	{Name: "upload_credential_timeout", Value: `1800`, Type: "timeout"},
 	{Name: "upload_session_timeout", Value: `86400`, Type: "timeout"},
 	{Name: "slave_api_timeout", Value: `60`, Type: "timeout"},
 	{Name: "slave_node_retry", Value: `3`, Type: "slave"},

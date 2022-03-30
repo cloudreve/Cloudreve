@@ -245,6 +245,6 @@ func TestChunkGroup_Process(t *testing.T) {
 			return errors.New("error")
 		}))
 		a.False(c.Next())
-		a.Equal(1, count)
+		a.Equal(4, count)
 	}
 }

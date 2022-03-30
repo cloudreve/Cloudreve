@@ -65,6 +65,7 @@ type cors struct {
 var cfg *ini.File
 
 const defaultConf = `[System]
+Debug = false
 Mode = master
 Listen = :5212
 SessionSecret = {SessionSecret}
