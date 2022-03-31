@@ -1,9 +1,7 @@
 package serializer
 
 import (
-	"encoding/base64"
 	"encoding/gob"
-	"encoding/json"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"time"
 )
@@ -63,33 +61,4 @@ type GeneralUploadCallbackFailed struct {
 
 func init() {
 	gob.Register(UploadSession{})
-}
-
-// DecodeUploadPolicy 反序列化Header中携带的上传策略
-func DecodeUploadPolicy(raw string) (*UploadPolicy, error) {
-	var res UploadPolicy
-
-	rawJSON, err := base64.StdEncoding.DecodeString(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(rawJSON, &res)
-	if err != nil {
-		return nil, err
-	}
-
-	return &res, err
-}
-
-// EncodeUploadPolicy 序列化Header中携带的上传策略
-func (policy *UploadPolicy) EncodeUploadPolicy() (string, error) {
-	jsonRes, err := json.Marshal(policy)
-	if err != nil {
-		return "", err
-	}
-
-	res := base64.StdEncoding.EncodeToString(jsonRes)
-	return res, nil
-
 }
