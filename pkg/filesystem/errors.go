@@ -16,7 +16,7 @@ var (
 	ErrRootProtected            = errors.New("无法对根目录进行操作")
 	ErrInsertFileRecord         = serializer.NewError(serializer.CodeDBError, "无法插入文件记录", nil)
 	ErrFileExisted              = serializer.NewError(serializer.CodeObjectExist, "同名文件或目录已存在", nil)
-	ErrFileUploadSessionExisted = serializer.NewError(serializer.CodeObjectExist, "当前目录下已经有同名文件正在上传中", nil)
+	ErrFileUploadSessionExisted = serializer.NewError(serializer.CodeObjectExist, "当前目录下已经有同名文件正在上传中，请尝试清空上传会话", nil)
 	ErrFolderExisted            = serializer.NewError(serializer.CodeObjectExist, "同名目录已存在", nil)
 	ErrPathNotExist             = serializer.NewError(404, "路径不存在", nil)
 	ErrObjectNotExist           = serializer.NewError(404, "文件不存在", nil)
