@@ -1,6 +1,6 @@
 module github.com/cloudreve/Cloudreve/v3
 
-go 1.13
+go 1.17
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
