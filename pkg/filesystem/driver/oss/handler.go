@@ -2,8 +2,6 @@ package oss
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,8 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/HFO4/aliyun-oss-go-sdk/oss"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
@@ -48,17 +48,25 @@ type Driver struct {
 type key int
 
 const (
+	chunkRetrySleep = time.Duration(5) * time.Second
+
+	// MultiPartUploadThreshold 服务端使用分片上传的阈值
+	MultiPartUploadThreshold uint64 = 5 * (1 << 30) // 5GB
 	// VersionID 文件版本标识
 	VersionID key = iota
 )
 
-// CORS 创建跨域策略
-func (handler *Driver) CORS() error {
-	// 初始化客户端
-	if err := handler.InitOSSClient(false); err != nil {
-		return err
+func NewDriver(policy *model.Policy) (*Driver, error) {
+	driver := &Driver{
+		Policy:     policy,
+		HTTPClient: request.NewClient(),
 	}
 
+	return driver, driver.InitOSSClient(false)
+}
+
+// CORS 创建跨域策略
+func (handler *Driver) CORS() error {
 	return handler.client.SetBucketCORS(handler.Policy.BucketName, []oss.CORSRule{
 		{
 			AllowedOrigin: []string{"*"},
@@ -82,39 +90,31 @@ func (handler *Driver) InitOSSClient(forceUsePublicEndpoint bool) error {
 		return errors.New("存储策略为空")
 	}
 
-	if handler.client == nil {
-		// 决定是否使用内网 Endpoint
-		endpoint := handler.Policy.Server
-		if handler.Policy.OptionsSerialized.ServerSideEndpoint != "" && !forceUsePublicEndpoint {
-			endpoint = handler.Policy.OptionsSerialized.ServerSideEndpoint
-		}
-
-		// 初始化客户端
-		client, err := oss.New(endpoint, handler.Policy.AccessKey, handler.Policy.SecretKey)
-		if err != nil {
-			return err
-		}
-		handler.client = client
-
-		// 初始化存储桶
-		bucket, err := client.Bucket(handler.Policy.BucketName)
-		if err != nil {
-			return err
-		}
-		handler.bucket = bucket
-
+	// 决定是否使用内网 Endpoint
+	endpoint := handler.Policy.Server
+	if handler.Policy.OptionsSerialized.ServerSideEndpoint != "" && !forceUsePublicEndpoint {
+		endpoint = handler.Policy.OptionsSerialized.ServerSideEndpoint
 	}
+
+	// 初始化客户端
+	client, err := oss.New(endpoint, handler.Policy.AccessKey, handler.Policy.SecretKey)
+	if err != nil {
+		return err
+	}
+	handler.client = client
+
+	// 初始化存储桶
+	bucket, err := client.Bucket(handler.Policy.BucketName)
+	if err != nil {
+		return err
+	}
+	handler.bucket = bucket
 
 	return nil
 }
 
 // List 列出OSS上的文件
-func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-	// 初始化客户端
-	if err := handler.InitOSSClient(false); err != nil {
-		return nil, err
-	}
-
+func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
 	// 列取文件
 	base = strings.TrimPrefix(base, "/")
 	if base != "" {
@@ -181,7 +181,7 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 }
 
 // Get 获取文件
-func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 通过VersionID禁止缓存
 	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
 
@@ -224,17 +224,12 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 }
 
 // Put 将文件流保存到指定目录
-func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
+func (handler *Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	defer file.Close()
 	fileInfo := file.Info()
 
-	// 初始化客户端
-	if err := handler.InitOSSClient(false); err != nil {
-		return err
-	}
-
 	// 凭证有效期
-	credentialTTL := model.GetIntSetting("upload_credential_timeout", 3600)
+	credentialTTL := model.GetIntSetting("upload_session_timeout", 3600)
 
 	// 是否允许覆盖
 	overwrite := fileInfo.Mode&fsctx.Overwrite == fsctx.Overwrite
@@ -243,23 +238,40 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 		oss.ForbidOverWrite(!overwrite),
 	}
 
-	// 上传文件
-	err := handler.bucket.PutObject(fileInfo.SavePath, file, options...)
+	// 小文件直接上传
+	if fileInfo.Size < MultiPartUploadThreshold {
+		return handler.bucket.PutObject(fileInfo.SavePath, file, options...)
+	}
+
+	// 超过阈值时使用分片上传
+	imur, err := handler.bucket.InitiateMultipartUpload(fileInfo.SavePath, options...)
 	if err != nil {
+		return fmt.Errorf("failed to initiate multipart upload: %w", err)
+	}
+
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{
+		Max:   model.GetIntSetting("chunk_retries", 5),
+		Sleep: chunkRetrySleep,
+	}, model.IsTrueVal(model.GetSettingByName("use_temp_chunk_buffer")))
+
+	uploadFunc := func(current *chunk.ChunkGroup, content io.Reader) error {
+		_, err := handler.bucket.UploadPart(imur, content, current.Length(), current.Index()+1)
 		return err
 	}
 
-	return nil
+	for chunks.Next() {
+		if err := chunks.Process(uploadFunc); err != nil {
+			return fmt.Errorf("failed to upload chunk #%d: %w", chunks.Index(), err)
+		}
+	}
+
+	_, err = handler.bucket.CompleteMultipartUpload(imur, oss.CompleteAll("yes"), oss.ForbidOverWrite(!overwrite))
+	return err
 }
 
 // Delete 删除一个或多个文件，
 // 返回未删除的文件
-func (handler Driver) Delete(ctx context.Context, files []string) ([]string, error) {
-	// 初始化客户端
-	if err := handler.InitOSSClient(false); err != nil {
-		return files, err
-	}
-
+func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, error) {
 	// 删除文件
 	delRes, err := handler.bucket.DeleteObjects(files)
 
@@ -277,7 +289,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 }
 
 // Thumb 获取文件缩略图
-func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
 	// 初始化客户端
 	if err := handler.InitOSSClient(true); err != nil {
 		return nil, err
@@ -311,7 +323,7 @@ func (handler Driver) Thumb(ctx context.Context, path string) (*response.Content
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(
+func (handler *Driver) Source(
 	ctx context.Context,
 	path string,
 	baseURL url.URL,
@@ -356,7 +368,7 @@ func (handler Driver) Source(
 	return handler.signSourceURL(ctx, path, ttl, signOptions)
 }
 
-func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
+func (handler *Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
 	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
 	if err != nil {
 		return "", err
@@ -367,9 +379,6 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 	if err != nil {
 		return "", err
 	}
-
-	// 优先使用https
-	finalURL.Scheme = "https"
 
 	// 公有空间替换掉Key及不支持的头
 	if !handler.Policy.IsPrivate {
@@ -394,7 +403,8 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 }
 
 // Token 获取上传策略和认证Token
-func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
@@ -406,61 +416,66 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 		CallbackBody:     `{"name":${x:fname},"source_name":${object},"size":${size},"pic_info":"${imageInfo.width},${imageInfo.height}"}`,
 		CallbackBodyType: "application/json",
 	}
-
-	// 上传策略
-	savePath := file.Info().SavePath
-	postPolicy := UploadPolicy{
-		Expiration: time.Now().UTC().Add(time.Duration(ttl) * time.Second).Format(time.RFC3339),
-		Conditions: []interface{}{
-			map[string]string{"bucket": handler.Policy.BucketName},
-			[]string{"starts-with", "$key", path.Dir(savePath)},
-		},
+	callbackPolicyJSON, err := json.Marshal(callbackPolicy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode callback policy: %w", err)
 	}
+	callbackPolicyEncoded := base64.StdEncoding.EncodeToString(callbackPolicyJSON)
 
-	if handler.Policy.MaxSize > 0 {
-		postPolicy.Conditions = append(postPolicy.Conditions,
-			[]interface{}{"content-length-range", 0, handler.Policy.MaxSize})
+	// 初始化分片上传
+	fileInfo := file.Info()
+	options := []oss.Option{
+		oss.Expires(time.Now().Add(time.Duration(ttl) * time.Second)),
+		oss.ForbidOverWrite(true),
 	}
+	imur, err := handler.bucket.InitiateMultipartUpload(fileInfo.SavePath, options...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize multipart upload: %w", err)
+	}
+	uploadSession.UploadID = imur.UploadID
 
-	return handler.getUploadCredential(ctx, postPolicy, callbackPolicy, ttl, savePath)
-}
+	// 为每个分片签名上传 URL
+	chunks := chunk.NewChunkGroup(file, handler.Policy.OptionsSerialized.ChunkSize, &backoff.ConstantBackoff{}, false)
+	urls := make([]string, chunks.Num())
+	for chunks.Next() {
+		err := chunks.Process(func(c *chunk.ChunkGroup, chunk io.Reader) error {
+			signedURL, err := handler.bucket.SignURL(fileInfo.SavePath, oss.HTTPPut, ttl,
+				oss.PartNumber(c.Index()+1),
+				oss.UploadID(imur.UploadID),
+				oss.ContentType("application/octet-stream"))
+			if err != nil {
+				return err
+			}
 
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy, callback CallbackPolicy, TTL int64, savePath string) (*serializer.UploadCredential, error) {
-	// 处理回调策略
-	callbackPolicyEncoded := ""
-	if callback.CallbackURL != "" {
-		callbackPolicyJSON, err := json.Marshal(callback)
+			urls[c.Index()] = signedURL
+			return nil
+		})
 		if err != nil {
 			return nil, err
 		}
-		callbackPolicyEncoded = base64.StdEncoding.EncodeToString(callbackPolicyJSON)
-		policy.Conditions = append(policy.Conditions, map[string]string{"callback": callbackPolicyEncoded})
 	}
 
-	// 编码上传策略
-	policyJSON, err := json.Marshal(policy)
+	// 签名完成分片上传的URL
+	completeURL, err := handler.bucket.SignURL(fileInfo.SavePath, oss.HTTPPost, ttl,
+		oss.UploadID(imur.UploadID),
+		oss.Expires(time.Now().Add(time.Duration(ttl)*time.Second)),
+		oss.CompleteAll("yes"),
+		oss.ForbidOverWrite(true),
+		oss.CallbackParam(callbackPolicyEncoded))
 	if err != nil {
 		return nil, err
 	}
-	policyEncoded := base64.StdEncoding.EncodeToString(policyJSON)
-
-	// 签名上传策略
-	hmacSign := hmac.New(sha1.New, []byte(handler.Policy.SecretKey))
-	_, err = io.WriteString(hmacSign, policyEncoded)
-	if err != nil {
-		return nil, err
-	}
-	signature := base64.StdEncoding.EncodeToString(hmacSign.Sum(nil))
 
 	return &serializer.UploadCredential{
-		Policy:    fmt.Sprintf("%s:%s", callbackPolicyEncoded, policyEncoded),
-		Path:      savePath,
-		AccessKey: handler.Policy.AccessKey,
-		Token:     signature,
+		SessionID:   uploadSession.Key,
+		ChunkSize:   handler.Policy.OptionsSerialized.ChunkSize,
+		UploadID:    imur.UploadID,
+		UploadURLs:  urls,
+		CompleteURL: completeURL,
 	}, nil
 }
 
 // 取消上传凭证
-func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return nil
+func (handler *Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return handler.bucket.AbortMultipartUpload(oss.InitiateMultipartUploadResult{UploadID: uploadSession.UploadID, Key: uploadSession.SavePath}, nil)
 }

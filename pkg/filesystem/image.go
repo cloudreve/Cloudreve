@@ -3,7 +3,6 @@ package filesystem
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"runtime"
@@ -65,7 +64,7 @@ type Pool struct {
 // Init 初始化任务池
 func getThumbWorker() *Pool {
 	once.Do(func() {
-		maxWorker := conf.ThumbConfig.MaxTaskCount
+		maxWorker := model.GetIntSetting("thumb_max_task_count", -1)
 		if maxWorker <= 0 {
 			maxWorker = runtime.GOMAXPROCS(0)
 		}
@@ -118,9 +117,9 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 生成缩略图
 	image.GetThumb(fs.GenerateThumbnailSize(w, h))
 	// 保存到文件
-	err = image.Save(util.RelativePath(file.SourceName + conf.ThumbConfig.FileSuffix))
+	err = image.Save(util.RelativePath(file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")))
 	image = nil
-	if conf.ThumbConfig.GCAfterGen {
+	if model.IsTrueVal(model.GetSettingByName("thumb_gc_after_gen")) {
 		util.Log().Debug("GenerateThumbnail runtime.GC")
 		runtime.GC()
 	}
@@ -139,17 +138,11 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	// 失败时删除缩略图文件
 	if err != nil {
-		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + conf.ThumbConfig.FileSuffix})
+		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")})
 	}
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸
 func (fs *FileSystem) GenerateThumbnailSize(w, h int) (uint, uint) {
-	if conf.SystemConfig.Mode == "master" {
-		options := model.GetSettingByNames("thumb_width", "thumb_height")
-		w, _ := strconv.ParseUint(options["thumb_width"], 10, 32)
-		h, _ := strconv.ParseUint(options["thumb_height"], 10, 32)
-		return uint(w), uint(h)
-	}
-	return conf.ThumbConfig.MaxWidth, conf.ThumbConfig.MaxHeight
+	return uint(model.GetIntSetting("thumb_width", 400)), uint(model.GetIntSetting("thumb_width", 300))
 }

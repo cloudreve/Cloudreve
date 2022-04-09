@@ -1,6 +1,7 @@
 package fsctx
 
 import (
+	"errors"
 	"io"
 	"time"
 )
@@ -75,7 +76,11 @@ func (file *FileStream) Close() error {
 }
 
 func (file *FileStream) Seek(offset int64, whence int) (int64, error) {
-	return file.Seeker.Seek(offset, whence)
+	if file.Seekable() {
+		return file.Seeker.Seek(offset, whence)
+	}
+
+	return 0, errors.New("no seeker")
 }
 
 func (file *FileStream) Seekable() bool {

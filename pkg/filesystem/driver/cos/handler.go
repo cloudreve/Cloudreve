@@ -357,8 +357,9 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 
 	res, err := handler.getUploadCredential(ctx, postPolicy, keyTime, savePath)
 	if err == nil {
+		res.SessionID = uploadSession.Key
 		res.Callback = apiURL
-		res.Key = uploadSession.Key
+		res.UploadURLs = []string{handler.Policy.Server}
 	}
 
 	return res, err
@@ -415,10 +416,10 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	signature := hmacFinalSign.Sum(nil)
 
 	return &serializer.UploadCredential{
-		Policy:    policyEncoded,
-		Path:      savePath,
-		AccessKey: handler.Policy.AccessKey,
-		Token:     fmt.Sprintf("%x", signature),
-		KeyTime:   keyTime,
+		Policy:     policyEncoded,
+		Path:       savePath,
+		AccessKey:  handler.Policy.AccessKey,
+		Credential: fmt.Sprintf("%x", signature),
+		KeyTime:    keyTime,
 	}, nil
 }

@@ -37,7 +37,7 @@ func Init(path string) {
 		{
 			"both",
 			func() {
-				cache.Init()
+				cache.Init(conf.SystemConfig.Mode == "slave")
 			},
 		},
 		{

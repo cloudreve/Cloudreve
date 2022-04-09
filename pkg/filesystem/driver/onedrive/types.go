@@ -3,7 +3,6 @@ package onedrive
 import (
 	"encoding/gob"
 	"net/url"
-	"sync"
 )
 
 // RespError 接口返回错误
@@ -99,15 +98,6 @@ type ListResponse struct {
 	Context string     `json:"@odata.context"`
 }
 
-// Chunk 文件分片
-type Chunk struct {
-	Offset    int
-	ChunkSize int
-	Total     int
-	Retried   int
-	Data      []byte
-}
-
 // oauthEndpoint OAuth接口地址
 type oauthEndpoint struct {
 	token     url.URL
@@ -143,10 +133,3 @@ type Site struct {
 func init() {
 	gob.Register(Credential{})
 }
-
-// IsLast 返回是否为最后一个分片
-func (chunk *Chunk) IsLast() bool {
-	return chunk.Total-chunk.Offset == chunk.ChunkSize
-}
-
-var callbackSignal sync.Map

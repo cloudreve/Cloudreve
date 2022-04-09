@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 
 	//"github.com/nfnt/resize"
@@ -78,11 +77,11 @@ func (image *Thumb) Save(path string) (err error) {
 		return err
 	}
 	defer out.Close()
-	switch conf.ThumbConfig.EncodeMethod {
+	switch model.GetSettingByNameWithDefault("thumb_encode_method", "jpg") {
 	case "png":
 		err = png.Encode(out, image.src)
 	default:
-		err = jpeg.Encode(out, image.src, &jpeg.Options{Quality: conf.ThumbConfig.EncodeQuality})
+		err = jpeg.Encode(out, image.src, &jpeg.Options{Quality: model.GetIntSetting("thumb_encode_quality", 85)})
 	}
 
 	return err

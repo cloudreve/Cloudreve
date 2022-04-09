@@ -43,6 +43,15 @@ func GetSettingByName(name string) string {
 	return ""
 }
 
+// GetSettingByNameWithDefault 用 Name 获取设置值, 取不到时使用缺省值
+func GetSettingByNameWithDefault(name, fallback string) string {
+	res := GetSettingByName(name)
+	if res == "" {
+		return fallback
+	}
+	return res
+}
+
 // GetSettingByNames 用多个 Name 获取设置值
 func GetSettingByNames(names ...string) map[string]string {
 	var queryRes []Setting

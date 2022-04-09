@@ -1,7 +1,17 @@
 package middleware
 
 import (
+	"bytes"
+	"context"
+	"crypto/md5"
+	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
+	"io/ioutil"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -178,28 +188,23 @@ func RemoteCallbackAuth() gin.HandlerFunc {
 // QiniuCallbackAuth 七牛回调签名验证
 func QiniuCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, user := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 验证回调是否来自qiniu
-		//mac := qbox.NewMac(user.Policy.AccessKey, user.Policy.SecretKey)
-		//ok, err := mac.VerifyCallback(c.Request)
-		//if err != nil {
-		//	util.Log().Debug("无法验证回调请求，%s", err)
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
-		//	c.Abort()
-		//	return
-		//}
-		//if !ok {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
-		//	c.Abort()
-		//	return
-		//}
+		session := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
+
+		// 验证回调是否来自qiniu
+		mac := qbox.NewMac(session.Policy.AccessKey, session.Policy.SecretKey)
+		ok, err := mac.VerifyCallback(c.Request)
+		if err != nil {
+			util.Log().Debug("无法验证回调请求，%s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
+			c.Abort()
+			return
+		}
+
+		if !ok {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
@@ -208,21 +213,13 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 // OSSCallbackAuth 阿里云OSS回调签名验证
 func OSSCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//err := oss.VerifyCallbackSignature(c.Request)
-		//if err != nil {
-		//	util.Log().Debug("回调签名验证失败，%s", err)
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
-		//	c.Abort()
-		//	return
-		//}
+		err := oss.VerifyCallbackSignature(c.Request)
+		if err != nil {
+			util.Log().Debug("回调签名验证失败，%s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
@@ -231,103 +228,57 @@ func OSSCallbackAuth() gin.HandlerFunc {
 // UpyunCallbackAuth 又拍云回调签名验证
 func UpyunCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, user := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 获取请求正文
-		//body, err := ioutil.ReadAll(c.Request.Body)
-		//c.Request.Body.Close()
-		//if err != nil {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: err.Error()})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
-		//
-		//// 准备验证Upyun回调签名
-		//handler := upyun.Driver{Policy: &user.Policy}
-		//contentMD5 := c.Request.Header.Get("Content-Md5")
-		//date := c.Request.Header.Get("Date")
-		//actualSignature := c.Request.Header.Get("Authorization")
-		//
-		//// 计算正文MD5
-		//actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
-		//if actualContentMD5 != contentMD5 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 计算理论签名
-		//signature := handler.Sign(context.Background(), []string{
-		//	"POST",
-		//	c.Request.URL.Path,
-		//	date,
-		//	contentMD5,
-		//})
-		//
-		//// 对比签名
-		//if signature != actualSignature {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
-		//	c.Abort()
-		//	return
-		//}
+		session := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
+
+		// 获取请求正文
+		body, err := ioutil.ReadAll(c.Request.Body)
+		c.Request.Body.Close()
+		if err != nil {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: err.Error()})
+			c.Abort()
+			return
+		}
+
+		c.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+		// 准备验证Upyun回调签名
+		handler := upyun.Driver{Policy: &session.Policy}
+		contentMD5 := c.Request.Header.Get("Content-Md5")
+		date := c.Request.Header.Get("Date")
+		actualSignature := c.Request.Header.Get("Authorization")
+
+		// 计算正文MD5
+		actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
+		if actualContentMD5 != contentMD5 {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
+			c.Abort()
+			return
+		}
+
+		// 计算理论签名
+		signature := handler.Sign(context.Background(), []string{
+			"POST",
+			c.Request.URL.Path,
+			date,
+			contentMD5,
+		})
+
+		// 对比签名
+		if signature != actualSignature {
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
+			c.Abort()
+			return
+		}
 
 		c.Next()
 	}
 }
 
 // OneDriveCallbackAuth OneDrive回调签名验证
-// TODO 解耦
 func OneDriveCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-		//
-		//// 发送回调结束信号
-		//onedrive.FinishCallback(c.Param("key"))
-
-		c.Next()
-	}
-}
-
-// COSCallbackAuth 腾讯云COS回调签名验证
-// TODO 解耦 测试
-func COSCallbackAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
-
-		c.Next()
-	}
-}
-
-// S3CallbackAuth Amazon S3回调签名验证
-func S3CallbackAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		//// 验证key并查找用户
-		//resp, _ := uploadCallbackCheck(c)
-		//if resp.Code != 0 {
-		//	c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: resp.Msg})
-		//	c.Abort()
-		//	return
-		//}
+		// 发送回调结束信号
+		mq.GlobalMQ.Publish(c.Param("sessionID"), mq.Message{})
 
 		c.Next()
 	}

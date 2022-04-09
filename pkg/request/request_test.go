@@ -82,6 +82,8 @@ func TestHTTPClient_Request(t *testing.T) {
 			WithTimeout(time.Duration(1)*time.Microsecond),
 			WithCredential(auth.HMACAuth{SecretKey: []byte("123")}, 10),
 			WithContext(context.Background()),
+			WithoutHeader([]string{"s s", "s s"}),
+			WithMasterMeta(),
 		)
 		asserts.Error(resp.Err)
 		asserts.Nil(resp.Response)

@@ -12,7 +12,6 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -162,7 +161,7 @@ func (handler Driver) Truncate(ctx context.Context, src string, size uint64) err
 	util.Log().Warning("截断文件 [%s] 至 [%d]", src, size)
 	out, err := os.OpenFile(src, os.O_WRONLY, Perm)
 	if err != nil {
-		util.Log().Warning("无法打开或创建文件，%s", err)
+		util.Log().Warning("无法打开文件，%s", err)
 		return err
 	}
 
@@ -188,7 +187,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		}
 
 		// 尝试删除文件的缩略图（如果有）
-		_ = os.Remove(util.RelativePath(value + conf.ThumbConfig.FileSuffix))
+		_ = os.Remove(util.RelativePath(value + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")))
 	}
 
 	return deleteFailed, retErr
@@ -196,7 +195,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 
 // Thumb 获取文件缩略图
 func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	file, err := handler.Get(ctx, path+conf.ThumbConfig.FileSuffix)
+	file, err := handler.Get(ctx, path+model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"))
 	if err != nil {
 		return nil, err
 	}

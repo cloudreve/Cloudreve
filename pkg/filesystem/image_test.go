@@ -2,13 +2,15 @@ package filesystem
 
 import (
 	"context"
-	"testing"
-
+	"errors"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
-	"github.com/stretchr/testify/assert"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	testMock "github.com/stretchr/testify/mock"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFileSystem_GetThumb(t *testing.T) {
@@ -46,4 +48,23 @@ func TestFileSystem_ThumbWorker(t *testing.T) {
 		getThumbWorker().addWorker()
 		getThumbWorker().releaseWorker()
 	})
+}
+
+func TestFileSystem_GenerateThumbnail(t *testing.T) {
+	fs := &FileSystem{User: &model.User{}}
+
+	// 无法生成缩略图
+	{
+		fs.SetTargetFile(&[]model.File{{}})
+		fs.GenerateThumbnail(context.Background(), &model.File{})
+	}
+
+	// 无法获取文件数据
+	{
+		testHandller := new(FileHeaderMock)
+		testHandller.On("Get", testMock.Anything, "").Return(request.NopRSCloser{}, errors.New("error"))
+		fs.Handler = testHandller
+		fs.GenerateThumbnail(context.Background(), &model.File{Name: "test.png"})
+		testHandller.AssertExpectations(t)
+	}
 }

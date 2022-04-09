@@ -91,40 +91,17 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 // TODO 完善测试
 func (fs *FileSystem) GenerateSavePath(ctx context.Context, file fsctx.FileHeader) string {
 	fileInfo := file.Info()
-
-	if fs.User.Model.ID != 0 {
-		return path.Join(
-			fs.Policy.GeneratePath(
-				fs.User.Model.ID,
-				fileInfo.VirtualPath,
-			),
-			fs.Policy.GenerateFileName(
-				fs.User.Model.ID,
-				fileInfo.FileName,
-			),
-		)
-	}
-
-	// 匿名文件系统尝试根据上下文中的上传策略生成路径
-	var anonymousPolicy model.Policy
-	if policy, ok := ctx.Value(fsctx.UploadPolicyCtx).(serializer.UploadPolicy); ok {
-		anonymousPolicy = model.Policy{
-			Type:         "remote",
-			AutoRename:   policy.AutoRename,
-			DirNameRule:  policy.SavePath,
-			FileNameRule: policy.FileName,
-		}
-	}
 	return path.Join(
-		anonymousPolicy.GeneratePath(
-			0,
-			"",
+		fs.Policy.GeneratePath(
+			fs.User.Model.ID,
+			fileInfo.VirtualPath,
 		),
-		anonymousPolicy.GenerateFileName(
-			0,
+		fs.Policy.GenerateFileName(
+			fs.User.Model.ID,
 			fileInfo.FileName,
 		),
 	)
+
 }
 
 // CancelUpload 监测客户端取消上传
@@ -174,9 +151,6 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 	fs.Use("BeforeUpload", HookValidateFile)
 	fs.Use("BeforeUpload", HookValidateCapacity)
-	if !fs.Policy.IsUploadPlaceholderWithSize() {
-		fs.Use("AfterUpload", HookClearFileHeaderSize)
-	}
 
 	// 验证文件规格
 	if err := fs.Upload(ctx, file); err != nil {
@@ -202,6 +176,9 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 	}
 
 	// 创建占位符
+	if !fs.Policy.IsUploadPlaceholderWithSize() {
+		fs.Use("AfterUpload", HookClearFileHeaderSize)
+	}
 	fs.Use("AfterUpload", GenericAfterUpload)
 	if err := fs.Upload(ctx, file); err != nil {
 		return nil, err

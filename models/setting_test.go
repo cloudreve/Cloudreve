@@ -59,6 +59,15 @@ func TestGetSettingByType(t *testing.T) {
 	asserts.Equal(map[string]string{}, settings)
 }
 
+func TestGetSettingByNameWithDefault(t *testing.T) {
+	a := assert.New(t)
+
+	rows := sqlmock.NewRows([]string{"name", "value", "type"})
+	mock.ExpectQuery("^SELECT \\* FROM `(.+)` WHERE `(.+)`\\.`deleted_at` IS NULL AND(.+)$").WillReturnRows(rows)
+	settings := GetSettingByNameWithDefault("123", "123321")
+	a.Equal("123321", settings)
+}
+
 func TestGetSettingByNames(t *testing.T) {
 	cache.Store = cache.NewMemoStore()
 	asserts := assert.New(t)

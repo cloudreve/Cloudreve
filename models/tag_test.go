@@ -56,8 +56,8 @@ func TestGetTagsByUID(t *testing.T) {
 func TestGetTagsByID(t *testing.T) {
 	asserts := assert.New(t)
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"name"}).AddRow("tag"))
-	res, err := GetTagsByUID(1)
+	res, err := GetTagsByID(1, 1)
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.NoError(err)
-	asserts.EqualValues("tag", res[0].Name)
+	asserts.EqualValues("tag", res.Name)
 }

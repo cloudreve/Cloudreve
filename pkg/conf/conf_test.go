@@ -56,7 +56,11 @@ User = root
 Password = root
 Host = 127.0.0.1:3306
 Name = v3
-TablePrefix = v3_`
+TablePrefix = v3_
+
+[OptionOverwrite]
+key=value
+`
 	err := ioutil.WriteFile("testConf.ini", []byte(testCase), 0644)
 	defer func() { err = os.Remove("testConf.ini") }()
 	if err != nil {
@@ -65,6 +69,7 @@ TablePrefix = v3_`
 	asserts.NotPanics(func() {
 		Init("testConf.ini")
 	})
+	asserts.Equal(OptionOverwrite["key"], "value")
 }
 
 func TestMapSection(t *testing.T) {
