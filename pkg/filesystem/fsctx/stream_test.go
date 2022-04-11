@@ -1,29 +1,14 @@
 package fsctx
 
 import (
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
-
-func TestFileStream_GetFileName(t *testing.T) {
-	asserts := assert.New(t)
-	file := FileStream{Name: "123"}
-	asserts.Equal("123", file.GetFileName())
-}
-
-func TestFileStream_GetMIMEType(t *testing.T) {
-	asserts := assert.New(t)
-	file := FileStream{MIMEType: "123"}
-	asserts.Equal("123", file.GetMIMEType())
-}
-
-func TestFileStream_GetSize(t *testing.T) {
-	asserts := assert.New(t)
-	file := FileStream{Size: 123}
-	asserts.Equal(uint64(123), file.GetSize())
-}
 
 func TestFileStream_Read(t *testing.T) {
 	asserts := assert.New(t)
@@ -40,9 +25,54 @@ func TestFileStream_Read(t *testing.T) {
 
 func TestFileStream_Close(t *testing.T) {
 	asserts := assert.New(t)
-	file := FileStream{
-		File: ioutil.NopCloser(strings.NewReader("123")),
+	{
+		file := FileStream{
+			File: ioutil.NopCloser(strings.NewReader("123")),
+		}
+		err := file.Close()
+		asserts.NoError(err)
 	}
-	err := file.Close()
-	asserts.NoError(err)
+
+	{
+		file := FileStream{}
+		err := file.Close()
+		asserts.NoError(err)
+	}
+}
+
+func TestFileStream_Seek(t *testing.T) {
+	asserts := assert.New(t)
+	f, _ := os.CreateTemp("", "*")
+	defer func() {
+		f.Close()
+		os.Remove(f.Name())
+	}()
+	{
+		file := FileStream{
+			File:   f,
+			Seeker: f,
+		}
+		res, err := file.Seek(0, io.SeekStart)
+		asserts.NoError(err)
+		asserts.EqualValues(0, res)
+	}
+
+	{
+		file := FileStream{}
+		res, err := file.Seek(0, io.SeekStart)
+		asserts.Error(err)
+		asserts.EqualValues(0, res)
+	}
+}
+
+func TestFileStream_Info(t *testing.T) {
+	a := assert.New(t)
+	file := FileStream{}
+	a.NotNil(file.Info())
+
+	file.SetSize(10)
+	a.EqualValues(10, file.Info().Size)
+
+	file.SetModel(&model.File{})
+	a.NotNil(file.Info().Model)
 }

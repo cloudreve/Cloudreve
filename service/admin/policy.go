@@ -149,9 +149,9 @@ func (service *PolicyService) AddCORS() serializer.Response {
 
 	switch policy.Type {
 	case "oss":
-		handler := oss.Driver{
-			Policy:     &policy,
-			HTTPClient: request.NewClient(),
+		handler, err := oss.NewDriver(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
@@ -169,13 +169,16 @@ func (service *PolicyService) AddCORS() serializer.Response {
 				},
 			}),
 		}
+
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
 	case "s3":
-		handler := s3.Driver{
-			Policy: &policy,
+		handler, err := s3.NewDriver(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
+
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "跨域策略添加失败", err)
 		}
@@ -207,8 +210,12 @@ func (service *SlavePingService) Test() serializer.Response {
 		return serializer.ParamErr("从机无法向主机发送回调请求，请检查主机端 参数设置 - 站点信息 - 站点URL设置，并确保从机可以连接到此地址，"+err.Error(), nil)
 	}
 
-	if res.Data.(string) != conf.BackendVersion {
-		return serializer.ParamErr("Cloudreve版本不一致，主机："+res.Data.(string)+"，从机："+conf.BackendVersion, nil)
+	version := conf.BackendVersion
+	if conf.IsPro == "true" {
+		version += "-pro"
+	}
+	if res.Data.(string) != version {
+		return serializer.ParamErr("Cloudreve版本不一致，主机："+res.Data.(string)+"，从机："+version, nil)
 	}
 
 	return serializer.Response{}

@@ -48,9 +48,6 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 	// 添加文件记录前的钩子
 	err := fs.Trigger(ctx, "BeforeAddFile", file)
 	if err != nil {
-		if err := fs.Trigger(ctx, "BeforeAddFileFailed", file); err != nil {
-			util.Log().Debug("BeforeAddFileFailed 钩子执行失败，%s", err)
-		}
 		return nil, err
 	}
 
@@ -180,6 +177,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 	for policyID, toBeDeletedFiles := range files {
 		// 列举出需要物理删除的文件的物理路径
 		sourceNamesAll := make([]string, 0, len(toBeDeletedFiles))
+		uploadSessions := make([]*serializer.UploadSession, 0, len(toBeDeletedFiles))
 
 		for i := 0; i < len(toBeDeletedFiles); i++ {
 			sourceNamesAll = append(sourceNamesAll, toBeDeletedFiles[i].SourceName)
@@ -187,11 +185,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 			if toBeDeletedFiles[i].UploadSessionID != nil {
 				if session, ok := cache.Get(UploadSessionCachePrefix + *toBeDeletedFiles[i].UploadSessionID); ok {
 					uploadSession := session.(serializer.UploadSession)
-					if err := fs.Handler.CancelToken(ctx, &uploadSession); err != nil {
-						util.Log().Warning("无法取消 [%s] 的上传会话: %s", err)
-					}
-
-					cache.Deletes([]string{*toBeDeletedFiles[i].UploadSessionID}, UploadSessionCachePrefix)
+					uploadSessions = append(uploadSessions, &uploadSession)
 				}
 
 			}
@@ -203,6 +197,15 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		if err != nil {
 			failed[policyID] = sourceNamesAll
 			continue
+		}
+
+		// 取消上传会话
+		for _, upSession := range uploadSessions {
+			if err := fs.Handler.CancelToken(ctx, upSession); err != nil {
+				util.Log().Warning("无法取消 [%s] 的上传会话: %s", upSession.Name, err)
+			}
+
+			cache.Deletes([]string{upSession.Key}, UploadSessionCachePrefix)
 		}
 
 		// 执行删除

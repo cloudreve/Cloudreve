@@ -3,6 +3,9 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	testMock "github.com/stretchr/testify/mock"
 	"io"
 	"os"
 	"strings"
@@ -12,11 +15,8 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestFileSystem_Compress(t *testing.T) {

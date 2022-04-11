@@ -311,8 +311,6 @@ func (handler Driver) signURL(ctx context.Context, path *url.URL, TTL int64) (st
 
 // Token 获取上传策略和认证Token
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
-	// 检查文件大小
-
 	// 生成回调地址
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/upyun/" + uploadSession.Key)
@@ -332,17 +330,7 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	}
 
 	// 生成上传凭证
-	return handler.getUploadCredential(ctx, putPolicy)
-}
-
-// 取消上传凭证
-func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return nil
-}
-
-func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPolicy) (*serializer.UploadCredential, error) {
-	// 生成上传策略
-	policyJSON, err := json.Marshal(policy)
+	policyJSON, err := json.Marshal(putPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -353,9 +341,16 @@ func (handler Driver) getUploadCredential(ctx context.Context, policy UploadPoli
 	signStr := handler.Sign(ctx, elements)
 
 	return &serializer.UploadCredential{
-		Policy: policyEncoded,
-		Token:  signStr,
+		SessionID:  uploadSession.Key,
+		Policy:     policyEncoded,
+		Credential: signStr,
+		UploadURLs: []string{"https://v0.api.upyun.com/" + handler.Policy.BucketName},
 	}, nil
+}
+
+// 取消上传凭证
+func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
 }
 
 // Sign 计算又拍云的签名头

@@ -226,16 +226,6 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
 	fileInfo := file.Info()
 
-	// 如果小于4MB，则由服务端中转
-	if fileInfo.Size <= SmallFileSize {
-		return nil, nil
-	}
-
-	// 生成回调地址
-	siteURL := model.GetSiteURL()
-	apiBaseURI, _ := url.Parse("/api/v3/callback/onedrive/finish/" + uploadSession.Key)
-	apiURL := siteURL.ResolveReference(apiBaseURI)
-
 	uploadURL, err := handler.Client.CreateUploadSession(ctx, fileInfo.SavePath, WithConflictBehavior("fail"))
 	if err != nil {
 		return nil, err
@@ -244,13 +234,15 @@ func (handler Driver) Token(ctx context.Context, ttl int64, uploadSession *seria
 	// 监控回调及上传
 	go handler.Client.MonitorUpload(uploadURL, uploadSession.Key, fileInfo.SavePath, fileInfo.Size, ttl)
 
+	uploadSession.UploadURL = uploadURL
 	return &serializer.UploadCredential{
-		Policy: uploadURL,
-		Token:  apiURL.String(),
+		SessionID:  uploadSession.Key,
+		ChunkSize:  handler.Policy.OptionsSerialized.ChunkSize,
+		UploadURLs: []string{uploadURL},
 	}, nil
 }
 
 // 取消上传凭证
 func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
-	return nil
+	return handler.Client.DeleteUploadSession(ctx, uploadSession.UploadURL)
 }

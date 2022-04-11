@@ -117,7 +117,6 @@ func (job *TransferTask) Do() {
 			}
 
 			// 切换为从机节点处理上传
-			fs.SetPolicyFromPath(path.Dir(dst))
 			fs.SwitchToSlaveHandler(node)
 			err = fs.UploadFromStream(context.Background(), &fsctx.FileStream{
 				File:        nil,

@@ -29,23 +29,19 @@ func TestMain(m *testing.M) {
 
 func TestBuildUser(t *testing.T) {
 	asserts := assert.New(t)
-	user := model.User{
-		Policy: model.Policy{MaxSize: 1024 * 1024},
-	}
+	user := model.User{}
 	mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	res := BuildUser(user)
 	asserts.NoError(mock.ExpectationsWereMet())
-	asserts.Equal("1.00mb", res.Policy.MaxSize)
+	asserts.NotNil(res)
 
 }
 
 func TestBuildUserResponse(t *testing.T) {
 	asserts := assert.New(t)
-	user := model.User{
-		Policy: model.Policy{MaxSize: 1024 * 1024},
-	}
+	user := model.User{}
 	res := BuildUserResponse(user)
-	asserts.Equal("1.00mb", res.Data.(User).Policy.MaxSize)
+	asserts.NotNil(res)
 }
 
 func TestBuildUserStorageResponse(t *testing.T) {

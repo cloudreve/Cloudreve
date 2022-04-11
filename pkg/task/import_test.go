@@ -182,6 +182,7 @@ func TestImportTask_Do(t *testing.T) {
 		// 插入文件记录
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)files(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
 		mock.ExpectCommit()
 
 		task.Do()

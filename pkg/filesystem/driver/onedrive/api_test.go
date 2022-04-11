@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -12,7 +17,6 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
@@ -307,6 +311,31 @@ func TestClient_Meta(t *testing.T) {
 		asserts.NotNil(res)
 		asserts.Equal("123321", res.Name)
 	}
+
+	// 返回正常, 使用资源id
+	{
+		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"GET",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"name":"123321"}`)),
+			},
+		})
+		client.Request = clientMock
+		res, err := client.Meta(context.Background(), "123321", "123")
+		clientMock.AssertExpectations(t)
+		asserts.NoError(err)
+		asserts.NotNil(res)
+		asserts.Equal("123321", res.Name)
+	}
 }
 
 func TestClient_CreateUploadSession(t *testing.T) {
@@ -442,15 +471,21 @@ func TestClient_UploadChunk(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+	cg := chunk.NewChunkGroup(&fsctx.FileStream{Size: 15}, 10, &backoff.ConstantBackoff{}, false)
 
 	// 非最后分片，正常
 	{
+		cg.Next()
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
 		clientMock := ClientMock{}
 		clientMock.On(
 			"Request",
 			"PUT",
 			"http://dev.com",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
 			testMock.Anything,
 			testMock.Anything,
 		).Return(&request.Response{
@@ -461,13 +496,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		res, err := client.UploadChunk(context.Background(), "http://dev.com", &Chunk{
-			Offset:    0,
-			ChunkSize: 10,
-			Total:     100,
-			Retried:   0,
-			Data:      []byte("12313121231312"),
-		})
+		res, err := client.UploadChunk(context.Background(), "http://dev.com", strings.NewReader("1234567890"), cg)
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
 		asserts.Equal("http://dev.com/2", res.UploadURL)
@@ -491,13 +520,7 @@ func TestClient_UploadChunk(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		res, err := client.UploadChunk(context.Background(), "http://dev.com", &Chunk{
-			Offset:    0,
-			ChunkSize: 10,
-			Total:     100,
-			Retried:   0,
-			Data:      []byte("12313112313122"),
-		})
+		res, err := client.UploadChunk(context.Background(), "http://dev.com", strings.NewReader("1234567890"), cg)
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
 		asserts.Nil(res)
@@ -505,6 +528,7 @@ func TestClient_UploadChunk(t *testing.T) {
 
 	// 最后分片，正常
 	{
+		cg.Next()
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
 		clientMock := ClientMock{}
 		clientMock.On(
@@ -521,53 +545,26 @@ func TestClient_UploadChunk(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		res, err := client.UploadChunk(context.Background(), "http://dev.com", &Chunk{
-			Offset:    95,
-			ChunkSize: 5,
-			Total:     100,
-			Retried:   0,
-			Data:      []byte("1231312"),
-		})
+		res, err := client.UploadChunk(context.Background(), "http://dev.com", strings.NewReader("12345"), cg)
 		clientMock.AssertExpectations(t)
 		asserts.NoError(err)
 		asserts.Nil(res)
 	}
 
-	// 最后分片，第一次失败，重试后成功
+	// 最后分片，失败
 	{
-		cache.Set("setting_onedrive_chunk_retries", "1", 0)
+		cache.Set("setting_chunk_retries", "1", 0)
 		client.Credential.ExpiresIn = 0
 		go func() {
 			time.Sleep(time.Duration(2) * time.Second)
 			client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
 		}()
 		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"PUT",
-			"http://dev.com",
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`???`)),
-			},
-		})
 		client.Request = clientMock
-		chunk := &Chunk{
-			Offset:    95,
-			ChunkSize: 5,
-			Total:     100,
-			Retried:   0,
-			Data:      []byte("1231312"),
-		}
-		res, err := client.UploadChunk(context.Background(), "http://dev.com", chunk)
+		res, err := client.UploadChunk(context.Background(), "http://dev.com", strings.NewReader("12345"), cg)
 		clientMock.AssertExpectations(t)
-		asserts.NoError(err)
+		asserts.Error(err)
 		asserts.Nil(res)
-		asserts.EqualValues(1, chunk.Retried)
 	}
 }
 
@@ -576,39 +573,18 @@ func TestClient_Upload(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-	ctx := context.WithValue(context.Background(), fsctx.DisableOverwrite, true)
+	ctx := context.Background()
+	cache.Set("setting_chunk_retries", "1", 0)
+	cache.Set("setting_use_temp_chunk_buffer", "false", 0)
 
 	// 小文件，简单上传，失败
 	{
 		client.Credential.ExpiresIn = 0
-		err := client.Upload(ctx, "123.jpg", 3, strings.NewReader("123"))
-		asserts.Error(err)
-	}
-
-	// 上下文取消
-	{
-		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-		clientMock := ClientMock{}
-		clientMock.On(
-			"Request",
-			"POST",
-			testMock.Anything,
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: nil,
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
-			},
+		err := client.Upload(ctx, &fsctx.FileStream{
+			Size: 5,
+			File: io.NopCloser(strings.NewReader("12345")),
 		})
-		client.Request = clientMock
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		err := client.Upload(ctx, "123.jpg", 15*1024*1024, strings.NewReader("123"))
-		clientMock.AssertExpectations(t)
 		asserts.Error(err)
-		asserts.Equal(ErrClientCanceled, err)
 	}
 
 	// 无法创建分片会话
@@ -629,9 +605,52 @@ func TestClient_Upload(t *testing.T) {
 			},
 		})
 		client.Request = clientMock
-		err := client.Upload(context.Background(), "123.jpg", 15*1024*1024, strings.NewReader("123"))
+		err := client.Upload(context.Background(), &fsctx.FileStream{
+			Size: SmallFileSize + 1,
+			File: io.NopCloser(strings.NewReader("12345")),
+		})
 		clientMock.AssertExpectations(t)
 		asserts.Error(err)
+	}
+
+	// 分片上传失败
+	{
+		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 200,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
+			},
+		})
+		clientMock.On(
+			"Request",
+			"PUT",
+			testMock.Anything,
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 400,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"uploadUrl":"123321"}`)),
+			},
+		})
+		client.Request = clientMock
+		err := client.Upload(context.Background(), &fsctx.FileStream{
+			Size: SmallFileSize + 1,
+			File: io.NopCloser(strings.NewReader("12345")),
+		})
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+		asserts.Contains(err.Error(), "failed to upload chunk")
 	}
 
 }
@@ -641,9 +660,9 @@ func TestClient_SimpleUpload(t *testing.T) {
 	client, _ := NewClient(&model.Policy{})
 	client.Credential.AccessToken = "AccessToken"
 	client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-	cache.Set("setting_onedrive_chunk_retries", "1", 0)
+	cache.Set("setting_chunk_retries", "1", 0)
 
-	// 请求失败，并重试
+	// 请求失败
 	{
 		client.Credential.ExpiresIn = 0
 		res, err := client.SimpleUpload(context.Background(), "123.jpg", strings.NewReader("123"), 3)
@@ -651,7 +670,6 @@ func TestClient_SimpleUpload(t *testing.T) {
 		asserts.Nil(res)
 	}
 
-	cache.Set("setting_onedrive_chunk_retries", "0", 0)
 	// 返回未知响应
 	{
 		client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
@@ -988,7 +1006,7 @@ func TestClient_MonitorUpload(t *testing.T) {
 		asserts.NotPanics(func() {
 			go func() {
 				time.Sleep(time.Duration(1) * time.Second)
-				FinishCallback("key")
+				mq.GlobalMQ.Publish("key", mq.Message{})
 			}()
 			client.MonitorUpload("url", "key", "path", 10, 10)
 		})

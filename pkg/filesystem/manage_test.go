@@ -3,6 +3,8 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	testMock "github.com/stretchr/testify/mock"
 	"os"
 	"testing"
 
@@ -11,12 +13,10 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestFileSystem_ListPhysical(t *testing.T) {
@@ -296,12 +296,12 @@ func TestFileSystem_ListDeleteDirs(t *testing.T) {
 	{
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
-				sqlmock.NewRows([]string{"id"}).
-					AddRow(1).
-					AddRow(2).
-					AddRow(3),
+				sqlmock.NewRows([]string{"id", "parent_id"}).
+					AddRow(1, 0).
+					AddRow(2, 0).
+					AddRow(3, 0),
 			)
-		mock.ExpectQuery("SELECT(.+)").
+		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WithArgs(1, 2, 3).
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "name"}).
@@ -316,21 +316,47 @@ func TestFileSystem_ListDeleteDirs(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 
+	// 成功,忽略根目录
+	{
+		mock.ExpectQuery("SELECT(.+)").
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "parent_id"}).
+					AddRow(1, 0).
+					AddRow(2, nil).
+					AddRow(3, 0),
+			)
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs(1, 3).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "name"}).
+					AddRow(4, "1.txt").
+					AddRow(5, "2.txt").
+					AddRow(6, "3.txt"),
+			)
+		fs.CleanTargets()
+		err := fs.ListDeleteDirs(context.Background(), []uint{1})
+		asserts.NoError(err)
+		asserts.Len(fs.FileTarget, 3)
+		asserts.Len(fs.DirTarget, 2)
+		asserts.NoError(mock.ExpectationsWereMet())
+	}
+
 	// 检索文件发生错误
 	{
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
-				sqlmock.NewRows([]string{"id"}).
-					AddRow(1).
-					AddRow(2).
-					AddRow(3),
+				sqlmock.NewRows([]string{"id", "parent_id"}).
+					AddRow(1, 0).
+					AddRow(2, 0).
+					AddRow(3, 0),
 			)
 		mock.ExpectQuery("SELECT(.+)").
 			WithArgs(1, 2, 3).
 			WillReturnError(errors.New("error"))
+		fs.CleanTargets()
 		err := fs.ListDeleteDirs(context.Background(), []uint{1})
 		asserts.Error(err)
-		asserts.Len(fs.DirTarget, 6)
+		asserts.Len(fs.DirTarget, 3)
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 	// 检索目录发生错误
@@ -349,7 +375,7 @@ func TestFileSystem_Delete(t *testing.T) {
 	cache.Set("pack_size_1", uint64(0), 0)
 	fs := &FileSystem{User: &model.User{
 		Model: gorm.Model{
-			ID: 1,
+			ID: 0,
 		},
 		Storage: 3,
 		Group:   model.Group{MaxStorage: 3},
@@ -361,10 +387,10 @@ func TestFileSystem_Delete(t *testing.T) {
 		fs.CleanTargets()
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
-				sqlmock.NewRows([]string{"id"}).
-					AddRow(1).
-					AddRow(2).
-					AddRow(3),
+				sqlmock.NewRows([]string{"id", "parent_id"}).
+					AddRow(1, 0).
+					AddRow(2, 0).
+					AddRow(3, 0),
 			)
 		mock.ExpectQuery("SELECT(.+)").
 			WithArgs(1, 2, 3).
@@ -380,16 +406,14 @@ func TestFileSystem_Delete(t *testing.T) {
 		// 删除文件记录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").
-			WillReturnResult(sqlmock.NewResult(0, 3))
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)shares").
-			WillReturnResult(sqlmock.NewResult(0, 3))
-		mock.ExpectCommit()
-		// 归还容量
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 删除目录
@@ -407,7 +431,6 @@ func TestFileSystem_Delete(t *testing.T) {
 		fs.DirTarget = []model.Folder{}
 		err := fs.Delete(ctx, []uint{1}, []uint{1}, true)
 		asserts.NoError(err)
-		asserts.Equal(uint64(0), fs.User.Storage)
 	}
 	//全部成功
 	{
@@ -419,10 +442,10 @@ func TestFileSystem_Delete(t *testing.T) {
 		asserts.NoError(err)
 		mock.ExpectQuery("SELECT(.+)").
 			WillReturnRows(
-				sqlmock.NewRows([]string{"id"}).
-					AddRow(1).
-					AddRow(2).
-					AddRow(3),
+				sqlmock.NewRows([]string{"id", "parent_id"}).
+					AddRow(1, 0).
+					AddRow(2, 0).
+					AddRow(3, 0),
 			)
 		mock.ExpectQuery("SELECT(.+)").
 			WithArgs(1, 2, 3).
@@ -438,16 +461,14 @@ func TestFileSystem_Delete(t *testing.T) {
 		// 删除文件记录
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").
-			WillReturnResult(sqlmock.NewResult(0, 3))
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)shares").
-			WillReturnResult(sqlmock.NewResult(0, 3))
-		mock.ExpectCommit()
-		// 归还容量
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 3))
 		mock.ExpectCommit()
 		// 删除目录
@@ -465,7 +486,6 @@ func TestFileSystem_Delete(t *testing.T) {
 		fs.DirTarget = []model.Folder{}
 		err = fs.Delete(ctx, []uint{1}, []uint{1}, false)
 		asserts.NoError(err)
-		asserts.Equal(uint64(0), fs.User.Storage)
 	}
 
 }
@@ -573,7 +593,9 @@ func TestFileSystem_Rename(t *testing.T) {
 		Model: gorm.Model{
 			ID: 1,
 		},
-	}}
+	},
+		Policy: &model.Policy{},
+	}
 	ctx := context.Background()
 
 	// 重命名文件 成功
@@ -683,7 +705,7 @@ func TestFileSystem_Rename(t *testing.T) {
 
 	// 新名字是文件，扩展名不合法
 	{
-		fs.User.Policy.OptionsSerialized.FileType = []string{"txt"}
+		fs.Policy.OptionsSerialized.FileType = []string{"txt"}
 		err := fs.Rename(ctx, []uint{}, []uint{10}, "1.jpg")
 		asserts.Error(err)
 		asserts.Equal(ErrIllegalObjectName, err)
@@ -691,7 +713,7 @@ func TestFileSystem_Rename(t *testing.T) {
 
 	// 新名字是目录，不应该检测扩展名
 	{
-		fs.User.Policy.OptionsSerialized.FileType = []string{"txt"}
+		fs.Policy.OptionsSerialized.FileType = []string{"txt"}
 		mock.ExpectQuery("SELECT(.+)folders(.+)").
 			WithArgs(10, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))

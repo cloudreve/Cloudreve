@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -174,7 +174,7 @@ func Thumb(c *gin.Context) {
 	}
 
 	defer resp.Content.Close()
-	http.ServeContent(c.Writer, c.Request, "thumb."+conf.ThumbConfig.EncodeMethod, fs.FileTarget[0].UpdatedAt, resp.Content)
+	http.ServeContent(c.Writer, c.Request, "thumb."+model.GetSettingByNameWithDefault("thumb_encode_method", "jpg"), fs.FileTarget[0].UpdatedAt, resp.Content)
 
 }
 
