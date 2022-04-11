@@ -9,8 +9,8 @@ services:
     volumes:
       - temp_data:/data
       - ./cloudreve/uploads:/cloudreve/uploads
-      - ./cloudreve/conf.ini:/cloudreve/conf.ini # before mount conf.ini, please create file on host dir first
-      - ./cloudreve/cloudreve.db:/cloudreve/cloudreve.db # same as conf.ini
+      - ./cloudreve/conf.ini:/cloudreve/conf.ini
+      - ./cloudreve/cloudreve.db:/cloudreve/cloudreve.db
       - ./cloudreve/avatar:/cloudreve/avatar
     depends_on:
       - aria2
@@ -29,7 +29,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      # **cloudreve offline download path, customize your own**
-      # **mkdir -p data/aria2 && chmod -R 777 data**
-      device: $PWD/data # create folder before run service
+      device: $PWD/data
       o: bind
