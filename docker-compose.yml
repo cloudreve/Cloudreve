@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  cloudreve:
+    container_name: cloudreve
+    image: cloudreve/cloudreve:latest
+    restart: unless-stopped
+    ports:
+      - "5212:5212"
+    volumes:
+      - temp_data:/data
+      - ./cloudreve/uploads:/cloudreve/uploads
+      - ./cloudreve/conf.ini:/cloudreve/conf.ini
+      - ./cloudreve/cloudreve.db:/cloudreve/cloudreve.db
+      - ./cloudreve/avatar:/cloudreve/avatar
+    depends_on:
+      - aria2
+  aria2:
+    container_name: aria2
+    image: p3terx/aria2-pro # third party image, please keep notice what you are doing
+    restart: unless-stopped
+    environment:
+      - RPC_SECRET=your_aria_rpc_token # aria rpc token, customize your own
+      - RPC_PORT=6800
+    volumes:
+      - ./aria2/config:/config
+      - temp_data:/data
+volumes:
+  temp_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: $PWD/data
+      o: bind

@@ -1,70 +1,43 @@
+FROM golang:1.17.7-alpine as cloudreve_builder
+
+
+# install dependencies and build tools
+RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild binutils binutils-doc gcc-doc
+
+WORKDIR /cloudreve_builder
+RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
+
 # build frontend
-FROM node:lts-buster AS fe-builder
-
-COPY ./assets /assets
-
-WORKDIR /assets
-
-# If encountered problems like JavaScript heap out of memory, please uncomment the following options
-ENV NODE_OPTIONS --max_old_space_size=4096
-
-# yarn repo connection is unstable, adjust the network timeout to 10 min.
-RUN set -ex \
-    && yarn install --network-timeout 600000 \
-    && yarn run build
+WORKDIR /cloudreve_builder/Cloudreve/assets
+RUN yarn install --network-timeout 1000000
+RUN yarn run build
 
 # build backend
-FROM golang:1.17.7-alpine3.12 AS be-builder
-
-ENV GO111MODULE on
-
-COPY . /go/src/github.com/cloudreve/Cloudreve/v3
-COPY --from=fe-builder /assets/build/ /go/src/github.com/cloudreve/Cloudreve/v3/assets/build/
-
-WORKDIR /go/src/github.com/cloudreve/Cloudreve/v3
-
-RUN set -ex \
-    && apk upgrade \
-    && apk add gcc libc-dev git \
+WORKDIR /cloudreve_builder/Cloudreve
+RUN go get github.com/rakyll/statik \
+    && statik -src=assets/build/ -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f \
+    && tag_name=$(git describe --tags) \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
-    && export VERSION=$(git describe --tags) \
-    && go install -ldflags "-X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=${VERSION}' \
-                            -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=${COMMIT_SHA}'\
-                            -w -s"
+    && go build -a -o cloudreve -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$tag_name' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+
 
 # build final image
-FROM alpine:3.12 AS dist
+FROM alpine:latest
 
-LABEL maintainer="mritd <mritd@linux.com>"
+WORKDIR /cloudreve
 
-# we use the Asia/Shanghai timezone by default, you can be modified
-# by `docker build --build-arg=TZ=Other_Timezone ...`
-ARG TZ="Asia/Shanghai"
+RUN apk update && apk add --no-cache tzdata
 
-ENV TZ ${TZ}
+# we using the `Asia/Shanghai` timezone by default, you can do modification at your will
+RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 
-COPY --from=be-builder /go/bin/Cloudreve /cloudreve/cloudreve
-COPY docker-bootstrap.sh /cloudreve/bootstrap.sh
+COPY --from=cloudreve_builder /cloudreve_builder/Cloudreve/cloudreve ./
 
-RUN apk upgrade \
-    && apk add bash tzdata aria2 \
-    && ln -s /cloudreve/cloudreve /usr/bin/cloudreve \
-    && ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo ${TZ} > /etc/timezone \
-    && rm -rf /var/cache/apk/* \
-    && mkdir /etc/cloudreve \
-    && ln -s /etc/cloudreve/cloureve.db /cloudreve/cloudreve.db \
-    && ln -s /etc/cloudreve/conf.ini /cloudreve/conf.ini
+# prepare permissions and aria2 dir
+RUN chmod +x ./cloudreve && mkdir -p /data/aria2 && chmod -R 766 /data/aria2
 
-# cloudreve use tcp 5212 port by default
-EXPOSE 5212/tcp
+EXPOSE 5212
+VOLUME ["/cloudreve/uploads", "/cloudreve/avatar", "/data"]
 
-# cloudreve stores all files(including executable file) in the `/cloudreve`
-# directory by default; users should mount the configfile to the `/etc/cloudreve`
-# directory by themselves for persistence considerations, and the data storage
-# directory recommends using `/data` directory.
-VOLUME /etc/cloudreve
-
-VOLUME /data
-
-ENTRYPOINT ["sh", "/cloudreve/bootstrap.sh"]
+ENTRYPOINT ["./cloudreve"]
