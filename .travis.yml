@@ -4,7 +4,7 @@ go:
 node_js: "12.16.3"
 git:
   depth: 1
-before_script:
+before_install:
   - mkdir assets/build
   - touch assets/build/test.html
 script:
