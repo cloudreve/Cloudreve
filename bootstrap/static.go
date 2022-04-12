@@ -19,8 +19,6 @@ import (
 
 const StaticFolder = "statics"
 
-var StaticEmbed embed.FS
-
 type GinFS struct {
 	FS http.FileSystem
 }
@@ -47,13 +45,13 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 }
 
 // InitStatic 初始化静态资源文件
-func InitStatic() {
+func InitStatic(statics embed.FS) {
 	if util.Exists(util.RelativePath(StaticFolder)) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
 		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
 	} else {
 		// 初始化静态资源
-		embedFS, err := fs.Sub(StaticEmbed, "assets/build")
+		embedFS, err := fs.Sub(statics, "assets/build")
 		if err != nil {
 			util.Log().Panic("无法初始化静态资源, %s", err)
 		}
@@ -98,9 +96,9 @@ func InitStatic() {
 }
 
 // Eject 抽离内置静态资源
-func Eject() {
+func Eject(statics embed.FS) {
 	// 初始化静态资源
-	embedFS, err := fs.Sub(StaticEmbed, "assets/build")
+	embedFS, err := fs.Sub(statics, "assets/build")
 	if err != nil {
 		util.Log().Panic("无法初始化静态资源, %s", err)
 	}

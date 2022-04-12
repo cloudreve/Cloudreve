@@ -17,20 +17,20 @@ var (
 )
 
 //go:embed assets/build
-var StaticEmbed embed.FS
+var staticEmbed embed.FS
 
 func init() {
 	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
 	flag.BoolVar(&isEject, "eject", false, "导出内置静态资源")
 	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
 	flag.Parse()
-	bootstrap.Init(confPath)
+	bootstrap.Init(confPath, staticEmbed)
 }
 
 func main() {
 	if isEject {
 		// 开始导出内置静态资源文件
-		bootstrap.Eject()
+		bootstrap.Eject(staticEmbed)
 		return
 	}
 

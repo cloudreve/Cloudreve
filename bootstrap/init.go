@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"embed"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/models/scripts"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
@@ -16,7 +17,7 @@ import (
 )
 
 // Init 初始化启动
-func Init(path string) {
+func Init(path string, statics embed.FS) {
 	InitApplication()
 	conf.Init(path)
 	// Debug 关闭时，切换为生产模式
@@ -79,7 +80,7 @@ func Init(path string) {
 		{
 			"master",
 			func() {
-				InitStatic()
+				InitStatic(statics)
 			},
 		},
 		{
