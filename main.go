@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 
 	"github.com/cloudreve/Cloudreve/v3/bootstrap"
@@ -14,6 +15,9 @@ var (
 	confPath   string
 	scriptName string
 )
+
+//go:embed assets/build
+var StaticEmbed embed.FS
 
 func init() {
 	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")

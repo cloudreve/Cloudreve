@@ -68,7 +68,7 @@ chmod +x ./cloudreve
 
 ## :gear: 构建
 
-自行构建前需要拥有 `Go >= 1.13`、`yarn`等必要依赖。
+自行构建前需要拥有 `Go >= 1.17`、`yarn`等必要依赖。
 
 #### 克隆代码
 
@@ -85,19 +85,7 @@ cd assets
 yarn install
 # 开始构建
 yarn run build
-```
 
-#### 嵌入静态资源
-
-```shell
-# 回到项目主目录
-cd ../
-
-# 安装 statik, 用于嵌入静态资源
-go get github.com/rakyll/statik
-
-# 开始嵌入
-statik -src=assets/build/  -include=*.html,*.js,*.json,*.css,*.png,*.svg,*.ico -f
 ```
 
 #### 编译项目
@@ -108,7 +96,7 @@ export COMMIT_SHA=$(git rev-parse --short HEAD)
 export VERSION=$(git describe --tags)
 
 # 开始编译
-go build -a -o cloudreve -ldflags " -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
+go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
 ```
 
 你也可以使用项目根目录下的`build.sh`快速开始构建：
