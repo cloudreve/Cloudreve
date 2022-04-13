@@ -18,12 +18,9 @@ func DownloadArchive(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var service explorer.DownloadService
+	var service explorer.ArchiveService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.DownloadArchived(ctx, c)
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
+		service.DownloadArchived(ctx, c)
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
@@ -189,7 +186,7 @@ func Preview(c *gin.Context) {
 		res := service.PreviewContent(ctx, c, false)
 		// 是否需要重定向
 		if res.Code == -301 {
-			c.Redirect(301, res.Data.(string))
+			c.Redirect(302, res.Data.(string))
 			return
 		}
 		// 是否有错误发生

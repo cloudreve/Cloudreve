@@ -100,7 +100,7 @@ func PreviewShare(c *gin.Context) {
 		res := service.PreviewContent(ctx, c, false)
 		// 是否需要重定向
 		if res.Code == -301 {
-			c.Redirect(301, res.Data.(string))
+			c.Redirect(302, res.Data.(string))
 			return
 		}
 		// 是否有错误发生

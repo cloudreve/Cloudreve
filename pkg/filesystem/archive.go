@@ -28,17 +28,17 @@ import (
 */
 
 // Compress 创建给定目录和文件的压缩文件
-func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, isArchive bool) (string, error) {
+func (fs *FileSystem) Compress(ctx context.Context, writer io.Writer, folderIDs, fileIDs []uint, isArchive bool) error {
 	// 查找待压缩目录
 	folders, err := model.GetFoldersByIDs(folderIDs, fs.User.ID)
 	if err != nil && len(folderIDs) != 0 {
-		return "", ErrDBListObjects
+		return ErrDBListObjects
 	}
 
 	// 查找待压缩文件
 	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID)
 	if err != nil && len(fileIDs) != 0 {
-		return "", ErrDBListObjects
+		return ErrDBListObjects
 	}
 
 	// 如果上下文限制了父目录，则进行检查
@@ -46,14 +46,14 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		// 检查目录
 		for _, folder := range folders {
 			if *folder.ParentID != parent.ID {
-				return "", ErrObjectNotExist
+				return ErrObjectNotExist
 			}
 		}
 
 		// 检查文件
 		for _, file := range files {
 			if file.FolderID != parent.ID {
-				return "", ErrObjectNotExist
+				return ErrObjectNotExist
 			}
 		}
 	}
@@ -73,25 +73,8 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		files[i].Position = ""
 	}
 
-	// 创建临时压缩文件
-	saveFolder := "archive"
-	if !isArchive {
-		saveFolder = "compress"
-	}
-	zipFilePath := filepath.Join(
-		util.RelativePath(model.GetSettingByName("temp_path")),
-		saveFolder,
-		fmt.Sprintf("archive_%d.zip", time.Now().UnixNano()),
-	)
-	zipFile, err := util.CreatNestedFile(zipFilePath)
-	if err != nil {
-		util.Log().Warning("%s", err)
-		return "", err
-	}
-	defer zipFile.Close()
-
 	// 创建压缩文件Writer
-	zipWriter := zip.NewWriter(zipFile)
+	zipWriter := zip.NewWriter(writer)
 	defer zipWriter.Close()
 
 	ctx = reqContext
@@ -101,10 +84,9 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		select {
 		case <-reqContext.Done():
 			// 取消压缩请求
-			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
-			return "", ErrClientCanceled
+			return ErrClientCanceled
 		default:
-			fs.doCompress(ctx, nil, &folders[i], zipWriter, isArchive)
+			fs.doCompress(reqContext, nil, &folders[i], zipWriter, isArchive)
 		}
 
 	}
@@ -112,22 +94,13 @@ func (fs *FileSystem) Compress(ctx context.Context, folderIDs, fileIDs []uint, i
 		select {
 		case <-reqContext.Done():
 			// 取消压缩请求
-			fs.cancelCompress(ctx, zipWriter, zipFile, zipFilePath)
-			return "", ErrClientCanceled
+			return ErrClientCanceled
 		default:
-			fs.doCompress(ctx, &files[i], nil, zipWriter, isArchive)
+			fs.doCompress(reqContext, &files[i], nil, zipWriter, isArchive)
 		}
 	}
 
-	return zipFilePath, nil
-}
-
-// cancelCompress 取消压缩进程
-func (fs *FileSystem) cancelCompress(ctx context.Context, zipWriter *zip.Writer, file *os.File, path string) {
-	util.Log().Debug("客户端取消压缩请求")
-	zipWriter.Close()
-	file.Close()
-	_ = os.Remove(path)
+	return nil
 }
 
 func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *model.Folder, zipWriter *zip.Writer, isArchive bool) {

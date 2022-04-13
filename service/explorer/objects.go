@@ -2,9 +2,9 @@ package explorer
 
 import (
 	"context"
+	"encoding/gob"
 	"fmt"
 	"math"
-	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -13,7 +13,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
@@ -65,6 +64,10 @@ type ItemPropertyService struct {
 	ID        string `binding:"required"`
 	TraceRoot bool   `form:"trace_root"`
 	IsFolder  bool   `form:"is_folder"`
+}
+
+func init() {
+	gob.Register(ItemIDService{})
 }
 
 // Raw 批量解码HashID，获取原始ID
@@ -232,37 +235,20 @@ func (service *ItemIDService) Archive(ctx context.Context, c *gin.Context) seria
 		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
 	}
 
-	// 开始压缩
-	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	items := service.Raw()
-	zipFile, err := fs.Compress(ctx, items.Dirs, items.Items, true)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
-	}
-
-	// 生成一次性压缩文件下载地址
-	siteURL, err := url.Parse(model.GetSettingByName("siteURL"))
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法解析站点URL", err)
-	}
-	zipID := util.RandStringRunes(16)
+	// 创建打包下载会话
 	ttl := model.GetIntSetting("archive_timeout", 30)
-	signedURI, err := auth.SignURI(
+	downloadSessionID := util.RandStringRunes(16)
+	cache.Set("archive_"+downloadSessionID, *service, ttl)
+	cache.Set("archive_user_"+downloadSessionID, *fs.User, ttl)
+	signURL, err := auth.SignURI(
 		auth.General,
-		fmt.Sprintf("/api/v3/file/archive/%s/archive.zip", zipID),
-		time.Now().Unix()+int64(ttl),
+		fmt.Sprintf("/api/v3/file/archive/%s/archive.zip", downloadSessionID),
+		int64(ttl),
 	)
-	finalURL := siteURL.ResolveReference(signedURI).String()
-
-	// 将压缩文件记录存入缓存
-	err = cache.Set("archive_"+zipID, zipFile, ttl)
-	if err != nil {
-		return serializer.Err(serializer.CodeIOFailed, "无法写入缓存", err)
-	}
 
 	return serializer.Response{
 		Code: 0,
-		Data: finalURL,
+		Data: signURL.String(),
 	}
 }
 

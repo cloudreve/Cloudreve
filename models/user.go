@@ -3,6 +3,7 @@ package model
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"encoding/gob"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
@@ -44,6 +45,10 @@ type User struct {
 
 	// 数据库忽略字段
 	OptionsSerialized UserOption `gorm:"-"`
+}
+
+func init() {
+	gob.Register(User{})
 }
 
 // UserOption 用户个性化配置字段

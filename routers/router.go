@@ -34,6 +34,8 @@ func InitSlaveRouter() *gin.Engine {
 	v3.Use(middleware.SignRequired(auth.General))
 	// 主机信息解析
 	v3.Use(middleware.MasterMetadata())
+	// 禁止缓存
+	v3.Use(middleware.CacheControl())
 
 	/*
 		路由
@@ -133,7 +135,11 @@ func InitMasterRouter() *gin.Engine {
 	if gin.Mode() == gin.TestMode {
 		v3.Use(middleware.MockHelper())
 	}
+	// 用户会话
 	v3.Use(middleware.CurrentUser())
+
+	// 禁止缓存
+	v3.Use(middleware.CacheControl())
 
 	/*
 		路由
@@ -205,10 +211,10 @@ func InitMasterRouter() *gin.Engine {
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
 				// 文件外链(301跳转)
 				file.GET("source/:id/:name", controllers.AnonymousPermLink)
-				// 下載已经打包好的文件
-				file.GET("archive/:id/archive.zip", controllers.DownloadArchive)
 				// 下载文件
 				file.GET("download/:id", controllers.Download)
+				// 打包并下载文件
+				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}
 		}
 

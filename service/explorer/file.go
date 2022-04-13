@@ -12,7 +12,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -40,6 +39,11 @@ type FileAnonymousGetService struct {
 // DownloadService 文件下載服务
 type DownloadService struct {
 	ID string `uri:"id" binding:"required"`
+}
+
+// ArchiveService 文件流式打包下載服务
+type ArchiveService struct {
+	ID string `uri:"sessionID" binding:"required"`
 }
 
 // New 创建新文件
@@ -93,8 +97,14 @@ func (service *SlaveListService) List(c *gin.Context) serializer.Response {
 	return serializer.Response{Data: string(res)}
 }
 
-// DownloadArchived 下載已打包的多文件
-func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
+// DownloadArchived 通过预签名 URL 打包下载
+func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
+	userRaw, exist := cache.Get("archive_user_" + service.ID)
+	if !exist {
+		return serializer.Err(404, "归档会话不存在", nil)
+	}
+	user := userRaw.(model.User)
+
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -103,31 +113,28 @@ func (service *DownloadService) DownloadArchived(ctx context.Context, c *gin.Con
 	defer fs.Recycle()
 
 	// 查找打包的临时文件
-	zipPath, exist := cache.Get("archive_" + service.ID)
+	archiveSession, exist := cache.Get("archive_" + service.ID)
 	if !exist {
-		return serializer.Err(404, "归档文件不存在", nil)
+		return serializer.Err(404, "归档会话不存在", nil)
 	}
 
-	// 获取文件流
-	rs, err := fs.GetPhysicalFileContent(ctx, zipPath.(string))
-	defer rs.Close()
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
+	// 清理打包会话
+	_ = cache.Deletes([]string{service.ID, "user_" + service.ID}, "archive_")
 
-	if fs.User.Group.OptionsSerialized.OneTimeDownload {
-		// 清理资源，删除临时文件
-		_ = cache.Deletes([]string{service.ID}, "archive_")
-	}
-
+	// 开始打包
 	c.Header("Content-Disposition", "attachment;")
 	c.Header("Content-Type", "application/zip")
-	http.ServeContent(c.Writer, c.Request, "", time.Now(), rs)
+	itemService := archiveSession.(ItemIDService)
+	items := itemService.Raw()
+	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
+	err = fs.Compress(ctx, c.Writer, items.Dirs, items.Items, true)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
+	}
 
 	return serializer.Response{
 		Code: 0,
 	}
-
 }
 
 // Download 签名的匿名文件下载
@@ -261,7 +268,7 @@ func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.
 // Download 通过签名URL的文件下载，无需登录
 func (service *DownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
+	fs, err := filesystem.NewFileSystem(&user)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
