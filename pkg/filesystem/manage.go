@@ -340,7 +340,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Pic:  "",
 			Size: 0,
 			Type: "dir",
-			Date: subFolder.CreatedAt,
+			Date: subFolder.UpdatedAt,
 		})
 	}
 
@@ -361,7 +361,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 				Pic:           file.PicInfo,
 				Size:          file.Size,
 				Type:          "file",
-				Date:          file.CreatedAt,
+				Date:          file.UpdatedAt,
 				SourceEnabled: file.GetPolicy().IsOriginLinkEnable,
 			}
 			if shareKey != "" {
