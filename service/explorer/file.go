@@ -106,7 +106,7 @@ func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Cont
 	user := userRaw.(model.User)
 
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
+	fs, err := filesystem.NewFileSystem(&user)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
@@ -117,9 +117,6 @@ func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Cont
 	if !exist {
 		return serializer.Err(404, "归档会话不存在", nil)
 	}
-
-	// 清理打包会话
-	_ = cache.Deletes([]string{service.ID, "user_" + service.ID}, "archive_")
 
 	// 开始打包
 	c.Header("Content-Disposition", "attachment;")
@@ -268,7 +265,7 @@ func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.
 // Download 通过签名URL的文件下载，无需登录
 func (service *DownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(&user)
+	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}

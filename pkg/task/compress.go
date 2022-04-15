@@ -122,7 +122,7 @@ func (job *CompressTask) Do() {
 
 	job.zipPath = zipFilePath
 	zipFile.Close()
-	util.Log().Debug("压缩文件存放至%s，开始上传", zipFile)
+	util.Log().Debug("压缩文件存放至%s，开始上传", zipFilePath)
 	job.TaskModel.SetProgress(TransferringProgress)
 
 	// 上传文件

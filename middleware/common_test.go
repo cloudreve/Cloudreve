@@ -76,3 +76,12 @@ func TestIsFunctionEnabled(t *testing.T) {
 	}
 
 }
+
+func TestCacheControl(t *testing.T) {
+	a := assert.New(t)
+	TestFunc := CacheControl()
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	TestFunc(c)
+	a.Contains(c.Writer.Header().Get("Cache-Control"), "no-cache")
+}
