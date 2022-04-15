@@ -225,17 +225,17 @@ func DeleteFiles(files []*File, uid uint) error {
 		}
 
 		result := tx.Unscoped().Where("size = ?", file.Size).Delete(file)
+		if result.Error != nil {
+			tx.Rollback()
+			return result.Error
+		}
+
 		if result.RowsAffected == 0 {
 			tx.Rollback()
 			return errors.New("file size is dirty")
 		}
 
 		size += file.Size
-
-		if result.Error != nil {
-			tx.Rollback()
-			return result.Error
-		}
 	}
 
 	if err := user.ChangeStorage(tx, "-", size); err != nil {

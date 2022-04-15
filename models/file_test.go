@@ -339,7 +339,7 @@ func TestDeleteFiles(t *testing.T) {
 	// uid 不一致
 	{
 		err := DeleteFiles([]*File{{}}, 1)
-		a.Contains("User id not consistent", err.Error())
+		a.Contains("user id not consistent", err.Error())
 	}
 
 	// 删除失败
@@ -365,14 +365,26 @@ func TestDeleteFiles(t *testing.T) {
 		a.Error(err)
 	}
 
-	// 成功，其中一个文件已经不存在
+	// 文件脏读
 	{
 		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(1, 0))
+		mock.ExpectRollback()
+		err := DeleteFiles([]*File{{Size: 1}, {Size: 2}}, 0)
+		a.NoError(mock.ExpectationsWereMet())
+		a.Error(err)
+		a.Contains("file size is dirty", err.Error())
+	}
+
+	// 成功
+	{
+		mock.ExpectBegin()
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(2, 1))
-		mock.ExpectExec("UPDATE(.+)storage(.+)").WithArgs(uint64(2), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectExec("UPDATE(.+)storage(.+)").WithArgs(uint64(3), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		err := DeleteFiles([]*File{{Size: 1}, {Size: 2}}, 0)
 		a.NoError(mock.ExpectationsWereMet())
