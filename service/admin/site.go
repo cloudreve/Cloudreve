@@ -52,15 +52,21 @@ func (service *BatchSettingGet) Get() serializer.Response {
 // Change 批量更改站点设定
 func (service *BatchSettingChangeService) Change() serializer.Response {
 	cacheClean := make([]string, 0, len(service.Options))
+	tx := model.DB.Begin()
 
 	for _, setting := range service.Options {
 
-		if err := model.DB.Model(&model.Setting{}).Where("name = ?", setting.Key).Update("value", setting.Value).Error; err != nil {
+		if err := tx.Model(&model.Setting{}).Where("name = ?", setting.Key).Update("value", setting.Value).Error; err != nil {
 			cache.Deletes(cacheClean, "setting_")
+			tx.Rollback()
 			return serializer.DBErr("设置 "+setting.Key+" 更新失败", err)
 		}
 
 		cacheClean = append(cacheClean, setting.Key)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return serializer.DBErr("设置更新失败", err)
 	}
 
 	cache.Deletes(cacheClean, "setting_")
