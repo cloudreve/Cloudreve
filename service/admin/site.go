@@ -70,6 +70,21 @@ func (service *BatchSettingChangeService) Change() serializer.Response {
 
 // Summary 获取站点统计概况
 func (service *NoParamService) Summary() serializer.Response {
+	// 获取版本信息
+	versions := map[string]string{
+		"backend": conf.BackendVersion,
+		"db":      conf.RequiredDBVersion,
+		"commit":  conf.LastCommit,
+		"is_pro":  conf.IsPro,
+	}
+
+	if res, ok := cache.Get("admin_summary"); ok {
+		resMap := res.(map[string]interface{})
+		resMap["version"] = versions
+		resMap["siteURL"] = model.GetSettingByName("siteURL")
+		return serializer.Response{Data: resMap}
+	}
+
 	// 统计每日概况
 	total := 12
 	files := make([]int, total)
@@ -98,26 +113,21 @@ func (service *NoParamService) Summary() serializer.Response {
 	model.DB.Model(&model.Share{}).Where("password = ?", "").Count(&publicShareTotal)
 	model.DB.Model(&model.Share{}).Where("password <> ?", "").Count(&secretShareTotal)
 
-	// 获取版本信息
-	versions := map[string]string{
-		"backend": conf.BackendVersion,
-		"db":      conf.RequiredDBVersion,
-		"commit":  conf.LastCommit,
-		"is_pro":  conf.IsPro,
+	resp := map[string]interface{}{
+		"date":             date,
+		"files":            files,
+		"users":            users,
+		"shares":           shares,
+		"version":          versions,
+		"siteURL":          model.GetSettingByName("siteURL"),
+		"fileTotal":        fileTotal,
+		"userTotal":        userTotal,
+		"publicShareTotal": publicShareTotal,
+		"secretShareTotal": secretShareTotal,
 	}
 
+	cache.Set("admin_summary", resp, 86400)
 	return serializer.Response{
-		Data: map[string]interface{}{
-			"date":             date,
-			"files":            files,
-			"users":            users,
-			"shares":           shares,
-			"version":          versions,
-			"siteURL":          model.GetSettingByName("siteURL"),
-			"fileTotal":        fileTotal,
-			"userTotal":        userTotal,
-			"publicShareTotal": publicShareTotal,
-			"secretShareTotal": secretShareTotal,
-		},
+		Data: resp,
 	}
 }
