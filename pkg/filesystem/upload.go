@@ -75,15 +75,6 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		return err
 	}
 
-	if file.Mode&fsctx.Overwrite == 0 {
-		fileInfo := file.Info()
-		util.Log().Info(
-			"新文件PUT:%s , 大小:%d, 上传者:%s",
-			fileInfo.FileName,
-			fileInfo.Size,
-			fs.User.Nick,
-		)
-	}
 	return nil
 }
 
