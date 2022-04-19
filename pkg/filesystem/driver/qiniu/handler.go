@@ -30,6 +30,10 @@ type Driver struct {
 }
 
 func NewDriver(policy *model.Policy) *Driver {
+	if policy.OptionsSerialized.ChunkSize == 0 {
+		policy.OptionsSerialized.ChunkSize = 25 << 20 // 25 MB
+	}
+
 	mac := qbox.NewMac(policy.AccessKey, policy.SecretKey)
 	cfg := &storage.Config{UseHTTPS: true}
 	return &Driver{

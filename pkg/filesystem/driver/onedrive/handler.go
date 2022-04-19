@@ -30,6 +30,10 @@ type Driver struct {
 // NewDriver 从存储策略初始化新的Driver实例
 func NewDriver(policy *model.Policy) (driver.Handler, error) {
 	client, err := NewClient(policy)
+	if policy.OptionsSerialized.ChunkSize == 0 {
+		policy.OptionsSerialized.ChunkSize = 50 << 20 // 50MB
+	}
+
 	return Driver{
 		Policy:     policy,
 		Client:     client,

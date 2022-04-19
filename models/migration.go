@@ -77,6 +77,9 @@ func addDefaultPolicy() {
 			DirNameRule:        "uploads/{uid}/{path}",
 			FileNameRule:       "{uid}_{randomkey8}_{originname}",
 			IsOriginLinkEnable: false,
+			OptionsSerialized: PolicyOption{
+				ChunkSize: 25 << 20, // 25MB
+			},
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
 			util.Log().Panic("无法创建初始存储策略, %s", err)

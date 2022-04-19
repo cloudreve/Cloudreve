@@ -47,6 +47,10 @@ type MetaData struct {
 }
 
 func NewDriver(policy *model.Policy) (*Driver, error) {
+	if policy.OptionsSerialized.ChunkSize == 0 {
+		policy.OptionsSerialized.ChunkSize = 25 << 20 // 25 MB
+	}
+
 	driver := &Driver{
 		Policy: policy,
 	}

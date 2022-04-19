@@ -105,7 +105,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "thumb_file_suffix", Value: "._thumb", Type: "thumb"},
 	{Name: "thumb_max_task_count", Value: "-1", Type: "thumb"},
 	{Name: "thumb_encode_method", Value: "jpg", Type: "thumb"},
-	{Name: "thumb_gc_after_gen", Value: "false", Type: "thumb"},
+	{Name: "thumb_gc_after_gen", Value: "0", Type: "thumb"},
 	{Name: "thumb_encode_quality", Value: "85", Type: "thumb"},
 	{Name: "pwa_small_icon", Value: "/static/img/favicon.ico", Type: "pwa"},
 	{Name: "pwa_medium_icon", Value: "/static/img/logo192.png", Type: "pwa"},
