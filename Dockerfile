@@ -2,7 +2,7 @@ FROM golang:1.17-alpine as cloudreve_builder
 
 
 # install dependencies and build tools
-RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild binutils binutils-doc gcc-doc
+RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild binutils binutils-doc gcc-doc zip
 
 WORKDIR /cloudreve_builder
 RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
@@ -14,6 +14,7 @@ RUN yarn run build && rm -rf build/*.map
 
 # build backend
 WORKDIR /cloudreve_builder/Cloudreve
+RUN zip -r assets.zip assets
 RUN tag_name=$(git describe --tags) \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
     && go build -a -o cloudreve -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$tag_name' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
