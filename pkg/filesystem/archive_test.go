@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	testMock "github.com/stretchr/testify/mock"
 	"io"
@@ -173,7 +172,7 @@ func TestFileSystem_Decompress(t *testing.T) {
 		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
 		fs.FileTarget[0].Policy.ID = 1
 		testHandler := new(FileHeaderMock)
-		testHandler.On("Get", testMock.Anything, "1.zip").Return(request.NopRSCloser{}, errors.New("error"))
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(MockRSC{}, errors.New("error"))
 		fs.Handler = testHandler
 		err := fs.Decompress(ctx, "/1.zip", "/")
 		asserts.NoError(mock.ExpectationsWereMet())
@@ -187,7 +186,7 @@ func TestFileSystem_Decompress(t *testing.T) {
 		fs.FileTarget = []model.File{{SourceName: "1.zip", Policy: model.Policy{Type: "mock"}}}
 		fs.FileTarget[0].Policy.ID = 1
 		testHandler := new(FileHeaderMock)
-		testHandler.On("Get", testMock.Anything, "1.zip").Return(request.NopRSCloser{}, nil)
+		testHandler.On("Get", testMock.Anything, "1.zip").Return(MockRSC{}, nil)
 		fs.Handler = testHandler
 		err := fs.Decompress(ctx, "/1.zip", "/")
 		asserts.NoError(mock.ExpectationsWereMet())
