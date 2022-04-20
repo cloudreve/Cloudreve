@@ -12,7 +12,7 @@ require (
 	github.com/gin-contrib/gzip v0.0.2-0.20200226035851-25bef2ef21e8
 	github.com/gin-contrib/sessions v0.0.1
 	github.com/gin-contrib/static v0.0.0-20191128031702-f81c604d8ac2
-	github.com/gin-gonic/gin v1.7.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-ini/ini v1.50.0
 	github.com/go-mail/mail v2.3.1+incompatible
 	github.com/gofrs/uuid v4.0.0+incompatible
