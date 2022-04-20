@@ -190,6 +190,8 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 		return err
 	}
 
+	defer fileStream.Close()
+
 	tempZipFilePath = filepath.Join(
 		util.RelativePath(model.GetSettingByName("temp_path")),
 		"decompress",
@@ -211,6 +213,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 	}
 
 	zipFile.Close()
+	fileStream.Close()
 
 	// 解压缩文件
 	r, err := zip.OpenReader(tempZipFilePath)
