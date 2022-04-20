@@ -334,13 +334,14 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 		}
 
 		objects = append(objects, serializer.Object{
-			ID:   hashid.HashID(subFolder.ID, hashid.FolderID),
-			Name: subFolder.Name,
-			Path: processedPath,
-			Pic:  "",
-			Size: 0,
-			Type: "dir",
-			Date: subFolder.UpdatedAt,
+			ID:         hashid.HashID(subFolder.ID, hashid.FolderID),
+			Name:       subFolder.Name,
+			Path:       processedPath,
+			Pic:        "",
+			Size:       0,
+			Type:       "dir",
+			Date:       subFolder.UpdatedAt,
+			CreateDate: subFolder.CreatedAt,
 		})
 	}
 
@@ -363,6 +364,7 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 				Type:          "file",
 				Date:          file.UpdatedAt,
 				SourceEnabled: file.GetPolicy().IsOriginLinkEnable,
+				CreateDate:    file.CreatedAt,
 			}
 			if shareKey != "" {
 				newFile.Key = shareKey

@@ -40,6 +40,7 @@ type Object struct {
 	Size          uint64    `json:"size"`
 	Type          string    `json:"type"`
 	Date          time.Time `json:"date"`
+	CreateDate    time.Time `json:"create_date"`
 	Key           string    `json:"key,omitempty"`
 	SourceEnabled bool      `json:"source_enabled"`
 }
