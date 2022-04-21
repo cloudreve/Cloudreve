@@ -150,18 +150,14 @@ func (job *ImportTask) Do() {
 			if parent, ok := pathCache[virtualPath]; ok {
 				parentFolder = parent
 			} else {
-				exist, folder := fs.IsPathExist(virtualPath)
-				if exist {
-					parentFolder = folder
-				} else {
-					folder, err := fs.CreateDirectory(context.Background(), virtualPath)
-					if err != nil {
-						util.Log().Warning("导入任务无法创建用户目录[%s], %s",
-							virtualPath, err)
-						continue
-					}
-					parentFolder = folder
+				folder, err := fs.CreateDirectory(context.Background(), virtualPath)
+				if err != nil {
+					util.Log().Warning("导入任务无法创建用户目录[%s], %s",
+						virtualPath, err)
+					continue
 				}
+				parentFolder = folder
+
 			}
 
 			// 插入文件记录
