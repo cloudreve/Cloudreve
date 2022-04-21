@@ -17,8 +17,9 @@ func TestFolder_Create(t *testing.T) {
 		Name: "new folder",
 	}
 
-	// 插入成功
+	// 不存在，插入成功
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(5, 1))
 	mock.ExpectCommit()
 	fid, err := folder.Create()
@@ -28,11 +29,21 @@ func TestFolder_Create(t *testing.T) {
 
 	// 插入失败
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 	mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
 	mock.ExpectRollback()
 	fid, err = folder.Create()
 	asserts.Error(err)
 	asserts.Equal(uint(0), fid)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 存在，直接返回
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)folders(.+)").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(5))
+	mock.ExpectCommit()
+	fid, err = folder.Create()
+	asserts.NoError(err)
+	asserts.Equal(uint(5), fid)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
 

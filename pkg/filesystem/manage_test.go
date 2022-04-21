@@ -214,7 +214,7 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	asserts.Equal(ErrFileExisted, err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
-	// 存在同名目录
+	// 存在同名目录，直接返回
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
@@ -225,13 +225,37 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 	mock.ExpectBegin()
-	mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("s"))
-	mock.ExpectRollback()
-	_, err = fs.CreateDirectory(ctx, "/ad/ab")
-	asserts.Error(err)
+	// ab
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("ab", 2, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(3, 1))
+	mock.ExpectCommit()
+	res, err := fs.CreateDirectory(ctx, "/ad/ab")
+	asserts.NoError(err)
+	asserts.EqualValues(3, res.ID)
 	asserts.NoError(mock.ExpectationsWereMet())
 
 	// 成功创建
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	// ad
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "ad").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
+
+	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("ab", 2, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 成功创建, 递归创建父目录
 	// 根目录
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1).
@@ -239,20 +263,62 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	// ad
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs(1, 1, "ad").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
-
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	// 根目录
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+	// 创建ad
 	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("ad", 1, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
+	mock.ExpectCommit()
+	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+	// 创建ab
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("ab", 2, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 
-	// 父目录不存在
-	mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
-	_, err = fs.CreateDirectory(ctx, "/ad")
-	asserts.Equal(ErrRootProtected, err)
+	// 底层创建失败
+	// 成功创建
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	// ad
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1, 1, "ad").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	// 根目录
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
+	// 创建ad
+	mock.ExpectBegin()
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs("ad", 1, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(2, 1)).WillReturnError(errors.New("error"))
+	mock.ExpectRollback()
+	_, err = fs.CreateDirectory(ctx, "/ad/ab")
+	asserts.Error(err)
+	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 直接创建根目录
+	mock.ExpectQuery("SELECT(.+)").
+		WithArgs(1).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
+	_, err = fs.CreateDirectory(ctx, "/")
+	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 }
 
