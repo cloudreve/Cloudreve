@@ -379,8 +379,12 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 // CreateDirectory 根据给定的完整创建目录，支持递归创建。如果目录已存在，则直接
 // 返回已存在的目录。
 func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*model.Folder, error) {
-	if fullPath == "/" || fullPath == "." || fullPath == "" {
+	if fullPath == "." || fullPath == "" {
 		return nil, ErrRootProtected
+	}
+
+	if fullPath == "/" {
+		return fs.User.Root()
 	}
 
 	// 获取要创建目录的父路径和目录名

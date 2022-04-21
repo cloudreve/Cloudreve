@@ -179,7 +179,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 		isSizeCheckFailed = false
 	}
 
-	if isSizeCheckFailed || info.GetSourcePath() != actualPath {
+	if isSizeCheckFailed || !strings.EqualFold(info.GetSourcePath(), actualPath) {
 		fs.Handler.(onedrive.Driver).Client.Delete(context.Background(), []string{info.GetSourcePath()})
 		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
 	}
