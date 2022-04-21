@@ -127,9 +127,19 @@ func (service *ItemDecompressService) CreateDecompressTask(c *gin.Context) seria
 		return serializer.Err(serializer.CodeParamErr, "文件太大", nil)
 	}
 
-	// 必须是zip压缩包
-	if !strings.HasSuffix(file.Name, ".zip") {
-		return serializer.Err(serializer.CodeParamErr, "只能解压 ZIP 格式的压缩文件", nil)
+	// 支持的压缩格式后缀
+	var (
+		suffixes = []string{".zip", ".gz", ".xz", ".tar", ".rar"}
+		matched  bool
+	)
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(file.Name, suffix) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return serializer.Err(serializer.CodeParamErr, "不支持该格式的压缩文件", nil)
 	}
 
 	// 创建任务
