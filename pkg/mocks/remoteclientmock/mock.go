@@ -11,8 +11,8 @@ type RemoteClientMock struct {
 	mock.Mock
 }
 
-func (r *RemoteClientMock) CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64) error {
-	return r.Called(ctx, session, ttl).Error(0)
+func (r *RemoteClientMock) CreateUploadSession(ctx context.Context, session *serializer.UploadSession, ttl int64, overwrite bool) error {
+	return r.Called(ctx, session, ttl, overwrite).Error(0)
 }
 
 func (r *RemoteClientMock) GetUploadURL(ttl int64, sessionID string) (string, string, error) {

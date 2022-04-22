@@ -391,7 +391,7 @@ func TestHandler_Token(t *testing.T) {
 	{
 		clientMock := &remoteclientmock.RemoteClientMock{}
 		handler.uploadClient = clientMock
-		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(errors.New("error"))
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10), false).Return(errors.New("error"))
 		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
 		a.Error(err)
 		a.Contains(err.Error(), "error")
@@ -403,7 +403,7 @@ func TestHandler_Token(t *testing.T) {
 	{
 		clientMock := &remoteclientmock.RemoteClientMock{}
 		handler.uploadClient = clientMock
-		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(nil)
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10), false).Return(nil)
 		clientMock.On("GetUploadURL", int64(10), "").Return("", "", errors.New("error"))
 		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
 		a.Error(err)
@@ -416,7 +416,7 @@ func TestHandler_Token(t *testing.T) {
 	{
 		clientMock := &remoteclientmock.RemoteClientMock{}
 		handler.uploadClient = clientMock
-		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10)).Return(nil)
+		clientMock.On("CreateUploadSession", testMock.Anything, testMock.Anything, int64(10), false).Return(nil)
 		clientMock.On("GetUploadURL", int64(10), "").Return("1", "2", nil)
 		res, err := handler.Token(context.Background(), 10, &serializer.UploadSession{}, &fsctx.FileStream{})
 		a.NoError(err)
