@@ -281,7 +281,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 
 	// 在从机端创建上传会话
 	uploadSession.Callback = apiURL.String()
-	if err := handler.uploadClient.CreateUploadSession(ctx, uploadSession, ttl); err != nil {
+	if err := handler.uploadClient.CreateUploadSession(ctx, uploadSession, ttl, false); err != nil {
 		return nil, err
 	}
 

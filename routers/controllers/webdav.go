@@ -7,6 +7,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
 	"github.com/cloudreve/Cloudreve/v3/service/setting"
 	"github.com/gin-gonic/gin"
+	"sync"
 )
 
 var handler *webdav.Handler
@@ -15,6 +16,7 @@ func init() {
 	handler = &webdav.Handler{
 		Prefix:     "/dav",
 		LockSystem: make(map[uint]webdav.LockSystem),
+		Mutex:      &sync.Mutex{},
 	}
 }
 
