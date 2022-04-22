@@ -424,11 +424,9 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 	_, err := newFolder.Create()
 
 	if err != nil {
-		if _, ok := ctx.Value(fsctx.IgnoreDirectoryConflictCtx).(bool); !ok {
-			return nil, fmt.Errorf("failed to create folder: %w", err)
-		}
-
+		return nil, fmt.Errorf("failed to create folder: %w", err)
 	}
+
 	return &newFolder, nil
 }
 

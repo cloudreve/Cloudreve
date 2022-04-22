@@ -73,10 +73,13 @@ func Init() {
 	}
 
 	//设置连接池
-	//空闲
 	db.DB().SetMaxIdleConns(50)
-	//打开
-	db.DB().SetMaxOpenConns(100)
+	if conf.DatabaseConfig.Type == "sqlite" || conf.DatabaseConfig.Type == "sqlite3" || conf.DatabaseConfig.Type == "UNSET" {
+		db.DB().SetMaxOpenConns(1)
+	} else {
+		db.DB().SetMaxOpenConns(100)
+	}
+
 	//超时
 	db.DB().SetConnMaxLifetime(time.Second * 30)
 
