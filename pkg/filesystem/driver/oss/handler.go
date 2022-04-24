@@ -461,6 +461,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 
 	// 签名完成分片上传的URL
 	completeURL, err := handler.bucket.SignURL(fileInfo.SavePath, oss.HTTPPost, ttl,
+		oss.ContentType("application/octet-stream"),
 		oss.UploadID(imur.UploadID),
 		oss.Expires(time.Now().Add(time.Duration(ttl)*time.Second)),
 		oss.CompleteAll("yes"),
