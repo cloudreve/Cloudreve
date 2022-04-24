@@ -102,12 +102,16 @@ func (folder *Folder) GetChildFiles() ([]File, error) {
 // GetFilesByIDs 根据文件ID批量获取文件,
 // UID为0表示忽略用户，只根据文件ID检索
 func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
+	return GetFilesByIDsFromTX(DB, ids, uid)
+}
+
+func GetFilesByIDsFromTX(tx *gorm.DB, ids []uint, uid uint) ([]File, error) {
 	var files []File
 	var result *gorm.DB
 	if uid == 0 {
-		result = DB.Where("id in (?)", ids).Find(&files)
+		result = tx.Where("id in (?)", ids).Find(&files)
 	} else {
-		result = DB.Where("id in (?) AND user_id = ?", ids, uid).Find(&files)
+		result = tx.Where("id in (?) AND user_id = ?", ids, uid).Find(&files)
 	}
 	return files, result.Error
 }
