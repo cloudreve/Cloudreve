@@ -82,7 +82,7 @@ func (job *DecompressTask) Do() {
 
 	job.TaskModel.SetProgress(DecompressingProgress)
 
-	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst)
+	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst, "")
 	if err != nil {
 		job.SetErrorMsg("解压缩失败", err)
 		return

@@ -165,7 +165,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 }
 
 // Decompress 解压缩给定压缩文件到dst目录
-func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
+func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string) error {
 	err := fs.ResetFileIfNotExist(ctx, src)
 	if err != nil {
 		return err
@@ -219,7 +219,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst string) error {
 	var isZip bool
 	switch extractor.(type) {
 	case archiver.Zip:
-		extractor = archiver.Zip{TextEncoding: "gb18030"}
+		extractor = archiver.Zip{TextEncoding: encoding}
 		isZip = true
 	}
 
