@@ -55,8 +55,9 @@ type ItemCompressService struct {
 
 // ItemDecompressService 文件解压缩任务服务
 type ItemDecompressService struct {
-	Src string `json:"src"`
-	Dst string `json:"dst" binding:"required,min=1,max=65535"`
+	Src      string `json:"src"`
+	Dst      string `json:"dst" binding:"required,min=1,max=65535"`
+	Encoding string `json:"encoding"`
 }
 
 // ItemPropertyService 获取对象属性服务
@@ -127,13 +128,23 @@ func (service *ItemDecompressService) CreateDecompressTask(c *gin.Context) seria
 		return serializer.Err(serializer.CodeParamErr, "文件太大", nil)
 	}
 
-	// 必须是zip压缩包
-	if !strings.HasSuffix(file.Name, ".zip") {
-		return serializer.Err(serializer.CodeParamErr, "只能解压 ZIP 格式的压缩文件", nil)
+	// 支持的压缩格式后缀
+	var (
+		suffixes = []string{".zip", ".gz", ".xz", ".tar", ".rar"}
+		matched  bool
+	)
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(file.Name, suffix) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return serializer.Err(serializer.CodeParamErr, "不支持该格式的压缩文件", nil)
 	}
 
 	// 创建任务
-	job, err := task.NewDecompressTask(fs.User, service.Src, service.Dst)
+	job, err := task.NewDecompressTask(fs.User, service.Src, service.Dst, service.Encoding)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}

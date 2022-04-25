@@ -31,6 +31,8 @@ buildAssets() {
   yarn run build
   cd build
   rm -rf *.map
+  cd $REPO
+  zip -r - assets >assets.zip
 }
 
 buildBinary() {

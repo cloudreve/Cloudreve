@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"bufio"
-	"embed"
 	"encoding/json"
 	"io"
 	"io/fs"
@@ -45,7 +44,7 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 }
 
 // InitStatic 初始化静态资源文件
-func InitStatic(statics embed.FS) {
+func InitStatic(statics fs.FS) {
 	if util.Exists(util.RelativePath(StaticFolder)) {
 		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
 		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
@@ -96,7 +95,7 @@ func InitStatic(statics embed.FS) {
 }
 
 // Eject 抽离内置静态资源
-func Eject(statics embed.FS) {
+func Eject(statics fs.FS) {
 	// 初始化静态资源
 	embedFS, err := fs.Sub(statics, "assets/build")
 	if err != nil {
