@@ -55,8 +55,9 @@ type ItemCompressService struct {
 
 // ItemDecompressService 文件解压缩任务服务
 type ItemDecompressService struct {
-	Src string `json:"src"`
-	Dst string `json:"dst" binding:"required,min=1,max=65535"`
+	Src      string `json:"src"`
+	Dst      string `json:"dst" binding:"required,min=1,max=65535"`
+	Encoding string `json:"encoding"`
 }
 
 // ItemPropertyService 获取对象属性服务
@@ -143,7 +144,7 @@ func (service *ItemDecompressService) CreateDecompressTask(c *gin.Context) seria
 	}
 
 	// 创建任务
-	job, err := task.NewDecompressTask(fs.User, service.Src, service.Dst)
+	job, err := task.NewDecompressTask(fs.User, service.Src, service.Dst, service.Encoding)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
 	}

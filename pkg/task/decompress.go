@@ -20,8 +20,9 @@ type DecompressTask struct {
 
 // DecompressProps 压缩任务属性
 type DecompressProps struct {
-	Src string `json:"src"`
-	Dst string `json:"dst"`
+	Src      string `json:"src"`
+	Dst      string `json:"dst"`
+	Encoding string `json:"encoding"`
 }
 
 // Props 获取任务属性
@@ -82,7 +83,7 @@ func (job *DecompressTask) Do() {
 
 	job.TaskModel.SetProgress(DecompressingProgress)
 
-	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst, "")
+	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst, job.TaskProps.Encoding)
 	if err != nil {
 		job.SetErrorMsg("解压缩失败", err)
 		return
@@ -91,12 +92,13 @@ func (job *DecompressTask) Do() {
 }
 
 // NewDecompressTask 新建压缩任务
-func NewDecompressTask(user *model.User, src, dst string) (Job, error) {
+func NewDecompressTask(user *model.User, src, dst, encoding string) (Job, error) {
 	newTask := &DecompressTask{
 		User: user,
 		TaskProps: DecompressProps{
-			Src: src,
-			Dst: dst,
+			Src:      src,
+			Dst:      dst,
+			Encoding: encoding,
 		},
 	}
 
