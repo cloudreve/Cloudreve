@@ -46,5 +46,12 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.envs.outputs.tags }}
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: cloudreve/cloudreve
+          short-description: ${{ github.event.repository.description }}
       - name: Image Digest
         run: echo ${{ steps.docker_build.outputs.digest }}
