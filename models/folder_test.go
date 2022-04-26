@@ -584,3 +584,39 @@ func TestTraceRoot(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 	}
 }
+
+func TestFolder_Rename(t *testing.T) {
+	asserts := assert.New(t)
+	folder := Folder{
+		Model: gorm.Model{
+			ID: 1,
+		},
+		Name:     "test_name",
+		OwnerID:  1,
+		Position: "/test",
+	}
+
+	// 成功
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)folders(.+)SET(.+)").
+			WithArgs("test_name_new", 1).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
+		err := folder.Rename("test_name_new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+	}
+
+	// 出现错误
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)folders(.+)SET(.+)").
+			WithArgs("test_name_new", 1).
+			WillReturnError(errors.New("error"))
+		mock.ExpectRollback()
+		err := folder.Rename("test_name_new")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Error(err)
+	}
+}

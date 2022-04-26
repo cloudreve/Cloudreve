@@ -2,11 +2,12 @@ package model
 
 import (
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestFile_Create(t *testing.T) {
@@ -425,10 +426,11 @@ func TestGetFilesByUploadSession(t *testing.T) {
 func TestFile_Updates(t *testing.T) {
 	asserts := assert.New(t)
 	file := File{Model: gorm.Model{ID: 1}}
+
 	// rename
 	{
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WithArgs("newName", sqlmock.AnyArg(), 1).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)files(.+)SET(.+)").WithArgs("newName", 1).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		err := file.Rename("newName")
 		asserts.NoError(mock.ExpectationsWereMet())
