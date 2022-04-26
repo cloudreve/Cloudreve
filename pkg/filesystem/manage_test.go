@@ -224,12 +224,10 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
-	mock.ExpectBegin()
 	// ab
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs("ab", 2, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(3, 1))
-	mock.ExpectCommit()
 	res, err := fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.NoError(err)
 	asserts.EqualValues(3, res.ID)
@@ -245,10 +243,10 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(2, 1))
 
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
-	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs("ab", 2, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	_, err = fs.CreateDirectory(ctx, "/ad/ab")
@@ -270,18 +268,18 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 	// 创建ad
-	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs("ad", 1, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
 	mock.ExpectCommit()
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 	// 创建ab
-	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs("ab", 2, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	_, err = fs.CreateDirectory(ctx, "/ad/ab")
@@ -303,12 +301,14 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}).AddRow(1, 1))
 	mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 	// 创建ad
-	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT(.+)").
 		WithArgs("ad", 1, 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "owner_id"}))
+	mock.ExpectBegin()
 	mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(2, 1)).WillReturnError(errors.New("error"))
 	mock.ExpectRollback()
+	mock.ExpectQuery("SELECT(.+)").
+		WillReturnError(errors.New("error"))
 	_, err = fs.CreateDirectory(ctx, "/ad/ab")
 	asserts.Error(err)
 	asserts.NoError(mock.ExpectationsWereMet())

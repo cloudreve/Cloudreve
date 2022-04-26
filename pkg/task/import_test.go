@@ -177,8 +177,8 @@ func TestImportTask_Do(t *testing.T) {
 		// 查找同名文件，不存在
 		mock.ExpectQuery("SELECT(.+)files").WillReturnRows(sqlmock.NewRows([]string{"id"}))
 		// 创建目录
-		mock.ExpectBegin()
 		mock.ExpectQuery("SELECT(.+)folders").WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)folders(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
 		mock.ExpectCommit()
 		// 插入文件记录
