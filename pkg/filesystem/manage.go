@@ -384,6 +384,9 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 	}
 
 	if fullPath == "/" {
+		if fs.Root != nil {
+			return fs.Root, nil
+		}
 		return fs.User.Root()
 	}
 
