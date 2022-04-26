@@ -230,7 +230,7 @@ func (client *Client) UploadChunk(ctx context.Context, uploadURL string, content
 			"Content-Range": {current.RangeHeader()},
 		}),
 		request.WithoutHeader([]string{"Authorization", "Content-Type"}),
-		request.WithTimeout(time.Duration(300)*time.Second),
+		request.WithTimeout(0),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload OneDrive chunk #%d: %w", current.Index(), err)
@@ -320,7 +320,7 @@ func (client *Client) SimpleUpload(ctx context.Context, dst string, body io.Read
 	requestURL += ("?@microsoft.graph.conflictBehavior=" + options.conflictBehavior)
 
 	res, err := client.request(ctx, "PUT", requestURL, body, request.WithContentLength(int64(size)),
-		request.WithTimeout(time.Duration(150)*time.Second),
+		request.WithTimeout(0),
 	)
 	if err != nil {
 		return nil, err
