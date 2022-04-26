@@ -30,7 +30,7 @@ buildAssets() {
   yarn install
   yarn run build
   cd build
-  rm -rf *.map
+  find . -name "*.map" -type f -delete
   cd $REPO
   zip -r - assets/build >assets.zip
 }
