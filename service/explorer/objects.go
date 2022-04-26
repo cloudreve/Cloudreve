@@ -208,7 +208,7 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 	}
 
 	// 文件尺寸限制
-	if fs.User.Group.OptionsSerialized.DecompressSize != 0 && totalSize > fs.User.Group.
+	if fs.User.Group.OptionsSerialized.CompressSize != 0 && totalSize > fs.User.Group.
 		OptionsSerialized.CompressSize {
 		return serializer.Err(serializer.CodeParamErr, "文件太大", nil)
 	}
