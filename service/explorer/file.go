@@ -401,6 +401,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	if err == nil && len(fileList) == 0 {
 		// 如果包含软连接，应重新生成新文件副本，并更新source_name
 		originFile[0].SourceName = fs.GenerateSavePath(uploadCtx, &fileData)
+		fileData.Mode &= ^fsctx.Overwrite
 		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
 		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)

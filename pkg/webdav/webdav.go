@@ -362,6 +362,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		if err == nil && len(fileList) == 0 {
 			// 如果包含软连接，应重新生成新文件副本，并更新source_name
 			originFile.SourceName = fs.GenerateSavePath(ctx, &fileData)
+			fileData.Mode &= ^fsctx.Overwrite
 			fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 			fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
 			fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
