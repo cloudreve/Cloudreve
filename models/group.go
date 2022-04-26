@@ -14,7 +14,7 @@ type Group struct {
 	ShareEnabled  bool
 	WebDAVEnabled bool
 	SpeedLimit    int
-	Options       string `json:"-",gorm:"type:text"`
+	Options       string `json:"-" gorm:"size:4294967295"`
 
 	// 数据库忽略字段
 	PolicyList        []uint      `gorm:"-"`
