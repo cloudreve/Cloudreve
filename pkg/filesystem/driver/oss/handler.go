@@ -408,6 +408,10 @@ func (handler *Driver) signSourceURL(ctx context.Context, path string, ttl int64
 
 // Token 获取上传策略和认证Token
 func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error) {
+	// 初始化客户端
+	if err := handler.InitOSSClient(true); err != nil {
+		return nil, err
+	}
 
 	// 生成回调地址
 	siteURL := model.GetSiteURL()

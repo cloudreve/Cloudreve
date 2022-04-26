@@ -320,6 +320,12 @@ func TestFileSystem_CreateDirectory(t *testing.T) {
 	_, err = fs.CreateDirectory(ctx, "/")
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
+
+	// 直接创建根目录, 重设根目录
+	fs.Root = &model.Folder{}
+	_, err = fs.CreateDirectory(ctx, "/")
+	asserts.NoError(err)
+	asserts.NoError(mock.ExpectationsWereMet())
 }
 
 func TestFileSystem_ListDeleteFiles(t *testing.T) {
