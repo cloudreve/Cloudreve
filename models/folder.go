@@ -298,10 +298,7 @@ func (folder *Folder) MoveFolderTo(dirs []uint, dstFolder *Folder) error {
 
 // Rename 重命名目录
 func (folder *Folder) Rename(new string) error {
-	if err := DB.Model(&folder).Update("name", new).Error; err != nil {
-		return err
-	}
-	return nil
+	return DB.Model(&folder).UpdateColumn("name", new).Error
 }
 
 /*

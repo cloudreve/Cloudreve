@@ -266,7 +266,7 @@ func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
 
 // Rename 重命名文件
 func (file *File) Rename(new string) error {
-	return DB.Model(&file).Update("name", new).Error
+	return DB.Model(&file).UpdateColumn("name", new).Error
 }
 
 // UpdatePicInfo 更新文件的图像信息

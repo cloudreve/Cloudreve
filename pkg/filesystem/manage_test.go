@@ -3,10 +3,11 @@ package filesystem
 import (
 	"context"
 	"errors"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
-	testMock "github.com/stretchr/testify/mock"
 	"os"
 	"testing"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	testMock "github.com/stretchr/testify/mock"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -676,8 +677,8 @@ func TestFileSystem_Rename(t *testing.T) {
 			WithArgs(10, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)files(.+)").
-			WithArgs("new.txt", sqlmock.AnyArg(), 10).
+		mock.ExpectExec("UPDATE(.+)files(.+)SET(.+)").
+			WithArgs("new.txt", 10).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
@@ -702,8 +703,8 @@ func TestFileSystem_Rename(t *testing.T) {
 			WithArgs(10, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)files(.+)").
-			WithArgs("new.txt", sqlmock.AnyArg(), 10).
+		mock.ExpectExec("UPDATE(.+)files(.+)SET(.+)").
+			WithArgs("new.txt", 10).
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
 		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
@@ -718,8 +719,8 @@ func TestFileSystem_Rename(t *testing.T) {
 			WithArgs(10, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old"))
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)folders(.+)").
-			WithArgs("new", sqlmock.AnyArg(), 10).
+		mock.ExpectExec("UPDATE(.+)folders(.+)SET(.+)").
+			WithArgs("new", 10).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
@@ -744,8 +745,8 @@ func TestFileSystem_Rename(t *testing.T) {
 			WithArgs(10, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old"))
 		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)folders(.+)").
-			WithArgs("new", sqlmock.AnyArg(), 10).
+		mock.ExpectExec("UPDATE(.+)folders(.+)SET(.+)").
+			WithArgs("new", 10).
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
 		err := fs.Rename(ctx, []uint{10}, []uint{}, "new")
