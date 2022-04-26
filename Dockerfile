@@ -14,7 +14,7 @@ RUN yarn run build && rm -rf build/*.map
 
 # build backend
 WORKDIR /cloudreve_builder/Cloudreve
-RUN zip -r - assets >assets.zip
+RUN zip -r - assets/build >assets.zip
 RUN tag_name=$(git describe --tags) \
     && export COMMIT_SHA=$(git rev-parse --short HEAD) \
     && go build -a -o cloudreve -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$tag_name' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"

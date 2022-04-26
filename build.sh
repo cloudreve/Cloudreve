@@ -32,7 +32,7 @@ buildAssets() {
   cd build
   rm -rf *.map
   cd $REPO
-  zip -r - assets >assets.zip
+  zip -r - assets/build >assets.zip
 }
 
 buildBinary() {
