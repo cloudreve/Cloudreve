@@ -17,6 +17,7 @@ type database struct {
 	DBFile      string
 	Port        int
 	Charset     string
+	Tls         string
 }
 
 // system 系统通用配置

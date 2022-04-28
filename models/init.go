@@ -43,13 +43,14 @@ func Init() {
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Port))
 		case "mysql", "mssql":
-			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=%s&parseTime=True&loc=Local&tls=%s",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
 				conf.DatabaseConfig.Host,
 				conf.DatabaseConfig.Port,
 				conf.DatabaseConfig.Name,
-				conf.DatabaseConfig.Charset))
+				conf.DatabaseConfig.Charset,
+				conf.DatabaseConfig.Tls))
 		default:
 			util.Log().Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
 		}
