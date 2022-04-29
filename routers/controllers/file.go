@@ -3,10 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
@@ -102,8 +102,22 @@ func AnonymousPermLink(c *gin.Context) {
 	}
 }
 
-// GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
+	// 创建上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var service explorer.ItemIDService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Sources(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// Thumb 获取文件缩略图
+func Thumb(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -120,21 +134,6 @@ func GetSource(c *gin.Context) {
 	if !ok {
 		c.JSON(200, serializer.ParamErr("文件不存在", err))
 		return
-	}
-}
-
-// Thumb 获取文件缩略图
-func Thumb(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.ItemIDService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Sources(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
 	}
 
 	// 获取缩略图
