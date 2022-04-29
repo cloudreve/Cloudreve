@@ -80,6 +80,8 @@ const (
 	CodeInvalidChunkIndex = 400012
 	// CodeInvalidContentLength 无效的正文长度
 	CodeInvalidContentLength = 400013
+	// CodeBatchSourceSize 超出批量获取外链限制
+	CodeBatchSourceSize = 40014
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

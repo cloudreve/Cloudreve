@@ -76,3 +76,11 @@ func BuildObjectList(parent uint, objects []Object, policy *model.Policy) Object
 
 	return res
 }
+
+// Sources 获取外链的结果响应
+type Sources struct {
+	URL    string `json:"url"`
+	Name   string `json:"name"`
+	Parent uint   `json:"parent"`
+	Error  string `json:"error,omitempty"`
+}

@@ -428,3 +428,40 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		Code: 0,
 	}
 }
+
+// Sources 批量获取对象的外链
+func (s *ItemIDService) Sources(ctx context.Context, c *gin.Context) serializer.Response {
+	fs, err := filesystem.NewFileSystemFromContext(c)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "无法初始化文件系统", err)
+	}
+	defer fs.Recycle()
+
+	if len(s.Raw().Items) > fs.User.Group.OptionsSerialized.SourceBatchSize {
+		return serializer.Err(serializer.CodeBatchSourceSize, "超出批量获取外链的最大数量限制", err)
+	}
+
+	res := make([]serializer.Sources, 0, len(s.Raw().Items))
+	for _, id := range s.Raw().Items {
+		fs.FileTarget = []model.File{}
+		sourceURL, err := fs.GetSource(ctx, id)
+		if len(fs.FileTarget) > 0 {
+			current := serializer.Sources{
+				URL:    sourceURL,
+				Name:   fs.FileTarget[0].Name,
+				Parent: fs.FileTarget[0].FolderID,
+			}
+
+			if err != nil {
+				current.Error = err.Error()
+			}
+
+			res = append(res, current)
+		}
+	}
+
+	return serializer.Response{
+		Code: 0,
+		Data: res,
+	}
+}

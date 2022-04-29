@@ -121,20 +121,6 @@ func GetSource(c *gin.Context) {
 		c.JSON(200, serializer.ParamErr("文件不存在", err))
 		return
 	}
-
-	sourceURL, err := fs.GetSource(ctx, fileID.(uint))
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeNotSet, err.Error(), err))
-		return
-	}
-
-	c.JSON(200, serializer.Response{
-		Code: 0,
-		Data: struct {
-			URL string `json:"url"`
-		}{URL: sourceURL},
-	})
-
 }
 
 // Thumb 获取文件缩略图
@@ -143,18 +129,12 @@ func Thumb(c *gin.Context) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-		return
-	}
-	defer fs.Recycle()
-
-	// 获取文件ID
-	fileID, ok := c.Get("object_id")
-	if !ok {
-		c.JSON(200, serializer.ParamErr("文件不存在", err))
-		return
+	var service explorer.ItemIDService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Sources(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
 	}
 
 	// 获取缩略图

@@ -558,7 +558,7 @@ func InitMasterRouter() *gin.Engine {
 				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
-				file.GET("source/:id", controllers.GetSource)
+				file.POST("source", controllers.GetSource)
 				// 打包要下载的文件
 				file.POST("archive", controllers.Archive)
 				// 创建文件压缩任务

@@ -108,6 +108,8 @@ func addDefaultGroups() {
 				ArchiveTask:     true,
 				ShareDownload:   true,
 				Aria2:           true,
+				SourceBatchSize: 1000,
+				Aria2BatchSize:  50,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
@@ -126,7 +128,9 @@ func addDefaultGroups() {
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
-				ShareDownload: true,
+				ShareDownload:   true,
+				SourceBatchSize: 10,
+				Aria2BatchSize:  1,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
