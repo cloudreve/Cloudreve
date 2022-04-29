@@ -76,6 +76,10 @@ func (job *ImportTask) GetError() *JobError {
 
 // Do 开始执行任务
 func (job *ImportTask) Do() {
+	defer func() {
+		job.TaskModel.SetProgress(Complete)
+	}()
+
 	ctx := context.Background()
 
 	// 查找存储策略
