@@ -14,13 +14,13 @@ import (
 )
 
 // AddURLService 添加URL离线下载服务
-type AddURLService struct {
-	URL string `json:"url" binding:"required"`
-	Dst string `json:"dst" binding:"required,min=1"`
+type BatchAddURLService struct {
+	URLs []string `json:"url" binding:"required"`
+	Dst  string   `json:"dst" binding:"required,min=1"`
 }
 
-// Add 主机创建新的链接离线下载任务
-func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Response {
+// Add 主机批量创建新的链接离线下载任务
+func (service *BatchAddURLService) Add(c *gin.Context, taskType int) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -36,6 +36,60 @@ func (service *AddURLService) Add(c *gin.Context, taskType int) serializer.Respo
 	// 存放目录是否存在
 	if exist, _ := fs.IsPathExist(service.Dst); !exist {
 		return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+	}
+
+	// 检查批量任务数量
+	limit := fs.User.Group.OptionsSerialized.Aria2BatchSize
+	if limit > 0 && len(service.URLs) > limit {
+		return serializer.Err(serializer.CodeBatchAria2Size, "Exceed aria2 batch size", nil)
+	}
+
+	res := make([]serializer.Response, 0, len(service.URLs))
+	for _, target := range service.URLs {
+		subService := &AddURLService{
+			URL: target,
+			Dst: service.Dst,
+		}
+
+		addRes := subService.Add(c, fs, taskType)
+		res = append(res, addRes)
+	}
+
+	return serializer.Response{Data: res}
+}
+
+// AddURLService 添加URL离线下载服务
+type AddURLService struct {
+	URL string `json:"url" binding:"required"`
+	Dst string `json:"dst" binding:"required,min=1"`
+}
+
+// Add 主机创建新的链接离线下载任务
+func (service *AddURLService) Add(c *gin.Context, fs *filesystem.FileSystem, taskType int) serializer.Response {
+	if fs == nil {
+		var err error
+		// 创建文件系统
+		fs, err = filesystem.NewFileSystemFromContext(c)
+		if err != nil {
+			return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		}
+		defer fs.Recycle()
+
+		// 检查用户组权限
+		if !fs.User.Group.OptionsSerialized.Aria2 {
+			return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+		}
+
+		// 存放目录是否存在
+		if exist, _ := fs.IsPathExist(service.Dst); !exist {
+			return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+		}
+	}
+
+	downloads := model.GetDownloadsByStatusAndUser(0, fs.User.ID, common.Downloading, common.Paused, common.Ready)
+	limit := fs.User.Group.OptionsSerialized.Aria2BatchSize
+	if limit > 0 && len(downloads)+1 > limit {
+		return serializer.Err(serializer.CodeBatchAria2Size, "Exceed aria2 batch size", nil)
 	}
 
 	// 创建任务

@@ -11,7 +11,7 @@ import (
 
 // AddAria2URL 添加离线下载URL
 func AddAria2URL(c *gin.Context) {
-	var addService aria2.AddURLService
+	var addService aria2.BatchAddURLService
 	if err := c.ShouldBindJSON(&addService); err == nil {
 		res := addService.Add(c, common.URLTask)
 		c.JSON(200, res)
@@ -52,7 +52,7 @@ func AddAria2Torrent(c *gin.Context) {
 
 		if err := c.ShouldBindJSON(&addService); err == nil {
 			addService.URL = res.Data.(string)
-			res := addService.Add(c, common.URLTask)
+			res := addService.Add(c, nil, common.URLTask)
 			c.JSON(200, res)
 		} else {
 			c.JSON(200, ErrorResponse(err))
