@@ -184,6 +184,23 @@ func ListSharedFolder(c *gin.Context) {
 	}
 }
 
+// SearchSharedFolder 搜索分享的目录下的对象
+func SearchSharedFolder(c *gin.Context) {
+	var service share.SearchService
+	if err := c.ShouldBindUri(&service); err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	if err := c.ShouldBindQuery(&service); err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	res := service.Search(c)
+	c.JSON(200, res)
+}
+
 // ArchiveShare 打包要下载的分享
 func ArchiveShare(c *gin.Context) {
 	var service share.ArchiveService

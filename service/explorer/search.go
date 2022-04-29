@@ -15,6 +15,7 @@ import (
 type ItemSearchService struct {
 	Type     string `uri:"type" binding:"required"`
 	Keywords string `uri:"keywords" binding:"required"`
+	Path     string `form:"path"`
 }
 
 // Search 执行搜索
@@ -25,6 +26,15 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 	defer fs.Recycle()
+
+	if service.Path != "" {
+		ok, parent := fs.IsPathExist(service.Path)
+		if !ok {
+			return serializer.Err(serializer.CodeParentNotExist, "Cannot find parent folder", nil)
+		}
+
+		fs.Root = parent
+	}
 
 	switch service.Type {
 	case "keywords":

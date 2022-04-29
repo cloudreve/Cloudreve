@@ -117,8 +117,8 @@ func GetFilesByIDsFromTX(tx *gorm.DB, ids []uint, uid uint) ([]File, error) {
 }
 
 // GetFilesByKeywords 根据关键字搜索文件,
-// UID为0表示忽略用户，只根据文件ID检索
-func GetFilesByKeywords(uid uint, keywords ...interface{}) ([]File, error) {
+// UID为0表示忽略用户，只根据文件ID检索. 如果 parents 非空， 则只限制在 parent 包含的目录下搜索
+func GetFilesByKeywords(uid uint, parents []uint, keywords ...interface{}) ([]File, error) {
 	var (
 		files      []File
 		result     = DB
@@ -136,6 +136,11 @@ func GetFilesByKeywords(uid uint, keywords ...interface{}) ([]File, error) {
 	if uid != 0 {
 		result = result.Where("user_id = ?", uid)
 	}
+
+	if len(parents) > 0 {
+		result = result.Where("folder_id in (?)", parents)
+	}
+
 	result = result.Where("("+conditions+")", keywords...).Find(&files)
 
 	return files, result.Error

@@ -335,6 +335,11 @@ func InitMasterRouter() *gin.Engine {
 				middleware.CheckShareUnlocked(),
 				controllers.ListSharedFolder,
 			)
+			// 分享目录搜索
+			share.GET("search/:id/:type/:keywords",
+				middleware.CheckShareUnlocked(),
+				controllers.SearchSharedFolder,
+			)
 			// 归档打包下载
 			share.POST("archive/:id",
 				middleware.CheckShareUnlocked(),

@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -361,7 +362,21 @@ func (fs *FileSystem) resetPolicyToFirstFile(ctx context.Context) error {
 
 // Search 搜索文件
 func (fs *FileSystem) Search(ctx context.Context, keywords ...interface{}) ([]serializer.Object, error) {
-	files, _ := model.GetFilesByKeywords(fs.User.ID, keywords...)
+	parents := make([]uint, 0)
+
+	// 如果限定了根目录，则只在这个根目录下搜索。
+	if fs.Root != nil {
+		allFolders, err := model.GetRecursiveChildFolder([]uint{fs.Root.ID}, fs.User.ID, true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list all folders: %w", err)
+		}
+
+		for _, folder := range allFolders {
+			parents = append(parents, folder.ID)
+		}
+	}
+
+	files, _ := model.GetFilesByKeywords(fs.User.ID, parents, keywords...)
 	fs.SetTargetFile(&files)
 
 	return fs.listObjects(ctx, "/", files, nil, nil), nil

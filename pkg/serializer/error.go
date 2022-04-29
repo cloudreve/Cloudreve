@@ -84,6 +84,8 @@ const (
 	CodeBatchSourceSize = 40014
 	// CodeBatchAria2Size 超出最大 Aria2 任务数量限制
 	CodeBatchAria2Size = 40012
+	// CodeParentNotExist 父目录不存在
+	CodeParentNotExist = 40013
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

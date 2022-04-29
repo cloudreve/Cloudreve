@@ -363,12 +363,18 @@ func GetUploadSession(c *gin.Context) {
 // SearchFile 搜索文件
 func SearchFile(c *gin.Context) {
 	var service explorer.ItemSearchService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Search(c)
-		c.JSON(200, res)
-	} else {
+	if err := c.ShouldBindUri(&service); err != nil {
 		c.JSON(200, ErrorResponse(err))
+		return
 	}
+
+	if err := c.ShouldBindQuery(&service); err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	res := service.Search(c)
+	c.JSON(200, res)
 }
 
 // CreateFile 创建空白文件
