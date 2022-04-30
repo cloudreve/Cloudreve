@@ -98,6 +98,20 @@ const (
 	Code2FACodeErr = 40022
 	// CodeLoginSessionNotExist 登录会话不存在
 	CodeLoginSessionNotExist = 40023
+	// CodeInitializeAuthn 无法初始化 WebAuthn
+	CodeInitializeAuthn = 40024
+	// CodeWebAuthnCredentialError WebAuthn 凭证无效
+	CodeWebAuthnCredentialError = 40025
+	// CodeCaptchaError 验证码错误
+	CodeCaptchaError = 40026
+	// CodeCaptchaRefreshNeeded 验证码需要刷新
+	CodeCaptchaRefreshNeeded = 40027
+	// CodeFailedSendEmail 邮件发送失败
+	CodeFailedSendEmail = 40028
+	// CodeInvalidTempLink 临时链接无效
+	CodeInvalidTempLink = 40029
+	// CodeTempLinkExpired 临时链接过期
+	CodeTempLinkExpired = 40030
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

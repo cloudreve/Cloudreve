@@ -34,7 +34,7 @@ func ParamErrorMsg(filed string, tag string) string {
 	tagVal, findTag := tagMap[tag]
 	if findTag {
 		// 返回拼接出来的错误信息
-		return fieldVal + tagVal
+		return fieldVal + " " + tagVal
 	}
 	return ""
 }

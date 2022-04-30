@@ -24,6 +24,11 @@ type req struct {
 	Randstr     string `json:"randstr"`
 }
 
+const (
+	captchaNotMatch = "CAPTCHA not match."
+	captchaRefresh  = "Verification failed, please refresh the page and retry."
+)
+
 // CaptchaRequired 验证请求签名
 func CaptchaRequired(configName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -43,7 +48,7 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			bodyCopy := new(bytes.Buffer)
 			_, err := io.Copy(bodyCopy, c.Request.Body)
 			if err != nil {
-				c.JSON(200, serializer.ParamErr("验证码错误", err))
+				c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
 				c.Abort()
 				return
 			}
@@ -51,7 +56,7 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			bodyData := bodyCopy.Bytes()
 			err = json.Unmarshal(bodyData, &service)
 			if err != nil {
-				c.JSON(200, serializer.ParamErr("验证码错误", err))
+				c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
 				c.Abort()
 				return
 			}
@@ -62,7 +67,7 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				captchaID := util.GetSession(c, "captchaID")
 				util.DeleteSession(c, "captchaID")
 				if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
-					c.JSON(200, serializer.ParamErr("验证码错误", nil))
+					c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
 					c.Abort()
 					return
 				}
@@ -71,15 +76,15 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			case "recaptcha":
 				reCAPTCHA, err := recaptcha.NewReCAPTCHA(options["captcha_ReCaptchaSecret"], recaptcha.V2, 10*time.Second)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA 验证错误, %s", err)
+					util.Log().Warning("reCAPTCHA verification failed, %s", err)
 					c.Abort()
 					break
 				}
 
 				err = reCAPTCHA.Verify(service.CaptchaCode)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA 验证错误, %s", err)
-					c.JSON(200, serializer.ParamErr("验证失败，请刷新网页后再次验证", nil))
+					util.Log().Warning("reCAPTCHA verification failed, %s", err)
+					c.JSON(200, serializer.Err(serializer.CodeCaptchaRefreshNeeded, captchaRefresh, nil))
 					c.Abort()
 					return
 				}
@@ -103,13 +108,13 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				request.UserIp = common.StringPtr(c.ClientIP())
 				response, err := client.DescribeCaptchaResult(request)
 				if err != nil {
-					util.Log().Warning("TCaptcha 验证错误, %s", err)
+					util.Log().Warning("TCaptcha verification failed, %s", err)
 					c.Abort()
 					break
 				}
 
 				if *response.Response.CaptchaCode != int64(1) {
-					c.JSON(200, serializer.ParamErr("验证失败，请刷新网页后再次验证", nil))
+					c.JSON(200, serializer.Err(serializer.CodeCaptchaRefreshNeeded, captchaRefresh, nil))
 					c.Abort()
 					return
 				}

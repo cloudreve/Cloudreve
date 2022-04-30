@@ -37,24 +37,24 @@ func (service *UserResetService) Reset(c *gin.Context) serializer.Response {
 	// 取得原始用户ID
 	uid, err := hashid.DecodeHashID(service.ID, hashid.UserID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "重设链接无效", err)
+		return serializer.Err(serializer.CodeInvalidTempLink, "Invalid link", err)
 	}
 
 	// 检查重设会话
 	resetSession, exist := cache.Get(fmt.Sprintf("user_reset_%d", uid))
 	if !exist || resetSession.(string) != service.Secret {
-		return serializer.Err(serializer.CodeNotFound, "链接已过期", err)
+		return serializer.Err(serializer.CodeTempLinkExpired, "Link is expired", err)
 	}
 
 	// 重设用户密码
 	user, err := model.GetActiveUserByID(uid)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "User not found", nil)
 	}
 
 	user.SetPassword(service.Password)
 	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
-		return serializer.DBErr("无法重设密码", err)
+		return serializer.DBErr("Failed to reset password", err)
 	}
 
 	cache.Deletes([]string{fmt.Sprintf("%d", uid)}, "user_reset_")
@@ -67,10 +67,10 @@ func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response 
 	if user, err := model.GetUserByEmail(service.UserName); err == nil {
 
 		if user.Status == model.Baned || user.Status == model.OveruseBaned {
-			return serializer.Err(403, "该账号已被封禁", nil)
+			return serializer.Err(serializer.CodeUserBaned, "This user is banned", nil)
 		}
 		if user.Status == model.NotActivicated {
-			return serializer.Err(403, "该账号未激活", nil)
+			return serializer.Err(serializer.CodeUserNotActivated, "This user is not activated", nil)
 		}
 		// 创建密码重设会话
 		secret := util.RandStringRunes(32)
@@ -87,7 +87,7 @@ func (service *UserResetEmailService) Reset(c *gin.Context) serializer.Response 
 		// 发送密码重设邮件
 		title, body := email.NewResetEmail(user.Nick, finalURL.String())
 		if err := email.Send(user.Email, title, body); err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "无法发送密码重设邮件", err)
+			return serializer.Err(serializer.CodeFailedSendEmail, "Failed to send email", err)
 		}
 
 	}
