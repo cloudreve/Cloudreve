@@ -284,6 +284,10 @@ func HookPopPlaceholderToFile(picInfo string) Hook {
 	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 		fileInfo := fileHeader.Info()
 		fileModel := fileInfo.Model.(*model.File)
+		if picInfo == "" && fs.Policy.IsThumbExist(fileInfo.FileName) {
+			picInfo = "1,1"
+		}
+
 		return fileModel.PopChunkToFile(fileInfo.LastModified, picInfo)
 	}
 }

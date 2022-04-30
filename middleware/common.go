@@ -30,7 +30,7 @@ func HashID(IDType int) gin.HandlerFunc {
 func IsFunctionEnabled(key string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !model.IsTrueVal(model.GetSettingByName(key)) {
-			c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "未开启此功能", nil))
+			c.JSON(200, serializer.Err(serializer.CodeFeatureNotEnabled, "This feature is not enabled", nil))
 			c.Abort()
 			return
 		}

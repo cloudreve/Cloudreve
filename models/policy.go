@@ -63,6 +63,7 @@ type PolicyOption struct {
 	PlaceholderWithSize bool `json:"placeholder_with_size,omitempty"`
 }
 
+// thumbSuffix 支持缩略图处理的文件扩展名
 var thumbSuffix = map[string][]string{
 	"local":    {},
 	"qiniu":    {".psd", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},

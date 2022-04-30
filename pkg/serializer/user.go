@@ -40,6 +40,7 @@ type group struct {
 	ShareDownload        bool   `json:"shareDownload"`
 	CompressEnabled      bool   `json:"compress"`
 	WebDAVEnabled        bool   `json:"webdav"`
+	SourceBatchSize      int    `json:"sourceBatch"`
 }
 
 type tag struct {
@@ -98,6 +99,7 @@ func BuildUser(user model.User) User {
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 			WebDAVEnabled:        user.Group.WebDAVEnabled,
+			SourceBatchSize:      user.Group.OptionsSerialized.SourceBatchSize,
 		},
 		Tags: buildTagRes(tags),
 	}

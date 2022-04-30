@@ -6,32 +6,35 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/go-playground/validator/v10"
 )
 
 // ParamErrorMsg 根据Validator返回的错误信息给出错误提示
 func ParamErrorMsg(filed string, tag string) string {
 	// 未通过验证的表单域与中文对应
 	fieldMap := map[string]string{
-		"UserName": "邮箱",
-		"Password": "密码",
-		"Path":     "路径",
-		"SourceID": "原始资源",
-		"URL":      "链接",
-		"Nick":     "昵称",
+		"UserName": "Email",
+		"Password": "Password",
+		"Path":     "Path",
+		"SourceID": "Source resource",
+		"URL":      "URL",
+		"Nick":     "Nickname",
 	}
 	// 未通过的规则与中文对应
 	tagMap := map[string]string{
-		"required": "不能为空",
-		"min":      "太短",
-		"max":      "太长",
-		"email":    "格式不正确",
+		"required": "cannot be empty",
+		"min":      "too short",
+		"max":      "too long",
+		"email":    "format error",
 	}
 	fieldVal, findField := fieldMap[filed]
+	if !findField {
+		fieldVal = filed
+	}
 	tagVal, findTag := tagMap[tag]
-	if findField && findTag {
+	if findTag {
 		// 返回拼接出来的错误信息
-		return fieldVal + tagVal
+		return fieldVal + " " + tagVal
 	}
 	return ""
 }
@@ -49,10 +52,10 @@ func ErrorResponse(err error) serializer.Response {
 	}
 
 	if _, ok := err.(*json.UnmarshalTypeError); ok {
-		return serializer.ParamErr("JSON类型不匹配", err)
+		return serializer.ParamErr("JSON marshall error", err)
 	}
 
-	return serializer.ParamErr("参数错误", err)
+	return serializer.ParamErr("Parameter error", err)
 }
 
 // CurrentUser 获取当前用户

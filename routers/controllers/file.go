@@ -3,10 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
@@ -102,39 +102,18 @@ func AnonymousPermLink(c *gin.Context) {
 	}
 }
 
-// GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-		return
+	var service explorer.ItemIDService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Sources(ctx, c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
 	}
-	defer fs.Recycle()
-
-	// 获取文件ID
-	fileID, ok := c.Get("object_id")
-	if !ok {
-		c.JSON(200, serializer.ParamErr("文件不存在", err))
-		return
-	}
-
-	sourceURL, err := fs.GetSource(ctx, fileID.(uint))
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeNotSet, err.Error(), err))
-		return
-	}
-
-	c.JSON(200, serializer.Response{
-		Code: 0,
-		Data: struct {
-			URL string `json:"url"`
-		}{URL: sourceURL},
-	})
-
 }
 
 // Thumb 获取文件缩略图
@@ -383,12 +362,18 @@ func GetUploadSession(c *gin.Context) {
 // SearchFile 搜索文件
 func SearchFile(c *gin.Context) {
 	var service explorer.ItemSearchService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Search(c)
-		c.JSON(200, res)
-	} else {
+	if err := c.ShouldBindUri(&service); err != nil {
 		c.JSON(200, ErrorResponse(err))
+		return
 	}
+
+	if err := c.ShouldBindQuery(&service); err != nil {
+		c.JSON(200, ErrorResponse(err))
+		return
+	}
+
+	res := service.Search(c)
+	c.JSON(200, res)
 }
 
 // CreateFile 创建空白文件

@@ -366,3 +366,50 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 
 	return subService.Archive(ctx, c)
 }
+
+// SearchService 对分享的目录进行搜索
+type SearchService struct {
+	explorer.ItemSearchService
+}
+
+// Search 执行搜索
+func (service *SearchService) Search(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+
+	if !share.IsDir {
+		return serializer.ParamErr("此分享无法列目录", nil)
+	}
+
+	if service.Path != "" && !path.IsAbs(service.Path) {
+		return serializer.ParamErr("路径无效", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(share.Creator())
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+	}
+	defer fs.Recycle()
+
+	// 上下文
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 重设根目录
+	fs.Root = share.Source().(*model.Folder)
+	fs.Root.Name = "/"
+	if service.Path != "" {
+		ok, parent := fs.IsPathExist(service.Path)
+		if !ok {
+			return serializer.Err(serializer.CodeParentNotExist, "Cannot find parent folder", nil)
+		}
+
+		fs.Root = parent
+	}
+
+	// 分享Key上下文
+	ctx = context.WithValue(ctx, fsctx.ShareKeyCtx, hashid.HashID(share.ID, hashid.ShareID))
+
+	return service.SearchKeywords(c, fs, "%"+service.Keywords+"%")
+}

@@ -561,7 +561,7 @@ func TestGetFilesByKeywords(t *testing.T) {
 	// 未指定用户
 	{
 		mock.ExpectQuery("SELECT(.+)").WithArgs("k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-		res, err := GetFilesByKeywords(0, "k1", "k2")
+		res, err := GetFilesByKeywords(0, nil, "k1", "k2")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Len(res, 1)
@@ -570,7 +570,16 @@ func TestGetFilesByKeywords(t *testing.T) {
 	// 指定用户
 	{
 		mock.ExpectQuery("SELECT(.+)").WithArgs(1, "k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
-		res, err := GetFilesByKeywords(1, "k1", "k2")
+		res, err := GetFilesByKeywords(1, nil, "k1", "k2")
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Len(res, 1)
+	}
+
+	// 指定父目录
+	{
+		mock.ExpectQuery("SELECT(.+)").WithArgs(1, 12, "k1", "k2").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+		res, err := GetFilesByKeywords(1, []uint{12}, "k1", "k2")
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Len(res, 1)

@@ -335,6 +335,11 @@ func InitMasterRouter() *gin.Engine {
 				middleware.CheckShareUnlocked(),
 				controllers.ListSharedFolder,
 			)
+			// 分享目录搜索
+			share.GET("search/:id/:type/:keywords",
+				middleware.CheckShareUnlocked(),
+				controllers.SearchSharedFolder,
+			)
 			// 归档打包下载
 			share.POST("archive/:id",
 				middleware.CheckShareUnlocked(),
@@ -558,7 +563,7 @@ func InitMasterRouter() *gin.Engine {
 				// 获取缩略图
 				file.GET("thumb/:id", controllers.Thumb)
 				// 取得文件外链
-				file.GET("source/:id", controllers.GetSource)
+				file.POST("source", controllers.GetSource)
 				// 打包要下载的文件
 				file.POST("archive", controllers.Archive)
 				// 创建文件压缩任务
