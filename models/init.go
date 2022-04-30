@@ -50,7 +50,7 @@ func Init() {
 				conf.DatabaseConfig.Port,
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset,
-				conf.DatabaseConfig.Tls))
+				conf.DatabaseConfig.TLS))
 		default:
 			util.Log().Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
 		}
