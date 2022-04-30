@@ -671,6 +671,25 @@ func TestHookPopPlaceholderToFile(t *testing.T) {
 	a.NoError(mock.ExpectationsWereMet())
 }
 
+func TestHookPopPlaceholderToFileBySuffix(t *testing.T) {
+	a := assert.New(t)
+	fs := &FileSystem{
+		Policy: &model.Policy{Type: "cos"},
+	}
+	file := &fsctx.FileStream{
+		Name: "1.png",
+		Model: &model.File{
+			Model: gorm.Model{ID: 1},
+		},
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)files(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	a.NoError(HookPopPlaceholderToFile("")(context.Background(), fs, file))
+	a.NoError(mock.ExpectationsWereMet())
+}
+
 func TestHookDeleteUploadSession(t *testing.T) {
 	a := assert.New(t)
 	fs := &FileSystem{}

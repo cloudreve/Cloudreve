@@ -148,7 +148,7 @@ func GetFilesByKeywords(uid uint, parents []uint, keywords ...interface{}) ([]Fi
 
 // GetChildFilesOfFolders 批量检索目录子文件
 func GetChildFilesOfFolders(folders *[]Folder) ([]File, error) {
-	// 将所有待删除目录ID抽离，以便检索文件
+	// 将所有待检索目录ID抽离，以便检索文件
 	folderIDs := make([]uint, 0, len(*folders))
 	for _, value := range *folders {
 		folderIDs = append(folderIDs, value.ID)
