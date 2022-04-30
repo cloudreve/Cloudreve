@@ -58,8 +58,6 @@ const (
 	CodeConflict = 409
 	// CodeUploadFailed 上传出错
 	CodeUploadFailed = 40002
-	// CodeCredentialInvalid 凭证无效
-	CodeCredentialInvalid = 40001
 	// CodeCreateFolderFailed 目录创建失败
 	CodeCreateFolderFailed = 40003
 	// CodeObjectExist 对象已存在
@@ -86,6 +84,20 @@ const (
 	CodeBatchAria2Size = 40015
 	// CodeParentNotExist 父目录不存在
 	CodeParentNotExist = 40016
+	// CodeUserBaned 用户不活跃
+	CodeUserBaned = 40017
+	// CodeUserNotActivated 用户不活跃
+	CodeUserNotActivated = 40018
+	// CodeFeatureNotEnabled 此功能未开启
+	CodeFeatureNotEnabled = 40019
+	// CodeCredentialInvalid 凭证无效
+	CodeCredentialInvalid = 40020
+	// CodeUserNotFound 用户不存在
+	CodeUserNotFound = 40021
+	// Code2FACodeErr 二步验证代码错误
+	Code2FACodeErr = 40022
+	// CodeLoginSessionNotExist 登录会话不存在
+	CodeLoginSessionNotExist = 40023
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

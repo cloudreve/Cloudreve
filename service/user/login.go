@@ -101,12 +101,12 @@ func (service *Enable2FA) Login(c *gin.Context) serializer.Response {
 		// 查找用户
 		expectedUser, err := model.GetActiveUserByID(uid)
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, "用户不存在", nil)
+			return serializer.Err(serializer.CodeUserNotFound, "User not found", nil)
 		}
 
 		// 验证二步验证代码
 		if !totp.Validate(service.Code, expectedUser.TwoFactor) {
-			return serializer.ParamErr("验证代码不正确", nil)
+			return serializer.Err(serializer.Code2FACodeErr, "2FA code not correct", nil)
 		}
 
 		//登陆成功，清空并设置session
@@ -118,7 +118,7 @@ func (service *Enable2FA) Login(c *gin.Context) serializer.Response {
 		return serializer.BuildUserResponse(expectedUser)
 	}
 
-	return serializer.Err(serializer.CodeNotFound, "登录会话不存在", nil)
+	return serializer.Err(serializer.CodeLoginSessionNotExist, "Login session not exist", nil)
 }
 
 // Login 用户登录函数
@@ -126,16 +126,16 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 	expectedUser, err := model.GetUserByEmail(service.UserName)
 	// 一系列校验
 	if err != nil {
-		return serializer.Err(serializer.CodeCredentialInvalid, "用户邮箱或密码错误", err)
+		return serializer.Err(serializer.CodeCredentialInvalid, "Wrong password or email address", err)
 	}
 	if authOK, _ := expectedUser.CheckPassword(service.Password); !authOK {
-		return serializer.Err(serializer.CodeCredentialInvalid, "用户邮箱或密码错误", nil)
+		return serializer.Err(serializer.CodeCredentialInvalid, "Wrong password or email address", nil)
 	}
 	if expectedUser.Status == model.Baned || expectedUser.Status == model.OveruseBaned {
-		return serializer.Err(403, "该账号已被封禁", nil)
+		return serializer.Err(serializer.CodeUserBaned, "This account has been blocked", nil)
 	}
 	if expectedUser.Status == model.NotActivicated {
-		return serializer.Err(403, "该账号未激活", nil)
+		return serializer.Err(serializer.CodeUserNotActivated, "This account is not activated", nil)
 	}
 
 	if expectedUser.TwoFactor != "" {
