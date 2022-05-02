@@ -32,7 +32,7 @@ type TagService struct {
 func (service *TagService) Delete(c *gin.Context, user *model.User) serializer.Response {
 	id, _ := c.Get("object_id")
 	if err := model.DeleteTagByID(id.(uint), user.ID); err != nil {
-		return serializer.Err(serializer.CodeDBError, "删除失败", err)
+		return serializer.Err(serializer.CodeDBError, "Failed to delete a tag", err)
 	}
 	return serializer.Response{}
 }
@@ -49,7 +49,7 @@ func (service *LinkTagCreateService) Create(c *gin.Context, user *model.User) se
 	}
 	id, err := tag.Create()
 	if err != nil {
-		return serializer.Err(serializer.CodeDBError, "标签创建失败", err)
+		return serializer.Err(serializer.CodeDBError, "Failed to create a tag", err)
 	}
 
 	return serializer.Response{
@@ -64,7 +64,7 @@ func (service *FilterTagCreateService) Create(c *gin.Context, user *model.User) 
 	for i := 0; i < len(expressions); i++ {
 		expressions[i] = strings.ReplaceAll(expressions[i], "*", "%")
 		if expressions[i] == "" {
-			return serializer.ParamErr(fmt.Sprintf("第 %d 行包含空的匹配表达式", i+1), nil)
+			return serializer.ParamErr(fmt.Sprintf("The %d line contains an empty match expression", i+1), nil)
 		}
 	}
 
@@ -79,7 +79,7 @@ func (service *FilterTagCreateService) Create(c *gin.Context, user *model.User) 
 	}
 	id, err := tag.Create()
 	if err != nil {
-		return serializer.Err(serializer.CodeDBError, "标签创建失败", err)
+		return serializer.Err(serializer.CodeDBError, "Failed to create a tag", err)
 	}
 
 	return serializer.Response{
