@@ -46,7 +46,7 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 			userNotActivated = true
 			user = expectedUser
 		} else {
-			return serializer.DBErr("此邮箱已被使用", err)
+			return serializer.Err(serializer.CodeEmailExisted, "Email already in use", err)
 		}
 	}
 
@@ -59,7 +59,7 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 		controller, _ := url.Parse("/api/v3/user/activate/" + userID)
 		activateURL, err := auth.SignURI(auth.General, base.ResolveReference(controller).String(), 86400)
 		if err != nil {
-			return serializer.Err(serializer.CodeEncryptError, "无法签名激活URL", err)
+			return serializer.Err(serializer.CodeEncryptError, "Failed to sign the activation link", err)
 		}
 
 		// 取得签名
@@ -78,11 +78,11 @@ func (service *UserRegisterService) Register(c *gin.Context) serializer.Response
 			finalURL.String(),
 		)
 		if err := email.Send(user.Email, title, body); err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "无法发送激活邮件", err)
+			return serializer.Err(serializer.CodeFailedSendEmail, "Failed to send activation email", err)
 		}
 		if userNotActivated == true {
 			//原本在上面要抛出的DBErr，放来这边抛出
-			return serializer.DBErr("用户未激活，已重新发送激活邮件", nil)
+			return serializer.Err(serializer.CodeEmailSent, "User is not activated, activation email has been resent", nil)
 		} else {
 			return serializer.Response{Code: 203}
 		}
@@ -97,12 +97,12 @@ func (service *SettingService) Activate(c *gin.Context) serializer.Response {
 	uid, _ := c.Get("object_id")
 	user, err := model.GetUserByID(uid.(uint))
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "User not fount", err)
 	}
 
 	// 检查状态
 	if user.Status != model.NotActivicated {
-		return serializer.Err(serializer.CodeNoPermissionErr, "该用户无法被激活", nil)
+		return serializer.Err(serializer.CodeUserCannotActivate, "This user cannot be activated", nil)
 	}
 
 	// 激活用户

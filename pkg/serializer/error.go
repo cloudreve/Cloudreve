@@ -112,6 +112,12 @@ const (
 	CodeInvalidTempLink = 40029
 	// CodeTempLinkExpired 临时链接过期
 	CodeTempLinkExpired = 40030
+	// CodeEmailExisted 邮箱已被使用
+	CodeEmailExisted = 40032
+	// CodeEmailSent 邮箱已重新发送
+	CodeEmailSent = 40033
+	// CodeUserCannotActivate 用户无法激活
+	CodeUserCannotActivate = 40034
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
