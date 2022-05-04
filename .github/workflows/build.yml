@@ -63,6 +63,8 @@ jobs:
       
       - name: s390x release
         uses: phuonghuynh/action-ghrelease@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: 3.5.4
           files: release/cloudreve*linux_s390x.*
