@@ -60,3 +60,9 @@ jobs:
         with:
           name: cloudreve_linux_s390x
           path: release/cloudreve*linux_s390x.*
+      
+      - name: s390x release
+        uses: phuonghuynh/action-ghrelease@v1.1.0
+        with:
+          tag_name: 3.5.4
+          files: release/cloudreve*linux_s390x.*
