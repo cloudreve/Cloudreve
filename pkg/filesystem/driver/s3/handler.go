@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"net/http"
 	"net/url"
@@ -14,6 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -299,7 +300,10 @@ func (handler *Driver) Source(
 		ttl = 3600
 	}
 
-	signedURL, _ := req.Presign(time.Duration(ttl) * time.Second)
+	signedURL, err := req.Presign(time.Duration(ttl) * time.Second)
+	if err != nil {
+		return "", err
+	}
 
 	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
 	finalURL, err := url.Parse(signedURL)
