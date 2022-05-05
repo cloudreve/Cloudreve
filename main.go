@@ -2,9 +2,11 @@ package main
 
 import (
 	_ "embed"
+	"bytes"
 	"flag"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"strings"
 
 	"github.com/cloudreve/Cloudreve/v3/bootstrap"
@@ -32,10 +34,10 @@ func init() {
 	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
 	flag.Parse()
 
-	staticFS = archiver.ArchiveFS{
+	staticFS = &seekableFS{archiver.ArchiveFS{
 		Stream: io.NewSectionReader(strings.NewReader(staticZip), 0, int64(len(staticZip))),
 		Format: archiver.Zip{},
-	}
+	}}
 	bootstrap.Init(confPath, staticFS)
 }
 
@@ -78,4 +80,49 @@ func main() {
 	if err := api.Run(conf.SystemConfig.Listen); err != nil {
 		util.Log().Error("无法监听[%s]，%s", conf.SystemConfig.Listen, err)
 	}
+}
+
+// https://github.com/golang/go/issues/46809
+// A seekableFS is an FS wrapper that makes every file seekable
+// by reading it entirely into memory when it is opened and then
+// serving read operations (including seek) from the memory copy.
+type seekableFS struct {
+	fs fs.FS
+}
+
+func (s *seekableFS) Open(name string) (fs.File, error) {
+	f, err := s.fs.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if info.IsDir() {
+		return f, nil
+	}
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	var sf seekableFile
+	sf.File = f
+	sf.Reset(data)
+	return &sf, nil
+}
+
+// A seekableFile is a fs.File augmented by an in-memory copy of the file data to allow use of Seek.
+type seekableFile struct {
+	bytes.Reader
+	fs.File
+}
+
+// Read calls f.Reader.Read.
+// Both f.Reader and f.File have Read methods - a conflict - so f inherits neither.
+// This method calls the one we want.
+func (f *seekableFile) Read(b []byte) (int, error) {
+	return f.Reader.Read(b)
 }
