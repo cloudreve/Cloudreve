@@ -5,6 +5,7 @@ import (
 	"flag"
 	"io"
 	"io/fs"
+	"os"
 	"strings"
 
 	"github.com/cloudreve/Cloudreve/v3/bootstrap"
@@ -67,6 +68,16 @@ func main() {
 
 	// 如果启用了Unix
 	if conf.UnixConfig.Listen != "" {
+		// delete socket file before listening
+		if _, err := os.Stat(conf.UnixConfig.Listen); err == nil {
+			util.Log().Info("检测到 socket 文件已存在，删除中...")
+			if err = os.Remove(conf.UnixConfig.Listen); err != nil {
+				util.Log().Error("删除 socket 文件错误, %s", err)
+				return
+			}
+			util.Log().Info("socket 文件已删除")
+		}
+
 		util.Log().Info("开始监听 %s", conf.UnixConfig.Listen)
 		if err := api.RunUnix(conf.UnixConfig.Listen); err != nil {
 			util.Log().Error("无法监听[%s]，%s", conf.UnixConfig.Listen, err)
