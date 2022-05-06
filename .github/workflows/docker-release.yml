@@ -1,9 +1,10 @@
 name: Build and push docker image
 
 on:
-  push:
-    tags:
-      - 3.* # triggered on every push with tag 3.*
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
   workflow_dispatch: # or just on button clicked
 
 jobs:
