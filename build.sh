@@ -88,7 +88,7 @@ usage() {
   exit 1
 }
 
-while getopts "bacr:d" o; do
+while getopts "bacrd" o; do
   case "${o}" in
   b)
     ASSETS="true"
