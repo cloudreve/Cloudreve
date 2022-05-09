@@ -206,7 +206,7 @@ func (fs *FileSystem) Delete(ctx context.Context, dirs, files []uint, force bool
 	if notDeleted := len(fs.FileTarget) - len(deletedFiles); notDeleted > 0 {
 		return serializer.NewError(
 			serializer.CodeNotFullySuccess,
-			fmt.Sprintf("有 %d 个文件未能成功删除", notDeleted),
+			fmt.Sprintf("Failed to delete %d file(s).", notDeleted),
 			nil,
 		)
 	}
