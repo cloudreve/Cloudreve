@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -277,11 +279,31 @@ func (handler *Driver) Source(
 	isDownload bool,
 	speed int,
 ) (string, error) {
-
-	// 尝试从上下文获取文件名
 	fileName := ""
+
+	cacheKey := fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
+		cacheKey = fmt.Sprintf("onedrive_source_file_%d_%d", file.UpdatedAt.Unix(), file.ID)
+	  // 尝试从上下文获取文件名
 		fileName = file.Name
+		// 如果是永久链接，则返回签名后的中转外链
+		if ttl == 0 {
+			signedURI, err := auth.SignURI(
+				auth.General,
+				fmt.Sprintf("/api/v3/file/source/%d/%s", file.ID, file.Name),
+				ttl,
+			)
+			if err != nil {
+				return "", err
+			}
+			return baseURL.ResolveReference(signedURI).String(), nil
+		}
+
+	}
+
+	// 尝试从缓存中查找
+	if cachedURL, ok := cache.Get(cacheKey); ok {
+		return handler.replaceSourceHost(cachedURL.(string))
 	}
 
 	// 初始化客户端
@@ -325,7 +347,18 @@ func (handler *Driver) Source(
 		finalURL.Scheme = cdnURL.Scheme
 	}
 
-	return finalURL.String(), nil
+	// 公有空间不使用缓存，直接返回 S3 访问地址
+	if !handler.Policy.IsPrivate {
+		return finalURL.String(), nil
+	}
+
+	// 写入新的缓存
+		cache.Set(
+			cacheKey,
+			finalURL.String(),
+			3600 - 60,
+		)
+		return handler.replaceSourceHost(finalURL.String())
 }
 
 // Token 获取上传策略和认证Token
@@ -449,4 +482,25 @@ func (handler *Driver) CancelToken(ctx context.Context, uploadSession *serialize
 		Key:      &uploadSession.SavePath,
 	})
 	return err
+}
+
+func (handler Driver) replaceSourceHost(origin string) (string, error) {
+	if handler.Policy.OptionsSerialized.OdProxy != "" {
+		source, err := url.Parse(origin)
+		if err != nil {
+			return "", err
+		}
+
+		cdn, err := url.Parse(handler.Policy.OptionsSerialized.OdProxy)
+		if err != nil {
+			return "", err
+		}
+
+		// 替换反代地址
+		source.Scheme = cdn.Scheme
+		source.Host = cdn.Host
+		return source.String(), nil
+	}
+
+	return origin, nil
 }
