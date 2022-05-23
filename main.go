@@ -76,6 +76,7 @@ func main() {
 			}
 		}
 
+		api.TrustedPlatform = conf.UnixConfig.ProxyHeader
 		util.Log().Info("开始监听 %s", conf.UnixConfig.Listen)
 		if err := api.RunUnix(conf.UnixConfig.Listen); err != nil {
 			util.Log().Error("无法监听[%s]，%s", conf.UnixConfig.Listen, err)

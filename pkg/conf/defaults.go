@@ -45,7 +45,8 @@ var SSLConfig = &ssl{
 }
 
 var UnixConfig = &unix{
-	Listen: "",
+	Listen:      "",
+	ProxyHeader: "X-Forwarded-For",
 }
 
 var OptionOverwrite = map[string]interface{}{}
