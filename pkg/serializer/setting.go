@@ -8,7 +8,6 @@ import (
 // SiteConfig 站点全局设置序列
 type SiteConfig struct {
 	SiteName             string `json:"title"`
-	SiteICPId            string `json:"siteICPId"`
 	LoginCaptcha         bool   `json:"loginCaptcha"`
 	RegCaptcha           bool   `json:"regCaptcha"`
 	ForgetCaptcha        bool   `json:"forgetCaptcha"`
@@ -70,7 +69,6 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 	res := Response{
 		Data: SiteConfig{
 			SiteName:             checkSettingValue(settings, "siteName"),
-			SiteICPId:            checkSettingValue(settings, "siteICPId"),
 			LoginCaptcha:         model.IsTrueVal(checkSettingValue(settings, "login_captcha")),
 			RegCaptcha:           model.IsTrueVal(checkSettingValue(settings, "reg_captcha")),
 			ForgetCaptcha:        model.IsTrueVal(checkSettingValue(settings, "forget_captcha")),
