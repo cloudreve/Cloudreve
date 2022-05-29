@@ -354,6 +354,9 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 		c.Header("Cache-Control", "no-cache")
 	}
 
+	// 设置文件名
+	c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
+
 	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, resp.Content)
 
 	return serializer.Response{
