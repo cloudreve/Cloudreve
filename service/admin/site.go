@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"encoding/gob"
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -9,6 +10,11 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
+
+func init() {
+	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]string{})
+}
 
 // NoParamService 无需参数的服务
 type NoParamService struct {
