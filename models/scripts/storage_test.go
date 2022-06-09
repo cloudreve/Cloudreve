@@ -52,6 +52,9 @@ func TestUserStorageCalibration_Run(t *testing.T) {
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WithArgs(1).
 			WillReturnRows(sqlmock.NewRows([]string{"total"}).AddRow(10))
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectCommit()
 		script.Run(context.Background())
 		asserts.NoError(mock.ExpectationsWereMet())
 	}

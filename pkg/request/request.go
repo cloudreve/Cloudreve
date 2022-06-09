@@ -34,13 +34,15 @@ type Client interface {
 
 // HTTPClient 实现 Client 接口
 type HTTPClient struct {
-	mu      sync.Mutex
-	options *options
+	mu         sync.Mutex
+	options    *options
+	tpsLimiter TPSLimiter
 }
 
 func NewClient(opts ...Option) Client {
 	client := &HTTPClient{
-		options: newDefaultOption(),
+		options:    newDefaultOption(),
+		tpsLimiter: globalTPSLimiter,
 	}
 
 	for _, o := range opts {
@@ -124,6 +126,10 @@ func (c *HTTPClient) Request(method, target string, body io.Reader, opts ...Opti
 				req.URL = resURL
 			}
 		}
+	}
+
+	if options.tps > 0 {
+		c.tpsLimiter.Limit(options.ctx, options.tpsLimiterToken, options.tps, options.tpsBurst)
 	}
 
 	// 发送请求

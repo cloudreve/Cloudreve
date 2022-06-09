@@ -238,3 +238,41 @@ func TestBlackHole(t *testing.T) {
 		BlackHole(strings.NewReader("TestBlackHole"))
 	})
 }
+
+func TestHTTPClient_TPSLimit(t *testing.T) {
+	a := assert.New(t)
+	client := NewClient()
+
+	finished := make(chan struct{})
+	go func() {
+		client.Request(
+			"POST",
+			"/test",
+			strings.NewReader(""),
+			WithTPSLimit("TestHTTPClient_TPSLimit", 1, 1),
+		)
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(10 * time.Second):
+		a.Fail("Request should be finished instantly.")
+	}
+
+	finished = make(chan struct{})
+	go func() {
+		client.Request(
+			"POST",
+			"/test",
+			strings.NewReader(""),
+			WithTPSLimit("TestHTTPClient_TPSLimit", 1, 1),
+		)
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case <-time.After(2 * time.Second):
+		a.Fail("Request should be finished in 1 second.")
+	}
+
+}

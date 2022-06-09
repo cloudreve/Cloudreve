@@ -544,6 +544,11 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 			"Content-Type":  {"application/json"},
 		}),
 		request.WithContext(ctx),
+		request.WithTPSLimit(
+			fmt.Sprintf("policy_%d", client.Policy.ID),
+			client.Policy.OptionsSerialized.TPSLimit,
+			client.Policy.OptionsSerialized.TPSLimitBurst,
+		),
 	)
 
 	// 发送请求

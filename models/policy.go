@@ -61,6 +61,10 @@ type PolicyOption struct {
 	ChunkSize uint64 `json:"chunk_size,omitempty"`
 	// 分片上传时是否需要预留空间
 	PlaceholderWithSize bool `json:"placeholder_with_size,omitempty"`
+	// 每秒对存储端的 API 请求上限
+	TPSLimit float64 `json:"tps_limit,omitempty"`
+	// 每秒 API 请求爆发上限
+	TPSLimitBurst int `json:"tps_limit_burst,omitempty"`
 }
 
 // thumbSuffix 支持缩略图处理的文件扩展名
