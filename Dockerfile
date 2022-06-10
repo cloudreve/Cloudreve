@@ -16,6 +16,9 @@ ARG YARN_REGISTRY=https://registry.yarnpkg.com/
 # 允许通过 `docker build --build-args GOPROXY=https://goproxy.cn` 添加 go mod 代理
 ARG GOPROXY=""
 
+ # 允许通过 `docker build --build-args TIMEZONE=Africa/Abidjan` 覆盖默认时区
+ARG TZ="Asia/Shanghai"
+
 # 暂不确定未来 alpine 内的 Node 版本是否影响最终编译结果, 故暂时增加打印输出
 RUN set -ex \
     && echo "Node Version: $(node -v)" \
@@ -40,8 +43,8 @@ FROM alpine:latest
 
 RUN set -ex \
     && apk add --no-cache tzdata bash \
-    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
+    && ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone
 
 # 从编译阶段镜像复制可执行文件
 COPY --from=builder /cloudreve.bin /usr/bin/cloudreve
@@ -53,6 +56,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 VOLUME /data
 
 # 切换运行目录, 为未来可能的自动识别运行目录做准备
+# 引用: https://github.com/cloudreve/Cloudreve/pull/1037
 WORKDIR /data
 
 # 镜像默认的开放端口, 它仅作为标识意义, 不干扰实际运行
