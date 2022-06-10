@@ -16,9 +16,6 @@ ARG YARN_REGISTRY=https://registry.yarnpkg.com/
 # 允许通过 `docker build --build-args GOPROXY=https://goproxy.cn` 添加 go mod 代理
 ARG GOPROXY=""
 
- # 允许通过 `docker build --build-args TIMEZONE=Africa/Abidjan` 覆盖默认时区
-ARG TZ="Asia/Shanghai"
-
 # 暂不确定未来 alpine 内的 Node 版本是否影响最终编译结果, 故暂时增加打印输出
 RUN set -ex \
     && echo "Node Version: $(node -v)" \
@@ -40,6 +37,9 @@ RUN set -ex \
 
 # 多阶段构建: 构建最终镜像 
 FROM alpine:latest
+
+# 允许通过 `docker build --build-args TIMEZONE=Africa/Abidjan` 覆盖默认时区
+ARG TZ="Asia/Shanghai"
 
 RUN set -ex \
     && apk add --no-cache tzdata bash \
