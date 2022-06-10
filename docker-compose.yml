@@ -7,11 +7,8 @@ services:
     ports:
       - "5212:5212"
     volumes:
-      - temp_data:/data
-      - ./cloudreve/uploads:/cloudreve/uploads
-      - ./cloudreve/conf.ini:/cloudreve/conf.ini
-      - ./cloudreve/cloudreve.db:/cloudreve/cloudreve.db
-      - ./cloudreve/avatar:/cloudreve/avatar
+      - ./data:/data
+      - temp_data:/data/aria2
     depends_on:
       - aria2
   aria2:
