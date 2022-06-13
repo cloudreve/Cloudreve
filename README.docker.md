@@ -197,6 +197,12 @@ chmod +x docker-entrypoint.sh
 docker build -t cloudreve_docker .
 ```
 
+如果您受限于网络问题, 某些资源下载比较慢, 你可以在编译时增加以下参数用于加速构建:
+
+```sh
+docker build --build-arg YARN_REGISTRY=https://registry.npmmirror.com --build-args GOPROXY=https://goproxy.cn -t cloudreve_docker .
+```
+
 构建完成后您可将 Compose 或 Docker 命令中的 `cloudreve/cloudreve` 替换为 `cloudreve_docker` 运行并测试.
 
 ## 五、多平台交叉编译
