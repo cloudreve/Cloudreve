@@ -10,8 +10,17 @@ RUN set -ex \
 # 编译前端代码
 WORKDIR /source/assets
 
-# 允许通过 `docker build --build-args YARN_REGISTRY=https://xxxx` 覆盖默认仓库地址
-ARG YARN_REGISTRY=https://registry.yarnpkg.com/
+# 允许通过 `docker build --build-args YARN_REGISTRY=https://registry.npmmirror.com` 覆盖默认仓库地址
+#
+# 常用的仓库地址:
+#   npm -----  https://registry.npmjs.org
+#   cnpm ----  http://r.cnpmjs.org
+#   taobao --  https://registry.npmmirror.com
+#   nj ------  https://registry.nodejitsu.com
+#   rednpm --  http://registry.mirror.cqupt.edu.cn
+#   skimdb --  https://skimdb.npmjs.com/registry
+#   yarn ----  https://registry.yarnpkg.com
+ARG YARN_REGISTRY=https://registry.yarnpkg.com
 
 # 允许通过 `docker build --build-args GOPROXY=https://goproxy.cn` 添加 go mod 代理
 ARG GOPROXY=""
@@ -19,10 +28,10 @@ ARG GOPROXY=""
 # 暂不确定未来 alpine 内的 Node 版本是否影响最终编译结果, 故暂时增加打印输出
 RUN set -ex \
     && echo "Node Version: $(node -v)" \
-    && sed -i -e "s@https://registry.yarnpkg.com/@${YARN_REGISTRY}@g" yarn.lock \
-    && yarn install \
+    && sed -i -e "s@https://registry.yarnpkg.com@${YARN_REGISTRY}@g" yarn.lock \
+    && yarn install --network-timeout 1000000 \
     && yarn run build \
-    && find . -name "*.map" -type f -delete
+    && find ./build -name "*.map" -type f -delete
 
 # 编译后端代码
 WORKDIR /source
@@ -35,14 +44,21 @@ RUN set -ex \
              -X github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$(git describe --tags) \
              -X github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$(git rev-parse --short HEAD)"
 
+
 # 多阶段构建: 构建最终镜像 
-FROM alpine:latest
+FROM alpine
 
 # 允许通过 `docker build --build-args TIMEZONE=Africa/Abidjan` 覆盖默认时区
 ARG TZ="Asia/Shanghai"
 
+# netgo 兼容修复
+# set up nsswitch.conf for Go's "netgo" implementation
+# - https://github.com/golang/go/blob/go1.9.1/src/net/conf.go#L194-L275
+# - docker run --rm debian:stretch grep '^hosts:' /etc/nsswitch.conf
+RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
+
 RUN set -ex \
-    && apk add --no-cache tzdata bash \
+    && apk add --no-cache tzdata ca-certificates bash \
     && ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime \
     && echo "${TZ}" > /etc/timezone
 
