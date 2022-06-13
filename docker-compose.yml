@@ -6,25 +6,25 @@ services:
     restart: unless-stopped
     ports:
       - "5212:5212"
+      - "6800:6800"
+      - "6880:6880"
     volumes:
       - ./data:/data
-      - temp_data:/data/aria2
-    depends_on:
-      - aria2
+      - temp_data:/tmp
   aria2:
     container_name: aria2
     image: p3terx/aria2-pro # third party image, please keep notice what you are doing
     restart: unless-stopped
+    network_mode: service:cloudreve
     environment:
-      - RPC_SECRET=your_aria_rpc_token # aria rpc token, customize your own
-      - RPC_PORT=6800
+      - RPC_SECRET=your_aria_rpc_token # 请务必修改此处 Token 为随机字符串, 否则其他人都可以使用你的 Aria2 服务器
     volumes:
-      - ./aria2/config:/config
-      - temp_data:/data
+      - ./aria2_config:/config
+      - temp_data:/tmp
+  aria2-ui:
+    container_name: aria2-ui
+    image: p3terx/ariang
+    restart: unless-stopped
+    network_mode: service:cloudreve
 volumes:
   temp_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data
-      o: bind
