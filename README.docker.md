@@ -1,3 +1,25 @@
+<!--ts-->
+* [Docker 用户文档](#docker-用户文档)
+   * [一、基本准备](#一基本准备)
+      * [1.1、Docker 环境](#11docker-环境)
+      * [1.2、Docker Compose](#12docker-compose)
+      * [1.3、Buildx 编译环境](#13buildx-编译环境)
+   * [二、Docker 运行示例](#二docker-运行示例)
+      * [2.1、直接运行](#21直接运行)
+      * [2.2、.cloudreve.bin 文件](#22cloudrevebin-文件)
+      * [2.3、老镜像迁移](#23老镜像迁移)
+   * [三、Compose 样例](#三compose-样例)
+      * [3.1、直接运行](#31直接运行)
+      * [3.2、离线下载配置](#32离线下载配置)
+      * [3、3 Compose 配置细节](#33-compose-配置细节)
+   * [四、自行编译](#四自行编译)
+   * [五、多平台交叉编译](#五多平台交叉编译)
+
+<!-- Created by https://github.com/ekalinin/github-markdown-toc -->
+<!-- Added by: kovacs, at: 2022年 6月13日 星期一 19时15分54秒 CST -->
+
+<!--te-->
+
 # Docker 用户文档
 
 > 本文档详细介绍 Cloudreve Docker 镜像使用以及其工作原理; **本文档假设用户有一定 Linux 和 Docker 基本知识储备.**
@@ -154,7 +176,7 @@ volumes:
   temp_data:
 ```
 
-### 四、自行编译
+## 四、自行编译
 
 出于紧急 BUG 修复等原因, 有时您如果需要自行构建 master 分支的 Docker 镜像, 您可以按照以下操作来完成编译:
 
@@ -177,7 +199,7 @@ docker build -t cloudreve_docker .
 
 构建完成后您可将 Compose 或 Docker 命令中的 `cloudreve/cloudreve` 替换为 `cloudreve_docker` 运行并测试.
 
-### 五、多平台交叉编译
+## 五、多平台交叉编译
 
 > 本部分假设您已经安装好 Docker Buildx 相关工具链.
 
