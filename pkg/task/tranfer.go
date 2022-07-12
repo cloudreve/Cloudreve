@@ -96,9 +96,8 @@ func (job *TransferTask) Do() {
 		return
 	}
 
-	for index, file := range job.TaskProps.Src {
-		job.TaskModel.SetProgress(index)
-
+	successCount := 0
+	for _, file := range job.TaskProps.Src {
 		dst := path.Join(job.TaskProps.Dst, filepath.Base(file))
 		if job.TaskProps.TrimPath {
 			// 保留原始目录
@@ -132,6 +131,9 @@ func (job *TransferTask) Do() {
 
 		if err != nil {
 			job.SetErrorMsg("文件转存失败", err)
+		} else {
+			successCount++
+			job.TaskModel.SetProgress(successCount)
 		}
 	}
 

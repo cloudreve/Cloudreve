@@ -88,11 +88,6 @@ func TestTransferTask_Do(t *testing.T) {
 		}
 		task.TaskProps.Src = []string{"test/not_exist"}
 		task.TaskProps.Parent = "test/not_exist"
-		// 更新进度
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
-			1))
-		mock.ExpectCommit()
 		// 更新错误
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
@@ -113,11 +108,6 @@ func TestTransferTask_Do(t *testing.T) {
 		task.TaskProps.Src = []string{"test/not_exist"}
 		task.TaskProps.Parent = "test/not_exist"
 		task.TaskProps.TrimPath = true
-		// 更新进度
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
-			1))
-		mock.ExpectCommit()
 		// 更新错误
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
