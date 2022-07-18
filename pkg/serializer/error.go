@@ -118,6 +118,30 @@ const (
 	CodeEmailSent = 40033
 	// CodeUserCannotActivate 用户无法激活
 	CodeUserCannotActivate = 40034
+	// 存储策略不存在
+	CodePolicyNotExist = 40035
+	// 无法删除默认存储策略
+	CodeDeleteDefaultPolicy = 40036
+	// 存储策略下还有文件
+	CodePolicyUsedByFiles = 40037
+	// 存储策略绑定了用户组
+	CodePolicyUsedByGroups = 40038
+	// 用户组不存在
+	CodeGroupNotFound = 40039
+	// 对系统用户组执行非法操作
+	CodeInvalidActionOnSystemGroup = 40040
+	// 用户组正在被使用
+	CodeGroupUsedByUser = 40041
+	// 为初始用户更改用户组
+	CodeChangeGroupForDefaultUser = 40042
+	// 对系统用户执行非法操作
+	CodeInvalidActionOnDefaultUser = 40043
+	// 文件不存在
+	CodeFileNotFound = 40044
+	// 列取文件失败
+	CodeListFilesError = 40045
+	// 对系统节点进行非法操作
+	CodeInvalidActionOnSystemNode = 40046
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
@@ -130,6 +154,10 @@ const (
 	CodeCacheOperation = 50006
 	// CodeCallbackError 回调失败
 	CodeCallbackError = 50007
+	// 后台设置更新失败
+	CodeUpdateSetting = 50008
+	// 跨域策略添加失败
+	CodeAddCORS = 50009
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
 	// CodeNotSet 未定错误，后续尝试从error中获取
