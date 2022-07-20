@@ -54,13 +54,13 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	// 查找下载记录
 	download, err := model.GetDownloadByGid(c.Param("gid"), user.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
+		return serializer.Err(serializer.CodeNotFound, "Download record not found", err)
 	}
 
 	if download.Status >= common.Error {
 		// 如果任务已完成，则删除任务记录
 		if err := download.Delete(); err != nil {
-			return serializer.Err(serializer.CodeDBError, "任务记录删除失败", err)
+			return serializer.DBErr("Failed to delete task record", err)
 		}
 		return serializer.Response{}
 	}
@@ -68,11 +68,11 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	// 取消任务
 	node := cluster.Default.GetNodeByID(download.GetNodeID())
 	if node == nil {
-		return serializer.Err(serializer.CodeInternalSetting, "目标节点不可用", err)
+		return serializer.Err(serializer.CodeNodeOffline, "", err)
 	}
 
 	if err := node.GetAria2Instance().Cancel(download); err != nil {
-		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
+		return serializer.Err(serializer.CodeNotSet, "Operation failed", err)
 	}
 
 	return serializer.Response{}
@@ -86,17 +86,17 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 	// 查找下载记录
 	download, err := model.GetDownloadByGid(c.Param("gid"), user.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
+		return serializer.Err(serializer.CodeNotFound, "Download record not found", err)
 	}
 
 	if download.StatusInfo.BitTorrent.Mode != "multi" || (download.Status != common.Downloading && download.Status != common.Paused) {
-		return serializer.Err(serializer.CodeNoPermissionErr, "此下载任务无法选取文件", err)
+		return serializer.ParamErr("You cannot select files for this task", nil)
 	}
 
 	// 选取下载
 	node := cluster.Default.GetNodeByID(download.GetNodeID())
 	if err := node.GetAria2Instance().Select(download, service.Indexes); err != nil {
-		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
+		return serializer.Err(serializer.CodeNotSet, "Operation failed", err)
 	}
 
 	return serializer.Response{}

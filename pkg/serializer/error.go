@@ -142,6 +142,24 @@ const (
 	CodeListFilesError = 40045
 	// 对系统节点进行非法操作
 	CodeInvalidActionOnSystemNode = 40046
+	// 创建文件系统出错
+	CodeCreateFSError = 40047
+	// 创建任务出错
+	CodeCreateTaskError = 40048
+	// 文件尺寸太大
+	CodeFileTooLarge = 40049
+	// 文件类型不允许
+	CodeFileTypeNotAllowed = 40050
+	// 用户容量不足
+	CodeInsufficientCapacity = 40051
+	// 对象名非法
+	CodeIllegalObjectName = 40052
+	// 不支持对根目录执行此操作
+	CodeRootProtected = 40053
+	// 当前目录下已经有同名文件正在上传中
+	CodeConflictUploadOngoing = 40054
+	// 文件信息不一致
+	CodeMetaMismatch = 40055
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
@@ -158,6 +176,10 @@ const (
 	CodeUpdateSetting = 50008
 	// 跨域策略添加失败
 	CodeAddCORS = 50009
+	// 节点不可用
+	CodeNodeOffline = 50010
+	// 文件元信息查询失败
+	CodeQueryMetaFailed = 50011
 	//CodeParamErr 各种奇奇怪怪的参数错误
 	CodeParamErr = 40001
 	// CodeNotSet 未定错误，后续尝试从error中获取
@@ -183,7 +205,8 @@ func ParamErr(msg string, err error) Response {
 // Err 通用错误处理
 func Err(errCode int, msg string, err error) Response {
 	// 底层错误是AppError，则尝试从AppError中获取详细信息
-	if appError, ok := err.(AppError); ok {
+	var appError AppError
+	if errors.As(err, &appError) {
 		errCode = appError.Code
 		err = appError.RawError
 		msg = appError.Msg

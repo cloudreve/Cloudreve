@@ -42,7 +42,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 		// 创建文件系统
 		fs, err := filesystem.NewAnonymousFileSystem()
 		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "Failed to create filesystem.", err)
+			return serializer.Err(serializer.CodeCreateFSError, "", err)
 		}
 		defer fs.Recycle()
 
@@ -69,7 +69,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(&user)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "Failed to create filesystem.", err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
