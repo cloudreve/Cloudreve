@@ -61,6 +61,8 @@ type cors struct {
 	AllowHeaders     []string
 	AllowCredentials bool
 	ExposeHeaders    []string
+	SameSite         string
+	Secure           bool
 }
 
 var cfg *ini.File
