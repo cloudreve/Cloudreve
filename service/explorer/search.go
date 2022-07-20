@@ -23,14 +23,14 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	if service.Path != "" {
 		ok, parent := fs.IsPathExist(service.Path)
 		if !ok {
-			return serializer.Err(serializer.CodeParentNotExist, "Cannot find parent folder", nil)
+			return serializer.Err(serializer.CodeParentNotExist, "", nil)
 		}
 
 		fs.Root = parent
@@ -60,9 +60,9 @@ func (service *ItemSearchService) Search(c *gin.Context) serializer.Response {
 				}
 			}
 		}
-		return serializer.Err(serializer.CodeNotFound, "标签不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "", nil)
 	default:
-		return serializer.ParamErr("未知搜索类型", nil)
+		return serializer.ParamErr("Unknown search type", nil)
 	}
 }
 
