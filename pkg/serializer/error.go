@@ -164,6 +164,14 @@ const (
 	CodeUnsupportedArchiveType = 40056
 	// 可用存储策略发生变化
 	CodePolicyChanged = 40057
+	// 分享链接无效
+	CodeShareLinkNotFound = 40058
+	// 不能转存自己的分享
+	CodeSaveOwnShare = 40059
+	// 从机无法向主机发送回调请求
+	CodeSlavePingMaster = 40060
+	// Cloudreve 版本不一致
+	CodeVersionMismatch = 40061
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

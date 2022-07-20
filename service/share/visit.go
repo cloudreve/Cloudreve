@@ -54,7 +54,7 @@ func (service *ShareUserGetService) Get(c *gin.Context) serializer.Response {
 	userID, _ := c.Get("object_id")
 	user, err := model.GetActiveUserByID(userID.(uint))
 	if err != nil || user.OptionsSerialized.ProfileOff {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeNotFound, "", err)
 	}
 
 	// 列出分享
@@ -153,14 +153,14 @@ func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Respons
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(user)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.DBErr("Failed to update share record", err)
 	}
 	defer fs.Recycle()
 
 	// 重设文件系统处理目标为源文件
 	err = fs.SetTargetByInterface(share.Source())
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "源文件不存在", err)
+		return serializer.Err(serializer.CodeFileNotFound, "", err)
 	}
 
 	ctx := context.Background()
@@ -230,17 +230,17 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 	share := shareCtx.(*model.Share)
 
 	if !share.IsDir {
-		return serializer.ParamErr("此分享无法列目录", nil)
+		return serializer.ParamErr("This is not a shared folder", nil)
 	}
 
 	if !path.IsAbs(service.Path) {
-		return serializer.ParamErr("路径无效", nil)
+		return serializer.ParamErr("Invalid path", nil)
 	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(share.Creator())
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -258,7 +258,7 @@ func (service *Service) List(c *gin.Context) serializer.Response {
 	// 获取子项目
 	objects, err := fs.List(ctx, service.Path, nil)
 	if err != nil {
-		return serializer.Err(serializer.CodeCreateFolderFailed, err.Error(), err)
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
 	return serializer.Response{
@@ -273,13 +273,13 @@ func (service *Service) Thumb(c *gin.Context) serializer.Response {
 	share := shareCtx.(*model.Share)
 
 	if !share.IsDir {
-		return serializer.ParamErr("此分享无缩略图", nil)
+		return serializer.ParamErr("This share has no thumb", nil)
 	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(share.Creator())
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -289,7 +289,7 @@ func (service *Service) Thumb(c *gin.Context) serializer.Response {
 	// 找到缩略图的父目录
 	exist, parent := fs.IsPathExist(service.Path)
 	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "路径不存在", nil)
+		return serializer.Err(serializer.CodeParentNotExist, "", nil)
 	}
 
 	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
@@ -297,13 +297,13 @@ func (service *Service) Thumb(c *gin.Context) serializer.Response {
 	// 获取文件ID
 	fileID, err := hashid.DecodeHashID(c.Param("file"), hashid.FileID)
 	if err != nil {
-		return serializer.ParamErr("无法解析文件ID", err)
+		return serializer.Err(serializer.CodeNotFound, "", err)
 	}
 
 	// 获取缩略图
 	resp, err := fs.GetThumb(ctx, uint(fileID))
 	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err)
+		return serializer.Err(serializer.CodeNotSet, "Failed to get thumb", err)
 	}
 
 	if resp.Redirect {
@@ -328,17 +328,17 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 
 	// 是否有权限
 	if !user.Group.OptionsSerialized.ArchiveDownload {
-		return serializer.Err(serializer.CodeNoPermissionErr, "您的用户组无权进行此操作", nil)
+		return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
 	}
 
 	if !share.IsDir {
-		return serializer.ParamErr("此分享无法进行打包", nil)
+		return serializer.ParamErr("This share cannot be batch downloaded", nil)
 	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(user)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -348,7 +348,7 @@ func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
 	// 找到要打包文件的父目录
 	exist, parent := fs.IsPathExist(service.Path)
 	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "路径不存在", nil)
+		return serializer.Err(serializer.CodeParentNotExist, "", nil)
 	}
 
 	// 限制操作范围为父目录下
@@ -388,7 +388,7 @@ func (service *SearchService) Search(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(share.Creator())
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 

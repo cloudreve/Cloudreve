@@ -135,7 +135,7 @@ func (service *UploadService) SlaveUpload(ctx context.Context, c *gin.Context) s
 
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 
 	fs.Handler = local.Driver{}
@@ -249,13 +249,13 @@ func (service *UploadSessionService) SlaveDelete(ctx context.Context, c *gin.Con
 	// 创建文件系统
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	session, ok := cache.Get(filesystem.UploadSessionCachePrefix + service.ID)
 	if !ok {
-		return serializer.Err(serializer.CodeUploadSessionExpired, "Slave Upload session file placeholder not exist", nil)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "", nil)
 	}
 
 	if _, err := fs.Handler.Delete(ctx, []string{session.(serializer.UploadSession).SavePath}); err != nil {

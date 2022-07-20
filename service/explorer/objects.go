@@ -290,7 +290,7 @@ func (service *ItemMoveService) Move(ctx context.Context, c *gin.Context) serial
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -311,13 +311,13 @@ func (service *ItemMoveService) Move(ctx context.Context, c *gin.Context) serial
 func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serializer.Response {
 	// 复制操作只能对一个目录或文件对象进行操作
 	if len(service.Src.Items)+len(service.Src.Dirs) > 1 {
-		return serializer.ParamErr("只能复制一个对象", nil)
+		return filesystem.ErrOneObjectOnly
 	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -337,13 +337,13 @@ func (service *ItemMoveService) Copy(ctx context.Context, c *gin.Context) serial
 func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) serializer.Response {
 	// 重命名作只能对一个目录或文件对象进行操作
 	if len(service.Src.Items)+len(service.Src.Dirs) > 1 {
-		return serializer.ParamErr("只能操作一个对象", nil)
+		return filesystem.ErrOneObjectOnly
 	}
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -370,12 +370,12 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 	if !service.IsFolder {
 		res, err := hashid.DecodeHashID(service.ID, hashid.FileID)
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, "对象不存在", err)
+			return serializer.Err(serializer.CodeNotFound, "", err)
 		}
 
 		file, err := model.GetFilesByIDs([]uint{res}, user.ID)
 		if err != nil {
-			return serializer.DBErr("找不到文件", err)
+			return serializer.DBErr("Failed to query file records", err)
 		}
 
 		props.CreatedAt = file[0].CreatedAt
@@ -387,11 +387,11 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 		if service.TraceRoot {
 			parent, err := model.GetFoldersByIDs([]uint{file[0].FolderID}, user.ID)
 			if err != nil {
-				return serializer.DBErr("找不到父目录", err)
+				return serializer.DBErr("Parent folder record not exist", err)
 			}
 
 			if err := parent[0].TraceRoot(); err != nil {
-				return serializer.DBErr("无法溯源父目录", err)
+				return serializer.DBErr("Failed to trace root folder", err)
 			}
 
 			props.Path = path.Join(parent[0].Position, parent[0].Name)
@@ -399,12 +399,12 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 	} else {
 		res, err := hashid.DecodeHashID(service.ID, hashid.FolderID)
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, "对象不存在", err)
+			return serializer.Err(serializer.CodeNotFound, "", err)
 		}
 
 		folder, err := model.GetFoldersByIDs([]uint{res}, user.ID)
 		if err != nil {
-			return serializer.DBErr("找不到目录", err)
+			return serializer.DBErr("Failed to query folder records", err)
 		}
 
 		props.CreatedAt = folder[0].CreatedAt
@@ -422,14 +422,14 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 		childFolders, err := model.GetRecursiveChildFolder([]uint{folder[0].ID},
 			user.ID, true)
 		if err != nil {
-			return serializer.DBErr("无法列取子目录", err)
+			return serializer.DBErr("Failed to list child folders", err)
 		}
 		props.ChildFolderNum = len(childFolders) - 1
 
 		// 统计子文件
 		files, err := model.GetChildFilesOfFolders(&childFolders)
 		if err != nil {
-			return serializer.DBErr("无法列取子文件", err)
+			return serializer.DBErr("Failed to list child files", err)
 		}
 
 		// 统计子文件个数和大小
@@ -441,7 +441,7 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 		// 查找父目录
 		if service.TraceRoot {
 			if err := folder[0].TraceRoot(); err != nil {
-				return serializer.DBErr("无法溯源父目录", err)
+				return serializer.DBErr("Failed to list child folders", err)
 			}
 
 			props.Path = folder[0].Position

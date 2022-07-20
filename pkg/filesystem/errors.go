@@ -22,4 +22,5 @@ var (
 	ErrIO                       = serializer.NewError(serializer.CodeIOFailed, "Failed to read file data", nil)
 	ErrDBListObjects            = serializer.NewError(serializer.CodeDBError, "Failed to list object records", nil)
 	ErrDBDeleteObjects          = serializer.NewError(serializer.CodeDBError, "Failed to delete object records", nil)
+	ErrOneObjectOnly            = serializer.ParamErr("You can only copy one object at the same time", nil)
 )

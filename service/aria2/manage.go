@@ -110,7 +110,7 @@ func SlaveStatus(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	status, err := caller.(common.Aria2).Status(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "离线下载任务查询失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to query remote download task status", err)
 	}
 
 	return serializer.NewResponseWithGobData(status)
@@ -124,7 +124,7 @@ func SlaveCancel(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	err := caller.(common.Aria2).Cancel(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "任务取消失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to cancel task", err)
 	}
 
 	return serializer.Response{}
@@ -138,7 +138,7 @@ func SlaveSelect(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	err := caller.(common.Aria2).Select(service.Task, service.Files)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "任务选取失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to select files", err)
 	}
 
 	return serializer.Response{}
@@ -152,7 +152,7 @@ func SlaveDeleteTemp(c *gin.Context, service *serializer.SlaveAria2Call) seriali
 	// 查询任务
 	err := caller.(common.Aria2).DeleteTempFile(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "临时文件删除失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete temp files", err)
 	}
 
 	return serializer.Response{}

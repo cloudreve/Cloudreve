@@ -84,13 +84,13 @@ func (service *SlaveListService) List(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
 	if err != nil {
-		return serializer.Err(serializer.CodeIOFailed, "无法列取文件", err)
+		return serializer.Err(serializer.CodeIOFailed, "Cannot list files", err)
 	}
 
 	res, _ := json.Marshal(objects)

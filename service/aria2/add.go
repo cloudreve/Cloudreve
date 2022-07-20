@@ -136,14 +136,14 @@ func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response
 	// 创建任务
 	gid, err := caller.(common.Aria2).CreateTask(service.Task, service.GroupOptions)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "无法创建离线下载任务", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to create aria2 task", err)
 	}
 
 	// 创建事件通知回调
 	siteID, _ := c.Get("MasterSiteID")
 	mq.GlobalMQ.SubscribeCallback(gid, func(message mq.Message) {
 		if err := cluster.DefaultController.SendNotification(siteID.(string), message.TriggeredBy, message); err != nil {
-			util.Log().Warning("无法发送离线下载任务状态变更通知, %s", err)
+			util.Log().Warning("Failed to send remote download task status change notifications: %s", err)
 		}
 	})
 

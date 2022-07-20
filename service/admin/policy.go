@@ -194,7 +194,7 @@ func (service *PolicyService) AddCORS() serializer.Response {
 func (service *SlavePingService) Test() serializer.Response {
 	master, err := url.Parse(service.Callback)
 	if err != nil {
-		return serializer.ParamErr("无法解析主机站点地址，请检查主机 参数设置 - 站点信息 - 站点URL设置，"+err.Error(), nil)
+		return serializer.ParamErr("Failed to parse Master site url: "+err.Error(), nil)
 	}
 
 	controller, _ := url.Parse("/api/v3/site/ping")
@@ -208,7 +208,7 @@ func (service *SlavePingService) Test() serializer.Response {
 	).DecodeResponse()
 
 	if err != nil {
-		return serializer.ParamErr("从机无法向主机发送回调请求，请检查主机端 参数设置 - 站点信息 - 站点URL设置，并确保从机可以连接到此地址，"+err.Error(), nil)
+		return serializer.Err(serializer.CodeSlavePingMaster, err.Error(), nil)
 	}
 
 	version := conf.BackendVersion
@@ -216,7 +216,7 @@ func (service *SlavePingService) Test() serializer.Response {
 		version += "-pro"
 	}
 	if res.Data.(string) != version {
-		return serializer.ParamErr("Cloudreve版本不一致，主机："+res.Data.(string)+"，从机："+version, nil)
+		return serializer.Err(serializer.CodeVersionMismatch, "Master: "+res.Data.(string)+", Slave: "+version, nil)
 	}
 
 	return serializer.Response{}

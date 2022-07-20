@@ -47,7 +47,7 @@ func (s *SlaveNotificationService) HandleSlaveNotificationPush(c *gin.Context) s
 func (s *OneDriveCredentialService) Get(c *gin.Context) serializer.Response {
 	policy, err := model.GetPolicyByID(s.PolicyID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "Cannot found storage policy", err)
+		return serializer.Err(serializer.CodePolicyNotExist, "", err)
 	}
 
 	client, err := onedrive.NewClient(&policy)
