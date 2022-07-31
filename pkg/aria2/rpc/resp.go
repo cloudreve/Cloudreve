@@ -4,35 +4,27 @@ package rpc
 
 // StatusInfo represents response of aria2.tellStatus
 type StatusInfo struct {
-	Gid             string     `json:"gid"`             // GID of the download.
-	Status          string     `json:"status"`          // active for currently downloading/seeding downloads. waiting for downloads in the queue; download is not started. paused for paused downloads. error for downloads that were stopped because of error. complete for stopped and completed downloads. removed for the downloads removed by user.
-	TotalLength     string     `json:"totalLength"`     // Total length of the download in bytes.
-	CompletedLength string     `json:"completedLength"` // Completed length of the download in bytes.
-	UploadLength    string     `json:"uploadLength"`    // Uploaded length of the download in bytes.
-	BitField        string     `json:"bitfield"`        // Hexadecimal representation of the download progress. The highest bit corresponds to the piece at index 0. Any set bits indicate loaded pieces, while unset bits indicate not yet loaded and/or missing pieces. Any overflow bits at the end are set to zero. When the download was not started yet, this key will not be included in the response.
-	DownloadSpeed   string     `json:"downloadSpeed"`   // Download speed of this download measured in bytes/sec.
-	UploadSpeed     string     `json:"uploadSpeed"`     // LocalUpload speed of this download measured in bytes/sec.
-	InfoHash        string     `json:"infoHash"`        // InfoHash. BitTorrent only.
-	NumSeeders      string     `json:"numSeeders"`      // The number of seeders aria2 has connected to. BitTorrent only.
-	Seeder          string     `json:"seeder"`          // true if the local endpoint is a seeder. Otherwise false. BitTorrent only.
-	PieceLength     string     `json:"pieceLength"`     // Piece length in bytes.
-	NumPieces       string     `json:"numPieces"`       // The number of pieces.
-	Connections     string     `json:"connections"`     // The number of peers/servers aria2 has connected to.
-	ErrorCode       string     `json:"errorCode"`       // The code of the last error for this item, if any. The value is a string. The error codes are defined in the EXIT STATUS section. This value is only available for stopped/completed downloads.
-	ErrorMessage    string     `json:"errorMessage"`    // The (hopefully) human readable error message associated to errorCode.
-	FollowedBy      []string   `json:"followedBy"`      // List of GIDs which are generated as the result of this download. For example, when aria2 downloads a Metalink file, it generates downloads described in the Metalink (see the --follow-metalink option). This value is useful to track auto-generated downloads. If there are no such downloads, this key will not be included in the response.
-	BelongsTo       string     `json:"belongsTo"`       // GID of a parent download. Some downloads are a part of another download. For example, if a file in a Metalink has BitTorrent resources, the downloads of ".torrent" files are parts of that parent. If this download has no parent, this key will not be included in the response.
-	Dir             string     `json:"dir"`             // Directory to save files.
-	Files           []FileInfo `json:"files"`           // Returns the list of files. The elements of this list are the same structs used in aria2.getFiles() method.
-	BitTorrent      struct {
-		AnnounceList [][]string `json:"announceList"` // List of lists of announce URIs. If the torrent contains announce and no announce-list, announce is converted to the announce-list format.
-		Comment      string     `json:"comment"`      // The comment of the torrent. comment.utf-8 is used if available.
-		CreationDate int64      `json:"creationDate"` // The creation time of the torrent. The value is an integer since the epoch, measured in seconds.
-		Mode         string     `json:"mode"`         // File mode of the torrent. The value is either single or multi.
-		Info         struct {
-			Name string `json:"name"` // name in info dictionary. name.utf-8 is used if available.
-		} `json:"info"` // Struct which contains data from Info dictionary. It contains following keys.
-	} `json:"bittorrent"` // Struct which contains information retrieved from the .torrent (file). BitTorrent only. It contains following keys.
+	Gid             string         `json:"gid"`             // GID of the download.
+	Status          string         `json:"status"`          // active for currently downloading/seeding downloads. waiting for downloads in the queue; download is not started. paused for paused downloads. error for downloads that were stopped because of error. complete for stopped and completed downloads. removed for the downloads removed by user.
+	TotalLength     string         `json:"totalLength"`     // Total length of the download in bytes.
+	CompletedLength string         `json:"completedLength"` // Completed length of the download in bytes.
+	UploadLength    string         `json:"uploadLength"`    // Uploaded length of the download in bytes.
+	BitField        string         `json:"bitfield"`        // Hexadecimal representation of the download progress. The highest bit corresponds to the piece at index 0. Any set bits indicate loaded pieces, while unset bits indicate not yet loaded and/or missing pieces. Any overflow bits at the end are set to zero. When the download was not started yet, this key will not be included in the response.
+	DownloadSpeed   string         `json:"downloadSpeed"`   // Download speed of this download measured in bytes/sec.
+	UploadSpeed     string         `json:"uploadSpeed"`     // LocalUpload speed of this download measured in bytes/sec.
+	InfoHash        string         `json:"infoHash"`        // InfoHash. BitTorrent only.
+	NumSeeders      string         `json:"numSeeders"`      // The number of seeders aria2 has connected to. BitTorrent only.
+	Seeder          string         `json:"seeder"`          // true if the local endpoint is a seeder. Otherwise false. BitTorrent only.
+	PieceLength     string         `json:"pieceLength"`     // Piece length in bytes.
+	NumPieces       string         `json:"numPieces"`       // The number of pieces.
+	Connections     string         `json:"connections"`     // The number of peers/servers aria2 has connected to.
+	ErrorCode       string         `json:"errorCode"`       // The code of the last error for this item, if any. The value is a string. The error codes are defined in the EXIT STATUS section. This value is only available for stopped/completed downloads.
+	ErrorMessage    string         `json:"errorMessage"`    // The (hopefully) human readable error message associated to errorCode.
+	FollowedBy      []string       `json:"followedBy"`      // List of GIDs which are generated as the result of this download. For example, when aria2 downloads a Metalink file, it generates downloads described in the Metalink (see the --follow-metalink option). This value is useful to track auto-generated downloads. If there are no such downloads, this key will not be included in the response.
+	BelongsTo       string         `json:"belongsTo"`       // GID of a parent download. Some downloads are a part of another download. For example, if a file in a Metalink has BitTorrent resources, the downloads of ".torrent" files are parts of that parent. If this download has no parent, this key will not be included in the response.
+	Dir             string         `json:"dir"`             // Directory to save files.
+	Files           []FileInfo     `json:"files"`           // Returns the list of files. The elements of this list are the same structs used in aria2.getFiles() method.
+	BitTorrent      BitTorrentInfo `json:"bittorrent"`      // Struct which contains information retrieved from the .torrent (file). BitTorrent only. It contains following keys.
 }
 
 // URIInfo represents an element of response of aria2.getUris
@@ -99,4 +91,14 @@ type SessionInfo struct {
 type Method struct {
 	Name   string        `json:"methodName"` // Method name to call
 	Params []interface{} `json:"params"`     // Array containing parameters to the method call
+}
+
+type BitTorrentInfo struct {
+	AnnounceList [][]string `json:"announceList"` // List of lists of announce URIs. If the torrent contains announce and no announce-list, announce is converted to the announce-list format.
+	Comment      string     `json:"comment"`      // The comment of the torrent. comment.utf-8 is used if available.
+	CreationDate int64      `json:"creationDate"` // The creation time of the torrent. The value is an integer since the epoch, measured in seconds.
+	Mode         string     `json:"mode"`         // File mode of the torrent. The value is either single or multi.
+	Info         struct {
+		Name string `json:"name"` // name in info dictionary. name.utf-8 is used if available.
+	} `json:"info"` // Struct which contains data from Info dictionary. It contains following keys.
 }

@@ -88,6 +88,7 @@ func InitSlaveRouter() *gin.Engine {
 		task := v3.Group("task")
 		{
 			task.PUT("transfer", controllers.SlaveCreateTransferTask)
+			task.PUT("recycle", controllers.SlaveCreateRecycleTask)
 		}
 	}
 	return r

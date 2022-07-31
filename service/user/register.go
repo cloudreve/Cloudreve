@@ -1,14 +1,15 @@
 package user
 
 import (
+	"net/url"
+	"strings"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
-	"net/url"
-	"strings"
 )
 
 // UserRegisterService 管理用户注册的服务

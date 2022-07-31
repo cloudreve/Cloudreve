@@ -13,6 +13,8 @@ const (
 	DecompressTaskType
 	// TransferTaskType 中转任务
 	TransferTaskType
+	// RecycleTaskType 回收任务
+	RecycleTaskType
 	// ImportTaskType 导入任务
 	ImportTaskType
 )
@@ -113,6 +115,8 @@ func GetJobFromModel(task *model.Task) (Job, error) {
 		return NewTransferTaskFromModel(task)
 	case ImportTaskType:
 		return NewImportTaskFromModel(task)
+	case RecycleTaskType:
+		return NewRecycleTaskFromModel(task)
 	default:
 		return nil, ErrUnknownTaskType
 	}

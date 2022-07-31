@@ -38,6 +38,8 @@ const (
 	Downloading
 	// Paused 暂停中
 	Paused
+	// Seeding 做种中
+	Seeding
 	// Error 出错
 	Error
 	// Complete 完成
@@ -94,11 +96,14 @@ func (instance *DummyAria2) DeleteTempFile(src *model.Download) error {
 }
 
 // GetStatus 将给定的状态字符串转换为状态标识数字
-func GetStatus(status string) int {
-	switch status {
+func GetStatus(status rpc.StatusInfo) int {
+	switch status.Status {
 	case "complete":
 		return Complete
 	case "active":
+		if status.BitTorrent.Mode != "" && status.CompletedLength == status.TotalLength {
+			return Seeding
+		}
 		return Downloading
 	case "waiting":
 		return Ready

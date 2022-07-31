@@ -5,6 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
@@ -16,9 +20,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 // SlaveDownloadService 从机文件下載服务
@@ -149,6 +150,26 @@ func (service *SlaveFileService) Thumb(ctx context.Context, c *gin.Context) seri
 func CreateTransferTask(c *gin.Context, req *serializer.SlaveTransferReq) serializer.Response {
 	if id, ok := c.Get("MasterSiteID"); ok {
 		job := &slavetask.TransferTask{
+			Req:      req,
+			MasterID: id.(string),
+		}
+
+		if err := cluster.DefaultController.SubmitTask(job.MasterID, job, req.Hash(job.MasterID), func(job interface{}) {
+			task.TaskPoll.Submit(job.(task.Job))
+		}); err != nil {
+			return serializer.Err(serializer.CodeCreateTaskError, "", err)
+		}
+
+		return serializer.Response{}
+	}
+
+	return serializer.ParamErr("未知的主机节点ID", nil)
+}
+
+// CreateRecycleTask 创建从机文件回收任务
+func CreateRecycleTask(c *gin.Context, req *serializer.SlaveRecycleReq) serializer.Response {
+	if id, ok := c.Get("MasterSiteID"); ok {
+		job := &slavetask.RecycleTask{
 			Req:      req,
 			MasterID: id.(string),
 		}

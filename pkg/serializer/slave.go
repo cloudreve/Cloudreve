@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/gob"
 	"fmt"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 )
 
@@ -53,15 +54,35 @@ func (s *SlaveTransferReq) Hash(id string) string {
 	return fmt.Sprintf("%x", bs)
 }
 
+// SlaveRecycleReq 从机回收任务创建请求
+type SlaveRecycleReq struct {
+	Path string `json:"path"`
+}
+
+// Hash 返回创建请求的唯一标识，保持创建请求幂等
+func (s *SlaveRecycleReq) Hash(id string) string {
+	h := sha1.New()
+	h.Write([]byte(fmt.Sprintf("transfer-%s-%s", id, s.Path)))
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
+}
+
 const (
 	SlaveTransferSuccess = "success"
 	SlaveTransferFailed  = "failed"
+	SlaveRecycleSuccess  = "success"
+	SlaveRecycleFailed   = "failed"
 )
 
 type SlaveTransferResult struct {
 	Error string
 }
 
+type SlaveRecycleResult struct {
+	Error string
+}
+
 func init() {
 	gob.Register(SlaveTransferResult{})
+	gob.Register(SlaveRecycleResult{})
 }

@@ -33,7 +33,7 @@ func (service *DownloadListService) Finished(c *gin.Context, user *model.User) s
 // Downloading 获取正在下载中的任务
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Paused, common.Ready)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Seeding, common.Paused, common.Ready)
 	intervals := make(map[uint]int)
 	for _, download := range downloads {
 		if _, ok := intervals[download.ID]; !ok {

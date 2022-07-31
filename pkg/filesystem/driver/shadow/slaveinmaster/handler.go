@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/url"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
@@ -13,8 +16,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"net/url"
-	"time"
 )
 
 // Driver 影子存储策略，将上传任务指派给从机节点处理，并等待从机通知上传结果
@@ -118,6 +119,45 @@ func (d *Driver) List(ctx context.Context, path string, recursive bool) ([]respo
 }
 
 // 取消上传凭证
-func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+func (d *Driver) CancelToken(ctx context.Context, uploadSession *serializer.UploadSession) error {
+	return nil
+}
+
+func (d *Driver) Recycle(ctx context.Context, path string) error {
+	req := serializer.SlaveRecycleReq{
+		Path: path,
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	// 订阅回收结果
+	resChan := mq.GlobalMQ.Subscribe(req.Hash(model.GetSettingByName("siteID")), 0)
+	defer mq.GlobalMQ.Unsubscribe(req.Hash(model.GetSettingByName("siteID")), resChan)
+
+	res, err := d.client.Request("PUT", "task/recycle", bytes.NewReader(body)).
+		CheckHTTPResponse(200).
+		DecodeResponse()
+	if err != nil {
+		return err
+	}
+
+	if res.Code != 0 {
+		return serializer.NewErrorFromResponse(res)
+	}
+
+	// 等待回收结果或者超时
+	waitTimeout := model.GetIntSetting("slave_transfer_timeout", 172800)
+	select {
+	case <-time.After(time.Duration(waitTimeout) * time.Second):
+		return ErrWaitResultTimeout
+	case msg := <-resChan:
+		if msg.Event != serializer.SlaveRecycleSuccess {
+			return errors.New(msg.Content.(serializer.SlaveRecycleResult).Error)
+		}
+	}
+
 	return nil
 }

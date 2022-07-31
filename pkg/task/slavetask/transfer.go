@@ -2,6 +2,8 @@ package slavetask
 
 import (
 	"context"
+	"os"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
@@ -10,7 +12,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"os"
 )
 
 // TransferTask 文件中转任务
@@ -79,8 +80,6 @@ func (job *TransferTask) GetError() *task.JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	defer job.Recycle()
-
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
 		job.SetErrorMsg("无法初始化匿名文件系统", err)
@@ -135,13 +134,5 @@ func (job *TransferTask) Do() {
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
 		util.Log().Warning("无法发送转存成功通知到从机, %s", err)
-	}
-}
-
-// Recycle 回收临时文件
-func (job *TransferTask) Recycle() {
-	err := os.Remove(job.Req.Src)
-	if err != nil {
-		util.Log().Warning("无法删除中转临时文件[%s], %s", job.Req.Src, err)
 	}
 }
