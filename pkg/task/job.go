@@ -13,10 +13,10 @@ const (
 	DecompressTaskType
 	// TransferTaskType 中转任务
 	TransferTaskType
-	// RecycleTaskType 回收任务
-	RecycleTaskType
 	// ImportTaskType 导入任务
 	ImportTaskType
+	// RecycleTaskType 回收任务
+	RecycleTaskType
 )
 
 // 任务状态
