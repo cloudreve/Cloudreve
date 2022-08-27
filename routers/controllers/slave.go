@@ -212,17 +212,6 @@ func SlaveCreateTransferTask(c *gin.Context) {
 	}
 }
 
-// SlaveCreateRecycleTask 从机创建回收任务
-func SlaveCreateRecycleTask(c *gin.Context) {
-	var service serializer.SlaveRecycleReq
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := explorer.CreateRecycleTask(c, &service)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
 // SlaveNotificationPush 处理从机发送的消息推送
 func SlaveNotificationPush(c *gin.Context) {
 	var service node.SlaveNotificationService

@@ -1,14 +1,10 @@
 package task
 
 import (
-	"context"
 	"encoding/json"
-	"os"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/shadow/slaveinmaster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -22,10 +18,8 @@ type RecycleTask struct {
 
 // RecycleProps 回收任务属性
 type RecycleProps struct {
-	// 回收目录
-	Path string `json:"path"`
-	// 负责处理回收任务的节点ID
-	NodeID uint `json:"node_id"`
+	// 下载任务 GID
+	DownloadGID string `json:"download_gid"`
 }
 
 // Props 获取任务属性
@@ -59,7 +53,6 @@ func (job *RecycleTask) SetError(err *JobError) {
 	job.Err = err
 	res, _ := json.Marshal(job.Err)
 	job.TaskModel.SetError(string(res))
-
 }
 
 // SetErrorMsg 设定任务失败信息
@@ -78,51 +71,33 @@ func (job *RecycleTask) GetError() *JobError {
 
 // Do 开始执行任务
 func (job *RecycleTask) Do() {
-	if job.TaskProps.NodeID == 1 {
-		err := os.RemoveAll(job.TaskProps.Path)
-		if err != nil {
-			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Path, err)
-			job.SetErrorMsg("文件回收失败", err)
-		}
-	} else {
-		// 指定为从机回收
-
-		// 创建文件系统
-		fs, err := filesystem.NewFileSystem(job.User)
-		if err != nil {
-			job.SetErrorMsg(err.Error(), nil)
-			return
-		}
-
-		// 获取从机节点
-		node := cluster.Default.GetNodeByID(job.TaskProps.NodeID)
-		if node == nil {
-			job.SetErrorMsg("从机节点不可用", nil)
-		}
-
-		// 切换为从机节点处理回收
-		fs.SwitchToSlaveHandler(node)
-		handler := fs.Handler.(*slaveinmaster.Driver)
-		err = handler.Recycle(context.Background(), job.TaskProps.Path)
-		if err != nil {
-			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Path, err)
-			job.SetErrorMsg("文件回收失败", err)
-		}
+	download, err := model.GetDownloadByGid(job.TaskProps.DownloadGID, job.User.ID)
+	if err != nil {
+		util.Log().Warning("回收任务 %d 找不到下载记录", job.TaskModel.ID)
+		job.SetErrorMsg("无法找到下载任务", err)
+		return
+	}
+	nodeID := download.GetNodeID()
+	node := cluster.Default.GetNodeByID(nodeID)
+	if node == nil {
+		util.Log().Warning("回收任务 %d 找不到节点", job.TaskModel.ID)
+		job.SetErrorMsg("从机节点不可用", nil)
+		return
+	}
+	err = node.GetAria2Instance().DeleteTempFile(download)
+	if err != nil {
+		util.Log().Warning("无法删除中转临时目录[%s], %s", download.Parent, err)
+		job.SetErrorMsg("文件回收失败", err)
+		return
 	}
 }
 
 // NewRecycleTask 新建回收任务
-func NewRecycleTask(user uint, path string, node uint) (Job, error) {
-	creator, err := model.GetActiveUserByID(user)
-	if err != nil {
-		return nil, err
-	}
-
+func NewRecycleTask(download *model.Download) (Job, error) {
 	newTask := &RecycleTask{
-		User: &creator,
+		User: download.GetOwner(),
 		TaskProps: RecycleProps{
-			Path:   path,
-			NodeID: node,
+			DownloadGID: download.GID,
 		},
 	}
 

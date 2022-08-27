@@ -251,7 +251,7 @@ func (monitor *Monitor) Complete(pool task.Pool) bool {
 
 		// 转存完成，回收下载目录
 		if transferTask.Type == task.TransferTaskType && transferTask.Status >= task.Error {
-			job, err := task.NewRecycleTask(monitor.Task.UserID, monitor.Task.Parent, monitor.node.ID())
+			job, err := task.NewRecycleTask(monitor.Task)
 			if err != nil {
 				monitor.setErrorStatus(err)
 				monitor.RemoveTempFolder()

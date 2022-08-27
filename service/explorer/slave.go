@@ -166,26 +166,6 @@ func CreateTransferTask(c *gin.Context, req *serializer.SlaveTransferReq) serial
 	return serializer.ParamErr("未知的主机节点ID", nil)
 }
 
-// CreateRecycleTask 创建从机文件回收任务
-func CreateRecycleTask(c *gin.Context, req *serializer.SlaveRecycleReq) serializer.Response {
-	if id, ok := c.Get("MasterSiteID"); ok {
-		job := &slavetask.RecycleTask{
-			Req:      req,
-			MasterID: id.(string),
-		}
-
-		if err := cluster.DefaultController.SubmitTask(job.MasterID, job, req.Hash(job.MasterID), func(job interface{}) {
-			task.TaskPoll.Submit(job.(task.Job))
-		}); err != nil {
-			return serializer.Err(serializer.CodeCreateTaskError, "", err)
-		}
-
-		return serializer.Response{}
-	}
-
-	return serializer.ParamErr("未知的主机节点ID", nil)
-}
-
 // SlaveListService 从机上传会话服务
 type SlaveCreateUploadSessionService struct {
 	Session   serializer.UploadSession `json:"session" binding:"required"`

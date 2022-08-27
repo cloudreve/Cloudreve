@@ -38,8 +38,6 @@ const (
 	Downloading
 	// Paused 暂停中
 	Paused
-	// Seeding 做种中
-	Seeding
 	// Error 出错
 	Error
 	// Complete 完成
@@ -48,6 +46,8 @@ const (
 	Canceled
 	// Unknown 未知状态
 	Unknown
+	// Seeding 做种中
+	Seeding
 )
 
 var (

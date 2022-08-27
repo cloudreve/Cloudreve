@@ -54,32 +54,6 @@ func TestRecycleTask_SetError(t *testing.T) {
 	asserts.Equal("error", task.GetError().Msg)
 }
 
-func TestRecycleTask_Do(t *testing.T) {
-	asserts := assert.New(t)
-	task := &RecycleTask{
-		TaskModel: &model.Task{
-			Model: gorm.Model{ID: 1},
-		},
-	}
-
-	// 目录不存在
-	{
-		task.TaskProps.Path = "test/not_exist"
-		task.User = &model.User{
-			Policy: model.Policy{
-				Type: "unknown",
-			},
-		}
-		mock.ExpectBegin()
-		mock.ExpectExec("UPDATE(.+)").WillReturnResult(sqlmock.NewResult(1,
-			1))
-		mock.ExpectCommit()
-		task.Do()
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.NotEmpty(task.GetError().Msg)
-	}
-}
-
 func TestNewRecycleTask(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -89,7 +63,13 @@ func TestNewRecycleTask(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		job, err := NewRecycleTask(1, "/", 0)
+		job, err := NewRecycleTask(&model.Download{
+			Model:  gorm.Model{ID: 1},
+			GID:    "test_g_id",
+			Parent: "/",
+			UserID: 1,
+			NodeID: 1,
+		})
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NotNil(job)
 		asserts.NoError(err)
@@ -101,7 +81,13 @@ func TestNewRecycleTask(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectExec("INSERT(.+)").WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
-		job, err := NewRecycleTask(1, "test/not_exist", 0)
+		job, err := NewRecycleTask(&model.Download{
+			Model:  gorm.Model{ID: 1},
+			GID:    "test_g_id",
+			Parent: "test/not_exist",
+			UserID: 1,
+			NodeID: 1,
+		})
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.Nil(job)
 		asserts.Error(err)
