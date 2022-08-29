@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,7 @@ func SetSession(c *gin.Context, list map[string]interface{}) {
 
 	err := s.Save()
 	if err != nil {
-		Log().Warning("无法设置 Session 值：%s", err)
+		logger.Warning("无法设置 Session 值：%s", err)
 	}
 }
 

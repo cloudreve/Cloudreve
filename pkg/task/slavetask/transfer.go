@@ -3,7 +3,7 @@ package slavetask
 import (
 	"context"
 	"os"
-	
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"

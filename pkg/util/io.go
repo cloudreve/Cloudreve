@@ -4,6 +4,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 // Exists reports whether the named file or directory exists.
@@ -22,7 +24,7 @@ func CreatNestedFile(path string) (*os.File, error) {
 	if !Exists(basePath) {
 		err := os.MkdirAll(basePath, 0700)
 		if err != nil {
-			Log().Warning("无法创建目录，%s", err)
+			logger.Warning("无法创建目录，%s", err)
 			return nil, err
 		}
 	}
