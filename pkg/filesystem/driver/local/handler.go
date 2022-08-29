@@ -14,6 +14,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -43,7 +44,7 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 			}
 
 			if err != nil {
-				util.Log().Warning("无法遍历目录 %s, %s", path, err)
+				logger.Warning("无法遍历目录 %s, %s", path, err)
 				return filepath.SkipDir
 			}
 
@@ -78,7 +79,7 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 	// 打开文件
 	file, err := os.Open(util.RelativePath(path))
 	if err != nil {
-		util.Log().Debug("无法打开文件：%s", err)
+		logger.Debug("无法打开文件：%s", err)
 		return nil, err
 	}
 
@@ -94,7 +95,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	// 如果非 Overwrite，则检查是否有重名冲突
 	if fileInfo.Mode&fsctx.Overwrite != fsctx.Overwrite {
 		if util.Exists(dst) {
-			util.Log().Warning("物理同名文件已存在或不可用: %s", dst)
+			logger.Warning("物理同名文件已存在或不可用: %s", dst)
 			return errors.New("物理同名文件已存在或不可用")
 		}
 	}
@@ -104,7 +105,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	if !util.Exists(basePath) {
 		err := os.MkdirAll(basePath, Perm)
 		if err != nil {
-			util.Log().Warning("无法创建目录，%s", err)
+			logger.Warning("无法创建目录，%s", err)
 			return err
 		}
 	}
@@ -123,7 +124,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 
 	out, err = os.OpenFile(dst, openMode, Perm)
 	if err != nil {
-		util.Log().Warning("无法打开或创建文件，%s", err)
+		logger.Warning("无法打开或创建文件，%s", err)
 		return err
 	}
 	defer out.Close()
@@ -131,7 +132,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 	if fileInfo.Mode&fsctx.Append == fsctx.Append {
 		stat, err := out.Stat()
 		if err != nil {
-			util.Log().Warning("无法读取文件信息，%s", err)
+			logger.Warning("无法读取文件信息，%s", err)
 			return err
 		}
 
@@ -146,7 +147,7 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 			out, err = os.OpenFile(dst, openMode, Perm)
 			defer out.Close()
 			if err != nil {
-				util.Log().Warning("无法打开或创建文件，%s", err)
+				logger.Warning("无法打开或创建文件，%s", err)
 				return err
 			}
 		}
@@ -158,10 +159,10 @@ func (handler Driver) Put(ctx context.Context, file fsctx.FileHeader) error {
 }
 
 func (handler Driver) Truncate(ctx context.Context, src string, size uint64) error {
-	util.Log().Warning("截断文件 [%s] 至 [%d]", src, size)
+	logger.Warning("截断文件 [%s] 至 [%d]", src, size)
 	out, err := os.OpenFile(src, os.O_WRONLY, Perm)
 	if err != nil {
-		util.Log().Warning("无法打开文件，%s", err)
+		logger.Warning("无法打开文件，%s", err)
 		return err
 	}
 
@@ -180,7 +181,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		if util.Exists(filePath) {
 			err := os.Remove(filePath)
 			if err != nil {
-				util.Log().Warning("无法删除文件，%s", err)
+				logger.Warning("无法删除文件，%s", err)
 				retErr = err
 				deleteFailed = append(deleteFailed, value)
 			}

@@ -67,7 +67,8 @@ type ReCAPTCHA struct {
 }
 
 // NewReCAPTCHA new ReCAPTCHA instance if version is set to V2 uses recatpcha v2 API, get your secret from https://www.google.com/recaptcha/admin
-//  if version is set to V2 uses recatpcha v2 API, get your secret from https://g.co/recaptcha/v3
+//
+//	if version is set to V2 uses recatpcha v2 API, get your secret from https://g.co/recaptcha/v3
 func NewReCAPTCHA(ReCAPTCHASecret string, version VERSION, timeout time.Duration) (ReCAPTCHA, error) {
 	if ReCAPTCHASecret == "" {
 		return ReCAPTCHA{}, fmt.Errorf("recaptcha secret cannot be blank")

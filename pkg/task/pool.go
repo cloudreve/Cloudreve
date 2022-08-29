@@ -3,7 +3,7 @@ package task
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 // TaskPoll 要使用的任务池
@@ -44,11 +44,11 @@ func (pool *AsyncPool) freeWorker() {
 // Submit 开始提交任务
 func (pool *AsyncPool) Submit(job Job) {
 	go func() {
-		util.Log().Debug("等待获取Worker")
+		logger.Debug("等待获取Worker")
 		worker := pool.obtainWorker()
-		util.Log().Debug("获取到Worker")
+		logger.Debug("获取到Worker")
 		worker.Do(job)
-		util.Log().Debug("释放Worker")
+		logger.Debug("释放Worker")
 		pool.freeWorker()
 	}()
 }
@@ -60,7 +60,7 @@ func Init() {
 		idleWorker: make(chan int, maxWorker),
 	}
 	TaskPoll.Add(maxWorker)
-	util.Log().Info("初始化任务队列，WorkerNum = %d", maxWorker)
+	logger.Info("初始化任务队列，WorkerNum = %d", maxWorker)
 
 	if conf.SystemConfig.Mode == "master" {
 		Resume(TaskPoll)

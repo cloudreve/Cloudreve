@@ -2,9 +2,10 @@ package scripts
 
 import (
 	"context"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"strconv"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 type UpgradeTo340 int
@@ -20,7 +21,7 @@ func (script UpgradeTo340) Run(ctx context.Context) {
 	// 写入到新版本的节点设定
 	n, err := model.GetNodeByID(1)
 	if err != nil {
-		util.Log().Error("找不到主机节点, %s", err)
+		logger.Error("找不到主机节点, %s", err)
 	}
 
 	n.Aria2Enabled = old["aria2_rpcurl"] != ""
@@ -35,9 +36,9 @@ func (script UpgradeTo340) Run(ctx context.Context) {
 	n.Aria2OptionsSerialized.TempPath = old["aria2_temp_path"]
 	n.Aria2OptionsSerialized.Token = old["aria2_token"]
 	if err := model.DB.Save(&n).Error; err != nil {
-		util.Log().Error("无法保存主机节点 Aria2 配置信息, %s", err)
+		logger.Error("无法保存主机节点 Aria2 配置信息, %s", err)
 	} else {
 		model.DB.Where("type = ?", "aria2").Delete(model.Setting{})
-		util.Log().Info("Aria2 配置信息已成功迁移至 3.4.0+ 版本的模式")
+		logger.Info("Aria2 配置信息已成功迁移至 3.4.0+ 版本的模式")
 	}
 }

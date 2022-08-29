@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +24,7 @@ func Init(isSlave bool) {
 	if isSlave {
 		err := Store.Sets(conf.OptionOverwrite, "setting_")
 		if err != nil {
-			util.Log().Warning("无法覆盖数据库设置: %s", err)
+			logger.Warning("无法覆盖数据库设置: %s", err)
 		}
 	}
 }

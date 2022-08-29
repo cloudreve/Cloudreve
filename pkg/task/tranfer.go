@@ -12,6 +12,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -144,7 +145,7 @@ func (job *TransferTask) Recycle() {
 	if job.TaskProps.NodeID == 1 {
 		err := os.RemoveAll(job.TaskProps.Parent)
 		if err != nil {
-			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
+			logger.Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
 		}
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/jinzhu/gorm"
 )
 
@@ -43,7 +43,7 @@ func (file *File) Create() error {
 	tx := DB.Begin()
 
 	if err := tx.Create(file).Error; err != nil {
-		util.Log().Warning("无法插入文件记录, %s", err)
+		logger.Warning("无法插入文件记录, %s", err)
 		tx.Rollback()
 		return err
 	}

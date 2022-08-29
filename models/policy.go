@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
-	"github.com/gofrs/uuid"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gofrs/uuid"
 	"github.com/jinzhu/gorm"
 )
 
@@ -122,7 +122,7 @@ func (policy *Policy) BeforeSave() (err error) {
 	return err
 }
 
-//SerializeOptions 将序列后的Option写入到数据库字段
+// SerializeOptions 将序列后的Option写入到数据库字段
 func (policy *Policy) SerializeOptions() (err error) {
 	optionsValue, err := json.Marshal(&policy.OptionsSerialized)
 	policy.Options = string(optionsValue)

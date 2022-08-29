@@ -3,7 +3,13 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"io/ioutil"
+	"strconv"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/recaptcha"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -12,10 +18,6 @@ import (
 	captcha "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/captcha/v20190722"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
-	"io"
-	"io/ioutil"
-	"strconv"
-	"time"
 )
 
 type req struct {
@@ -76,14 +78,14 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			case "recaptcha":
 				reCAPTCHA, err := recaptcha.NewReCAPTCHA(options["captcha_ReCaptchaSecret"], recaptcha.V2, 10*time.Second)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA verification failed, %s", err)
+					logger.Warning("reCAPTCHA verification failed, %s", err)
 					c.Abort()
 					break
 				}
 
 				err = reCAPTCHA.Verify(service.CaptchaCode)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA verification failed, %s", err)
+					logger.Warning("reCAPTCHA verification failed, %s", err)
 					c.JSON(200, serializer.Err(serializer.CodeCaptchaRefreshNeeded, captchaRefresh, nil))
 					c.Abort()
 					return
@@ -108,7 +110,7 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 				request.UserIp = common.StringPtr(c.ClientIP())
 				response, err := client.DescribeCaptchaResult(request)
 				if err != nil {
-					util.Log().Warning("TCaptcha verification failed, %s", err)
+					logger.Warning("TCaptcha verification failed, %s", err)
 					c.Abort()
 					break
 				}

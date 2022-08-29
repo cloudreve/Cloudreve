@@ -41,7 +41,7 @@ type UploadPolicy struct {
 	Conditions []interface{} `json:"conditions"`
 }
 
-//MetaData 文件信息
+// MetaData 文件信息
 type MetaData struct {
 	Size uint64
 	Etag string

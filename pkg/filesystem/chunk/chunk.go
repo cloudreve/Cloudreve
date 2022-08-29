@@ -3,11 +3,12 @@ package chunk
 import (
 	"context"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"os"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 const bufferTempPattern = "cdChunk.*.tmp"
@@ -89,7 +90,7 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 				return fmt.Errorf("failed to seek temp file back to chunk start: %w", err)
 			}
 
-			util.Log().Debug("Chunk %d will be read from temp file %q.", c.Index(), c.bufferTemp.Name())
+			logger.Debug("Chunk %d will be read from temp file %q.", c.Index(), c.bufferTemp.Name())
 			reader = c.bufferTemp
 		}
 	}
@@ -103,14 +104,14 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 				}
 			}
 
-			util.Log().Debug("Retrying chunk %d, last error: %s", c.currentIndex, err)
+			logger.Debug("Retrying chunk %d, last error: %s", c.currentIndex, err)
 			return c.Process(processor)
 		}
 
 		return err
 	}
 
-	util.Log().Debug("Chunk %d processed", c.currentIndex)
+	logger.Debug("Chunk %d processed", c.currentIndex)
 	return nil
 }
 

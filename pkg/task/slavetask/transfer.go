@@ -2,15 +2,17 @@ package slavetask
 
 import (
 	"context"
+	"os"
+	
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"os"
 )
 
 // TransferTask 文件中转任务
@@ -68,7 +70,7 @@ func (job *TransferTask) SetErrorMsg(msg string, err error) {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
-		util.Log().Warning("无法发送转存失败通知到从机, %s", err)
+		logger.Warning("无法发送转存失败通知到从机, %s", err)
 	}
 }
 
@@ -134,7 +136,7 @@ func (job *TransferTask) Do() {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
-		util.Log().Warning("无法发送转存成功通知到从机, %s", err)
+		logger.Warning("无法发送转存成功通知到从机, %s", err)
 	}
 }
 
@@ -142,6 +144,6 @@ func (job *TransferTask) Do() {
 func (job *TransferTask) Recycle() {
 	err := os.Remove(job.Req.Src)
 	if err != nil {
-		util.Log().Warning("无法删除中转临时文件[%s], %s", job.Req.Src, err)
+		logger.Warning("无法删除中转临时文件[%s], %s", job.Req.Src, err)
 	}
 }

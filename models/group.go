@@ -66,7 +66,7 @@ func (group *Group) BeforeSave() (err error) {
 	return err
 }
 
-//SerializePolicyList 将序列后的可选策略列表、配置写入数据库字段
+// SerializePolicyList 将序列后的可选策略列表、配置写入数据库字段
 // TODO 完善测试
 func (group *Group) SerializePolicyList() (err error) {
 	policies, err := json.Marshal(&group.PolicyList)

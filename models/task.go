@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/jinzhu/gorm"
 )
 
@@ -19,7 +19,7 @@ type Task struct {
 // Create 创建任务记录
 func (task *Task) Create() (uint, error) {
 	if err := DB.Create(task).Error; err != nil {
-		util.Log().Warning("无法插入任务记录, %s", err)
+		logger.Warning("无法插入任务记录, %s", err)
 		return 0, err
 	}
 	return task.ID, nil

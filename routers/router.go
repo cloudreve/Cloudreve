@@ -6,7 +6,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
@@ -16,10 +16,10 @@ import (
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
 	if conf.SystemConfig.Mode == "master" {
-		util.Log().Info("当前运行模式：Master")
+		logger.Info("当前运行模式：Master")
 		return InitMasterRouter()
 	}
-	util.Log().Info("当前运行模式：Slave")
+	logger.Info("当前运行模式：Slave")
 	return InitSlaveRouter()
 
 }
@@ -108,7 +108,7 @@ func InitCORS(router *gin.Engine) {
 
 	// slave模式下未启动跨域的警告
 	if conf.SystemConfig.Mode == "slave" {
-		util.Log().Warning("当前作为存储端（Slave）运行，但未启用跨域配置，可能会导致 Master 端无法正常上传文件")
+		logger.Warning("当前作为存储端（Slave）运行，但未启用跨域配置，可能会导致 Master 端无法正常上传文件")
 	}
 }
 

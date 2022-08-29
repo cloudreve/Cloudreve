@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 // Client 默认的邮件发送客户端
@@ -15,7 +15,7 @@ var Lock sync.RWMutex
 
 // Init 初始化
 func Init() {
-	util.Log().Debug("邮件队列初始化")
+	logger.Debug("邮件队列初始化")
 	Lock.Lock()
 	defer Lock.Unlock()
 

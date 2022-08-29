@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // Error 实现error接口
@@ -152,7 +152,7 @@ func (client *Client) UpdateCredential(ctx context.Context, isSlave bool) error 
 	// 获取新的凭证
 	if client.Credential == nil || client.Credential.RefreshToken == "" {
 		// 无有效的RefreshToken
-		util.Log().Error("上传策略[%s]凭证刷新失败，请重新授权OneDrive账号", client.Policy.Name)
+		logger.Error("上传策略[%s]凭证刷新失败，请重新授权OneDrive账号", client.Policy.Name)
 		return ErrInvalidRefreshToken
 	}
 

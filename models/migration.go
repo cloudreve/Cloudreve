@@ -2,15 +2,17 @@ package model
 
 import (
 	"context"
+	"sort"
+	"strings"
+
 	"github.com/cloudreve/Cloudreve/v3/models/scripts/invoker"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/fatih/color"
 	"github.com/hashicorp/go-version"
 	"github.com/jinzhu/gorm"
-	"sort"
-	"strings"
 )
 
 // 是否需要迁移
@@ -19,16 +21,16 @@ func needMigration() bool {
 	return DB.Where("name = ?", "db_version_"+conf.RequiredDBVersion).First(&setting).Error != nil
 }
 
-//执行数据迁移
+// 执行数据迁移
 func migration() {
 	// 确认是否需要执行迁移
 	if !needMigration() {
-		util.Log().Info("数据库版本匹配，跳过数据库迁移")
+		logger.Info("数据库版本匹配，跳过数据库迁移")
 		return
 
 	}
 
-	util.Log().Info("开始进行数据库初始化...")
+	logger.Info("开始进行数据库初始化...")
 
 	// 清除所有缓存
 	if instance, ok := cache.Store.(*cache.RedisStore); ok {
@@ -61,7 +63,7 @@ func migration() {
 	// 执行数据库升级脚本
 	execUpgradeScripts()
 
-	util.Log().Info("数据库初始化结束")
+	logger.Info("数据库初始化结束")
 
 }
 
@@ -82,7 +84,7 @@ func addDefaultPolicy() {
 			},
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
-			util.Log().Panic("无法创建初始存储策略, %s", err)
+			logger.Panic("无法创建初始存储策略, %s", err)
 		}
 	}
 }
@@ -113,7 +115,7 @@ func addDefaultGroups() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建管理用户组, %s", err)
+			logger.Panic("无法创建管理用户组, %s", err)
 		}
 	}
 
@@ -134,7 +136,7 @@ func addDefaultGroups() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始注册会员用户组, %s", err)
+			logger.Panic("无法创建初始注册会员用户组, %s", err)
 		}
 	}
 
@@ -151,7 +153,7 @@ func addDefaultGroups() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始游客用户组, %s", err)
+			logger.Panic("无法创建初始游客用户组, %s", err)
 		}
 	}
 }
@@ -169,15 +171,15 @@ func addDefaultUser() {
 		defaultUser.GroupID = 1
 		err := defaultUser.SetPassword(password)
 		if err != nil {
-			util.Log().Panic("无法创建密码, %s", err)
+			logger.Panic("无法创建密码, %s", err)
 		}
 		if err := DB.Create(&defaultUser).Error; err != nil {
-			util.Log().Panic("无法创建初始用户, %s", err)
+			logger.Panic("无法创建初始用户, %s", err)
 		}
 
 		c := color.New(color.FgWhite).Add(color.BgBlack).Add(color.Bold)
-		util.Log().Info("初始管理员账号：" + c.Sprint("admin@cloudreve.org"))
-		util.Log().Info("初始管理员密码：" + c.Sprint(password))
+		logger.Info("初始管理员账号：" + c.Sprint("admin@cloudreve.org"))
+		logger.Info("初始管理员密码：" + c.Sprint(password))
 	}
 }
 
@@ -195,7 +197,7 @@ func addDefaultNode() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始节点记录, %s", err)
+			logger.Panic("无法创建初始节点记录, %s", err)
 		}
 	}
 }

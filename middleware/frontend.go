@@ -1,13 +1,15 @@
 package middleware
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/bootstrap"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/cloudreve/Cloudreve/v3/bootstrap"
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gin-gonic/gin"
 )
 
 // FrontendFileHandler 前端静态文件处理
@@ -23,13 +25,13 @@ func FrontendFileHandler() gin.HandlerFunc {
 	// 读取index.html
 	file, err := bootstrap.StaticFS.Open("/index.html")
 	if err != nil {
-		util.Log().Warning("静态文件[index.html]不存在，可能会影响首页展示")
+		logger.Warning("静态文件[index.html]不存在，可能会影响首页展示")
 		return ignoreFunc
 	}
 
 	fileContentBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		util.Log().Warning("静态文件[index.html]读取失败，可能会影响首页展示")
+		logger.Warning("静态文件[index.html]读取失败，可能会影响首页展示")
 		return ignoreFunc
 	}
 	fileContent := string(fileContentBytes)

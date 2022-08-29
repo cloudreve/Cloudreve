@@ -11,6 +11,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
@@ -71,16 +72,16 @@ func getThumbWorker() *Pool {
 		thumbPool = &Pool{
 			worker: make(chan int, maxWorker),
 		}
-		util.Log().Debug("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
+		logger.Debug("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
 	})
 	return thumbPool
 }
 func (pool *Pool) addWorker() {
 	pool.worker <- 1
-	util.Log().Debug("Thumb任务队列，addWorker")
+	logger.Debug("Thumb任务队列，addWorker")
 }
 func (pool *Pool) releaseWorker() {
-	util.Log().Debug("Thumb任务队列，releaseWorker")
+	logger.Debug("Thumb任务队列，releaseWorker")
 	<-pool.worker
 }
 
@@ -107,7 +108,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
-		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
+		logger.Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
 		return
 	}
 
@@ -120,12 +121,12 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	err = image.Save(util.RelativePath(file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")))
 	image = nil
 	if model.IsTrueVal(model.GetSettingByName("thumb_gc_after_gen")) {
-		util.Log().Debug("GenerateThumbnail runtime.GC")
+		logger.Debug("GenerateThumbnail runtime.GC")
 		runtime.GC()
 	}
 
 	if err != nil {
-		util.Log().Warning("无法保存缩略图：%s", err)
+		logger.Warning("无法保存缩略图：%s", err)
 		return
 	}
 

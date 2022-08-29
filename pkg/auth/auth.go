@@ -12,8 +12,8 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 var (
@@ -136,7 +136,7 @@ func Init() {
 	} else {
 		secretKey = conf.SlaveConfig.Secret
 		if secretKey == "" {
-			util.Log().Panic("未指定 SlaveSecret，请前往配置文件中指定")
+			logger.Panic("未指定 SlaveSecret，请前往配置文件中指定")
 		}
 	}
 	General = HMACAuth{

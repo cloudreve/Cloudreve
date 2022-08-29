@@ -10,6 +10,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
@@ -69,7 +70,7 @@ func (job *CompressTask) SetError(err *JobError) {
 func (job *CompressTask) removeZipFile() {
 	if job.zipPath != "" {
 		if err := os.Remove(job.zipPath); err != nil {
-			util.Log().Warning("无法删除临时压缩文件 %s , %s", job.zipPath, err)
+			logger.Warning("无法删除临时压缩文件 %s , %s", job.zipPath, err)
 		}
 	}
 }
@@ -93,7 +94,7 @@ func (job *CompressTask) Do() {
 		return
 	}
 
-	util.Log().Debug("开始压缩文件")
+	logger.Debug("开始压缩文件")
 	job.TaskModel.SetProgress(CompressingProgress)
 
 	// 创建临时压缩文件
@@ -105,7 +106,7 @@ func (job *CompressTask) Do() {
 	)
 	zipFile, err := util.CreatNestedFile(zipFilePath)
 	if err != nil {
-		util.Log().Warning("%s", err)
+		logger.Warning("%s", err)
 		job.SetErrorMsg(err.Error())
 		return
 	}
@@ -122,7 +123,7 @@ func (job *CompressTask) Do() {
 
 	job.zipPath = zipFilePath
 	zipFile.Close()
-	util.Log().Debug("压缩文件存放至%s，开始上传", zipFilePath)
+	logger.Debug("压缩文件存放至%s，开始上传", zipFilePath)
 	job.TaskModel.SetProgress(TransferringProgress)
 
 	// 上传文件

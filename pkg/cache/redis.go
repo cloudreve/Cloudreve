@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -66,7 +66,7 @@ func NewRedisStore(size int, network, address, password, database string) *Redis
 					redis.DialPassword(password),
 				)
 				if err != nil {
-					util.Log().Warning("无法创建Redis连接：%s", err)
+					logger.Warning("无法创建Redis连接：%s", err)
 					return nil, err
 				}
 				return c, nil

@@ -8,7 +8,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 // ImportTask 导入务
@@ -126,7 +126,7 @@ func (job *ImportTask) Do() {
 			virtualPath := path.Join(job.TaskProps.Dst, object.RelativePath)
 			folder, err := fs.CreateDirectory(coxIgnoreConflict, virtualPath)
 			if err != nil {
-				util.Log().Warning("导入任务无法创建用户目录[%s], %s", virtualPath, err)
+				logger.Warning("导入任务无法创建用户目录[%s], %s", virtualPath, err)
 			} else if folder.ID > 0 {
 				pathCache[virtualPath] = folder
 			}
@@ -152,7 +152,7 @@ func (job *ImportTask) Do() {
 			} else {
 				folder, err := fs.CreateDirectory(context.Background(), virtualPath)
 				if err != nil {
-					util.Log().Warning("导入任务无法创建用户目录[%s], %s",
+					logger.Warning("导入任务无法创建用户目录[%s], %s",
 						virtualPath, err)
 					continue
 				}
@@ -163,7 +163,7 @@ func (job *ImportTask) Do() {
 			// 插入文件记录
 			_, err := fs.AddFile(context.Background(), parentFolder, &fileHeader)
 			if err != nil {
-				util.Log().Warning("导入任务无法创插入文件[%s], %s",
+				logger.Warning("导入任务无法创插入文件[%s], %s",
 					object.RelativePath, err)
 				if err == filesystem.ErrInsufficientCapacity {
 					job.SetErrorMsg("容量不足", err)

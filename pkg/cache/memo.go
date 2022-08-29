@@ -1,10 +1,9 @@
 package cache
 
 import (
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"sync"
 	"time"
-
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // MemoStore 内存存储驱动
@@ -53,7 +52,7 @@ func (store *MemoStore) GarbageCollect() {
 	store.Store.Range(func(key, value interface{}) bool {
 		if item, ok := value.(itemWithTTL); ok {
 			if item.expires > 0 && item.expires < time.Now().Unix() {
-				util.Log().Debug("回收垃圾[%s]", key.(string))
+				logger.Debug("回收垃圾[%s]", key.(string))
 				store.Store.Delete(key)
 			}
 		}

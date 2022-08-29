@@ -3,8 +3,9 @@ package invoker
 import (
 	"context"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"strings"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 type DBScript interface {
@@ -15,7 +16,7 @@ var availableScripts = make(map[string]DBScript)
 
 func RunDBScript(name string, ctx context.Context) error {
 	if script, ok := availableScripts[name]; ok {
-		util.Log().Info("开始执行数据库脚本 [%s]", name)
+		logger.Info("开始执行数据库脚本 [%s]", name)
 		script.Run(ctx)
 		return nil
 	}

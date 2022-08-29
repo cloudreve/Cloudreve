@@ -5,19 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
+	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
 
 type SlaveNode struct {
@@ -172,7 +173,7 @@ func (node *SlaveNode) StartPingLoop() {
 	recoverDuration := time.Duration(model.GetIntSetting("slave_recover_interval", 600)) * time.Second
 	pingTicker := time.Duration(0)
 
-	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
+	logger.Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
 	retry := 0
 	recoverMode := false
 	isFirstLoop := true
@@ -185,39 +186,39 @@ loop:
 				pingTicker = tickDuration
 			}
 
-			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
+			logger.Debug("从机节点 [%s] 发送Ping", node.Model.Name)
 			res, err := node.Ping(node.getHeartbeatContent(isFirstLoop))
 			isFirstLoop = false
 
 			if err != nil {
-				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
+				logger.Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
 				retry++
 				if retry >= model.GetIntSetting("slave_node_retry", 3) {
-					util.Log().Debug("从机节点 [%s] Ping 重试已达到最大限制，将从机节点标记为不可用", node.Model.Name)
+					logger.Debug("从机节点 [%s] Ping 重试已达到最大限制，将从机节点标记为不可用", node.Model.Name)
 					node.changeStatus(false)
 
 					if !recoverMode {
 						// 启动恢复监控循环
-						util.Log().Debug("从机节点 [%s] 进入恢复模式", node.Model.Name)
+						logger.Debug("从机节点 [%s] 进入恢复模式", node.Model.Name)
 						pingTicker = recoverDuration
 						recoverMode = true
 					}
 				}
 			} else {
 				if recoverMode {
-					util.Log().Debug("从机节点 [%s] 复活", node.Model.Name)
+					logger.Debug("从机节点 [%s] 复活", node.Model.Name)
 					pingTicker = tickDuration
 					recoverMode = false
 					isFirstLoop = true
 				}
 
-				util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
+				logger.Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
 				node.changeStatus(true)
 				retry = 0
 			}
 
 		case <-node.close:
-			util.Log().Debug("从机节点 [%s] 收到关闭信号", node.Model.Name)
+			logger.Debug("从机节点 [%s] 收到关闭信号", node.Model.Name)
 			break loop
 		}
 	}

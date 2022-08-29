@@ -7,9 +7,9 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gofrs/uuid"
 	"net/url"
 	"os"
@@ -161,7 +161,7 @@ func (r *rpcService) Init() error {
 	// 解析RPC服务地址
 	server, err := url.Parse(r.parent.Model.Aria2OptionsSerialized.Server)
 	if err != nil {
-		util.Log().Warning("无法解析主机 Aria2 RPC 服务地址，%s", err)
+		logger.Warning("无法解析主机 Aria2 RPC 服务地址，%s", err)
 		return err
 	}
 	server.Path = "/jsonrpc"
@@ -171,7 +171,7 @@ func (r *rpcService) Init() error {
 	if r.parent.Model.Aria2OptionsSerialized.Options != "" {
 		err = json.Unmarshal([]byte(r.parent.Model.Aria2OptionsSerialized.Options), &globalOptions)
 		if err != nil {
-			util.Log().Warning("无法解析主机 Aria2 配置，%s", err)
+			logger.Warning("无法解析主机 Aria2 配置，%s", err)
 			return err
 		}
 	}
@@ -221,7 +221,7 @@ func (r *rpcService) Status(task *model.Download) (rpc.StatusInfo, error) {
 	res, err := r.Caller.TellStatus(task.GID)
 	if err != nil {
 		// 失败后重试
-		util.Log().Debug("无法获取离线下载状态，%s，稍后重试", err)
+		logger.Debug("无法获取离线下载状态，%s，稍后重试", err)
 		time.Sleep(r.retryDuration)
 		res, err = r.Caller.TellStatus(task.GID)
 	}
@@ -233,7 +233,7 @@ func (r *rpcService) Cancel(task *model.Download) error {
 	// 取消下载任务
 	_, err := r.Caller.Remove(task.GID)
 	if err != nil {
-		util.Log().Warning("无法取消离线下载任务[%s], %s", task.GID, err)
+		logger.Warning("无法取消离线下载任务[%s], %s", task.GID, err)
 	}
 
 	return err
@@ -264,7 +264,7 @@ func (s *rpcService) DeleteTempFile(task *model.Download) error {
 		time.Sleep(d)
 		err := os.RemoveAll(src)
 		if err != nil {
-			util.Log().Warning("无法删除离线下载临时目录[%s], %s", src, err)
+			logger.Warning("无法删除离线下载临时目录[%s], %s", src, err)
 		}
 	}(s.deletePaddingDuration, task.Parent)
 

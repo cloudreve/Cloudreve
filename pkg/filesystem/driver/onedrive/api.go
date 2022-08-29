@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -17,12 +16,13 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 const (
@@ -95,7 +95,7 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 		}
 		if retried < ListRetry {
 			retried++
-			util.Log().Debug("路径[%s]列取请求失败[%s]，5秒钟后重试", path, err)
+			logger.Debug("路径[%s]列取请求失败[%s]，5秒钟后重试", path, err)
 			time.Sleep(time.Duration(5) * time.Second)
 			return client.ListChildren(context.WithValue(ctx, fsctx.RetryCtx, retried), path)
 		}
@@ -460,39 +460,39 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 	for {
 		select {
 		case <-callbackChan:
-			util.Log().Debug("客户端完成回调")
+			logger.Debug("客户端完成回调")
 			return
 		case <-time.After(time.Duration(ttl) * time.Second):
 			// 上传会话到期，仍未完成上传，创建占位符
 			client.DeleteUploadSession(context.Background(), uploadURL)
 			_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0, WithConflictBehavior("replace"))
 			if err != nil {
-				util.Log().Debug("无法创建占位文件，%s", err)
+				logger.Debug("无法创建占位文件，%s", err)
 			}
 			return
 		case <-time.After(time.Duration(timeout) * time.Second):
-			util.Log().Debug("检查上传情况")
+			logger.Debug("检查上传情况")
 			status, err := client.GetUploadSessionStatus(context.Background(), uploadURL)
 
 			if err != nil {
 				if resErr, ok := err.(*RespError); ok {
 					if resErr.APIError.Code == "itemNotFound" {
-						util.Log().Debug("上传会话已完成，稍后检查回调")
+						logger.Debug("上传会话已完成，稍后检查回调")
 						select {
 						case <-time.After(time.Duration(interval) * time.Second):
-							util.Log().Warning("未发送回调，删除文件")
+							logger.Warning("未发送回调，删除文件")
 							cache.Deletes([]string{callbackKey}, "callback_")
 							_, err = client.Delete(context.Background(), []string{path})
 							if err != nil {
-								util.Log().Warning("无法删除未回调的文件，%s", err)
+								logger.Warning("无法删除未回调的文件，%s", err)
 							}
 						case <-callbackChan:
-							util.Log().Debug("客户端完成回调")
+							logger.Debug("客户端完成回调")
 						}
 						return
 					}
 				}
-				util.Log().Debug("无法获取上传会话状态，继续下一轮，%s", err.Error())
+				logger.Debug("无法获取上传会话状态，继续下一轮，%s", err.Error())
 				continue
 			}
 
@@ -509,13 +509,13 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 			}
 			uploadFullSize, _ := strconv.ParseUint(sizeRange[1], 10, 64)
 			if (sizeRange[0] == "0" && sizeRange[1] == "") || uploadFullSize+1 != size {
-				util.Log().Debug("未开始上传或文件大小不一致，取消上传会话")
+				logger.Debug("未开始上传或文件大小不一致，取消上传会话")
 				// 取消上传会话，实测OneDrive取消上传会话后，客户端还是可以上传，
 				// 所以上传一个空文件占位，阻止客户端上传
 				client.DeleteUploadSession(context.Background(), uploadURL)
 				_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0, WithConflictBehavior("replace"))
 				if err != nil {
-					util.Log().Debug("无法创建占位文件，%s", err)
+					logger.Debug("无法创建占位文件，%s", err)
 				}
 				return
 			}
@@ -577,7 +577,7 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	if res.Response.StatusCode < 200 || res.Response.StatusCode >= 300 {
 		decodeErr = json.Unmarshal([]byte(respBody), &errResp)
 		if decodeErr != nil {
-			util.Log().Debug("Onedrive返回未知响应[%s]", respBody)
+			logger.Debug("Onedrive返回未知响应[%s]", respBody)
 			return "", sysError(decodeErr)
 		}
 		return "", &errResp

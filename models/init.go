@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -20,7 +21,7 @@ var DB *gorm.DB
 
 // Init 初始化 MySQL 链接
 func Init() {
-	util.Log().Info("初始化数据库连接")
+	logger.Info("初始化数据库连接")
 
 	var (
 		db  *gorm.DB
@@ -51,13 +52,13 @@ func Init() {
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset))
 		default:
-			util.Log().Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
+			logger.Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
 		}
 	}
 
-	//db.SetLogger(util.Log())
+	//db.SetLogger(logger)
 	if err != nil {
-		util.Log().Panic("连接数据库不成功, %s", err)
+		logger.Panic("连接数据库不成功, %s", err)
 	}
 
 	// 处理表前缀

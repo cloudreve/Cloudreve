@@ -7,9 +7,9 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/monitor"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -143,7 +143,7 @@ func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response
 	siteID, _ := c.Get("MasterSiteID")
 	mq.GlobalMQ.SubscribeCallback(gid, func(message mq.Message) {
 		if err := cluster.DefaultController.SendNotification(siteID.(string), message.TriggeredBy, message); err != nil {
-			util.Log().Warning("Failed to send remote download task status change notifications: %s", err)
+			logger.Warning("Failed to send remote download task status change notifications: %s", err)
 		}
 	})
 

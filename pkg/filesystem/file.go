@@ -10,8 +10,8 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/juju/ratelimit"
 )
 
@@ -72,7 +72,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 
 	if err != nil {
 		if err := fs.Trigger(ctx, "AfterValidateFailed", file); err != nil {
-			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", err)
+			logger.Debug("AfterValidateFailed 钩子执行失败，%s", err)
 		}
 		return nil, ErrFileExisted.WithError(err)
 	}
@@ -97,9 +97,10 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 }
 
 // Preview 预览文件
-//   path   -   文件虚拟路径
-//   isText -   是否为文本文件，文本文件会忽略重定向，直接由
-//              服务端拉取中转给用户，故会对文件大小进行限制
+//
+//	path   -   文件虚拟路径
+//	isText -   是否为文本文件，文本文件会忽略重定向，直接由
+//	           服务端拉取中转给用户，故会对文件大小进行限制
 func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*response.ContentResponse, error) {
 	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
@@ -203,7 +204,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		// 取消上传会话
 		for _, upSession := range uploadSessions {
 			if err := fs.Handler.CancelToken(ctx, upSession); err != nil {
-				util.Log().Warning("无法取消 [%s] 的上传会话: %s", upSession.Name, err)
+				logger.Warning("无法取消 [%s] 的上传会话: %s", upSession.Name, err)
 			}
 
 			cache.Deletes([]string{upSession.Key}, UploadSessionCachePrefix)

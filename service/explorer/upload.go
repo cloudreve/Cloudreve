@@ -3,6 +3,11 @@ package explorer
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strconv"
+	"strings"
+	"time"
+	
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -10,13 +15,9 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // CreateUploadSessionService 获取上传凭证服务
@@ -118,7 +119,7 @@ func (service *UploadService) LocalUpload(ctx context.Context, c *gin.Context) s
 	}
 
 	if expectedSizeStart > actualSizeStart {
-		util.Log().Info("Trying to overwrite chunk[%d] Start=%d", service.Index, actualSizeStart)
+		logger.Info("Trying to overwrite chunk[%d] Start=%d", service.Index, actualSizeStart)
 	}
 
 	return processChunkUpload(ctx, c, fs, &uploadSession, service.Index, file, fsctx.Append)

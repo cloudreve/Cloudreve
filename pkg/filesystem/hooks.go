@@ -2,15 +2,16 @@ package filesystem
 
 import (
 	"context"
+	"io/ioutil"
+	"strings"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"io/ioutil"
-	"strings"
 )
 
 // Hook 钩子函数
@@ -44,7 +45,7 @@ func (fs *FileSystem) Trigger(ctx context.Context, name string, file fsctx.FileH
 		for _, hook := range hooks {
 			err := hook(ctx, fs, file)
 			if err != nil {
-				util.Log().Warning("钩子执行失败：%s", err)
+				logger.Warning("钩子执行失败：%s", err)
 				return err
 			}
 		}
@@ -112,7 +113,7 @@ func HookDeleteTempFile(ctx context.Context, fs *FileSystem, file fsctx.FileHead
 	// 删除临时文件
 	_, err := fs.Handler.Delete(ctx, []string{file.Info().SavePath})
 	if err != nil {
-		util.Log().Warning("无法清理上传临时文件，%s", err)
+		logger.Warning("无法清理上传临时文件，%s", err)
 	}
 
 	return nil

@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	model "github.com/cloudreve/Cloudreve/v3/models"
 	"path"
 	"strconv"
 
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/service/callback"
 	"github.com/gin-gonic/gin"
 )
@@ -56,7 +56,7 @@ func UpyunCallback(c *gin.Context) {
 	var callbackBody callback.UpyunCallbackService
 	if err := c.ShouldBind(&callbackBody); err == nil {
 		if callbackBody.Code != 200 {
-			util.Log().Debug(
+			logger.Debug(
 				"Upload callback returned error code:%d, message: %s",
 				callbackBody.Code,
 				callbackBody.Message,

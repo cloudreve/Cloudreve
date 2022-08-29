@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-contrib/sessions"
@@ -20,10 +21,10 @@ func Session(secret string) gin.HandlerFunc {
 		var err error
 		Store, err = redis.NewStoreWithDB(10, conf.RedisConfig.Network, conf.RedisConfig.Server, conf.RedisConfig.Password, conf.RedisConfig.DB, []byte(secret))
 		if err != nil {
-			util.Log().Panic("无法连接到 Redis：%s", err)
+			logger.Panic("无法连接到 Redis：%s", err)
 		}
 
-		util.Log().Info("已连接到 Redis 服务器：%s", conf.RedisConfig.Server)
+		logger.Info("已连接到 Redis 服务器：%s", conf.RedisConfig.Server)
 	} else {
 		Store = memstore.NewStore([]byte(secret))
 	}

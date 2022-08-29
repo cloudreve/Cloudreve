@@ -5,6 +5,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 )
@@ -161,7 +162,7 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 		// 复制文件记录
 		for _, oldFile := range originFiles {
 			if !oldFile.CanCopy() {
-				util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+				logger.Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
 				continue
 			}
 
@@ -224,7 +225,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		} else if IDCache, ok := newIDCache[*folder.ParentID]; ok {
 			newID = IDCache
 		} else {
-			util.Log().Warning("无法取得新的父目录:%d", folder.ParentID)
+			logger.Warning("无法取得新的父目录:%d", folder.ParentID)
 			return size, errors.New("无法取得新的父目录")
 		}
 
@@ -254,7 +255,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 	// 复制文件记录
 	for _, oldFile := range originFiles {
 		if !oldFile.CanCopy() {
-			util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+			logger.Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
 			continue
 		}
 

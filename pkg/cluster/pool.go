@@ -1,10 +1,11 @@
 package cluster
 
 import (
+	"sync"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"sync"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 var Default *NodePool
@@ -42,7 +43,7 @@ func Init() {
 	Default = &NodePool{}
 	Default.Init()
 	if err := Default.initFromDB(); err != nil {
-		util.Log().Warning("节点池初始化失败, %s", err)
+		logger.Warning("节点池初始化失败, %s", err)
 	}
 }
 
@@ -83,7 +84,7 @@ func (pool *NodePool) GetNodeByID(id uint) Node {
 }
 
 func (pool *NodePool) nodeStatusChange(isActive bool, id uint) {
-	util.Log().Debug("从机节点 [ID=%d] 状态变更 [Active=%t]", id, isActive)
+	logger.Debug("从机节点 [ID=%d] 状态变更 [Active=%t]", id, isActive)
 	var node Node
 	pool.lock.Lock()
 	if n, ok := pool.inactive[id]; ok {

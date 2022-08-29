@@ -9,6 +9,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -69,7 +70,7 @@ func (fs *FileSystem) Upload(ctx context.Context, file *fsctx.FileStream) (err e
 		followUpErr := fs.Trigger(ctx, "AfterValidateFailed", file)
 		// 失败后再失败...
 		if followUpErr != nil {
-			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", followUpErr)
+			logger.Debug("AfterValidateFailed 钩子执行失败，%s", followUpErr)
 		}
 
 		return err
@@ -113,13 +114,13 @@ func (fs *FileSystem) CancelUpload(ctx context.Context, path string, file fsctx.
 			// 客户端正常关闭，不执行操作
 		default:
 			// 客户端取消上传，删除临时文件
-			util.Log().Debug("客户端取消上传")
+			logger.Debug("客户端取消上传")
 			if fs.Hooks["AfterUploadCanceled"] == nil {
 				return
 			}
 			err := fs.Trigger(ctx, "AfterUploadCanceled", file)
 			if err != nil {
-				util.Log().Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
+				logger.Debug("执行 AfterUploadCanceled 钩子出错，%s", err)
 			}
 		}
 

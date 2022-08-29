@@ -14,8 +14,8 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // GeneralClient 通用 HTTP Client
@@ -179,7 +179,7 @@ func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 	var res serializer.Response
 	err = json.Unmarshal([]byte(respString), &res)
 	if err != nil {
-		util.Log().Debug("无法解析回调服务端响应：%s", string(respString))
+		logger.Debug("无法解析回调服务端响应：%s", string(respString))
 		return nil, err
 	}
 	return &res, nil

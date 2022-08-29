@@ -5,21 +5,21 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
-	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"io/ioutil"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/qiniu/go-sdk/v7/auth/qbox"
 )
 
 const (
@@ -194,7 +194,7 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 		mac := qbox.NewMac(session.Policy.AccessKey, session.Policy.SecretKey)
 		ok, err := mac.VerifyCallback(c.Request)
 		if err != nil {
-			util.Log().Debug("无法验证回调请求，%s", err)
+			logger.Debug("无法验证回调请求，%s", err)
 			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
 			c.Abort()
 			return
@@ -215,7 +215,7 @@ func OSSCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := oss.VerifyCallbackSignature(c.Request)
 		if err != nil {
-			util.Log().Debug("回调签名验证失败，%s", err)
+			logger.Debug("回调签名验证失败，%s", err)
 			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
 			c.Abort()
 			return

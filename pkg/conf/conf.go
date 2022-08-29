@@ -1,9 +1,11 @@
 package conf
 
 import (
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/go-ini/ini"
 	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
 // database 数据库
@@ -86,13 +88,13 @@ func Init(path string) {
 		}, defaultConf)
 		f, err := util.CreatNestedFile(path)
 		if err != nil {
-			util.Log().Panic("无法创建配置文件, %s", err)
+			logger.Panic("无法创建配置文件, %s", err)
 		}
 
 		// 写入配置文件
 		_, err = f.WriteString(confContent)
 		if err != nil {
-			util.Log().Panic("无法写入配置文件, %s", err)
+			logger.Panic("无法写入配置文件, %s", err)
 		}
 
 		f.Close()
@@ -100,7 +102,7 @@ func Init(path string) {
 
 	cfg, err = ini.Load(path)
 	if err != nil {
-		util.Log().Panic("无法解析配置文件 '%s': %s", path, err)
+		logger.Panic("无法解析配置文件 '%s': %s", path, err)
 	}
 
 	sections := map[string]interface{}{
@@ -115,7 +117,7 @@ func Init(path string) {
 	for sectionName, sectionStruct := range sections {
 		err = mapSection(sectionName, sectionStruct)
 		if err != nil {
-			util.Log().Panic("配置文件 %s 分区解析失败: %s", sectionName, err)
+			logger.Panic("配置文件 %s 分区解析失败: %s", sectionName, err)
 		}
 	}
 
@@ -126,9 +128,7 @@ func Init(path string) {
 
 	// 重设log等级
 	if !SystemConfig.Debug {
-		util.Level = util.LevelInformational
-		util.GloablLogger = nil
-		util.Log()
+		logger.SetLevel(logrus.InfoLevel)
 	}
 
 }

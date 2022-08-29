@@ -2,7 +2,7 @@ package task
 
 import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 )
 
 // 任务类型
@@ -87,12 +87,12 @@ func Resume(p Pool) {
 	if len(tasks) == 0 {
 		return
 	}
-	util.Log().Info("从数据库中恢复 %d 个未完成任务", len(tasks))
+	logger.Info("从数据库中恢复 %d 个未完成任务", len(tasks))
 
 	for i := 0; i < len(tasks); i++ {
 		job, err := GetJobFromModel(&tasks[i])
 		if err != nil {
-			util.Log().Warning("无法恢复任务，%s", err)
+			logger.Warning("无法恢复任务，%s", err)
 			continue
 		}
 

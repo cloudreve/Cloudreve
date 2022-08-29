@@ -8,6 +8,7 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v3/pkg/logger"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -36,7 +37,7 @@ type Share struct {
 // Create 创建分享
 func (share *Share) Create() (uint, error) {
 	if err := DB.Create(share).Error; err != nil {
-		util.Log().Warning("无法插入数据库记录, %s", err)
+		logger.Warning("无法插入数据库记录, %s", err)
 		return 0, err
 	}
 	return share.ID, nil
