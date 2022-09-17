@@ -24,10 +24,10 @@ import (
 )
 
 var (
-	isEject          bool
-	skipConfGenerate bool
-	confPath         string
-	scriptName       string
+	isEject         bool
+	skipConfLoading bool
+	confPath        string
+	scriptName      string
 )
 
 //go:embed assets.zip
@@ -39,14 +39,14 @@ func init() {
 	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
 	flag.BoolVar(&isEject, "eject", false, "导出内置静态资源")
 	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
-	flag.BoolVar(&skipConfGenerate, "skip-conf", false, "跳过配置文件生成")
+	flag.BoolVar(&skipConfLoading, "skip-conf", false, "跳过配置文件加载")
 	flag.Parse()
 
 	staticFS = archiver.ArchiveFS{
 		Stream: io.NewSectionReader(strings.NewReader(staticZip), 0, int64(len(staticZip))),
 		Format: archiver.Zip{},
 	}
-	bootstrap.Init(confPath, skipConfGenerate, staticFS)
+	bootstrap.Init(confPath, skipConfLoading, staticFS)
 }
 
 func main() {
