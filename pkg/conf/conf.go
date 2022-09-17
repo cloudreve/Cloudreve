@@ -123,14 +123,6 @@ func Init(path string) {
 	for _, key := range cfg.Section("OptionOverwrite").Keys() {
 		OptionOverwrite[key.Name()] = key.Value()
 	}
-
-	// 重设log等级
-	if !SystemConfig.Debug {
-		util.Level = util.LevelInformational
-		util.GloablLogger = nil
-		util.Log()
-	}
-
 }
 
 // mapSection 将配置文件的 Section 映射到结构体上

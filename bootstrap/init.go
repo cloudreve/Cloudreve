@@ -12,17 +12,30 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"io/fs"
 )
 
 // Init 初始化启动
-func Init(path string, statics fs.FS) {
+func Init(path string, skipConfig bool, statics fs.FS) {
 	InitApplication()
-	conf.Init(path)
+
+	// 加载配置文件
+	if !skipConfig {
+		conf.Init(path)
+	}
+
 	// Debug 关闭时，切换为生产模式
 	if !conf.SystemConfig.Debug {
+		util.Level = util.LevelInformational
+		util.GloablLogger = nil
+		util.Log()
 		gin.SetMode(gin.ReleaseMode)
+
+		if skipConfig {
+			util.Log().Warning("配置文件加载已取消，将使用环境变量或默认配置")
+		}
 	}
 
 	dependencies := []struct {
