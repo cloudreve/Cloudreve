@@ -3,7 +3,6 @@ package cache
 import (
 	"bytes"
 	"encoding/gob"
-	"strconv"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -44,7 +43,7 @@ func deserializer(value []byte) (interface{}, error) {
 }
 
 // NewRedisStore 创建新的redis存储
-func NewRedisStore(size int, network, address, password, database string) *RedisStore {
+func NewRedisStore(size int, network, address, password string, database int) *RedisStore {
 	return &RedisStore{
 		pool: &redis.Pool{
 			MaxIdle:     size,
@@ -54,15 +53,10 @@ func NewRedisStore(size int, network, address, password, database string) *Redis
 				return err
 			},
 			Dial: func() (redis.Conn, error) {
-				db, err := strconv.Atoi(database)
-				if err != nil {
-					return nil, err
-				}
-
 				c, err := redis.Dial(
 					network,
 					address,
-					redis.DialDatabase(db),
+					redis.DialDatabase(database),
 					redis.DialPassword(password),
 				)
 				if err != nil {

@@ -52,7 +52,7 @@ type redis struct {
 	Network  string
 	Server   string
 	Password string
-	DB       string
+	DB       int
 }
 
 // 跨域配置

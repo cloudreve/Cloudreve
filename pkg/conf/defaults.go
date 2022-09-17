@@ -7,7 +7,7 @@ var RedisConfig = &redis{
 	Network:  util.EnvStr("REDIS_NETWORK", "tcp"),
 	Server:   util.EnvStr("REDIS_SERVER", ""),
 	Password: util.EnvStr("REDIS_PASSWORD", ""),
-	DB:       util.EnvStr("REDIS_DB", "0"),
+	DB:       util.EnvInt("REDIS_DB", 0),
 }
 
 // DatabaseConfig 数据库配置
