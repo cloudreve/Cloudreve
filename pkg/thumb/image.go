@@ -7,6 +7,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"golang.org/x/image/webp"
 	"io"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,8 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 		img, err = gif.Decode(file)
 	case "png":
 		img, err = png.Decode(file)
+	case "webp":
+		img, err = webp.Decode(file)
 	default:
 		return nil, errors.New("未知的图像类型")
 	}
