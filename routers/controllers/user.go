@@ -20,7 +20,7 @@ func StartLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
 	expectedUser, err := model.GetActiveUserByEmail(userName)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "User not exist", err))
+		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "", err))
 		return
 	}
 
@@ -54,7 +54,7 @@ func FinishLoginAuthn(c *gin.Context) {
 	userName := c.Param("username")
 	expectedUser, err := model.GetActiveUserByEmail(userName)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "User not exist", err))
+		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "", err))
 		return
 	}
 
@@ -88,7 +88,7 @@ func StartRegAuthn(c *gin.Context) {
 
 	instance, err := authn.NewAuthnInstance()
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
 		return
 	}
 
@@ -121,7 +121,7 @@ func FinishRegAuthn(c *gin.Context) {
 
 	instance, err := authn.NewAuthnInstance()
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInternalSetting, "无法初始化Authn", err))
+		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
 		return
 	}
 
@@ -271,26 +271,26 @@ func UploadAvatar(c *gin.Context) {
 	maxSize := model.GetIntSetting("avatar_size", 2097152)
 	if c.Request.ContentLength == -1 || c.Request.ContentLength > int64(maxSize) {
 		request.BlackHole(c.Request.Body)
-		c.JSON(200, serializer.Err(serializer.CodeUploadFailed, "头像尺寸太大", nil))
+		c.JSON(200, serializer.Err(serializer.CodeFileTooLarge, "", nil))
 		return
 	}
 
 	// 取得上传的文件
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
+		c.JSON(200, serializer.ParamErr("Failed to read avatar file data", err))
 		return
 	}
 
 	// 初始化头像
 	r, err := file.Open()
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法读取头像数据", err))
+		c.JSON(200, serializer.ParamErr("Failed to read avatar file data", err))
 		return
 	}
 	avatar, err := thumb.NewThumbFromFile(r, file.Filename)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法解析图像数据", err))
+		c.JSON(200, serializer.ParamErr("Invalid image", err))
 		return
 	}
 
@@ -298,7 +298,7 @@ func UploadAvatar(c *gin.Context) {
 	u := CurrentUser(c)
 	err = avatar.CreateAvatar(u.ID)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "无法创建头像", err))
+		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "Failed to create avatar file", err))
 		return
 	}
 
@@ -306,7 +306,7 @@ func UploadAvatar(c *gin.Context) {
 	if err := u.Update(map[string]interface{}{
 		"avatar": "file",
 	}); err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeDBError, "无法更新头像", err))
+		c.JSON(200, serializer.DBErr("Failed to update avatar attribute", err))
 		return
 	}
 

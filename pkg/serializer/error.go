@@ -172,6 +172,20 @@ const (
 	CodeSlavePingMaster = 40060
 	// Cloudreve 版本不一致
 	CodeVersionMismatch = 40061
+	// 积分不足
+	CodeInsufficientCredit = 40062
+	// 用户组冲突
+	CodeGroupConflict = 40063
+	// 当前已处于此用户组中
+	CodeGroupInvalid = 40064
+	// 兑换码无效
+	CodeInvalidGiftCode = 40065
+	// 已绑定了QQ账号
+	CodeQQBindConflict = 40066
+	// QQ账号已被绑定其他账号
+	CodeQQBindOtherAccount = 40067
+	// QQ 未绑定对应账号
+	CodeQQNotLinked = 40068
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
