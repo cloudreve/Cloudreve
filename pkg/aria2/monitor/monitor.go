@@ -45,7 +45,7 @@ func NewMonitor(task *model.Download, pool cluster.Pool, mqClient mq.MQ) {
 
 		monitor.notifier = mqClient.Subscribe(monitor.Task.GID, 0)
 	} else {
-		monitor.setErrorStatus(errors.New("节点不可用"))
+		monitor.setErrorStatus(errors.New("node not avaliable"))
 	}
 }
 
@@ -77,11 +77,12 @@ func (monitor *Monitor) Update() bool {
 
 	if err != nil {
 		monitor.retried++
-		util.Log().Warning("无法获取下载任务[%s]的状态，%s", monitor.Task.GID, err)
+		util.Log().Warning("Cannot get status of download task %q: %s", monitor.Task.GID, err)
 
 		// 十次重试后认定为任务失败
 		if monitor.retried > MAX_RETRY {
-			util.Log().Warning("无法获取下载任务[%s]的状态，超过最大重试次数限制，%s", monitor.Task.GID, err)
+			util.Log().Warning("Cannot get status of download task %q，exceed maximum retry threshold: %s",
+				monitor.Task.GID, err)
 			monitor.setErrorStatus(err)
 			monitor.RemoveTempFolder()
 			return true
@@ -93,7 +94,7 @@ func (monitor *Monitor) Update() bool {
 
 	// 磁力链下载需要跟随
 	if len(status.FollowedBy) > 0 {
-		util.Log().Debug("离线下载[%s]重定向至[%s]", monitor.Task.GID, status.FollowedBy[0])
+		util.Log().Debug("Redirected download task from %q to %q.", monitor.Task.GID, status.FollowedBy[0])
 		monitor.Task.GID = status.FollowedBy[0]
 		monitor.Task.Save()
 		return false
@@ -101,13 +102,13 @@ func (monitor *Monitor) Update() bool {
 
 	// 更新任务信息
 	if err := monitor.UpdateTaskInfo(status); err != nil {
-		util.Log().Warning("无法更新下载任务[%s]的任务信息[%s]，", monitor.Task.GID, err)
+		util.Log().Warning("Failed to update status of download task %q: %s", monitor.Task.GID, err)
 		monitor.setErrorStatus(err)
 		monitor.RemoveTempFolder()
 		return true
 	}
 
-	util.Log().Debug("离线下载[%s]更新状态[%s]", status.Gid, status.Status)
+	util.Log().Debug("Remote download %q status updated to %q.", status.Gid, status.Status)
 
 	switch status.Status {
 	case "complete":
@@ -122,7 +123,7 @@ func (monitor *Monitor) Update() bool {
 		monitor.RemoveTempFolder()
 		return true
 	default:
-		util.Log().Warning("下载任务[%s]返回未知状态信息[%s]，", monitor.Task.GID, status.Status)
+		util.Log().Warning("Download task %q returns unknown status %q.", monitor.Task.GID, status.Status)
 		return true
 	}
 }

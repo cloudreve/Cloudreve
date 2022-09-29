@@ -24,7 +24,7 @@ func Init(isSlave bool) {
 	if isSlave {
 		err := Store.Sets(conf.OptionOverwrite, "setting_")
 		if err != nil {
-			util.Log().Warning("无法覆盖数据库设置: %s", err)
+			util.Log().Warning("Failed to overwrite database setting: %s", err)
 		}
 	}
 }

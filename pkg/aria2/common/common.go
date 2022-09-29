@@ -50,9 +50,9 @@ const (
 
 var (
 	// ErrNotEnabled 功能未开启错误
-	ErrNotEnabled = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	ErrNotEnabled = serializer.NewError(serializer.CodeFeatureNotEnabled, "", nil)
 	// ErrUserNotFound 未找到下载任务创建者
-	ErrUserNotFound = serializer.NewError(serializer.CodeNotFound, "无法找到任务创建者", nil)
+	ErrUserNotFound = serializer.NewError(serializer.CodeUserNotFound, "", nil)
 )
 
 // DummyAria2 未开启Aria2功能时使用的默认处理器

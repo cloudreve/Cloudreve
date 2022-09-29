@@ -190,6 +190,8 @@ const (
 	CodeIncorrectPassword = 40069
 	// 分享无法预览
 	CodeDisabledSharePreview = 40070
+	// 签名无效
+	CodeInvalidSign = 40071
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
