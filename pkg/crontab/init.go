@@ -19,7 +19,7 @@ func Reload() {
 
 // Init 初始化定时任务
 func Init() {
-	util.Log().Info("初始化定时任务...")
+	util.Log().Info("Initialize crontab jobs...")
 	// 读取cron日程设置
 	options := model.GetSettingByNames(
 		"cron_garbage_collect",
@@ -34,12 +34,12 @@ func Init() {
 		case "cron_recycle_upload_session":
 			handler = uploadSessionCollect
 		default:
-			util.Log().Warning("未知定时任务类型 [%s]，跳过", k)
+			util.Log().Warning("Unknown crontab job type %q, skipping...", k)
 			continue
 		}
 
 		if _, err := Cron.AddFunc(v, handler); err != nil {
-			util.Log().Warning("无法启动定时任务 [%s] , %s", k, err)
+			util.Log().Warning("Failed to start crontab job %q: %s", k, err)
 		}
 
 	}

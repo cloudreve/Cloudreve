@@ -203,7 +203,7 @@ func NewFileSystemFromCallback(c *gin.Context) (*FileSystem, error) {
 	// 获取回调会话
 	callbackSessionRaw, ok := c.Get(UploadSessionCtx)
 	if !ok {
-		return nil, errors.New("找不到回调会话")
+		return nil, errors.New("upload session not exist")
 	}
 	callbackSession := callbackSessionRaw.(*serializer.UploadSession)
 

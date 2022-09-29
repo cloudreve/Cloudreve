@@ -91,7 +91,7 @@ func (handler *Driver) CORS() error {
 // InitOSSClient 初始化OSS鉴权客户端
 func (handler *Driver) InitOSSClient(forceUsePublicEndpoint bool) error {
 	if handler.Policy == nil {
-		return errors.New("存储策略为空")
+		return errors.New("empty policy")
 	}
 
 	// 决定是否使用内网 Endpoint
@@ -286,7 +286,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 	// 统计未删除的文件
 	failed := util.SliceDifference(files, delRes.DeletedObjects)
 	if len(failed) > 0 {
-		return failed, errors.New("删除失败")
+		return failed, errors.New("failed to delete")
 	}
 
 	return []string{}, nil
@@ -304,7 +304,7 @@ func (handler *Driver) Thumb(ctx context.Context, path string) (*response.Conten
 		ok        = false
 	)
 	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
-		return nil, errors.New("无法获取缩略图尺寸设置")
+		return nil, errors.New("failed to get thumbnail size")
 	}
 
 	thumbParam := fmt.Sprintf("image/resize,m_lfit,h_%d,w_%d", thumbSize[1], thumbSize[0])

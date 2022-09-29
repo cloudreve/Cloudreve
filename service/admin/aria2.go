@@ -26,11 +26,11 @@ type Aria2TestService struct {
 func (service *Aria2TestService) TestMaster() serializer.Response {
 	res, err := aria2.TestRPCConnection(service.RPC, service.Token, 5)
 	if err != nil {
-		return serializer.ParamErr(err.Error(), err)
+		return serializer.ParamErr("Failed to connect to RPC server: "+err.Error(), err)
 	}
 
 	if res.Version == "" {
-		return serializer.ParamErr("RPC 服务返回非预期响应", nil)
+		return serializer.ParamErr("RPC server returns unexpected response", nil)
 	}
 
 	return serializer.Response{Data: res.Version}
@@ -39,7 +39,7 @@ func (service *Aria2TestService) TestMaster() serializer.Response {
 func (service *Aria2TestService) TestSlave() serializer.Response {
 	slave, err := url.Parse(service.Server)
 	if err != nil {
-		return serializer.ParamErr("无法解析从机端地址，"+err.Error(), nil)
+		return serializer.ParamErr("Cannot parse slave server URL, "+err.Error(), nil)
 	}
 
 	controller, _ := url.Parse("/api/v3/slave/ping/aria2")
@@ -60,11 +60,11 @@ func (service *Aria2TestService) TestSlave() serializer.Response {
 		),
 	).DecodeResponse()
 	if err != nil {
-		return serializer.ParamErr("无连接到从机，"+err.Error(), nil)
+		return serializer.ParamErr("Failed to connect to slave node, "+err.Error(), nil)
 	}
 
 	if res.Code != 0 {
-		return serializer.ParamErr("成功接到从机，但是从机返回："+res.Msg, nil)
+		return serializer.ParamErr("Successfully connected to slave, but slave returns: "+res.Msg, nil)
 	}
 
 	return serializer.Response{Data: res.Data.(string)}

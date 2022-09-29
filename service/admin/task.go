@@ -28,7 +28,7 @@ func (service *ImportTaskService) Create(c *gin.Context, user *model.User) seria
 	// 创建任务
 	job, err := task.NewImportTask(service.UID, service.PolicyID, service.Src, service.Dst, service.Recursive)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
+		return serializer.DBErr("Failed to create task record.", err)
 	}
 	task.TaskPoll.Submit(job)
 	return serializer.Response{}
@@ -37,7 +37,7 @@ func (service *ImportTaskService) Create(c *gin.Context, user *model.User) seria
 // Delete 删除任务
 func (service *TaskBatchService) Delete(c *gin.Context) serializer.Response {
 	if err := model.DB.Where("id in (?)", service.ID).Delete(&model.Download{}).Error; err != nil {
-		return serializer.DBErr("无法删除任务", err)
+		return serializer.DBErr("Failed to delete task records", err)
 	}
 	return serializer.Response{}
 }
@@ -45,7 +45,7 @@ func (service *TaskBatchService) Delete(c *gin.Context) serializer.Response {
 // DeleteGeneral 删除常规任务
 func (service *TaskBatchService) DeleteGeneral(c *gin.Context) serializer.Response {
 	if err := model.DB.Where("id in (?)", service.ID).Delete(&model.Task{}).Error; err != nil {
-		return serializer.DBErr("无法删除任务", err)
+		return serializer.DBErr("Failed to delete task records", err)
 	}
 	return serializer.Response{}
 }

@@ -17,7 +17,7 @@ func HashID(IDType int) gin.HandlerFunc {
 				c.Next()
 				return
 			}
-			c.JSON(200, serializer.ParamErr("无法解析对象ID", nil))
+			c.JSON(200, serializer.ParamErr("Failed to parse object ID", nil))
 			c.Abort()
 			return
 

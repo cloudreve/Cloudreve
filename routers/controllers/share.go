@@ -142,13 +142,13 @@ func PreviewShareReadme(c *gin.Context) {
 		allowFileName := []string{"readme.txt", "readme.md"}
 		fileName := strings.ToLower(path.Base(service.Path))
 		if !util.ContainsString(allowFileName, fileName) {
-			c.JSON(200, serializer.ParamErr("非README文件", nil))
+			c.JSON(200, serializer.ParamErr("Not a README file", nil))
 		}
 
 		// 必须是目录分享
 		if shareCtx, ok := c.Get("share"); ok {
 			if !shareCtx.(*model.Share).IsDir {
-				c.JSON(200, serializer.ParamErr("此分享无自述文件", nil))
+				c.JSON(200, serializer.ParamErr("This share has no README file", nil))
 			}
 		}
 

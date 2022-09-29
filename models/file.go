@@ -43,7 +43,7 @@ func (file *File) Create() error {
 	tx := DB.Begin()
 
 	if err := tx.Create(file).Error; err != nil {
-		util.Log().Warning("无法插入文件记录, %s", err)
+		util.Log().Warning("Failed to insert file record: %s", err)
 		tx.Rollback()
 		return err
 	}
@@ -185,6 +185,10 @@ func (file *File) GetPolicy() *Policy {
 func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	// 结果值
 	filteredFiles := make([]File, 0)
+
+	if len(files) == 0 {
+		return filteredFiles, nil
+	}
 
 	// 查询软链接的文件
 	var filesWithSoftLinks []File

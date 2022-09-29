@@ -24,13 +24,13 @@ buildAssets() {
   rm -rf assets/build
 
   export CI=false
+  export GENERATE_SOURCEMAP=false
 
   cd $REPO/assets
 
   yarn install
   yarn run build
   cd build
-  find . -name "*.map" -type f -delete
   cd $REPO
   zip -r - assets/build >assets.zip
 }

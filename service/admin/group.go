@@ -1,10 +1,9 @@
 package admin
 
 import (
-	"fmt"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"strconv"
 )
 
 // AddGroupService 用户组添加服务
@@ -21,7 +20,7 @@ type GroupService struct {
 func (service *GroupService) Get() serializer.Response {
 	group, err := model.GetGroupByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", err)
+		return serializer.Err(serializer.CodeGroupNotFound, "", err)
 	}
 
 	return serializer.Response{Data: group}
@@ -32,12 +31,12 @@ func (service *GroupService) Delete() serializer.Response {
 	// 查找用户组
 	group, err := model.GetGroupByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户组不存在", err)
+		return serializer.Err(serializer.CodeGroupNotFound, "", err)
 	}
 
 	// 是否为系统用户组
 	if group.ID <= 3 {
-		return serializer.Err(serializer.CodeNoPermissionErr, "系统用户组无法删除", err)
+		return serializer.Err(serializer.CodeInvalidActionOnSystemGroup, "", err)
 	}
 
 	// 检查是否有用户使用
@@ -46,7 +45,7 @@ func (service *GroupService) Delete() serializer.Response {
 		Select("count(id)").Row()
 	row.Scan(&total)
 	if total > 0 {
-		return serializer.ParamErr(fmt.Sprintf("有 %d 位用户仍属于此用户组，请先删除这些用户或者更改用户组", total), nil)
+		return serializer.Err(serializer.CodeGroupUsedByUser, strconv.Itoa(total), nil)
 	}
 
 	model.DB.Delete(&group)
@@ -58,11 +57,11 @@ func (service *GroupService) Delete() serializer.Response {
 func (service *AddGroupService) Add() serializer.Response {
 	if service.Group.ID > 0 {
 		if err := model.DB.Save(&service.Group).Error; err != nil {
-			return serializer.ParamErr("用户组保存失败", err)
+			return serializer.DBErr("Failed to save group record", err)
 		}
 	} else {
 		if err := model.DB.Create(&service.Group).Error; err != nil {
-			return serializer.ParamErr("用户组添加失败", err)
+			return serializer.DBErr("Failed to create group record", err)
 		}
 	}
 

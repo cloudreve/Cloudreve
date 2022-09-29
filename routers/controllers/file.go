@@ -132,14 +132,14 @@ func Thumb(c *gin.Context) {
 	// 获取文件ID
 	fileID, ok := c.Get("object_id")
 	if !ok {
-		c.JSON(200, serializer.ParamErr("文件不存在", err))
+		c.JSON(200, serializer.Err(serializer.CodeFileNotFound, "", err))
 		return
 	}
 
 	// 获取缩略图
 	resp, err := fs.GetThumb(ctx, fileID.(uint))
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeNotSet, "无法获取缩略图", err))
+		c.JSON(200, serializer.Err(serializer.CodeNotSet, "Failed to get thumbnail", err))
 		return
 	}
 

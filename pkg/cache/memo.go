@@ -53,7 +53,7 @@ func (store *MemoStore) GarbageCollect() {
 	store.Store.Range(func(key, value interface{}) bool {
 		if item, ok := value.(itemWithTTL); ok {
 			if item.expires > 0 && item.expires < time.Now().Unix() {
-				util.Log().Debug("回收垃圾[%s]", key.(string))
+				util.Log().Debug("Cache %q is garbage collected.", key.(string))
 				store.Store.Delete(key)
 			}
 		}

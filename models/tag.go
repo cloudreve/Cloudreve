@@ -26,7 +26,7 @@ const (
 // Create 创建标签记录
 func (tag *Tag) Create() (uint, error) {
 	if err := DB.Create(tag).Error; err != nil {
-		util.Log().Warning("无法插入离线下载记录, %s", err)
+		util.Log().Warning("Failed to insert tag record: %s", err)
 		return 0, err
 	}
 	return tag.ID, nil

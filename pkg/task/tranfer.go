@@ -3,7 +3,6 @@ package task
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -87,8 +86,6 @@ func (job *TransferTask) GetError() *JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	defer job.Recycle()
-
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(job.User)
 	if err != nil {
@@ -96,9 +93,8 @@ func (job *TransferTask) Do() {
 		return
 	}
 
-	for index, file := range job.TaskProps.Src {
-		job.TaskModel.SetProgress(index)
-
+	successCount := 0
+	for _, file := range job.TaskProps.Src {
 		dst := path.Join(job.TaskProps.Dst, filepath.Base(file))
 		if job.TaskProps.TrimPath {
 			// 保留原始目录
@@ -132,19 +128,12 @@ func (job *TransferTask) Do() {
 
 		if err != nil {
 			job.SetErrorMsg("文件转存失败", err)
+		} else {
+			successCount++
+			job.TaskModel.SetProgress(successCount)
 		}
 	}
 
-}
-
-// Recycle 回收临时文件
-func (job *TransferTask) Recycle() {
-	if job.TaskProps.NodeID == 1 {
-		err := os.RemoveAll(job.TaskProps.Parent)
-		if err != nil {
-			util.Log().Warning("无法删除中转临时目录[%s], %s", job.TaskProps.Parent, err)
-		}
-	}
 }
 
 // NewTransferTask 新建中转任务

@@ -2,12 +2,12 @@ package task
 
 import (
 	"errors"
-	testMock "github.com/stretchr/testify/mock"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 )
 
 func TestRecord(t *testing.T) {
@@ -96,6 +96,18 @@ func TestGetJobFromModel(t *testing.T) {
 		task := &model.Task{
 			Status: 0,
 			Type:   TransferTaskType,
+		}
+		mock.ExpectQuery("SELECT(.+)users(.+)").WillReturnError(errors.New("error"))
+		job, err := GetJobFromModel(task)
+		asserts.NoError(mock.ExpectationsWereMet())
+		asserts.Nil(job)
+		asserts.Error(err)
+	}
+	// RecycleTaskType
+	{
+		task := &model.Task{
+			Status: 0,
+			Type:   RecycleTaskType,
 		}
 		mock.ExpectQuery("SELECT(.+)users(.+)").WillReturnError(errors.New("error"))
 		job, err := GetJobFromModel(task)

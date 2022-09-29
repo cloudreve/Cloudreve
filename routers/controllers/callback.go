@@ -57,7 +57,7 @@ func UpyunCallback(c *gin.Context) {
 	if err := c.ShouldBind(&callbackBody); err == nil {
 		if callbackBody.Code != 200 {
 			util.Log().Debug(
-				"又拍云回调返回错误代码%d，信息：%s",
+				"Upload callback returned error code:%d, message: %s",
 				callbackBody.Code,
 				callbackBody.Message,
 			)

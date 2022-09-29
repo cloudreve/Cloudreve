@@ -32,7 +32,7 @@ type TagService struct {
 func (service *TagService) Delete(c *gin.Context, user *model.User) serializer.Response {
 	id, _ := c.Get("object_id")
 	if err := model.DeleteTagByID(id.(uint), user.ID); err != nil {
-		return serializer.Err(serializer.CodeDBError, "Failed to delete a tag", err)
+		return serializer.DBErr("Failed to delete a tag", err)
 	}
 	return serializer.Response{}
 }
@@ -49,7 +49,7 @@ func (service *LinkTagCreateService) Create(c *gin.Context, user *model.User) se
 	}
 	id, err := tag.Create()
 	if err != nil {
-		return serializer.Err(serializer.CodeDBError, "Failed to create a tag", err)
+		return serializer.DBErr("Failed to create a tag", err)
 	}
 
 	return serializer.Response{
@@ -79,7 +79,7 @@ func (service *FilterTagCreateService) Create(c *gin.Context, user *model.User) 
 	}
 	id, err := tag.Create()
 	if err != nil {
-		return serializer.Err(serializer.CodeDBError, "Failed to create a tag", err)
+		return serializer.DBErr("Failed to create a tag", err)
 	}
 
 	return serializer.Response{

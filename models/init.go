@@ -20,7 +20,7 @@ var DB *gorm.DB
 
 // Init 初始化 MySQL 链接
 func Init() {
-	util.Log().Info("初始化数据库连接")
+	util.Log().Info("Initializing database connection...")
 
 	var (
 		db  *gorm.DB
@@ -51,13 +51,13 @@ func Init() {
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset))
 		default:
-			util.Log().Panic("不支持数据库类型: %s", conf.DatabaseConfig.Type)
+			util.Log().Panic("Unsupported database type %q.", conf.DatabaseConfig.Type)
 		}
 	}
 
 	//db.SetLogger(util.Log())
 	if err != nil {
-		util.Log().Panic("连接数据库不成功, %s", err)
+		util.Log().Panic("Failed to connect to database: %s", err)
 	}
 
 	// 处理表前缀

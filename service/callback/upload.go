@@ -112,7 +112,7 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, err.Error(), err)
 	}
 	defer fs.Recycle()
 
@@ -156,7 +156,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -166,7 +166,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 	// 获取文件信息
 	info, err := fs.Handler.(onedrive.Driver).Client.Meta(context.Background(), "", uploadSession.SavePath)
 	if err != nil {
-		return serializer.Err(serializer.CodeUploadFailed, "文件元信息查询失败", err)
+		return serializer.Err(serializer.CodeQueryMetaFailed, "", err)
 	}
 
 	// 验证与回调会话中是否一致
@@ -181,7 +181,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 
 	if isSizeCheckFailed || !strings.EqualFold(info.GetSourcePath(), actualPath) {
 		fs.Handler.(onedrive.Driver).Client.Delete(context.Background(), []string{info.GetSourcePath()})
-		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 	service.Meta = info
 	return ProcessCallback(service, c)
@@ -192,7 +192,7 @@ func (service *COSCallback) PreProcess(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -202,12 +202,12 @@ func (service *COSCallback) PreProcess(c *gin.Context) serializer.Response {
 	// 获取文件信息
 	info, err := fs.Handler.(cos.Driver).Meta(context.Background(), uploadSession.SavePath)
 	if err != nil {
-		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 
 	// 验证实际文件信息与回调会话中是否一致
 	if uploadSession.Size != info.Size || uploadSession.Key != info.CallbackKey {
-		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 
 	return ProcessCallback(service, c)
@@ -218,7 +218,7 @@ func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -228,12 +228,12 @@ func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
 	// 获取文件信息
 	info, err := fs.Handler.(*s3.Driver).Meta(context.Background(), uploadSession.SavePath)
 	if err != nil {
-		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 
 	// 验证实际文件信息与回调会话中是否一致
 	if uploadSession.Size != info.Size {
-		return serializer.Err(serializer.CodeUploadFailed, "文件信息不一致", err)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 
 	return ProcessCallback(service, c)
@@ -244,7 +244,7 @@ func (service *UploadCallbackService) PreProcess(c *gin.Context) serializer.Resp
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -254,7 +254,7 @@ func (service *UploadCallbackService) PreProcess(c *gin.Context) serializer.Resp
 	// 验证文件大小
 	if uploadSession.Size != service.Size {
 		fs.Handler.Delete(context.Background(), []string{uploadSession.SavePath})
-		return serializer.Err(serializer.CodeUploadFailed, "文件大小不一致", nil)
+		return serializer.Err(serializer.CodeMetaMismatch, "", err)
 	}
 
 	return ProcessCallback(service, c)

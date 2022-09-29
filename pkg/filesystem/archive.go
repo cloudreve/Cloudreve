@@ -107,7 +107,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 		fs.Policy = file.GetPolicy()
 		err := fs.DispatchHandler()
 		if err != nil {
-			util.Log().Warning("无法压缩文件%s，%s", file.Name, err)
+			util.Log().Warning("Failed to compress file %q: %s", file.Name, err)
 			return
 		}
 
@@ -117,7 +117,7 @@ func (fs *FileSystem) doCompress(ctx context.Context, file *model.File, folder *
 			file.SourceName,
 		)
 		if err != nil {
-			util.Log().Debug("Open%s，%s", file.Name, err)
+			util.Log().Debug("Failed to open %q: %s", file.Name, err)
 			return
 		}
 		if closer, ok := fileToZip.(io.Closer); ok {
@@ -176,7 +176,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 		// 结束时删除临时压缩文件
 		if tempZipFilePath != "" {
 			if err := os.Remove(tempZipFilePath); err != nil {
-				util.Log().Warning("无法删除临时压缩文件 %s , %s", tempZipFilePath, err)
+				util.Log().Warning("Failed to delete temp archive file %q: %s", tempZipFilePath, err)
 			}
 		}
 	}()
@@ -197,7 +197,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 
 	zipFile, err := util.CreatNestedFile(tempZipFilePath)
 	if err != nil {
-		util.Log().Warning("无法创建临时压缩文件 %s , %s", tempZipFilePath, err)
+		util.Log().Warning("Failed to create temp archive file %q: %s", tempZipFilePath, err)
 		tempZipFilePath = ""
 		return err
 	}
@@ -206,7 +206,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 	// 下载前先判断是否是可解压的格式
 	format, readStream, err := archiver.Identify(fs.FileTarget[0].SourceName, fileStream)
 	if err != nil {
-		util.Log().Warning("无法识别文件格式 %s , %s", fs.FileTarget[0].SourceName, err)
+		util.Log().Warning("Failed to detect compressed format of file %q: %s", fs.FileTarget[0].SourceName, err)
 		return err
 	}
 
@@ -228,7 +228,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 	if isZip {
 		_, err = io.Copy(zipFile, readStream)
 		if err != nil {
-			util.Log().Warning("无法写入临时压缩文件 %s , %s", tempZipFilePath, err)
+			util.Log().Warning("Failed to write temp archive file %q: %s", tempZipFilePath, err)
 			return err
 		}
 
@@ -261,7 +261,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 				wg.Done()
 			}
 			if err := recover(); err != nil {
-				util.Log().Warning("上传压缩包内文件时出错")
+				util.Log().Warning("Error while uploading files inside of archive file.")
 				fmt.Println(err)
 			}
 		}()
@@ -274,7 +274,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 		}, true)
 		fileStream.Close()
 		if err != nil {
-			util.Log().Debug("无法上传压缩包内的文件%s , %s , 跳过", rawPath, err)
+			util.Log().Debug("Failed to upload file %q in archive file: %s, skipping...", rawPath, err)
 		}
 	}
 
@@ -297,7 +297,7 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 		// 上传文件
 		fileStream, err := f.Open()
 		if err != nil {
-			util.Log().Warning("无法打开压缩包内文件%s , %s , 跳过", rawPath, err)
+			util.Log().Warning("Failed to open file %q in archive file: %s, skipping...", rawPath, err)
 			return nil
 		}
 

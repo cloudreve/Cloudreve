@@ -73,7 +73,7 @@ func (fs *FileSystem) Copy(ctx context.Context, dirs, files []uint, src, dst str
 	if len(dirs) > 0 {
 		subFileSizes, err := srcFolder.CopyFolderTo(dirs[0], dstFolder)
 		if err != nil {
-			return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+			return ErrObjectNotExist.WithError(err)
 		}
 		newUsedStorage += subFileSizes
 	}
@@ -82,7 +82,7 @@ func (fs *FileSystem) Copy(ctx context.Context, dirs, files []uint, src, dst str
 	if len(files) > 0 {
 		subFileSizes, err := srcFolder.MoveOrCopyFileTo(files, dstFolder, true)
 		if err != nil {
-			return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+			return ErrObjectNotExist.WithError(err)
 		}
 		newUsedStorage += subFileSizes
 	}
@@ -106,13 +106,13 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst str
 	// 处理目录及子文件移动
 	err := srcFolder.MoveFolderTo(dirs, dstFolder)
 	if err != nil {
-		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+		return ErrFileExisted.WithError(err)
 	}
 
 	// 处理文件移动
 	_, err = srcFolder.MoveOrCopyFileTo(files, dstFolder, false)
 	if err != nil {
-		return serializer.NewError(serializer.CodeDBError, "操作失败，可能有重名冲突", err)
+		return ErrFileExisted.WithError(err)
 	}
 
 	// 移动文件

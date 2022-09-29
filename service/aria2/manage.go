@@ -33,7 +33,7 @@ func (service *DownloadListService) Finished(c *gin.Context, user *model.User) s
 // Downloading 获取正在下载中的任务
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Paused, common.Ready)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Seeding, common.Paused, common.Ready)
 	intervals := make(map[uint]int)
 	for _, download := range downloads {
 		if _, ok := intervals[download.ID]; !ok {
@@ -54,13 +54,13 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	// 查找下载记录
 	download, err := model.GetDownloadByGid(c.Param("gid"), user.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
+		return serializer.Err(serializer.CodeNotFound, "Download record not found", err)
 	}
 
-	if download.Status >= common.Error {
+	if download.Status >= common.Error && download.Status <= common.Unknown {
 		// 如果任务已完成，则删除任务记录
 		if err := download.Delete(); err != nil {
-			return serializer.Err(serializer.CodeDBError, "任务记录删除失败", err)
+			return serializer.DBErr("Failed to delete task record", err)
 		}
 		return serializer.Response{}
 	}
@@ -68,11 +68,11 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 	// 取消任务
 	node := cluster.Default.GetNodeByID(download.GetNodeID())
 	if node == nil {
-		return serializer.Err(serializer.CodeInternalSetting, "目标节点不可用", err)
+		return serializer.Err(serializer.CodeNodeOffline, "", err)
 	}
 
 	if err := node.GetAria2Instance().Cancel(download); err != nil {
-		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
+		return serializer.Err(serializer.CodeNotSet, "Operation failed", err)
 	}
 
 	return serializer.Response{}
@@ -86,17 +86,17 @@ func (service *SelectFileService) Select(c *gin.Context) serializer.Response {
 	// 查找下载记录
 	download, err := model.GetDownloadByGid(c.Param("gid"), user.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "下载记录不存在", err)
+		return serializer.Err(serializer.CodeNotFound, "Download record not found", err)
 	}
 
 	if download.StatusInfo.BitTorrent.Mode != "multi" || (download.Status != common.Downloading && download.Status != common.Paused) {
-		return serializer.Err(serializer.CodeNoPermissionErr, "此下载任务无法选取文件", err)
+		return serializer.ParamErr("You cannot select files for this task", nil)
 	}
 
 	// 选取下载
 	node := cluster.Default.GetNodeByID(download.GetNodeID())
 	if err := node.GetAria2Instance().Select(download, service.Indexes); err != nil {
-		return serializer.Err(serializer.CodeNotSet, "操作失败", err)
+		return serializer.Err(serializer.CodeNotSet, "Operation failed", err)
 	}
 
 	return serializer.Response{}
@@ -110,7 +110,7 @@ func SlaveStatus(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	status, err := caller.(common.Aria2).Status(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "离线下载任务查询失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to query remote download task status", err)
 	}
 
 	return serializer.NewResponseWithGobData(status)
@@ -124,7 +124,7 @@ func SlaveCancel(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	err := caller.(common.Aria2).Cancel(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "任务取消失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to cancel task", err)
 	}
 
 	return serializer.Response{}
@@ -138,7 +138,7 @@ func SlaveSelect(c *gin.Context, service *serializer.SlaveAria2Call) serializer.
 	// 查询任务
 	err := caller.(common.Aria2).Select(service.Task, service.Files)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "任务选取失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to select files", err)
 	}
 
 	return serializer.Response{}
@@ -152,7 +152,7 @@ func SlaveDeleteTemp(c *gin.Context, service *serializer.SlaveAria2Call) seriali
 	// 查询任务
 	err := caller.(common.Aria2).DeleteTempFile(service.Task)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "临时文件删除失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete temp files", err)
 	}
 
 	return serializer.Response{}

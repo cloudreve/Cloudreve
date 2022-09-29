@@ -9,8 +9,10 @@ RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 
 # build frontend
 WORKDIR /cloudreve_builder/Cloudreve/assets
+ENV GENERATE_SOURCEMAP false
+
 RUN yarn install --network-timeout 1000000
-RUN yarn run build && find . -name "*.map" -type f -delete
+RUN yarn run build
 
 # build backend
 WORKDIR /cloudreve_builder/Cloudreve

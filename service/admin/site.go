@@ -43,8 +43,8 @@ type MailTestService struct {
 
 // Send 发送测试邮件
 func (service *MailTestService) Send() serializer.Response {
-	if err := email.Send(service.Email, "Cloudreve发信测试", "这是一封测试邮件，用于测试 Cloudreve 发信设置。"); err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "发信失败, "+err.Error(), nil)
+	if err := email.Send(service.Email, "Cloudreve Email delivery test", "This is a test Email, to test Cloudreve Email delivery settings"); err != nil {
+		return serializer.Err(serializer.CodeFailedSendEmail, err.Error(), nil)
 	}
 	return serializer.Response{}
 }
@@ -65,14 +65,14 @@ func (service *BatchSettingChangeService) Change() serializer.Response {
 		if err := tx.Model(&model.Setting{}).Where("name = ?", setting.Key).Update("value", setting.Value).Error; err != nil {
 			cache.Deletes(cacheClean, "setting_")
 			tx.Rollback()
-			return serializer.DBErr("设置 "+setting.Key+" 更新失败", err)
+			return serializer.Err(serializer.CodeUpdateSetting, "Setting "+setting.Key+" failed to update", err)
 		}
 
 		cacheClean = append(cacheClean, setting.Key)
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return serializer.DBErr("设置更新失败", err)
+		return serializer.DBErr("Failed to update setting", err)
 	}
 
 	cache.Deletes(cacheClean, "setting_")

@@ -15,9 +15,9 @@ type Driver interface {
 
 var (
 	// ErrChanNotOpen 邮件队列未开启
-	ErrChanNotOpen = errors.New("邮件队列未开启")
+	ErrChanNotOpen = errors.New("email queue is not started")
 	// ErrNoActiveDriver 无可用邮件发送服务
-	ErrNoActiveDriver = errors.New("无可用邮件发送服务")
+	ErrNoActiveDriver = errors.New("no avaliable email provider")
 )
 
 // Send 发送邮件

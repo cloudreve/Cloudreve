@@ -51,7 +51,7 @@ func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -84,13 +84,13 @@ func (service *SlaveListService) List(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
 	if err != nil {
-		return serializer.Err(serializer.CodeIOFailed, "无法列取文件", err)
+		return serializer.Err(serializer.CodeIOFailed, "Cannot list files", err)
 	}
 
 	res, _ := json.Marshal(objects)
@@ -101,21 +101,21 @@ func (service *SlaveListService) List(c *gin.Context) serializer.Response {
 func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
 	userRaw, exist := cache.Get("archive_user_" + service.ID)
 	if !exist {
-		return serializer.Err(404, "归档会话不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "Archive session not exist", nil)
 	}
 	user := userRaw.(model.User)
 
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(&user)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	// 查找打包的临时文件
 	archiveSession, exist := cache.Get("archive_" + service.ID)
 	if !exist {
-		return serializer.Err(404, "归档会话不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "Archive session not exist", nil)
 	}
 
 	// 开始打包
@@ -126,7 +126,7 @@ func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Cont
 	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
 	err = fs.Compress(ctx, c.Writer, items.Dirs, items.Items, true)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "无法创建压缩文件", err)
+		return serializer.Err(serializer.CodeNotSet, "Failed to compress file", err)
 	}
 
 	return serializer.Response{
@@ -138,7 +138,7 @@ func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Cont
 func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Context) serializer.Response {
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodeGroupNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -167,7 +167,7 @@ func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Con
 func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Context) serializer.Response {
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		return serializer.Err(serializer.CodeGroupNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -243,7 +243,7 @@ func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -267,14 +267,14 @@ func (service *DownloadService) Download(ctx context.Context, c *gin.Context) se
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	// 查找打包的临时文件
 	file, exist := cache.Get("download_" + service.ID)
 	if !exist {
-		return serializer.Err(404, "文件下载会话不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "Download session not exist", nil)
 	}
 	fs.FileTarget = []model.File{file.(model.File)}
 
@@ -308,7 +308,7 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -327,7 +327,7 @@ func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context
 		path := ctx.Value(fsctx.PathCtx).(string)
 		err := fs.ResetFileIfNotExist(ctx, path)
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, err.Error(), err)
+			return serializer.Err(serializer.CodeFileNotFound, err.Error(), err)
 		}
 		objectID = uint(0)
 	}
@@ -371,7 +371,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
 	if err != nil {
 
-		return serializer.ParamErr("无法解析文件尺寸", err)
+		return serializer.ParamErr("Invalid content-length value", err)
 	}
 
 	fileData := fsctx.FileStream{
@@ -384,7 +384,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
 
@@ -392,7 +392,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	fileID, _ := c.Get("object_id")
 	originFile, _ := model.GetFilesByIDs([]uint{fileID.(uint)}, fs.User.ID)
 	if len(originFile) == 0 {
-		return serializer.Err(404, "文件不存在", nil)
+		return serializer.Err(serializer.CodeFileNotFound, "", nil)
 	}
 	fileData.Name = originFile[0].Name
 
@@ -433,12 +433,12 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 func (s *ItemIDService) Sources(ctx context.Context, c *gin.Context) serializer.Response {
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "无法初始化文件系统", err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	if len(s.Raw().Items) > fs.User.Group.OptionsSerialized.SourceBatchSize {
-		return serializer.Err(serializer.CodeBatchSourceSize, "超出批量获取外链的最大数量限制", err)
+		return serializer.Err(serializer.CodeBatchSourceSize, "", err)
 	}
 
 	res := make([]serializer.Sources, 0, len(s.Raw().Items))

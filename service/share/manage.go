@@ -30,11 +30,11 @@ type ShareUpdateService struct {
 func (service *Service) Delete(c *gin.Context, user *model.User) serializer.Response {
 	share := model.GetShareByHashID(c.Param("id"))
 	if share == nil || share.Creator().ID != user.ID {
-		return serializer.Err(serializer.CodeNotFound, "分享不存在", nil)
+		return serializer.Err(serializer.CodeShareLinkNotFound, "", nil)
 	}
 
 	if err := share.Delete(); err != nil {
-		return serializer.Err(serializer.CodeDBError, "分享删除失败", err)
+		return serializer.DBErr("Failed to delete share record", err)
 	}
 
 	return serializer.Response{}
@@ -49,13 +49,13 @@ func (service *ShareUpdateService) Update(c *gin.Context) serializer.Response {
 	case "password":
 		err := share.Update(map[string]interface{}{"password": service.Value})
 		if err != nil {
-			return serializer.Err(serializer.CodeDBError, "无法更新分享密码", err)
+			return serializer.DBErr("Failed to update share record", err)
 		}
 	case "preview_enabled":
 		value := service.Value == "true"
 		err := share.Update(map[string]interface{}{"preview_enabled": value})
 		if err != nil {
-			return serializer.Err(serializer.CodeDBError, "无法更新分享属性", err)
+			return serializer.DBErr("Failed to update share record", err)
 		}
 		return serializer.Response{
 			Data: value,
@@ -73,7 +73,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 
 	// 是否拥有权限
 	if !user.Group.ShareEnabled {
-		return serializer.Err(serializer.CodeNoPermissionErr, "您无权创建分享链接", nil)
+		return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
 	}
 
 	// 源对象真实ID
@@ -88,7 +88,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		sourceID, err = hashid.DecodeHashID(service.SourceID, hashid.FileID)
 	}
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "原始资源不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "", nil)
 	}
 
 	// 对象是否存在
@@ -109,7 +109,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		}
 	}
 	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "原始资源不存在", nil)
+		return serializer.Err(serializer.CodeNotFound, "", nil)
 	}
 
 	newShare := model.Share{
@@ -132,7 +132,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 	// 创建分享
 	id, err := newShare.Create()
 	if err != nil {
-		return serializer.Err(serializer.CodeDBError, "分享链接创建失败", err)
+		return serializer.DBErr("Failed to create share link record", err)
 	}
 
 	// 获取分享的唯一id

@@ -29,11 +29,11 @@ type UserBatchService struct {
 func (service *UserService) Ban() serializer.Response {
 	user, err := model.GetUserByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "", err)
 	}
 
 	if user.ID == 1 {
-		return serializer.Err(serializer.CodeNoPermissionErr, "无法封禁初始用户", err)
+		return serializer.Err(serializer.CodeInvalidActionOnDefaultUser, "", err)
 	}
 
 	if user.Status == model.Active {
@@ -50,12 +50,12 @@ func (service *UserBatchService) Delete() serializer.Response {
 	for _, uid := range service.ID {
 		user, err := model.GetUserByID(uid)
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+			return serializer.Err(serializer.CodeUserNotFound, "", err)
 		}
 
 		// 不能删除初始用户
 		if uid == 1 {
-			return serializer.Err(serializer.CodeNoPermissionErr, "无法删除初始用户", err)
+			return serializer.Err(serializer.CodeInvalidActionOnDefaultUser, "", err)
 		}
 
 		// 删除与此用户相关的所有资源
@@ -64,7 +64,7 @@ func (service *UserBatchService) Delete() serializer.Response {
 		// 删除所有文件
 		root, err := fs.User.Root()
 		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, "无法找到用户根目录", err)
+			return serializer.Err(serializer.CodeInternalSetting, "User's root folder not exist", err)
 		}
 		fs.Delete(context.Background(), []uint{root.ID}, []uint{}, false)
 
@@ -89,7 +89,7 @@ func (service *UserBatchService) Delete() serializer.Response {
 func (service *UserService) Get() serializer.Response {
 	group, err := model.GetUserByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "", err)
 	}
 
 	return serializer.Response{Data: group}
@@ -112,16 +112,16 @@ func (service *AddUserService) Add() serializer.Response {
 
 		// 检查愚蠢操作
 		if user.ID == 1 && user.GroupID != 1 {
-			return serializer.ParamErr("无法更改初始用户的用户组", nil)
+			return serializer.Err(serializer.CodeChangeGroupForDefaultUser, "", nil)
 		}
 
 		if err := model.DB.Save(&user).Error; err != nil {
-			return serializer.ParamErr("用户保存失败", err)
+			return serializer.DBErr("Failed to save user record", err)
 		}
 	} else {
 		service.User.SetPassword(service.Password)
 		if err := model.DB.Create(&service.User).Error; err != nil {
-			return serializer.ParamErr("用户组添加失败", err)
+			return serializer.DBErr("Failed to create user record", err)
 		}
 	}
 

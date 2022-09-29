@@ -16,11 +16,11 @@ type AddNodeService struct {
 func (service *AddNodeService) Add() serializer.Response {
 	if service.Node.ID > 0 {
 		if err := model.DB.Save(&service.Node).Error; err != nil {
-			return serializer.ParamErr("节点保存失败", err)
+			return serializer.DBErr("Failed to save node record", err)
 		}
 	} else {
 		if err := model.DB.Create(&service.Node).Error; err != nil {
-			return serializer.ParamErr("节点添加失败", err)
+			return serializer.DBErr("Failed to create node record", err)
 		}
 	}
 
@@ -84,16 +84,16 @@ type ToggleNodeService struct {
 func (service *ToggleNodeService) Toggle() serializer.Response {
 	node, err := model.GetNodeByID(service.ID)
 	if err != nil {
-		return serializer.DBErr("找不到节点", err)
+		return serializer.DBErr("Node not found", err)
 	}
 
 	// 是否为系统节点
 	if node.ID <= 1 {
-		return serializer.Err(serializer.CodeNoPermissionErr, "系统节点无法更改", err)
+		return serializer.Err(serializer.CodeInvalidActionOnSystemNode, "", err)
 	}
 
 	if err = node.SetStatus(service.Desired); err != nil {
-		return serializer.DBErr("无法更改节点状态", err)
+		return serializer.DBErr("Failed to change node status", err)
 	}
 
 	if service.Desired == model.NodeActive {
@@ -115,17 +115,17 @@ func (service *NodeService) Delete() serializer.Response {
 	// 查找用户组
 	node, err := model.GetNodeByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "节点不存在", err)
+		return serializer.DBErr("Node record not found", err)
 	}
 
 	// 是否为系统节点
 	if node.ID <= 1 {
-		return serializer.Err(serializer.CodeNoPermissionErr, "系统节点无法删除", err)
+		return serializer.Err(serializer.CodeInvalidActionOnSystemNode, "", err)
 	}
 
 	cluster.Default.Delete(node.ID)
 	if err := model.DB.Delete(&node).Error; err != nil {
-		return serializer.DBErr("无法删除节点", err)
+		return serializer.DBErr("Failed to delete node record", err)
 	}
 
 	return serializer.Response{}
@@ -135,7 +135,7 @@ func (service *NodeService) Delete() serializer.Response {
 func (service *NodeService) Get() serializer.Response {
 	node, err := model.GetNodeByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "节点不存在", err)
+		return serializer.DBErr("Node not exist", err)
 	}
 
 	return serializer.Response{Data: node}

@@ -17,7 +17,7 @@ type ShareBatchService struct {
 // Delete 删除文件
 func (service *ShareBatchService) Delete(c *gin.Context) serializer.Response {
 	if err := model.DB.Where("id in (?)", service.ID).Delete(&model.Share{}).Error; err != nil {
-		return serializer.DBErr("无法删除分享", err)
+		return serializer.DBErr("Failed to delete share record", err)
 	}
 	return serializer.Response{}
 }

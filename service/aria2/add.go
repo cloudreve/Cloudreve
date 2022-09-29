@@ -24,24 +24,24 @@ func (service *BatchAddURLService) Add(c *gin.Context, taskType int) serializer.
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
 	// 检查用户组权限
 	if !fs.User.Group.OptionsSerialized.Aria2 {
-		return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+		return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
 	}
 
 	// 存放目录是否存在
 	if exist, _ := fs.IsPathExist(service.Dst); !exist {
-		return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+		return serializer.Err(serializer.CodeParentNotExist, "", nil)
 	}
 
 	// 检查批量任务数量
 	limit := fs.User.Group.OptionsSerialized.Aria2BatchSize
 	if limit > 0 && len(service.URLs) > limit {
-		return serializer.Err(serializer.CodeBatchAria2Size, "Exceed aria2 batch size", nil)
+		return serializer.Err(serializer.CodeBatchAria2Size, "", nil)
 	}
 
 	res := make([]serializer.Response, 0, len(service.URLs))
@@ -71,25 +71,25 @@ func (service *AddURLService) Add(c *gin.Context, fs *filesystem.FileSystem, tas
 		// 创建文件系统
 		fs, err = filesystem.NewFileSystemFromContext(c)
 		if err != nil {
-			return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+			return serializer.Err(serializer.CodeCreateFSError, "", err)
 		}
 		defer fs.Recycle()
 
 		// 检查用户组权限
 		if !fs.User.Group.OptionsSerialized.Aria2 {
-			return serializer.Err(serializer.CodeGroupNotAllowed, "当前用户组无法进行此操作", nil)
+			return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
 		}
 
 		// 存放目录是否存在
 		if exist, _ := fs.IsPathExist(service.Dst); !exist {
-			return serializer.Err(serializer.CodeNotFound, "存放路径不存在", nil)
+			return serializer.Err(serializer.CodeParentNotExist, "", nil)
 		}
 	}
 
 	downloads := model.GetDownloadsByStatusAndUser(0, fs.User.ID, common.Downloading, common.Paused, common.Ready)
 	limit := fs.User.Group.OptionsSerialized.Aria2BatchSize
 	if limit > 0 && len(downloads)+1 > limit {
-		return serializer.Err(serializer.CodeBatchAria2Size, "Exceed aria2 batch size", nil)
+		return serializer.Err(serializer.CodeBatchAria2Size, "", nil)
 	}
 
 	// 创建任务
@@ -107,20 +107,20 @@ func (service *AddURLService) Add(c *gin.Context, fs *filesystem.FileSystem, tas
 	// 获取 Aria2 实例
 	err, node := cluster.Default.BalanceNodeByFeature("aria2", lb)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "Aria2 实例获取失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to get Aria2 instance", err)
 	}
 
 	// 创建任务
 	gid, err := node.GetAria2Instance().CreateTask(task, fs.User.Group.OptionsSerialized.Aria2Options)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "任务创建失败", err)
+		return serializer.Err(serializer.CodeCreateTaskError, "", err)
 	}
 
 	task.GID = gid
 	task.NodeID = node.ID()
 	_, err = task.Create()
 	if err != nil {
-		return serializer.DBErr("任务创建失败", err)
+		return serializer.DBErr("Failed to create task record", err)
 	}
 
 	// 创建任务监控
@@ -136,14 +136,14 @@ func Add(c *gin.Context, service *serializer.SlaveAria2Call) serializer.Response
 	// 创建任务
 	gid, err := caller.(common.Aria2).CreateTask(service.Task, service.GroupOptions)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "无法创建离线下载任务", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to create aria2 task", err)
 	}
 
 	// 创建事件通知回调
 	siteID, _ := c.Get("MasterSiteID")
 	mq.GlobalMQ.SubscribeCallback(gid, func(message mq.Message) {
 		if err := cluster.DefaultController.SendNotification(siteID.(string), message.TriggeredBy, message); err != nil {
-			util.Log().Warning("无法发送离线下载任务状态变更通知, %s", err)
+			util.Log().Warning("Failed to send remote download task status change notifications: %s", err)
 		}
 	})
 

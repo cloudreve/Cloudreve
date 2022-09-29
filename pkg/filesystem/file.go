@@ -72,7 +72,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 
 	if err != nil {
 		if err := fs.Trigger(ctx, "AfterValidateFailed", file); err != nil {
-			util.Log().Debug("AfterValidateFailed 钩子执行失败，%s", err)
+			util.Log().Debug("AfterValidateFailed hook execution failed: %s", err)
 		}
 		return nil, ErrFileExisted.WithError(err)
 	}
@@ -203,7 +203,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		// 取消上传会话
 		for _, upSession := range uploadSessions {
 			if err := fs.Handler.CancelToken(ctx, upSession); err != nil {
-				util.Log().Warning("无法取消 [%s] 的上传会话: %s", upSession.Name, err)
+				util.Log().Warning("Failed to cancel upload session for %q: %s", upSession.Name, err)
 			}
 
 			cache.Deletes([]string{upSession.Key}, UploadSessionCachePrefix)
@@ -270,14 +270,14 @@ func (fs *FileSystem) GetSource(ctx context.Context, fileID uint) (string, error
 	if !fs.Policy.IsOriginLinkEnable {
 		return "", serializer.NewError(
 			serializer.CodePolicyNotAllowed,
-			"当前存储策略无法获得外链",
+			"This policy is not enabled for getting source link",
 			nil,
 		)
 	}
 
 	source, err := fs.SignURL(ctx, &fs.FileTarget[0], 0, false)
 	if err != nil {
-		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
+		return "", serializer.NewError(serializer.CodeNotSet, "Failed to get source link", err)
 	}
 
 	return source, nil
@@ -298,7 +298,7 @@ func (fs *FileSystem) SignURL(ctx context.Context, file *model.File, ttl int64, 
 	siteURL := model.GetSiteURL()
 	source, err := fs.Handler.Source(ctx, fs.FileTarget[0].SourceName, *siteURL, ttl, isDownload, fs.User.Group.SpeedLimit)
 	if err != nil {
-		return "", serializer.NewError(serializer.CodeNotSet, "无法获取外链", err)
+		return "", serializer.NewError(serializer.CodeNotSet, "Failed to get source link", err)
 	}
 
 	return source, nil
