@@ -33,7 +33,7 @@ func (service *DownloadListService) Finished(c *gin.Context, user *model.User) s
 // Downloading 获取正在下载中的任务
 func (service *DownloadListService) Downloading(c *gin.Context, user *model.User) serializer.Response {
 	// 查找下载记录
-	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Paused, common.Ready)
+	downloads := model.GetDownloadsByStatusAndUser(service.Page, user.ID, common.Downloading, common.Seeding, common.Paused, common.Ready)
 	intervals := make(map[uint]int)
 	for _, download := range downloads {
 		if _, ok := intervals[download.ID]; !ok {
@@ -57,7 +57,7 @@ func (service *DownloadTaskService) Delete(c *gin.Context) serializer.Response {
 		return serializer.Err(serializer.CodeNotFound, "Download record not found", err)
 	}
 
-	if download.Status >= common.Error {
+	if download.Status >= common.Error && download.Status <= common.Unknown {
 		// 如果任务已完成，则删除任务记录
 		if err := download.Delete(); err != nil {
 			return serializer.DBErr("Failed to delete task record", err)

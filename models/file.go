@@ -186,6 +186,10 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	// 结果值
 	filteredFiles := make([]File, 0)
 
+	if len(files) == 0 {
+		return filteredFiles, nil
+	}
+
 	// 查询软链接的文件
 	var filesWithSoftLinks []File
 	tx := DB
