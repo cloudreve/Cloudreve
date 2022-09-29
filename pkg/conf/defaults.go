@@ -18,7 +18,7 @@ var DatabaseConfig = &database{
 	Host:        util.EnvStr("DATABASE_HOST", "localhost"),
 	Name:        util.EnvStr("DATABASE_NAME", "cloudreve"),
 	TablePrefix: util.EnvStr("DATABASE_TABLE_PREFIX", ""),
-	DBFile:      util.EnvStr("DATABASE_DBFILE", "data.db"),
+	DBFile:      util.EnvStr("DATABASE_DBFILE", "cloudreve.db"),
 	Port:        util.EnvInt("DATABASE_PORT", 3306),
 	Charset:     util.EnvStr("DATABASE_CHARSET", "utf8"),
 }
