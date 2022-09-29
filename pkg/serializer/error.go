@@ -188,6 +188,8 @@ const (
 	CodeQQNotLinked = 40068
 	// 密码不正确
 	CodeIncorrectPassword = 40069
+	// 分享无法预览
+	CodeDisabledSharePreview = 40070
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

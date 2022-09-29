@@ -16,14 +16,14 @@ func ShareOwner() gin.HandlerFunc {
 		if userCtx, ok := c.Get("user"); ok {
 			user = userCtx.(*model.User)
 		} else {
-			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, "请先登录", nil))
+			c.JSON(200, serializer.Err(serializer.CodeCheckLogin, "", nil))
 			c.Abort()
 			return
 		}
 
 		if share, ok := c.Get("share"); ok {
 			if share.(*model.Share).Creator().ID != user.ID {
-				c.JSON(200, serializer.Err(serializer.CodeNotFound, "分享不存在", nil))
+				c.JSON(200, serializer.Err(serializer.CodeShareLinkNotFound, "", nil))
 				c.Abort()
 				return
 			}
@@ -46,7 +46,7 @@ func ShareAvailable() gin.HandlerFunc {
 		share := model.GetShareByHashID(c.Param("id"))
 
 		if share == nil || !share.IsAvailable() {
-			c.JSON(200, serializer.Err(serializer.CodeNotFound, "分享不存在或已失效", nil))
+			c.JSON(200, serializer.Err(serializer.CodeShareLinkNotFound, "", nil))
 			c.Abort()
 			return
 		}
@@ -65,7 +65,7 @@ func ShareCanPreview() gin.HandlerFunc {
 				c.Next()
 				return
 			}
-			c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "此分享无法预览",
+			c.JSON(200, serializer.Err(serializer.CodeDisabledSharePreview, "",
 				nil))
 			c.Abort()
 			return
@@ -85,7 +85,7 @@ func CheckShareUnlocked() gin.HandlerFunc {
 				unlocked := util.GetSession(c, sessionKey) != nil
 				if !unlocked {
 					c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr,
-						"无权访问此分享", nil))
+						"", nil))
 					c.Abort()
 					return
 				}
@@ -109,7 +109,7 @@ func BeforeShareDownload() gin.HandlerFunc {
 				// 检查用户是否可以下载此分享的文件
 				err := share.CanBeDownloadBy(user)
 				if err != nil {
-					c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, err.Error(),
+					c.JSON(200, serializer.Err(serializer.CodeGroupNotAllowed, err.Error(),
 						nil))
 					c.Abort()
 					return
@@ -118,7 +118,7 @@ func BeforeShareDownload() gin.HandlerFunc {
 				// 对积分、下载次数进行更新
 				err = share.DownloadBy(user, c)
 				if err != nil {
-					c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, err.Error(),
+					c.JSON(200, serializer.Err(serializer.CodeGroupNotAllowed, err.Error(),
 						nil))
 					c.Abort()
 					return

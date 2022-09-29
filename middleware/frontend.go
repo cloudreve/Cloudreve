@@ -23,13 +23,13 @@ func FrontendFileHandler() gin.HandlerFunc {
 	// 读取index.html
 	file, err := bootstrap.StaticFS.Open("/index.html")
 	if err != nil {
-		util.Log().Warning("静态文件[index.html]不存在，可能会影响首页展示")
+		util.Log().Warning("Static file \"index.html\" does not exist, it might affect the display of the homepage.")
 		return ignoreFunc
 	}
 
 	fileContentBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		util.Log().Warning("静态文件[index.html]读取失败，可能会影响首页展示")
+		util.Log().Warning("Cannot read static file \"index.html\", it might affect the display of the homepage.")
 		return ignoreFunc
 	}
 	fileContent := string(fileContentBytes)

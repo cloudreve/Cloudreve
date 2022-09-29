@@ -46,13 +46,13 @@ func (b *GinFS) Exists(prefix string, filepath string) bool {
 // InitStatic 初始化静态资源文件
 func InitStatic(statics fs.FS) {
 	if util.Exists(util.RelativePath(StaticFolder)) {
-		util.Log().Info("检测到 statics 目录存在，将使用此目录下的静态资源文件")
+		util.Log().Info("Folder with name \"statics\" already exists, it will be used to serve static files.")
 		StaticFS = static.LocalFile(util.RelativePath("statics"), false)
 	} else {
 		// 初始化静态资源
 		embedFS, err := fs.Sub(statics, "assets/build")
 		if err != nil {
-			util.Log().Panic("无法初始化静态资源, %s", err)
+			util.Log().Panic("Failed to initialize static resources: %s", err)
 		}
 
 		StaticFS = &GinFS{
@@ -62,19 +62,19 @@ func InitStatic(statics fs.FS) {
 	// 检查静态资源的版本
 	f, err := StaticFS.Open("version.json")
 	if err != nil {
-		util.Log().Warning("静态资源版本标识文件不存在，请重新构建或删除 statics 目录")
+		util.Log().Warning("Missing version identifier file in static resources, please delete \"statics\" folder and rebuild it.")
 		return
 	}
 
 	b, err := io.ReadAll(f)
 	if err != nil {
-		util.Log().Warning("无法读取静态资源文件版本，请重新构建或删除 statics 目录")
+		util.Log().Warning("Failed to read version identifier file in static resources, please delete \"statics\" folder and rebuild it.")
 		return
 	}
 
 	var v staticVersion
 	if err := json.Unmarshal(b, &v); err != nil {
-		util.Log().Warning("无法解析静态资源文件版本, %s", err)
+		util.Log().Warning("Failed to parse version identifier file in static resources: %s", err)
 		return
 	}
 
@@ -84,12 +84,12 @@ func InitStatic(statics fs.FS) {
 	}
 
 	if v.Name != staticName {
-		util.Log().Warning("静态资源版本不匹配，请重新构建或删除 statics 目录")
+		util.Log().Warning("Static resource version mismatch, please delete \"statics\" folder and rebuild it.")
 		return
 	}
 
 	if v.Version != conf.RequiredStaticVersion {
-		util.Log().Warning("静态资源版本不匹配 [当前 %s, 需要: %s]，请重新构建或删除 statics 目录", v.Version, conf.RequiredStaticVersion)
+		util.Log().Warning("Static resource version mismatch [Current %s, Desired: %s]，please delete \"statics\" folder and rebuild it.", v.Version, conf.RequiredStaticVersion)
 		return
 	}
 }
@@ -99,13 +99,13 @@ func Eject(statics fs.FS) {
 	// 初始化静态资源
 	embedFS, err := fs.Sub(statics, "assets/build")
 	if err != nil {
-		util.Log().Panic("无法初始化静态资源, %s", err)
+		util.Log().Panic("Failed to initialize static resources: %s", err)
 	}
 
 	var walk func(relPath string, d fs.DirEntry, err error) error
 	walk = func(relPath string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return errors.Errorf("无法获取[%s]的信息, %s, 跳过...", relPath, err)
+			return errors.Errorf("Failed to read info of %q: %s, skipping...", relPath, err)
 		}
 
 		if !d.IsDir() {
@@ -114,13 +114,13 @@ func Eject(statics fs.FS) {
 			defer out.Close()
 
 			if err != nil {
-				return errors.Errorf("无法创建文件[%s], %s, 跳过...", relPath, err)
+				return errors.Errorf("Failed to create file %q: %s, skipping...", relPath, err)
 			}
 
-			util.Log().Info("导出 [%s]...", relPath)
+			util.Log().Info("Ejecting %q...", relPath)
 			obj, _ := embedFS.Open(relPath)
 			if _, err := io.Copy(out, bufio.NewReader(obj)); err != nil {
-				return errors.Errorf("无法写入文件[%s], %s, 跳过...", relPath, err)
+				return errors.Errorf("Cannot write file %q: %s, skipping...", relPath, err)
 			}
 		}
 		return nil
@@ -129,8 +129,8 @@ func Eject(statics fs.FS) {
 	// util.Log().Info("开始导出内置静态资源...")
 	err = fs.WalkDir(embedFS, ".", walk)
 	if err != nil {
-		util.Log().Error("导出内置静态资源遇到错误：%s", err)
+		util.Log().Error("Error occurs while ejecting static resources: %s", err)
 		return
 	}
-	util.Log().Info("内置静态资源导出完成")
+	util.Log().Info("Finish ejecting static resources.")
 }
