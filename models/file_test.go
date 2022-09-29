@@ -257,6 +257,19 @@ func TestFile_GetPolicy(t *testing.T) {
 	}
 }
 
+func TestRemoveFilesWithSoftLinks_EmptyArg(t *testing.T) {
+	asserts := assert.New(t)
+	// 传入空
+	{
+		mock.ExpectQuery("SELECT(.+)files(.+)")
+		file, err := RemoveFilesWithSoftLinks([]File{})
+		asserts.Error(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(len(file), 0)
+		DB.Find(&File{})
+	}
+}
+
 func TestRemoveFilesWithSoftLinks(t *testing.T) {
 	asserts := assert.New(t)
 	files := []File{
