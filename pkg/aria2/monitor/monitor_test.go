@@ -3,6 +3,8 @@ package monitor
 import (
 	"database/sql"
 	"errors"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
@@ -13,7 +15,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	testMock "github.com/stretchr/testify/mock"
-	"testing"
 )
 
 var mock sqlmock.Sqlmock
@@ -431,6 +432,14 @@ func TestMonitor_Complete(t *testing.T) {
 	mock.ExpectExec("UPDATE(.+)downloads").WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 
+	mock.ExpectQuery("SELECT(.+)tasks").WillReturnRows(sqlmock.NewRows([]string{"id", "type", "status"}).AddRow(1, 2, 4))
+	mock.ExpectQuery("SELECT(.+)users").WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(9414))
+	mock.ExpectBegin()
+	mock.ExpectExec("INSERT(.+)tasks").WillReturnResult(sqlmock.NewResult(2, 1))
+	mock.ExpectCommit()
+
+	a.False(m.Complete(mockPool))
+	m.Task.StatusInfo.Status = "complete"
 	a.True(m.Complete(mockPool))
 	a.NoError(mock.ExpectationsWereMet())
 	mockNode.AssertExpectations(t)

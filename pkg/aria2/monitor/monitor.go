@@ -109,14 +109,14 @@ func (monitor *Monitor) Update() bool {
 
 	util.Log().Debug("离线下载[%s]更新状态[%s]", status.Gid, status.Status)
 
-	switch status.Status {
-	case "complete":
+	switch common.GetStatus(status) {
+	case common.Complete, common.Seeding:
 		return monitor.Complete(task.TaskPoll)
-	case "error":
+	case common.Error:
 		return monitor.Error(status)
-	case "active", "waiting", "paused":
+	case common.Downloading, common.Ready, common.Paused:
 		return false
-	case "removed":
+	case common.Canceled:
 		monitor.Task.Status = common.Canceled
 		monitor.Task.Save()
 		monitor.RemoveTempFolder()
@@ -132,7 +132,7 @@ func (monitor *Monitor) UpdateTaskInfo(status rpc.StatusInfo) error {
 	originSize := monitor.Task.TotalSize
 
 	monitor.Task.GID = status.Gid
-	monitor.Task.Status = common.GetStatus(status.Status)
+	monitor.Task.Status = common.GetStatus(status)
 
 	// 文件大小、已下载大小
 	total, err := strconv.ParseUint(status.TotalLength, 10, 64)
@@ -235,6 +235,40 @@ func (monitor *Monitor) RemoveTempFolder() {
 
 // Complete 完成下载，返回是否中断监控
 func (monitor *Monitor) Complete(pool task.Pool) bool {
+	// 未开始转存，提交转存任务
+	if monitor.Task.TaskID == 0 {
+		return monitor.transfer(pool)
+	}
+
+	// 做种完成
+	if common.GetStatus(monitor.Task.StatusInfo) == common.Complete {
+		transferTask, err := model.GetTasksByID(monitor.Task.TaskID)
+		if err != nil {
+			monitor.setErrorStatus(err)
+			monitor.RemoveTempFolder()
+			return true
+		}
+
+		// 转存完成，回收下载目录
+		if transferTask.Type == task.TransferTaskType && transferTask.Status >= task.Error {
+			job, err := task.NewRecycleTask(monitor.Task)
+			if err != nil {
+				monitor.setErrorStatus(err)
+				monitor.RemoveTempFolder()
+				return true
+			}
+
+			// 提交回收任务
+			pool.Submit(job)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+func (monitor *Monitor) transfer(pool task.Pool) bool {
 	// 创建中转任务
 	file := make([]string, 0, len(monitor.Task.StatusInfo.Files))
 	sizes := make(map[string]uint64, len(monitor.Task.StatusInfo.Files))
@@ -269,7 +303,7 @@ func (monitor *Monitor) Complete(pool task.Pool) bool {
 	monitor.Task.TaskID = job.Model().ID
 	monitor.Task.Save()
 
-	return true
+	return false
 }
 
 func (monitor *Monitor) setErrorStatus(err error) {
