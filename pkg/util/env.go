@@ -6,9 +6,11 @@ import (
 	"strings"
 )
 
+const prefix = "CD_"
+
 // EnvStr returns the value of the environment variable named by the key.
 func EnvStr(key, defaultValue string) string {
-	if value, exist := os.LookupEnv(key); exist {
+	if value, exist := os.LookupEnv(prefix + key); exist {
 		return value
 	}
 
@@ -17,7 +19,7 @@ func EnvStr(key, defaultValue string) string {
 
 // EnvInt returns the value of the environment variable named by the key.
 func EnvInt(key string, defaultValue int) int {
-	if value, exist := os.LookupEnv(key); exist {
+	if value, exist := os.LookupEnv(prefix + key); exist {
 		number, err := strconv.Atoi(value)
 		if err != nil {
 			// I think that we should log this error
@@ -32,7 +34,7 @@ func EnvInt(key string, defaultValue int) int {
 
 // EnvArr returns the value of the environment variable named by the key.
 func EnvArr(key string, defaultValue []string) []string {
-	if value, exist := os.LookupEnv(key); exist {
+	if value, exist := os.LookupEnv(prefix + key); exist {
 		return strings.Split(value, ",")
 	}
 
