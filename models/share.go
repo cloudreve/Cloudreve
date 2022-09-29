@@ -36,7 +36,7 @@ type Share struct {
 // Create 创建分享
 func (share *Share) Create() (uint, error) {
 	if err := DB.Create(share).Error; err != nil {
-		util.Log().Warning("无法插入数据库记录, %s", err)
+		util.Log().Warning("Failed to insert share record: %s", err)
 		return 0, err
 	}
 	return share.ID, nil
@@ -131,9 +131,9 @@ func (share *Share) CanBeDownloadBy(user *User) error {
 	// 用户组权限
 	if !user.Group.OptionsSerialized.ShareDownload {
 		if user.IsAnonymous() {
-			return errors.New("未登录用户无法下载")
+			return errors.New("you must login to download")
 		}
-		return errors.New("您当前的用户组无权下载")
+		return errors.New("your group has no permission to download")
 	}
 	return nil
 }

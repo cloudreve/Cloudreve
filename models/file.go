@@ -43,7 +43,7 @@ func (file *File) Create() error {
 	tx := DB.Begin()
 
 	if err := tx.Create(file).Error; err != nil {
-		util.Log().Warning("无法插入文件记录, %s", err)
+		util.Log().Warning("Failed to insert file record: %s", err)
 		tx.Rollback()
 		return err
 	}
