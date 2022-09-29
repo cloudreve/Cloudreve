@@ -186,6 +186,8 @@ const (
 	CodeQQBindOtherAccount = 40067
 	// QQ 未绑定对应账号
 	CodeQQNotLinked = 40068
+	// 密码不正确
+	CodeIncorrectPassword = 40069
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

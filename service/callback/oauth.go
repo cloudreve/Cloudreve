@@ -28,36 +28,36 @@ func (service *OneDriveOauthService) Auth(c *gin.Context) serializer.Response {
 
 	policyID, ok := util.GetSession(c, "onedrive_oauth_policy").(uint)
 	if !ok {
-		return serializer.Err(serializer.CodeNotFound, "授权会话不存在，请重试", nil)
+		return serializer.Err(serializer.CodeNotFound, "", nil)
 	}
 
 	util.DeleteSession(c, "onedrive_oauth_policy")
 
 	policy, err := model.GetPolicyByID(policyID)
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "存储策略不存在", nil)
+		return serializer.Err(serializer.CodePolicyNotExist, "", nil)
 	}
 
 	client, err := onedrive.NewClient(&policy)
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "无法初始化 OneDrive 客户端", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to initialize OneDrive client", err)
 	}
 
 	credential, err := client.ObtainToken(c, onedrive.WithCode(service.Code))
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "AccessToken 获取失败", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to fetch AccessToken", err)
 	}
 
 	// 更新存储策略的 RefreshToken
 	client.Policy.AccessKey = credential.RefreshToken
 	if err := client.Policy.SaveAndClearCache(); err != nil {
-		return serializer.DBErr("无法更新 RefreshToken", err)
+		return serializer.DBErr("Failed to update RefreshToken", err)
 	}
 
 	cache.Deletes([]string{client.Policy.AccessKey}, "onedrive_")
 	if client.Policy.OptionsSerialized.OdDriver != "" && strings.Contains(client.Policy.OptionsSerialized.OdDriver, "http") {
 		if err := querySharePointSiteID(c, client.Policy); err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "无法查询 SharePoint 站点 ID", err)
+			return serializer.Err(serializer.CodeInternalSetting, "Failed to query SharePoint site ID", err)
 		}
 	}
 
