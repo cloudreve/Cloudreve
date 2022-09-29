@@ -68,7 +68,7 @@ func (client *SMTP) Init() {
 		defer func() {
 			if err := recover(); err != nil {
 				client.chOpen = false
-				util.Log().Error("邮件发送队列出现异常, %s ,10 秒后重置", err)
+				util.Log().Error("Exception while sending email: %s, queue will be reset in 10 seconds.", err)
 				time.Sleep(time.Duration(10) * time.Second)
 				client.Init()
 			}
@@ -91,7 +91,7 @@ func (client *SMTP) Init() {
 			select {
 			case m, ok := <-client.ch:
 				if !ok {
-					util.Log().Debug("邮件队列关闭")
+					util.Log().Debug("Email queue closing...")
 					client.chOpen = false
 					return
 				}
@@ -102,15 +102,15 @@ func (client *SMTP) Init() {
 					open = true
 				}
 				if err := mail.Send(s, m); err != nil {
-					util.Log().Warning("邮件发送失败, %s", err)
+					util.Log().Warning("Failed to send email: %s", err)
 				} else {
-					util.Log().Debug("邮件已发送")
+					util.Log().Debug("Email sent.")
 				}
 			// 长时间没有新邮件，则关闭SMTP连接
 			case <-time.After(time.Duration(client.Config.Keepalive) * time.Second):
 				if open {
 					if err := s.Close(); err != nil {
-						util.Log().Warning("无法关闭 SMTP 连接 %s", err)
+						util.Log().Warning("Failed to close SMTP connection: %s", err)
 					}
 					open = false
 				}

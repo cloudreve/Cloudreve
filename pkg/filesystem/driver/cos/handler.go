@@ -218,7 +218,7 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 		return failed, nil
 	}
 
-	return failed, errors.New("删除失败")
+	return failed, errors.New("delete failed")
 }
 
 // Thumb 获取文件缩略图

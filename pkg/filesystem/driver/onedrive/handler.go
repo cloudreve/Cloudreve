@@ -143,7 +143,7 @@ func (handler Driver) Thumb(ctx context.Context, path string) (*response.Content
 		ok        = false
 	)
 	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
-		return nil, errors.New("无法获取缩略图尺寸设置")
+		return nil, errors.New("failed to get thumbnail size")
 	}
 
 	res, err := handler.Client.GetThumbURL(ctx, path, thumbSize[0], thumbSize[1])

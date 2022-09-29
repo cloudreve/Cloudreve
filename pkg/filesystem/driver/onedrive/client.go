@@ -10,13 +10,13 @@ import (
 
 var (
 	// ErrAuthEndpoint 无法解析授权端点地址
-	ErrAuthEndpoint = errors.New("无法解析授权端点地址")
+	ErrAuthEndpoint = errors.New("failed to parse endpoint url")
 	// ErrInvalidRefreshToken 上传策略无有效的RefreshToken
-	ErrInvalidRefreshToken = errors.New("上传策略无有效的RefreshToken")
+	ErrInvalidRefreshToken = errors.New("no valid refresh token in this policy")
 	// ErrDeleteFile 无法删除文件
-	ErrDeleteFile = errors.New("无法删除文件")
+	ErrDeleteFile = errors.New("cannot delete file")
 	// ErrClientCanceled 客户端取消操作
-	ErrClientCanceled = errors.New("客户端取消操作")
+	ErrClientCanceled = errors.New("client canceled")
 )
 
 // Client OneDrive客户端
