@@ -44,7 +44,7 @@ func (fs *FileSystem) Trigger(ctx context.Context, name string, file fsctx.FileH
 		for _, hook := range hooks {
 			err := hook(ctx, fs, file)
 			if err != nil {
-				util.Log().Warning("钩子执行失败：%s", err)
+				util.Log().Warning("Failed to execute hook：%s", err)
 				return err
 			}
 		}
@@ -112,7 +112,7 @@ func HookDeleteTempFile(ctx context.Context, fs *FileSystem, file fsctx.FileHead
 	// 删除临时文件
 	_, err := fs.Handler.Delete(ctx, []string{file.Info().SavePath})
 	if err != nil {
-		util.Log().Warning("无法清理上传临时文件，%s", err)
+		util.Log().Warning("Failed to clean-up temp files: %s", err)
 	}
 
 	return nil
