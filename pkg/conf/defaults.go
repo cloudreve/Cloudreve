@@ -25,9 +25,11 @@ var DatabaseConfig = &database{
 
 // SystemConfig 系统公用配置
 var SystemConfig = &system{
-	Debug:  util.EnvStr("DEBUG", "false") == "true",
-	Mode:   util.EnvStr("MODE", "master"),
-	Listen: util.EnvStr("LISTEN", ":5212"),
+	Debug:         util.EnvStr("DEBUG", "false") == "true",
+	Mode:          util.EnvStr("MODE", "master"),
+	Listen:        util.EnvStr("LISTEN", ":5212"),
+	HashIDSalt:    util.EnvStr("HASHID_SALT", ""),
+	SessionSecret: util.EnvStr("SESSION_SECRET", ""),
 }
 
 // CORSConfig 跨域配置
