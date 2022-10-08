@@ -407,6 +407,7 @@ func (handler *Driver) Meta(ctx context.Context, path string) (*MetaData, error)
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	return &MetaData{
 		Size: uint64(*res.ContentLength),
