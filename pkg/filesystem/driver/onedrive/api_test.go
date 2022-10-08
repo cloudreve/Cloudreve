@@ -138,28 +138,13 @@ func TestRequest(t *testing.T) {
 
 func TestFileInfo_GetSourcePath(t *testing.T) {
 	asserts := assert.New(t)
-
-	// 成功
-	{
-		fileInfo := FileInfo{
-			Name: "%e6%96%87%e4%bb%b6%e5%90%8d.jpg",
-			ParentReference: parentReference{
-				Path: "/drive/root:/123/321",
-			},
-		}
-		asserts.Equal("123/321/文件名.jpg", fileInfo.GetSourcePath())
+	fileInfo := FileInfo{
+		Name: "%e6%96%87%e4%bb%b6%e5%90%8d.jpg",
+		ParentReference: parentReference{
+			Path: "/drive/root:/123/321",
+		},
 	}
-
-	// 失败
-	{
-		fileInfo := FileInfo{
-			Name: "%e6%96%87%e4%bb%b6%e5%90%8g.jpg",
-			ParentReference: parentReference{
-				Path: "/drive/root:/123/321",
-			},
-		}
-		asserts.Equal("", fileInfo.GetSourcePath())
-	}
+	asserts.Equal("123/321/文件名.jpg", fileInfo.GetSourcePath())
 }
 
 func TestClient_GetRequestURL(t *testing.T) {
