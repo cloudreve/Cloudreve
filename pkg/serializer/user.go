@@ -13,7 +13,7 @@ import (
 func CheckLogin() Response {
 	return Response{
 		Code: CodeCheckLogin,
-		Msg:  "未登录",
+		Msg:  "Login required",
 	}
 }
 

@@ -179,7 +179,7 @@ func (resp *Response) DecodeResponse() (*serializer.Response, error) {
 	var res serializer.Response
 	err = json.Unmarshal([]byte(respString), &res)
 	if err != nil {
-		util.Log().Debug("无法解析回调服务端响应：%s", string(respString))
+		util.Log().Debug("Failed to parse response: %s", string(respString))
 		return nil, err
 	}
 	return &res, nil
@@ -251,7 +251,7 @@ func (instance NopRSCloser) Seek(offset int64, whence int) (int64, error) {
 			return instance.status.Size, nil
 		}
 	}
-	return 0, errors.New("未实现")
+	return 0, errors.New("not implemented")
 
 }
 

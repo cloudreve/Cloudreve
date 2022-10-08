@@ -45,7 +45,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	case "png":
 		img, err = png.Decode(file)
 	default:
-		return nil, errors.New("未知的图像类型")
+		return nil, errors.New("unknown image format")
 	}
 	if err != nil {
 		return nil, err

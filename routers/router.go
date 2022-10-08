@@ -16,10 +16,10 @@ import (
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
 	if conf.SystemConfig.Mode == "master" {
-		util.Log().Info("当前运行模式：Master")
+		util.Log().Info("Current running mode: Master.")
 		return InitMasterRouter()
 	}
-	util.Log().Info("当前运行模式：Slave")
+	util.Log().Info("Current running mode: Slave.")
 	return InitSlaveRouter()
 
 }
@@ -108,7 +108,7 @@ func InitCORS(router *gin.Engine) {
 
 	// slave模式下未启动跨域的警告
 	if conf.SystemConfig.Mode == "slave" {
-		util.Log().Warning("当前作为存储端（Slave）运行，但未启用跨域配置，可能会导致 Master 端无法正常上传文件")
+		util.Log().Warning("You are running Cloudreve as slave node, if you are using slave storage policy, please enable CORS feature in config file, otherwise file cannot be uploaded from Master site.")
 	}
 }
 

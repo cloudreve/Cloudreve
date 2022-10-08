@@ -109,7 +109,7 @@ func (job *TransferTask) Do() {
 			// 获取从机节点
 			node := cluster.Default.GetNodeByID(job.TaskProps.NodeID)
 			if node == nil {
-				job.SetErrorMsg("从机节点不可用", nil)
+				job.SetErrorMsg("Invalid slave node.", nil)
 			}
 
 			// 切换为从机节点处理上传
@@ -127,7 +127,7 @@ func (job *TransferTask) Do() {
 		}
 
 		if err != nil {
-			job.SetErrorMsg("文件转存失败", err)
+			job.SetErrorMsg("Failed to transfer file.", err)
 		} else {
 			successCount++
 			job.TaskModel.SetProgress(successCount)

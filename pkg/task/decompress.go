@@ -77,7 +77,7 @@ func (job *DecompressTask) Do() {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystem(job.User)
 	if err != nil {
-		job.SetErrorMsg("无法创建文件系统", err)
+		job.SetErrorMsg("Failed to create filesystem.", err)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (job *DecompressTask) Do() {
 
 	err = fs.Decompress(context.Background(), job.TaskProps.Src, job.TaskProps.Dst, job.TaskProps.Encoding)
 	if err != nil {
-		job.SetErrorMsg("解压缩失败", err)
+		job.SetErrorMsg("Failed to decompress file.", err)
 		return
 	}
 

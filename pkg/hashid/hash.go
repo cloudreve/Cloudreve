@@ -19,7 +19,7 @@ const (
 
 var (
 	// ErrTypeNotMatch ID类型不匹配
-	ErrTypeNotMatch = errors.New("ID类型不匹配")
+	ErrTypeNotMatch = errors.New("mismatched ID type.")
 )
 
 // HashEncode 对给定数据计算HashID

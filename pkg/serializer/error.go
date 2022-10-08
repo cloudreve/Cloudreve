@@ -221,7 +221,7 @@ const (
 // DBErr 数据库操作失败
 func DBErr(msg string, err error) Response {
 	if msg == "" {
-		msg = "数据库操作失败"
+		msg = "Database operation failed."
 	}
 	return Err(CodeDBError, msg, err)
 }
@@ -229,7 +229,7 @@ func DBErr(msg string, err error) Response {
 // ParamErr 各种参数错误
 func ParamErr(msg string, err error) Response {
 	if msg == "" {
-		msg = "参数错误"
+		msg = "Invalid parameters."
 	}
 	return Err(CodeParamErr, msg, err)
 }
