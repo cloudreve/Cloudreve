@@ -139,7 +139,7 @@ func TestRequest(t *testing.T) {
 func TestFileInfo_GetSourcePath(t *testing.T) {
 	asserts := assert.New(t)
 	fileInfo := FileInfo{
-		Name: "%e6%96%87%e4%bb%b6%e5%90%8d.jpg",
+		Name: "文件名.jpg",
 		ParentReference: parentReference{
 			Path: "/drive/root:/123/321",
 		},
