@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.17.x
+  - 1.18.x
 node_js: "12.16.3"
 git:
   depth: 1
