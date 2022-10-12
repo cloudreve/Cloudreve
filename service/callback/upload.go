@@ -175,7 +175,7 @@ func (service *OneDriveCallback) PreProcess(c *gin.Context) serializer.Response 
 
 	// SharePoint 会对 Office 文档增加 meta data 导致文件大小不一致，这里增加 1 MB 宽容
 	// See: https://github.com/OneDrive/onedrive-api-docs/issues/935
-	if strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.com") && isSizeCheckFailed && (info.Size > uploadSession.Size) && (info.Size-uploadSession.Size <= 1048576) {
+	if (strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.com") || strings.Contains(fs.Policy.OptionsSerialized.OdDriver, "sharepoint.cn")) && isSizeCheckFailed && (info.Size > uploadSession.Size) && (info.Size-uploadSession.Size <= 1048576) {
 		isSizeCheckFailed = false
 	}
 
