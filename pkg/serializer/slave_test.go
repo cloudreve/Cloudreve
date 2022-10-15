@@ -19,14 +19,3 @@ func TestSlaveTransferReq_Hash(t *testing.T) {
 	}
 	a.NotEqual(s1.Hash("1"), s2.Hash("1"))
 }
-
-func TestSlaveRecycleReq_Hash(t *testing.T) {
-	a := assert.New(t)
-	s1 := &SlaveRecycleReq{
-		Path: "1",
-	}
-	s2 := &SlaveRecycleReq{
-		Path: "2",
-	}
-	a.NotEqual(s1.Hash("1"), s2.Hash("1"))
-}
