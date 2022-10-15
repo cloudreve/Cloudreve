@@ -224,7 +224,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		} else if IDCache, ok := newIDCache[*folder.ParentID]; ok {
 			newID = IDCache
 		} else {
-			util.Log().Warning("Failed to get parent folder %q", folder.ParentID)
+			util.Log().Warning("Failed to get parent folder %q", *folder.ParentID)
 			return size, errors.New("Failed to get parent folder")
 		}
 

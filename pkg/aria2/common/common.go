@@ -52,7 +52,7 @@ const (
 
 var (
 	// ErrNotEnabled 功能未开启错误
-	ErrNotEnabled = serializer.NewError(serializer.CodeFeatureNotEnabled, "", nil)
+	ErrNotEnabled = serializer.NewError(serializer.CodeFeatureNotEnabled, "not enabled", nil)
 	// ErrUserNotFound 未找到下载任务创建者
 	ErrUserNotFound = serializer.NewError(serializer.CodeUserNotFound, "", nil)
 )
