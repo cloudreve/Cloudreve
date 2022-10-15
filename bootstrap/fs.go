@@ -14,7 +14,7 @@ import (
 func NewFS(zipContent string) fs.FS {
 	zipReader, err := zip.NewReader(strings.NewReader(zipContent), int64(len(zipContent)))
 	if err != nil {
-		util.Log().Panic("静态资源不是合法的zip文件: %s", err)
+		util.Log().Panic("Static resource is not a valid zip file: %s", err)
 	}
 
 	var files []file

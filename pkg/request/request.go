@@ -56,7 +56,7 @@ func NewClient(opts ...Option) Client {
 func (c *HTTPClient) Request(method, target string, body io.Reader, opts ...Option) *Response {
 	// 应用额外设置
 	c.mu.Lock()
-	options := *c.options
+	options := c.options.clone()
 	c.mu.Unlock()
 	for _, o := range opts {
 		o.apply(&options)
