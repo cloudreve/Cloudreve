@@ -472,6 +472,9 @@ func TestFileSystem_Delete(t *testing.T) {
 					AddRow(4, "1.txt", "1.txt", 365, 1),
 			)
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "2.txt", "2.txt", 365, 2))
+		// 两次查询软连接
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		// 查询上传策略
@@ -527,6 +530,9 @@ func TestFileSystem_Delete(t *testing.T) {
 					AddRow(4, "1.txt", "1.txt", 602, 1),
 			)
 		mock.ExpectQuery("SELECT(.+)").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "source_name", "policy_id", "size"}).AddRow(1, "2.txt", "2.txt", 602, 2))
+		// 两次查询软连接
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		mock.ExpectQuery("SELECT(.+)files(.+)").
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		// 查询上传策略
