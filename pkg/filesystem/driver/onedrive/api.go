@@ -37,9 +37,14 @@ const (
 
 // GetSourcePath 获取文件的绝对路径
 func (info *FileInfo) GetSourcePath() string {
+	res, err := url.PathUnescape(info.ParentReference.Path)
+	if err != nil {
+		return ""
+	}
+
 	return strings.TrimPrefix(
 		path.Join(
-			strings.TrimPrefix(info.ParentReference.Path, "/drive/root:"),
+			strings.TrimPrefix(res, "/drive/root:"),
 			info.Name,
 		),
 		"/",
