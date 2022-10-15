@@ -71,7 +71,7 @@ chmod +x ./cloudreve
 
 ## :gear: 构建
 
-自行构建前需要拥有 `Go >= 1.17`、`node.js`、`yarn`、`zip` 等必要依赖。
+自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`zip` 等必要依赖。
 
 #### 克隆代码
 
