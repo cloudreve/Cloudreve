@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -49,11 +48,6 @@ func (info *FileInfo) GetSourcePath() string {
 		),
 		"/",
 	)
-}
-
-// Error 实现error接口
-func (err RespError) Error() string {
-	return err.APIError.Message
 }
 
 func (client *Client) getRequestURL(api string, opts ...Option) string {
@@ -530,7 +524,7 @@ func sysError(err error) *RespError {
 	}}
 }
 
-func (client *Client) request(ctx context.Context, method string, url string, body io.Reader, option ...request.Option) (string, *RespError) {
+func (client *Client) request(ctx context.Context, method string, url string, body io.Reader, option ...request.Option) (string, error) {
 	// 获取凭证
 	err := client.UpdateCredential(ctx, conf.SystemConfig.Mode == "slave")
 	if err != nil {
@@ -579,15 +573,21 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 			util.Log().Debug("Onedrive returns unknown response: %s", respBody)
 			return "", sysError(decodeErr)
 		}
+
+		if res.Response.StatusCode == 429 {
+			util.Log().Warning("OneDrive request is throttled.")
+			return "", backoff.NewRetryableErrorFromHeader(&errResp, res.Response.Header)
+		}
+
 		return "", &errResp
 	}
 
 	return respBody, nil
 }
 
-func (client *Client) requestWithStr(ctx context.Context, method string, url string, body string, expectedCode int) (string, *RespError) {
+func (client *Client) requestWithStr(ctx context.Context, method string, url string, body string, expectedCode int) (string, error) {
 	// 发送请求
-	bodyReader := ioutil.NopCloser(strings.NewReader(body))
+	bodyReader := io.NopCloser(strings.NewReader(body))
 	return client.request(ctx, method, url, bodyReader,
 		request.WithContentLength(int64(len(body))),
 	)
