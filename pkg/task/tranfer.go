@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path"
 	"path/filepath"
 	"strings"
@@ -94,6 +95,7 @@ func (job *TransferTask) Do() {
 	}
 
 	successCount := 0
+	errorList := make([]string, 0, len(job.TaskProps.Src))
 	for _, file := range job.TaskProps.Src {
 		dst := path.Join(job.TaskProps.Dst, filepath.Base(file))
 		if job.TaskProps.TrimPath {
@@ -127,11 +129,15 @@ func (job *TransferTask) Do() {
 		}
 
 		if err != nil {
-			job.SetErrorMsg("Failed to transfer file.", err)
+			errorList = append(errorList, err.Error())
 		} else {
 			successCount++
 			job.TaskModel.SetProgress(successCount)
 		}
+	}
+
+	if len(errorList) > 0 {
+		job.SetErrorMsg("Failed to transfer one or more file(s).", fmt.Errorf(strings.Join(errorList, "\n")))
 	}
 
 }
