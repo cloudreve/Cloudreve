@@ -15,6 +15,7 @@ const (
 	FolderID        // 目录ID
 	TagID           // 标签ID
 	PolicyID        // 存储策略ID
+	SourceLinkID
 )
 
 var (

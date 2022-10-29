@@ -145,6 +145,15 @@ func InitMasterRouter() *gin.Engine {
 		路由
 	*/
 	{
+		// Redirect file source link
+		source := r.Group("f")
+		{
+			source.GET(":id/:name",
+				middleware.HashID(hashid.SourceLinkID),
+				middleware.ValidateSourceLink(),
+				controllers.AnonymousPermLink)
+		}
+
 		// 全局设置相关
 		site := v3.Group("site")
 		{
@@ -210,7 +219,7 @@ func InitMasterRouter() *gin.Engine {
 				// 文件外链（直接输出文件数据）
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
 				// 文件外链(301跳转)
-				file.GET("source/:id/:name", controllers.AnonymousPermLink)
+				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
 				// 下载文件
 				file.GET("download/:id", controllers.Download)
 				// 打包并下载文件

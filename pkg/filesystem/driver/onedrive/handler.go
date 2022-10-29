@@ -11,7 +11,6 @@ import (
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -171,19 +170,6 @@ func (handler Driver) Source(
 	cacheKey := fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
 		cacheKey = fmt.Sprintf("onedrive_source_file_%d_%d", file.UpdatedAt.Unix(), file.ID)
-		// 如果是永久链接，则返回签名后的中转外链
-		if ttl == 0 {
-			signedURI, err := auth.SignURI(
-				auth.General,
-				fmt.Sprintf("/api/v3/file/source/%d/%s", file.ID, file.Name),
-				ttl,
-			)
-			if err != nil {
-				return "", err
-			}
-			return baseURL.ResolveReference(signedURI).String(), nil
-		}
-
 	}
 
 	// 尝试从缓存中查找
