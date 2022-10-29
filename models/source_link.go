@@ -39,3 +39,9 @@ func GetSourceLinkByID(id interface{}) (*SourceLink, error) {
 
 	return link, result.Error
 }
+
+// Viewed 增加访问次数
+func (s *SourceLink) Downloaded() {
+	s.Downloads++
+	DB.Model(s).UpdateColumn("downloads", gorm.Expr("downloads + ?", 1))
+}

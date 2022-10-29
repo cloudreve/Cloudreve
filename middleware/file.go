@@ -23,6 +23,7 @@ func ValidateSourceLink() gin.HandlerFunc {
 			return
 		}
 
+		sourceLink.Downloaded()
 		c.Set("source_link", sourceLink)
 		c.Next()
 	}
