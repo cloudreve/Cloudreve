@@ -611,3 +611,44 @@ func TestGetFilesByKeywords(t *testing.T) {
 		asserts.Len(res, 1)
 	}
 }
+
+func TestFile_CreateOrGetSourceLink(t *testing.T) {
+	a := assert.New(t)
+	file := &File{}
+	file.ID = 1
+
+	// 已存在，返回老的 SourceLink
+	{
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		res, err := file.CreateOrGetSourceLink()
+		a.NoError(err)
+		a.EqualValues(2, res.ID)
+		a.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 不存在，插入失败
+	{
+		expectedErr := errors.New("error")
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)source_links(.+)").WillReturnError(expectedErr)
+		mock.ExpectRollback()
+		res, err := file.CreateOrGetSourceLink()
+		a.Nil(res)
+		a.ErrorIs(err, expectedErr)
+		a.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 成功
+	{
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)source_links(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectCommit()
+		res, err := file.CreateOrGetSourceLink()
+		a.NoError(err)
+		a.EqualValues(2, res.ID)
+		a.EqualValues(file.ID, res.File.ID)
+		a.NoError(mock.ExpectationsWereMet())
+	}
+}
