@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	ErrAuthFailed        = serializer.NewError(serializer.CodeNoPermissionErr, "鉴权失败", nil)
+	ErrAuthFailed        = serializer.NewError(serializer.CodeInvalidSign, "invalid sign", nil)
 	ErrAuthHeaderMissing = serializer.NewError(serializer.CodeNoPermissionErr, "authorization header is missing", nil)
 	ErrExpiresMissing    = serializer.NewError(serializer.CodeNoPermissionErr, "expire timestamp is missing", nil)
-	ErrExpired           = serializer.NewError(serializer.CodeSignExpired, "签名已过期", nil)
+	ErrExpired           = serializer.NewError(serializer.CodeSignExpired, "signature expired", nil)
 )
 
 const CrHeaderPrefix = "X-Cr-"
@@ -136,7 +136,7 @@ func Init() {
 	} else {
 		secretKey = conf.SlaveConfig.Secret
 		if secretKey == "" {
-			util.Log().Panic("未指定 SlaveSecret，请前往配置文件中指定")
+			util.Log().Panic("SlaveSecret is not set, please specify it in config file.")
 		}
 	}
 	General = HMACAuth{

@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path"
 	"time"
 
@@ -43,7 +44,7 @@ func (file *File) Create() error {
 	tx := DB.Begin()
 
 	if err := tx.Create(file).Error; err != nil {
-		util.Log().Warning("无法插入文件记录, %s", err)
+		util.Log().Warning("Failed to insert file record: %s", err)
 		tx.Rollback()
 		return err
 	}
@@ -186,15 +187,20 @@ func RemoveFilesWithSoftLinks(files []File) ([]File, error) {
 	// 结果值
 	filteredFiles := make([]File, 0)
 
-	// 查询软链接的文件
-	var filesWithSoftLinks []File
-	tx := DB
-	for _, value := range files {
-		tx = tx.Or("source_name = ? and policy_id = ? and id != ?", value.SourceName, value.PolicyID, value.ID)
+	if len(files) == 0 {
+		return filteredFiles, nil
 	}
-	result := tx.Find(&filesWithSoftLinks)
-	if result.Error != nil {
-		return nil, result.Error
+
+	// 查询软链接的文件
+	filesWithSoftLinks := make([]File, 0)
+	for _, file := range files {
+		var softLinkFile File
+		res := DB.
+			Where("source_name = ? and policy_id = ? and id != ?", file.SourceName, file.PolicyID, file.ID).
+			First(&softLinkFile)
+		if res.Error == nil {
+			filesWithSoftLinks = append(filesWithSoftLinks, softLinkFile)
+		}
 	}
 
 	// 过滤具有软连接的文件
@@ -332,6 +338,25 @@ func (file *File) PopChunkToFile(lastModified *time.Time, picInfo string) error 
 // CanCopy 返回文件是否可被复制
 func (file *File) CanCopy() bool {
 	return file.UploadSessionID == nil
+}
+
+// CreateOrGetSourceLink creates a SourceLink model. If the given model exists, the existing
+// model will be returned.
+func (file *File) CreateOrGetSourceLink() (*SourceLink, error) {
+	res := &SourceLink{}
+	err := DB.Set("gorm:auto_preload", true).Where("file_id = ?", file.ID).Find(&res).Error
+	if err == nil && res.ID > 0 {
+		return res, nil
+	}
+
+	res.FileID = file.ID
+	res.Name = file.Name
+	if err := DB.Save(res).Error; err != nil {
+		return nil, fmt.Errorf("failed to insert SourceLink: %w", err)
+	}
+
+	res.File = *file
+	return res, nil
 }
 
 /*

@@ -197,7 +197,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 				return failedResp.Files, errors.New(reqResp.Error)
 			}
 		}
-		return files, errors.New("未知的返回结果格式")
+		return files, errors.New("unknown format of returned response")
 	}
 
 	return []string{}, nil
@@ -265,7 +265,7 @@ func (handler *Driver) Source(
 	)
 
 	if err != nil {
-		return "", serializer.NewError(serializer.CodeEncryptError, "无法对URL进行签名", err)
+		return "", serializer.NewError(serializer.CodeEncryptError, "Failed to sign URL", err)
 	}
 
 	finalURL := serverURL.ResolveReference(signedURI).String()

@@ -19,16 +19,16 @@ func needMigration() bool {
 	return DB.Where("name = ?", "db_version_"+conf.RequiredDBVersion).First(&setting).Error != nil
 }
 
-//执行数据迁移
+// 执行数据迁移
 func migration() {
 	// 确认是否需要执行迁移
 	if !needMigration() {
-		util.Log().Info("数据库版本匹配，跳过数据库迁移")
+		util.Log().Info("Database version fulfilled, skip schema migration.")
 		return
 
 	}
 
-	util.Log().Info("开始进行数据库初始化...")
+	util.Log().Info("Start initializing database schema...")
 
 	// 清除所有缓存
 	if instance, ok := cache.Store.(*cache.RedisStore); ok {
@@ -41,7 +41,7 @@ func migration() {
 	}
 
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{}, &SourceLink{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -61,7 +61,7 @@ func migration() {
 	// 执行数据库升级脚本
 	execUpgradeScripts()
 
-	util.Log().Info("数据库初始化结束")
+	util.Log().Info("Finish initializing database schema.")
 
 }
 
@@ -70,7 +70,7 @@ func addDefaultPolicy() {
 	// 未找到初始存储策略时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultPolicy := Policy{
-			Name:               "默认存储策略",
+			Name:               "Default storage policy",
 			Type:               "local",
 			MaxSize:            0,
 			AutoRename:         true,
@@ -82,7 +82,7 @@ func addDefaultPolicy() {
 			},
 		}
 		if err := DB.Create(&defaultPolicy).Error; err != nil {
-			util.Log().Panic("无法创建初始存储策略, %s", err)
+			util.Log().Panic("Failed to create default storage policy: %s", err)
 		}
 	}
 }
@@ -98,22 +98,23 @@ func addDefaultGroups() {
 	// 未找到初始管理组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:          "管理员",
+			Name:          "Admin",
 			PolicyList:    []uint{1},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
-				ArchiveDownload: true,
-				ArchiveTask:     true,
-				ShareDownload:   true,
-				Aria2:           true,
-				SourceBatchSize: 1000,
-				Aria2BatchSize:  50,
+				ArchiveDownload:  true,
+				ArchiveTask:      true,
+				ShareDownload:    true,
+				Aria2:            true,
+				SourceBatchSize:  1000,
+				Aria2BatchSize:   50,
+				RedirectedSource: true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建管理用户组, %s", err)
+			util.Log().Panic("Failed to create admin user group: %s", err)
 		}
 	}
 
@@ -122,19 +123,20 @@ func addDefaultGroups() {
 	// 未找到初始注册会员时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:          "注册会员",
+			Name:          "User",
 			PolicyList:    []uint{1},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
-				ShareDownload:   true,
-				SourceBatchSize: 10,
-				Aria2BatchSize:  1,
+				ShareDownload:    true,
+				SourceBatchSize:  10,
+				Aria2BatchSize:   1,
+				RedirectedSource: true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始注册会员用户组, %s", err)
+			util.Log().Panic("Failed to create initial user group: %s", err)
 		}
 	}
 
@@ -143,7 +145,7 @@ func addDefaultGroups() {
 	// 未找到初始游客用户组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
-			Name:       "游客",
+			Name:       "Anonymous",
 			PolicyList: []uint{},
 			Policies:   "[]",
 			OptionsSerialized: GroupOption{
@@ -151,7 +153,7 @@ func addDefaultGroups() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始游客用户组, %s", err)
+			util.Log().Panic("Failed to create anonymous user group: %s", err)
 		}
 	}
 }
@@ -169,15 +171,15 @@ func addDefaultUser() {
 		defaultUser.GroupID = 1
 		err := defaultUser.SetPassword(password)
 		if err != nil {
-			util.Log().Panic("无法创建密码, %s", err)
+			util.Log().Panic("Failed to create password: %s", err)
 		}
 		if err := DB.Create(&defaultUser).Error; err != nil {
-			util.Log().Panic("无法创建初始用户, %s", err)
+			util.Log().Panic("Failed to create initial root user: %s", err)
 		}
 
 		c := color.New(color.FgWhite).Add(color.BgBlack).Add(color.Bold)
-		util.Log().Info("初始管理员账号：" + c.Sprint("admin@cloudreve.org"))
-		util.Log().Info("初始管理员密码：" + c.Sprint(password))
+		util.Log().Info("Admin user name: " + c.Sprint("admin@cloudreve.org"))
+		util.Log().Info("Admin password: " + c.Sprint(password))
 	}
 }
 
@@ -186,7 +188,7 @@ func addDefaultNode() {
 
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Node{
-			Name:   "主机（本机）",
+			Name:   "Master (Local machine)",
 			Status: NodeActive,
 			Type:   MasterNodeType,
 			Aria2OptionsSerialized: Aria2Option{
@@ -195,7 +197,7 @@ func addDefaultNode() {
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
-			util.Log().Panic("无法创建初始节点记录, %s", err)
+			util.Log().Panic("Failed to create initial node: %s", err)
 		}
 	}
 }

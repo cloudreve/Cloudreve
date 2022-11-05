@@ -46,13 +46,15 @@ const (
 	Canceled
 	// Unknown 未知状态
 	Unknown
+	// Seeding 做种中
+	Seeding
 )
 
 var (
 	// ErrNotEnabled 功能未开启错误
-	ErrNotEnabled = serializer.NewError(serializer.CodeNoPermissionErr, "离线下载功能未开启", nil)
+	ErrNotEnabled = serializer.NewError(serializer.CodeFeatureNotEnabled, "not enabled", nil)
 	// ErrUserNotFound 未找到下载任务创建者
-	ErrUserNotFound = serializer.NewError(serializer.CodeNotFound, "无法找到任务创建者", nil)
+	ErrUserNotFound = serializer.NewError(serializer.CodeUserNotFound, "", nil)
 )
 
 // DummyAria2 未开启Aria2功能时使用的默认处理器
@@ -94,11 +96,14 @@ func (instance *DummyAria2) DeleteTempFile(src *model.Download) error {
 }
 
 // GetStatus 将给定的状态字符串转换为状态标识数字
-func GetStatus(status string) int {
-	switch status {
+func GetStatus(status rpc.StatusInfo) int {
+	switch status.Status {
 	case "complete":
 		return Complete
 	case "active":
+		if status.BitTorrent.Mode != "" && status.CompletedLength == status.TotalLength {
+			return Seeding
+		}
 		return Downloading
 	case "waiting":
 		return Ready

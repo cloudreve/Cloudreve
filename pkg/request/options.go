@@ -44,6 +44,12 @@ func newDefaultOption() *options {
 	}
 }
 
+func (o *options) clone() options {
+	newOptions := *o
+	newOptions.header = o.header.Clone()
+	return newOptions
+}
+
 // WithTimeout 设置请求超时
 func WithTimeout(t time.Duration) Option {
 	return optionFunc(func(o *options) {

@@ -178,12 +178,13 @@ func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Conte
 	}
 
 	// 获取文件流
-	res, err := fs.SignURL(ctx, &fs.FileTarget[0],
-		int64(model.GetIntSetting("preview_timeout", 60)), false)
+	ttl := int64(model.GetIntSetting("preview_timeout", 60))
+	res, err := fs.SignURL(ctx, &fs.FileTarget[0], ttl, false)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", ttl))
 	return serializer.Response{
 		Code: -302,
 		Data: res,
@@ -442,22 +443,46 @@ func (s *ItemIDService) Sources(ctx context.Context, c *gin.Context) serializer.
 	}
 
 	res := make([]serializer.Sources, 0, len(s.Raw().Items))
-	for _, id := range s.Raw().Items {
-		fs.FileTarget = []model.File{}
-		sourceURL, err := fs.GetSource(ctx, id)
-		if len(fs.FileTarget) > 0 {
-			current := serializer.Sources{
-				URL:    sourceURL,
-				Name:   fs.FileTarget[0].Name,
-				Parent: fs.FileTarget[0].FolderID,
-			}
+	files, err := model.GetFilesByIDs(s.Raw().Items, fs.User.ID)
+	if err != nil || len(files) == 0 {
+		return serializer.Err(serializer.CodeFileNotFound, "", err)
+	}
 
+	getSourceFunc := func(file model.File) (string, error) {
+		fs.FileTarget = []model.File{file}
+		return fs.GetSource(ctx, file.ID)
+	}
+
+	// Create redirected source link if needed
+	if fs.User.Group.OptionsSerialized.RedirectedSource {
+		getSourceFunc = func(file model.File) (string, error) {
+			source, err := file.CreateOrGetSourceLink()
 			if err != nil {
-				current.Error = err.Error()
+				return "", err
 			}
 
-			res = append(res, current)
+			sourceLinkURL, err := source.Link()
+			if err != nil {
+				return "", err
+			}
+
+			return sourceLinkURL, nil
 		}
+	}
+
+	for _, file := range files {
+		sourceURL, err := getSourceFunc(file)
+		current := serializer.Sources{
+			URL:    sourceURL,
+			Name:   file.Name,
+			Parent: file.FolderID,
+		}
+
+		if err != nil {
+			current.Error = err.Error()
+		}
+
+		res = append(res, current)
 	}
 
 	return serializer.Response{

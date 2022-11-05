@@ -15,7 +15,7 @@ var Lock sync.RWMutex
 
 // Init 初始化
 func Init() {
-	util.Log().Debug("邮件队列初始化")
+	util.Log().Debug("Initializing email sending queue...")
 	Lock.Lock()
 	defer Lock.Unlock()
 

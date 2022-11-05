@@ -1,9 +1,10 @@
 package serializer
 
 import (
+	"testing"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSlaveTransferReq_Hash(t *testing.T) {

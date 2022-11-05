@@ -161,7 +161,7 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 		// 复制文件记录
 		for _, oldFile := range originFiles {
 			if !oldFile.CanCopy() {
-				util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+				util.Log().Warning("Cannot copy file %q because it's being uploaded now, skipping...", oldFile.Name)
 				continue
 			}
 
@@ -224,8 +224,8 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		} else if IDCache, ok := newIDCache[*folder.ParentID]; ok {
 			newID = IDCache
 		} else {
-			util.Log().Warning("无法取得新的父目录:%d", folder.ParentID)
-			return size, errors.New("无法取得新的父目录")
+			util.Log().Warning("Failed to get parent folder %q", *folder.ParentID)
+			return size, errors.New("Failed to get parent folder")
 		}
 
 		// 插入新的目录记录
@@ -254,7 +254,7 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 	// 复制文件记录
 	for _, oldFile := range originFiles {
 		if !oldFile.CanCopy() {
-			util.Log().Warning("无法复制正在上传中的文件 [%s]， 跳过...", oldFile.Name)
+			util.Log().Warning("Cannot copy file %q because it's being uploaded now, skipping...", oldFile.Name)
 			continue
 		}
 

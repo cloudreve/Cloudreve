@@ -142,18 +142,18 @@ func uploadCallbackCheck(c *gin.Context, policyType string) serializer.Response 
 	// 验证 Callback Key
 	sessionID := c.Param("sessionID")
 	if sessionID == "" {
-		return serializer.ParamErr("Session ID 不能为空", nil)
+		return serializer.ParamErr("Session ID cannot be empty", nil)
 	}
 
 	callbackSessionRaw, exist := cache.Get(filesystem.UploadSessionCachePrefix + sessionID)
 	if !exist {
-		return serializer.ParamErr("上传会话不存在或已过期", nil)
+		return serializer.Err(serializer.CodeUploadSessionExpired, "上传会话不存在或已过期", nil)
 	}
 
 	callbackSession := callbackSessionRaw.(serializer.UploadSession)
 	c.Set(filesystem.UploadSessionCtx, &callbackSession)
 	if callbackSession.Policy.Type != policyType {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "Policy not supported", nil)
+		return serializer.Err(serializer.CodePolicyNotAllowed, "", nil)
 	}
 
 	// 清理回调会话
@@ -162,7 +162,7 @@ func uploadCallbackCheck(c *gin.Context, policyType string) serializer.Response 
 	// 查找用户
 	user, err := model.GetActiveUserByID(callbackSession.UID)
 	if err != nil {
-		return serializer.Err(serializer.CodeCheckLogin, "找不到用户", err)
+		return serializer.Err(serializer.CodeUserNotFound, "", err)
 	}
 	c.Set(filesystem.UserCtx, &user)
 	return serializer.Response{}
@@ -194,14 +194,14 @@ func QiniuCallbackAuth() gin.HandlerFunc {
 		mac := qbox.NewMac(session.Policy.AccessKey, session.Policy.SecretKey)
 		ok, err := mac.VerifyCallback(c.Request)
 		if err != nil {
-			util.Log().Debug("无法验证回调请求，%s", err)
-			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "无法验证回调请求"})
+			util.Log().Debug("Failed to verify callback request: %s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "Failed to verify callback request."})
 			c.Abort()
 			return
 		}
 
 		if !ok {
-			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名无效"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "Invalid signature."})
 			c.Abort()
 			return
 		}
@@ -215,8 +215,8 @@ func OSSCallbackAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := oss.VerifyCallbackSignature(c.Request)
 		if err != nil {
-			util.Log().Debug("回调签名验证失败，%s", err)
-			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "回调签名验证失败"})
+			util.Log().Debug("Failed to verify callback request: %s", err)
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "Failed to verify callback request."})
 			c.Abort()
 			return
 		}
@@ -250,7 +250,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 		// 计算正文MD5
 		actualContentMD5 := fmt.Sprintf("%x", md5.Sum(body))
 		if actualContentMD5 != contentMD5 {
-			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5不一致"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "MD5 mismatch."})
 			c.Abort()
 			return
 		}
@@ -265,7 +265,7 @@ func UpyunCallbackAuth() gin.HandlerFunc {
 
 		// 对比签名
 		if signature != actualSignature {
-			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "鉴权失败"})
+			c.JSON(401, serializer.GeneralUploadCallbackFailed{Error: "Signature not match"})
 			c.Abort()
 			return
 		}
@@ -289,7 +289,7 @@ func IsAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, _ := c.Get("user")
 		if user.(*model.User).Group.ID != 1 && user.(*model.User).ID != 1 {
-			c.JSON(200, serializer.Err(serializer.CodeAdminRequired, "您不是管理组成员", nil))
+			c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "", nil))
 			c.Abort()
 			return
 		}

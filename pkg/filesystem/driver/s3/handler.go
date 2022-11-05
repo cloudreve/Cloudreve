@@ -62,7 +62,7 @@ func NewDriver(policy *model.Policy) (*Driver, error) {
 // InitS3Client 初始化S3会话
 func (handler *Driver) InitS3Client() error {
 	if handler.Policy == nil {
-		return errors.New("存储策略为空")
+		return errors.New("empty policy")
 	}
 
 	if handler.svc == nil {
@@ -407,6 +407,7 @@ func (handler *Driver) Meta(ctx context.Context, path string) (*MetaData, error)
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	return &MetaData{
 		Size: uint64(*res.ContentLength),

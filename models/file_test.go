@@ -257,6 +257,19 @@ func TestFile_GetPolicy(t *testing.T) {
 	}
 }
 
+func TestRemoveFilesWithSoftLinks_EmptyArg(t *testing.T) {
+	asserts := assert.New(t)
+	// 传入空
+	{
+		mock.ExpectQuery("SELECT(.+)files(.+)")
+		file, err := RemoveFilesWithSoftLinks([]File{})
+		asserts.Error(mock.ExpectationsWereMet())
+		asserts.NoError(err)
+		asserts.Equal(len(file), 0)
+		DB.Find(&File{})
+	}
+}
+
 func TestRemoveFilesWithSoftLinks(t *testing.T) {
 	asserts := assert.New(t)
 	files := []File{
@@ -272,30 +285,34 @@ func TestRemoveFilesWithSoftLinks(t *testing.T) {
 		},
 	}
 
+	// 传入空文件列表
+	{
+		file, err := RemoveFilesWithSoftLinks([]File{})
+		asserts.NoError(err)
+		asserts.Empty(file)
+	}
+
 	// 全都没有
 	{
 		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("1.txt", 23, 1, "2.txt", 24, 2).
+			WithArgs("1.txt", 23, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs("2.txt", 24, 2).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		file, err := RemoveFilesWithSoftLinks(files)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Equal(files, file)
 	}
-	// 查询出错
-	{
-		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("1.txt", 23, 1, "2.txt", 24, 2).
-			WillReturnError(errors.New("error"))
-		file, err := RemoveFilesWithSoftLinks(files)
-		asserts.NoError(mock.ExpectationsWereMet())
-		asserts.Error(err)
-		asserts.Nil(file)
-	}
+
 	// 第二个是软链
 	{
 		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("1.txt", 23, 1, "2.txt", 24, 2).
+			WithArgs("1.txt", 23, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs("2.txt", 24, 2).
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
 					AddRow(3, 24, "2.txt"),
@@ -305,14 +322,18 @@ func TestRemoveFilesWithSoftLinks(t *testing.T) {
 		asserts.NoError(err)
 		asserts.Equal(files[:1], file)
 	}
+
 	// 第一个是软链
 	{
 		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("1.txt", 23, 1, "2.txt", 24, 2).
+			WithArgs("1.txt", 23, 1).
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
 					AddRow(3, 23, "1.txt"),
 			)
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs("2.txt", 24, 2).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "policy_id", "source_name"}))
 		file, err := RemoveFilesWithSoftLinks(files)
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
@@ -321,11 +342,16 @@ func TestRemoveFilesWithSoftLinks(t *testing.T) {
 	// 全部是软链
 	{
 		mock.ExpectQuery("SELECT(.+)files(.+)").
-			WithArgs("1.txt", 23, 1, "2.txt", 24, 2).
+			WithArgs("1.txt", 23, 1).
 			WillReturnRows(
 				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
-					AddRow(3, 24, "2.txt").
-					AddRow(4, 23, "1.txt"),
+					AddRow(3, 23, "1.txt"),
+			)
+		mock.ExpectQuery("SELECT(.+)files(.+)").
+			WithArgs("2.txt", 24, 2).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"id", "policy_id", "source_name"}).
+					AddRow(3, 24, "2.txt"),
 			)
 		file, err := RemoveFilesWithSoftLinks(files)
 		asserts.NoError(mock.ExpectationsWereMet())
@@ -583,5 +609,46 @@ func TestGetFilesByKeywords(t *testing.T) {
 		asserts.NoError(mock.ExpectationsWereMet())
 		asserts.NoError(err)
 		asserts.Len(res, 1)
+	}
+}
+
+func TestFile_CreateOrGetSourceLink(t *testing.T) {
+	a := assert.New(t)
+	file := &File{}
+	file.ID = 1
+
+	// 已存在，返回老的 SourceLink
+	{
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
+		res, err := file.CreateOrGetSourceLink()
+		a.NoError(err)
+		a.EqualValues(2, res.ID)
+		a.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 不存在，插入失败
+	{
+		expectedErr := errors.New("error")
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)source_links(.+)").WillReturnError(expectedErr)
+		mock.ExpectRollback()
+		res, err := file.CreateOrGetSourceLink()
+		a.Nil(res)
+		a.ErrorIs(err, expectedErr)
+		a.NoError(mock.ExpectationsWereMet())
+	}
+
+	// 成功
+	{
+		mock.ExpectQuery("SELECT(.+)source_links(.+)").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id"}))
+		mock.ExpectBegin()
+		mock.ExpectExec("INSERT(.+)source_links(.+)").WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectCommit()
+		res, err := file.CreateOrGetSourceLink()
+		a.NoError(err)
+		a.EqualValues(2, res.ID)
+		a.EqualValues(file.ID, res.File.ID)
+		a.NoError(mock.ExpectationsWereMet())
 	}
 }

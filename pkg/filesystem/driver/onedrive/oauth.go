@@ -152,7 +152,7 @@ func (client *Client) UpdateCredential(ctx context.Context, isSlave bool) error 
 	// 获取新的凭证
 	if client.Credential == nil || client.Credential.RefreshToken == "" {
 		// 无有效的RefreshToken
-		util.Log().Error("上传策略[%s]凭证刷新失败，请重新授权OneDrive账号", client.Policy.Name)
+		util.Log().Error("Failed to refresh credential for policy %q, please login your Microsoft account again.", client.Policy.Name)
 		return ErrInvalidRefreshToken
 	}
 

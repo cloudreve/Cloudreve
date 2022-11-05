@@ -19,7 +19,7 @@ type Task struct {
 // Create 创建任务记录
 func (task *Task) Create() (uint, error) {
 	if err := DB.Create(task).Error; err != nil {
-		util.Log().Warning("无法插入任务记录, %s", err)
+		util.Log().Warning("Failed to insert task record: %s", err)
 		return 0, err
 	}
 	return task.ID, nil

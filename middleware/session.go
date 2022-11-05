@@ -22,10 +22,10 @@ func Session(secret string) gin.HandlerFunc {
 		var err error
 		Store, err = redis.NewStoreWithDB(10, conf.RedisConfig.Network, conf.RedisConfig.Server, conf.RedisConfig.Password, strconv.Itoa(conf.RedisConfig.DB), []byte(secret))
 		if err != nil {
-			util.Log().Panic("无法连接到 Redis：%s", err)
+			util.Log().Panic("Failed to connect to Redis：%s", err)
 		}
 
-		util.Log().Info("已连接到 Redis 服务器：%s", conf.RedisConfig.Server)
+		util.Log().Info("Connect to Redis server %q.", conf.RedisConfig.Server)
 	} else {
 		Store = memstore.NewStore([]byte(secret))
 	}
@@ -52,7 +52,7 @@ func CSRFCheck() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "来源非法", nil))
+		c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "Invalid origin", nil))
 		c.Abort()
 	}
 }

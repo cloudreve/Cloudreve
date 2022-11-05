@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -37,24 +36,18 @@ const (
 
 // GetSourcePath 获取文件的绝对路径
 func (info *FileInfo) GetSourcePath() string {
-	res, err := url.PathUnescape(
-		strings.TrimPrefix(
-			path.Join(
-				strings.TrimPrefix(info.ParentReference.Path, "/drive/root:"),
-				info.Name,
-			),
-			"/",
-		),
-	)
+	res, err := url.PathUnescape(info.ParentReference.Path)
 	if err != nil {
 		return ""
 	}
-	return res
-}
 
-// Error 实现error接口
-func (err RespError) Error() string {
-	return err.APIError.Message
+	return strings.TrimPrefix(
+		path.Join(
+			strings.TrimPrefix(res, "/drive/root:"),
+			info.Name,
+		),
+		"/",
+	)
 }
 
 func (client *Client) getRequestURL(api string, opts ...Option) string {
@@ -95,7 +88,7 @@ func (client *Client) ListChildren(ctx context.Context, path string) ([]FileInfo
 		}
 		if retried < ListRetry {
 			retried++
-			util.Log().Debug("路径[%s]列取请求失败[%s]，5秒钟后重试", path, err)
+			util.Log().Debug("Failed to list path %q: %s, will retry in 5 seconds.", path, err)
 			time.Sleep(time.Duration(5) * time.Second)
 			return client.ListChildren(context.WithValue(ctx, fsctx.RetryCtx, retried), path)
 		}
@@ -445,7 +438,7 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 		}
 	}
 
-	return "", errors.New("无法生成缩略图")
+	return "", errors.New("failed to generate thumb")
 }
 
 // MonitorUpload 监控客户端分片上传进度
@@ -460,39 +453,39 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 	for {
 		select {
 		case <-callbackChan:
-			util.Log().Debug("客户端完成回调")
+			util.Log().Debug("Client finished OneDrive callback.")
 			return
 		case <-time.After(time.Duration(ttl) * time.Second):
 			// 上传会话到期，仍未完成上传，创建占位符
 			client.DeleteUploadSession(context.Background(), uploadURL)
 			_, err := client.SimpleUpload(context.Background(), path, strings.NewReader(""), 0, WithConflictBehavior("replace"))
 			if err != nil {
-				util.Log().Debug("无法创建占位文件，%s", err)
+				util.Log().Debug("Failed to create placeholder file: %s", err)
 			}
 			return
 		case <-time.After(time.Duration(timeout) * time.Second):
-			util.Log().Debug("检查上传情况")
+			util.Log().Debug("Checking OneDrive upload status.")
 			status, err := client.GetUploadSessionStatus(context.Background(), uploadURL)
 
 			if err != nil {
 				if resErr, ok := err.(*RespError); ok {
 					if resErr.APIError.Code == "itemNotFound" {
-						util.Log().Debug("上传会话已完成，稍后检查回调")
+						util.Log().Debug("Upload completed, will check upload callback later.")
 						select {
 						case <-time.After(time.Duration(interval) * time.Second):
-							util.Log().Warning("未发送回调，删除文件")
+							util.Log().Warning("No callback is made, file will be deleted.")
 							cache.Deletes([]string{callbackKey}, "callback_")
 							_, err = client.Delete(context.Background(), []string{path})
 							if err != nil {
-								util.Log().Warning("无法删除未回调的文件，%s", err)
+								util.Log().Warning("Failed to delete file without callback: %s", err)
 							}
 						case <-callbackChan:
-							util.Log().Debug("客户端完成回调")
+							util.Log().Debug("Client finished callback.")
 						}
 						return
 					}
 				}
-				util.Log().Debug("无法获取上传会话状态，继续下一轮，%s", err.Error())
+				util.Log().Debug("Failed to get upload session status: %s, continue next iteration.", err.Error())
 				continue
 			}
 
@@ -509,7 +502,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 			}
 			uploadFullSize, _ := strconv.ParseUint(sizeRange[1], 10, 64)
 			if (sizeRange[0] == "0" && sizeRange[1] == "") || uploadFullSize+1 != size {
-				util.Log().Debug("未开始上传或文件大小不一致，取消上传会话")
+				util.Log().Debug("Upload has not started, or uploaded file size not match, canceling upload session...")
 				// 取消上传会话，实测OneDrive取消上传会话后，客户端还是可以上传，
 				// 所以上传一个空文件占位，阻止客户端上传
 				client.DeleteUploadSession(context.Background(), uploadURL)
@@ -531,7 +524,7 @@ func sysError(err error) *RespError {
 	}}
 }
 
-func (client *Client) request(ctx context.Context, method string, url string, body io.Reader, option ...request.Option) (string, *RespError) {
+func (client *Client) request(ctx context.Context, method string, url string, body io.Reader, option ...request.Option) (string, error) {
 	// 获取凭证
 	err := client.UpdateCredential(ctx, conf.SystemConfig.Mode == "slave")
 	if err != nil {
@@ -577,18 +570,24 @@ func (client *Client) request(ctx context.Context, method string, url string, bo
 	if res.Response.StatusCode < 200 || res.Response.StatusCode >= 300 {
 		decodeErr = json.Unmarshal([]byte(respBody), &errResp)
 		if decodeErr != nil {
-			util.Log().Debug("Onedrive返回未知响应[%s]", respBody)
+			util.Log().Debug("Onedrive returns unknown response: %s", respBody)
 			return "", sysError(decodeErr)
 		}
+
+		if res.Response.StatusCode == 429 {
+			util.Log().Warning("OneDrive request is throttled.")
+			return "", backoff.NewRetryableErrorFromHeader(&errResp, res.Response.Header)
+		}
+
 		return "", &errResp
 	}
 
 	return respBody, nil
 }
 
-func (client *Client) requestWithStr(ctx context.Context, method string, url string, body string, expectedCode int) (string, *RespError) {
+func (client *Client) requestWithStr(ctx context.Context, method string, url string, body string, expectedCode int) (string, error) {
 	// 发送请求
-	bodyReader := ioutil.NopCloser(strings.NewReader(body))
+	bodyReader := io.NopCloser(strings.NewReader(body))
 	return client.request(ctx, method, url, bodyReader,
 		request.WithContentLength(int64(len(body))),
 	)

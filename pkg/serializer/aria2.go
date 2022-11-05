@@ -19,6 +19,7 @@ type DownloadListResponse struct {
 	Downloaded     uint64         `json:"downloaded"`
 	Speed          int            `json:"speed"`
 	Info           rpc.StatusInfo `json:"info"`
+	NodeName       string         `json:"node"`
 }
 
 // FinishedListResponse 已完成任务条目
@@ -34,6 +35,7 @@ type FinishedListResponse struct {
 	TaskError  string         `json:"task_error"`
 	CreateTime time.Time      `json:"create"`
 	UpdateTime time.Time      `json:"update"`
+	NodeName   string         `json:"node"`
 }
 
 // BuildFinishedListResponse 构建已完成任务条目
@@ -62,6 +64,7 @@ func BuildFinishedListResponse(tasks []model.Download) Response {
 			TaskStatus: -1,
 			UpdateTime: tasks[i].UpdatedAt,
 			CreateTime: tasks[i].CreatedAt,
+			NodeName:   tasks[i].NodeName,
 		}
 
 		if tasks[i].Task != nil {
@@ -106,6 +109,7 @@ func BuildDownloadingResponse(tasks []model.Download, intervals map[uint]int) Re
 			Downloaded:     tasks[i].DownloadedSize,
 			Speed:          tasks[i].Speed,
 			Info:           tasks[i].StatusInfo,
+			NodeName:       tasks[i].NodeName,
 		})
 	}
 

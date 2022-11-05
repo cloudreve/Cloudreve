@@ -80,7 +80,7 @@ type ThemeChose struct {
 func (service *ThemeChose) Update(c *gin.Context, user *model.User) serializer.Response {
 	user.OptionsSerialized.PreferredTheme = service.Theme
 	if err := user.UpdateOptions(); err != nil {
-		return serializer.DBErr("主题切换失败", err)
+		return serializer.DBErr("Failed to update user preferences", err)
 	}
 
 	return serializer.Response{}
@@ -98,25 +98,25 @@ func (service *Enable2FA) Update(c *gin.Context, user *model.User) serializer.Re
 		// 开启2FA
 		secret, ok := util.GetSession(c, "2fa_init").(string)
 		if !ok {
-			return serializer.Err(serializer.CodeParamErr, "未初始化二步验证", nil)
+			return serializer.Err(serializer.CodeInternalSetting, "You have not initiated 2FA session", nil)
 		}
 
 		if !totp.Validate(service.Code, secret) {
-			return serializer.ParamErr("验证码不正确", nil)
+			return serializer.ParamErr("Incorrect 2FA code", nil)
 		}
 
 		if err := user.Update(map[string]interface{}{"two_factor": secret}); err != nil {
-			return serializer.DBErr("无法更新二步验证设定", err)
+			return serializer.DBErr("Failed to update user preferences", err)
 		}
 
 	} else {
 		// 关闭2FA
 		if !totp.Validate(service.Code, user.TwoFactor) {
-			return serializer.ParamErr("验证码不正确", nil)
+			return serializer.ParamErr("Incorrect 2FA code", nil)
 		}
 
 		if err := user.Update(map[string]interface{}{"two_factor": ""}); err != nil {
-			return serializer.DBErr("无法更新二步验证设定", err)
+			return serializer.DBErr("Failed to update user preferences", err)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (service *SettingService) Init2FA(c *gin.Context, user *model.User) seriali
 		AccountName: user.Email,
 	})
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "无法生成验密钥", err)
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to generate TOTP secret", err)
 	}
 
 	util.SetSession(c, map[string]interface{}{"2fa_init": key.Secret()})
@@ -141,13 +141,13 @@ func (service *SettingService) Init2FA(c *gin.Context, user *model.User) seriali
 func (service *PasswordChange) Update(c *gin.Context, user *model.User) serializer.Response {
 	// 验证老密码
 	if ok, _ := user.CheckPassword(service.Old); !ok {
-		return serializer.Err(serializer.CodeParamErr, "原密码不正确", nil)
+		return serializer.Err(serializer.CodeIncorrectPassword, "", nil)
 	}
 
 	// 更改为新密码
 	user.SetPassword(service.New)
 	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
-		return serializer.DBErr("密码更换失败", err)
+		return serializer.DBErr("Failed to update password", err)
 	}
 
 	return serializer.Response{}
@@ -157,7 +157,7 @@ func (service *PasswordChange) Update(c *gin.Context, user *model.User) serializ
 func (service *HomePage) Update(c *gin.Context, user *model.User) serializer.Response {
 	user.OptionsSerialized.ProfileOff = !service.Enabled
 	if err := user.UpdateOptions(); err != nil {
-		return serializer.DBErr("存储策略切换失败", err)
+		return serializer.DBErr("Failed to update user preferences", err)
 	}
 
 	return serializer.Response{}
@@ -166,7 +166,7 @@ func (service *HomePage) Update(c *gin.Context, user *model.User) serializer.Res
 // Update 更改昵称
 func (service *ChangerNick) Update(c *gin.Context, user *model.User) serializer.Response {
 	if err := user.Update(map[string]interface{}{"nick": service.Nick}); err != nil {
-		return serializer.DBErr("无法更新昵称", err)
+		return serializer.DBErr("Failed to update user", err)
 	}
 
 	return serializer.Response{}
@@ -178,7 +178,7 @@ func (service *AvatarService) Get(c *gin.Context) serializer.Response {
 	uid, _ := c.Get("object_id")
 	user, err := model.GetActiveUserByID(uid.(uint))
 	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "", err)
 	}
 
 	// 未设定头像时，返回404错误
@@ -199,7 +199,7 @@ func (service *AvatarService) Get(c *gin.Context) serializer.Response {
 		server := model.GetSettingByName("gravatar_server")
 		gravatarRoot, err := url.Parse(server)
 		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "无法解析 Gravatar 服务器地址", err)
+			return serializer.Err(serializer.CodeInternalSetting, "Failed to parse Gravatar server", err)
 		}
 		email_lowered := strings.ToLower(user.Email)
 		has := md5.Sum([]byte(email_lowered))

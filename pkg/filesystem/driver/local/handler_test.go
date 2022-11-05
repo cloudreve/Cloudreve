@@ -36,7 +36,7 @@ func TestHandler_Put(t *testing.T) {
 		{&fsctx.FileStream{
 			SavePath: "TestHandler_Put.txt",
 			File:     io.NopCloser(strings.NewReader("")),
-		}, "物理同名文件已存在或不可用"},
+		}, "file with the same name existed or unavailable"},
 		{&fsctx.FileStream{
 			SavePath: "inner/TestHandler_Put.txt",
 			File:     io.NopCloser(strings.NewReader("")),
@@ -51,7 +51,7 @@ func TestHandler_Put(t *testing.T) {
 			Mode:        fsctx.Append | fsctx.Overwrite,
 			SavePath:    "inner/TestHandler_Put.txt",
 			File:        io.NopCloser(strings.NewReader("123")),
-		}, "未上传完成的文件分片与预期大小不一致"},
+		}, "size of unfinished uploaded chunks is not as expected"},
 		{&fsctx.FileStream{
 			Mode:     fsctx.Append | fsctx.Overwrite,
 			SavePath: "inner/TestHandler_Put.txt",

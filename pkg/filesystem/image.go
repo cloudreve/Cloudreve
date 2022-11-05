@@ -71,16 +71,16 @@ func getThumbWorker() *Pool {
 		thumbPool = &Pool{
 			worker: make(chan int, maxWorker),
 		}
-		util.Log().Debug("初始化Thumb任务队列，WorkerNum = %d", maxWorker)
+		util.Log().Debug("Initialize thumbnails task queue with: WorkerNum = %d", maxWorker)
 	})
 	return thumbPool
 }
 func (pool *Pool) addWorker() {
 	pool.worker <- 1
-	util.Log().Debug("Thumb任务队列，addWorker")
+	util.Log().Debug("Worker added to thumbnails task queue.")
 }
 func (pool *Pool) releaseWorker() {
-	util.Log().Debug("Thumb任务队列，releaseWorker")
+	util.Log().Debug("Worker released from thumbnails task queue.")
 	<-pool.worker
 }
 
@@ -107,7 +107,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 
 	image, err := thumb.NewThumbFromFile(source, file.Name)
 	if err != nil {
-		util.Log().Warning("生成缩略图时无法解析 [%s] 图像数据：%s", file.SourceName, err)
+		util.Log().Warning("Cannot generate thumb because of failed to parse image %q: %s", file.SourceName, err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	}
 
 	if err != nil {
-		util.Log().Warning("无法保存缩略图：%s", err)
+		util.Log().Warning("Failed to save thumb: %s", err)
 		return
 	}
 

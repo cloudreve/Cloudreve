@@ -2,6 +2,8 @@ package slavetask
 
 import (
 	"context"
+	"os"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
@@ -10,7 +12,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"os"
 )
 
 // TransferTask 文件中转任务
@@ -68,7 +69,7 @@ func (job *TransferTask) SetErrorMsg(msg string, err error) {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), notifyMsg); err != nil {
-		util.Log().Warning("无法发送转存失败通知到从机, %s", err)
+		util.Log().Warning("Failed to send transfer failure notification to master node: %s", err)
 	}
 }
 
@@ -79,30 +80,28 @@ func (job *TransferTask) GetError() *task.JobError {
 
 // Do 开始执行任务
 func (job *TransferTask) Do() {
-	defer job.Recycle()
-
 	fs, err := filesystem.NewAnonymousFileSystem()
 	if err != nil {
-		job.SetErrorMsg("无法初始化匿名文件系统", err)
+		job.SetErrorMsg("Failed to initialize anonymous filesystem.", err)
 		return
 	}
 
 	fs.Policy = job.Req.Policy
 	if err := fs.DispatchHandler(); err != nil {
-		job.SetErrorMsg("无法分发存储策略", err)
+		job.SetErrorMsg("Failed to dispatch policy.", err)
 		return
 	}
 
 	master, err := cluster.DefaultController.GetMasterInfo(job.MasterID)
 	if err != nil {
-		job.SetErrorMsg("找不到主机节点", err)
+		job.SetErrorMsg("Cannot found master node ID.", err)
 		return
 	}
 
 	fs.SwitchToShadowHandler(master.Instance, master.URL.String(), master.ID)
 	file, err := os.Open(util.RelativePath(job.Req.Src))
 	if err != nil {
-		job.SetErrorMsg("无法读取源文件", err)
+		job.SetErrorMsg("Failed to read source file.", err)
 		return
 	}
 
@@ -111,7 +110,7 @@ func (job *TransferTask) Do() {
 	// 获取源文件大小
 	fi, err := file.Stat()
 	if err != nil {
-		job.SetErrorMsg("无法获取源文件大小", err)
+		job.SetErrorMsg("Failed to get source file size.", err)
 		return
 	}
 
@@ -123,7 +122,7 @@ func (job *TransferTask) Do() {
 		Size:     uint64(size),
 	})
 	if err != nil {
-		job.SetErrorMsg("文件上传失败", err)
+		job.SetErrorMsg("Upload failed.", err)
 		return
 	}
 
@@ -134,14 +133,6 @@ func (job *TransferTask) Do() {
 	}
 
 	if err := cluster.DefaultController.SendNotification(job.MasterID, job.Req.Hash(job.MasterID), msg); err != nil {
-		util.Log().Warning("无法发送转存成功通知到从机, %s", err)
-	}
-}
-
-// Recycle 回收临时文件
-func (job *TransferTask) Recycle() {
-	err := os.Remove(job.Req.Src)
-	if err != nil {
-		util.Log().Warning("无法删除中转临时文件[%s], %s", job.Req.Src, err)
+		util.Log().Warning("Failed to send transfer success notification to master node: %s", err)
 	}
 }

@@ -172,7 +172,7 @@ func (node *SlaveNode) StartPingLoop() {
 	recoverDuration := time.Duration(model.GetIntSetting("slave_recover_interval", 600)) * time.Second
 	pingTicker := time.Duration(0)
 
-	util.Log().Debug("从机节点 [%s] 启动心跳循环", node.Model.Name)
+	util.Log().Debug("Slave node %q heartbeat loop started.", node.Model.Name)
 	retry := 0
 	recoverMode := false
 	isFirstLoop := true
@@ -185,39 +185,39 @@ loop:
 				pingTicker = tickDuration
 			}
 
-			util.Log().Debug("从机节点 [%s] 发送Ping", node.Model.Name)
+			util.Log().Debug("Slave node %q send ping.", node.Model.Name)
 			res, err := node.Ping(node.getHeartbeatContent(isFirstLoop))
 			isFirstLoop = false
 
 			if err != nil {
-				util.Log().Debug("Ping从机节点 [%s] 时发生错误: %s", node.Model.Name, err)
+				util.Log().Debug("Error while ping slave node %q: %s", node.Model.Name, err)
 				retry++
 				if retry >= model.GetIntSetting("slave_node_retry", 3) {
-					util.Log().Debug("从机节点 [%s] Ping 重试已达到最大限制，将从机节点标记为不可用", node.Model.Name)
+					util.Log().Debug("Retry threshold for pinging slave node %q exceeded, mark it as offline.", node.Model.Name)
 					node.changeStatus(false)
 
 					if !recoverMode {
 						// 启动恢复监控循环
-						util.Log().Debug("从机节点 [%s] 进入恢复模式", node.Model.Name)
+						util.Log().Debug("Slave node %q entered recovery mode.", node.Model.Name)
 						pingTicker = recoverDuration
 						recoverMode = true
 					}
 				}
 			} else {
 				if recoverMode {
-					util.Log().Debug("从机节点 [%s] 复活", node.Model.Name)
+					util.Log().Debug("Slave node %q recovered.", node.Model.Name)
 					pingTicker = tickDuration
 					recoverMode = false
 					isFirstLoop = true
 				}
 
-				util.Log().Debug("从机节点 [%s] 状态: %s", node.Model.Name, res)
+				util.Log().Debug("Status of slave node %q: %s", node.Model.Name, res)
 				node.changeStatus(true)
 				retry = 0
 			}
 
 		case <-node.close:
-			util.Log().Debug("从机节点 [%s] 收到关闭信号", node.Model.Name)
+			util.Log().Debug("Slave node %q received shutdown signal.", node.Model.Name)
 			break loop
 		}
 	}
@@ -421,7 +421,7 @@ func RemoteCallback(url string, body serializer.UploadCallback) error {
 		Data: body,
 	})
 	if err != nil {
-		return serializer.NewError(serializer.CodeCallbackError, "无法编码回调正文", err)
+		return serializer.NewError(serializer.CodeCallbackError, "Failed to encode callback content", err)
 	}
 
 	resp := request.GeneralClient.Request(
@@ -433,13 +433,13 @@ func RemoteCallback(url string, body serializer.UploadCallback) error {
 	)
 
 	if resp.Err != nil {
-		return serializer.NewError(serializer.CodeCallbackError, "从机无法发起回调请求", resp.Err)
+		return serializer.NewError(serializer.CodeCallbackError, "Slave cannot send callback request", resp.Err)
 	}
 
 	// 解析回调服务端响应
 	response, err := resp.DecodeResponse()
 	if err != nil {
-		msg := fmt.Sprintf("从机无法解析主机返回的响应 (StatusCode=%d)", resp.Response.StatusCode)
+		msg := fmt.Sprintf("Slave cannot parse callback response from master (StatusCode=%d).", resp.Response.StatusCode)
 		return serializer.NewError(serializer.CodeCallbackError, msg, err)
 	}
 

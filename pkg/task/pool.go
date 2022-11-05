@@ -44,11 +44,11 @@ func (pool *AsyncPool) freeWorker() {
 // Submit 开始提交任务
 func (pool *AsyncPool) Submit(job Job) {
 	go func() {
-		util.Log().Debug("等待获取Worker")
+		util.Log().Debug("Waiting for Worker.")
 		worker := pool.obtainWorker()
-		util.Log().Debug("获取到Worker")
+		util.Log().Debug("Worker obtained.")
 		worker.Do(job)
-		util.Log().Debug("释放Worker")
+		util.Log().Debug("Worker released.")
 		pool.freeWorker()
 	}()
 }
@@ -60,7 +60,7 @@ func Init() {
 		idleWorker: make(chan int, maxWorker),
 	}
 	TaskPoll.Add(maxWorker)
-	util.Log().Info("初始化任务队列，WorkerNum = %d", maxWorker)
+	util.Log().Info("Initialize task queue with WorkerNum = %d", maxWorker)
 
 	if conf.SystemConfig.Mode == "master" {
 		Resume(TaskPoll)

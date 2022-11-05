@@ -3,7 +3,6 @@ package onedrive
 import (
 	"context"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/jinzhu/gorm"
@@ -160,21 +159,6 @@ func TestDriver_Source(t *testing.T) {
 		res, err := handler.Source(context.Background(), "123.jpg", url.URL{}, 1, true, 0)
 		asserts.NoError(err)
 		asserts.Equal("123321", res)
-	}
-
-	// 成功 永久直链
-	{
-		file := model.File{}
-		file.ID = 1
-		file.Name = "123.jpg"
-		file.UpdatedAt = time.Now()
-		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
-		handler.Client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
-		auth.General = auth.HMACAuth{}
-		handler.Client.Credential.AccessToken = "1"
-		res, err := handler.Source(ctx, "123.jpg", url.URL{}, 0, true, 0)
-		asserts.NoError(err)
-		asserts.Contains(res, "/api/v3/file/source/1/123.jpg?sign")
 	}
 }
 

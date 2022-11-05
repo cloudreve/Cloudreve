@@ -16,10 +16,10 @@ import (
 // InitRouter 初始化路由
 func InitRouter() *gin.Engine {
 	if conf.SystemConfig.Mode == "master" {
-		util.Log().Info("当前运行模式：Master")
+		util.Log().Info("Current running mode: Master.")
 		return InitMasterRouter()
 	}
-	util.Log().Info("当前运行模式：Slave")
+	util.Log().Info("Current running mode: Slave.")
 	return InitSlaveRouter()
 
 }
@@ -108,7 +108,7 @@ func InitCORS(router *gin.Engine) {
 
 	// slave模式下未启动跨域的警告
 	if conf.SystemConfig.Mode == "slave" {
-		util.Log().Warning("当前作为存储端（Slave）运行，但未启用跨域配置，可能会导致 Master 端无法正常上传文件")
+		util.Log().Warning("You are running Cloudreve as slave node, if you are using slave storage policy, please enable CORS feature in config file, otherwise file cannot be uploaded from Master site.")
 	}
 }
 
@@ -145,6 +145,15 @@ func InitMasterRouter() *gin.Engine {
 		路由
 	*/
 	{
+		// Redirect file source link
+		source := r.Group("f")
+		{
+			source.GET(":id/:name",
+				middleware.HashID(hashid.SourceLinkID),
+				middleware.ValidateSourceLink(),
+				controllers.AnonymousPermLink)
+		}
+
 		// 全局设置相关
 		site := v3.Group("site")
 		{
@@ -210,7 +219,7 @@ func InitMasterRouter() *gin.Engine {
 				// 文件外链（直接输出文件数据）
 				file.GET("get/:id/:name", controllers.AnonymousGetContent)
 				// 文件外链(301跳转)
-				file.GET("source/:id/:name", controllers.AnonymousPermLink)
+				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
 				// 下载文件
 				file.GET("download/:id", controllers.Download)
 				// 打包并下载文件

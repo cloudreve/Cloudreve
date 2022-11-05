@@ -4,13 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"flag"
-	"io"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -19,8 +17,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/routers"
-
-	"github.com/mholt/archiver/v4"
 )
 
 var (
@@ -36,17 +32,14 @@ var staticZip string
 var staticFS fs.FS
 
 func init() {
-	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "配置文件路径")
-	flag.BoolVar(&isEject, "eject", false, "导出内置静态资源")
-	flag.StringVar(&scriptName, "database-script", "", "运行内置数据库助手脚本")
-	flag.BoolVar(&skipConfLoading, "skip-conf", false, "跳过配置文件加载")
+	flag.StringVar(&confPath, "c", util.RelativePath("conf.ini"), "Path to the config file.")
+	flag.BoolVar(&isEject, "eject", false, "Eject all embedded static files.")
+	flag.StringVar(&scriptName, "database-script", "", "Name of database util script.")
+	flag.BoolVar(&skipConfLoading, "skip-conf", false, "Skip conf file loading")
 	flag.Parse()
 
-	staticFS = archiver.ArchiveFS{
-		Stream: io.NewSectionReader(strings.NewReader(staticZip), 0, int64(len(staticZip))),
-		Format: archiver.Zip{},
-	}
-	bootstrap.Init(confPath, skipConfLoading, staticFS)
+	staticFS = bootstrap.NewFS(staticZip)
+	bootstrap.Init(confPath, staticFS)
 }
 
 func main() {
@@ -73,7 +66,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
 	go func() {
 		sig := <-sigChan
-		util.Log().Info("收到信号 %s，开始关闭 server", sig)
+		util.Log().Info("Signal %s received, shutting down server...", sig)
 		ctx := context.Background()
 		if conf.SystemConfig.GracePeriod != 0 {
 			var cancel context.CancelFunc
@@ -83,16 +76,16 @@ func main() {
 
 		err := server.Shutdown(ctx)
 		if err != nil {
-			util.Log().Error("关闭 server 错误, %s", err)
+			util.Log().Error("Failed to shutdown server: %s", err)
 		}
 	}()
 
 	// 如果启用了SSL
 	if conf.SSLConfig.CertPath != "" {
-		util.Log().Info("开始监听 %s", conf.SSLConfig.Listen)
+		util.Log().Info("Listening to %q", conf.SSLConfig.Listen)
 		server.Addr = conf.SSLConfig.Listen
 		if err := server.ListenAndServeTLS(conf.SSLConfig.CertPath, conf.SSLConfig.KeyPath); err != nil {
-			util.Log().Error("无法监听[%s]，%s", conf.SSLConfig.Listen, err)
+			util.Log().Error("Failed to listen to %q: %s", conf.SSLConfig.Listen, err)
 			return
 		}
 	}
@@ -102,23 +95,23 @@ func main() {
 		// delete socket file before listening
 		if _, err := os.Stat(conf.UnixConfig.Listen); err == nil {
 			if err = os.Remove(conf.UnixConfig.Listen); err != nil {
-				util.Log().Error("删除 socket 文件错误, %s", err)
+				util.Log().Error("Failed to delete socket file: %s", err)
 				return
 			}
 		}
 
 		api.TrustedPlatform = conf.UnixConfig.ProxyHeader
-		util.Log().Info("开始监听 %s", conf.UnixConfig.Listen)
+		util.Log().Info("Listening to %q", conf.UnixConfig.Listen)
 		if err := RunUnix(server); err != nil {
-			util.Log().Error("无法监听[%s]，%s", conf.UnixConfig.Listen, err)
+			util.Log().Error("Failed to listen to %q: %s", conf.UnixConfig.Listen, err)
 		}
 		return
 	}
 
-	util.Log().Info("开始监听 %s", conf.SystemConfig.Listen)
+	util.Log().Info("Listening to %q", conf.SystemConfig.Listen)
 	server.Addr = conf.SystemConfig.Listen
 	if err := server.ListenAndServe(); err != nil {
-		util.Log().Error("无法监听[%s]，%s", conf.SystemConfig.Listen, err)
+		util.Log().Error("Failed to listen to %q: %s", conf.SystemConfig.Listen, err)
 	}
 }
 

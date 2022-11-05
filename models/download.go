@@ -32,6 +32,7 @@ type Download struct {
 	// 数据库忽略字段
 	StatusInfo rpc.StatusInfo `gorm:"-"`
 	Task       *Task          `gorm:"-"`
+	NodeName   string         `gorm:"-"`
 }
 
 // AfterFind 找到下载任务后的钩子，处理Status结构
@@ -60,7 +61,7 @@ func (task *Download) BeforeSave() (err error) {
 // Create 创建离线下载记录
 func (task *Download) Create() (uint, error) {
 	if err := DB.Create(task).Error; err != nil {
-		util.Log().Warning("无法插入离线下载记录, %s", err)
+		util.Log().Warning("Failed to insert download record: %s", err)
 		return 0, err
 	}
 	return task.ID, nil
@@ -69,7 +70,7 @@ func (task *Download) Create() (uint, error) {
 // Save 更新
 func (task *Download) Save() error {
 	if err := DB.Save(task).Error; err != nil {
-		util.Log().Warning("无法更新离线下载记录, %s", err)
+		util.Log().Warning("Failed to update download record: %s", err)
 		return err
 	}
 	return nil

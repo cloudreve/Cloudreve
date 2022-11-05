@@ -19,7 +19,7 @@ func NewResponseWithGobData(data interface{}) Response {
 	var w bytes.Buffer
 	encoder := gob.NewEncoder(&w)
 	if err := encoder.Encode(data); err != nil {
-		return Err(CodeInternalSetting, "无法编码返回结果", err)
+		return Err(CodeInternalSetting, "Failed to encode response content", err)
 	}
 
 	return Response{Data: w.Bytes()}

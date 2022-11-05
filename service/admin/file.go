@@ -63,7 +63,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 	// 查找用户
 	user, err := model.GetUserByID(service.ID)
 	if err != nil {
-		return serializer.Err(serializer.CodeUserNotFound, "用户不存在", err)
+		return serializer.Err(serializer.CodeUserNotFound, "", err)
 	}
 
 	// 创建文件系统
