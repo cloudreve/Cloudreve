@@ -217,7 +217,7 @@ func InitMasterRouter() *gin.Engine {
 			file := sign.Group("file")
 			{
 				// 文件外链（直接输出文件数据）
-				file.GET("get/:id/:name", controllers.AnonymousGetContent)
+				file.GET("get/:id/:name", middleware.Sandbox(), controllers.AnonymousGetContent)
 				// 文件外链(301跳转)
 				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
 				// 下载文件
@@ -454,7 +454,7 @@ func InitMasterRouter() *gin.Engine {
 					// 列出文件
 					file.POST("list", controllers.AdminListFile)
 					// 预览文件
-					file.GET("preview/:id", controllers.AdminGetFile)
+					file.GET("preview/:id", middleware.Sandbox(), controllers.AdminGetFile)
 					// 删除
 					file.POST("delete", controllers.AdminDeleteFile)
 					// 列出用户或外部文件系统目录
@@ -564,9 +564,9 @@ func InitMasterRouter() *gin.Engine {
 				// 创建文件下载会话
 				file.PUT("download/:id", controllers.CreateDownloadSession)
 				// 预览文件
-				file.GET("preview/:id", controllers.Preview)
+				file.GET("preview/:id", middleware.Sandbox(), controllers.Preview)
 				// 获取文本文件内容
-				file.GET("content/:id", controllers.PreviewText)
+				file.GET("content/:id", middleware.Sandbox(), controllers.PreviewText)
 				// 取得Office文档预览地址
 				file.GET("doc/:id", controllers.GetDocPreview)
 				// 获取缩略图

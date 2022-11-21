@@ -45,3 +45,9 @@ func CacheControl() gin.HandlerFunc {
 		c.Header("Cache-Control", "private, no-cache")
 	}
 }
+
+func Sandbox() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Content-Security-Policy", "sandbox")
+	}
+}
