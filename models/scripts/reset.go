@@ -14,7 +14,7 @@ func (script ResetAdminPassword) Run(ctx context.Context) {
 	// 查找用户
 	user, err := model.GetUserByID(1)
 	if err != nil {
-		util.Log().Panic("初始管理员用户不存在, %s", err)
+		util.Log().Panic("Initial admin user not exist: %s", err)
 	}
 
 	// 生成密码
@@ -23,9 +23,9 @@ func (script ResetAdminPassword) Run(ctx context.Context) {
 	// 更改为新密码
 	user.SetPassword(password)
 	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
-		util.Log().Panic("密码更改失败, %s", err)
+		util.Log().Panic("Failed to update password: %s", err)
 	}
 
 	c := color.New(color.FgWhite).Add(color.BgBlack).Add(color.Bold)
-	util.Log().Info("初始管理员密码已更改为：" + c.Sprint(password))
+	util.Log().Info("Initial admin user password changed to:" + c.Sprint(password))
 }

@@ -15,12 +15,12 @@ var availableScripts = make(map[string]DBScript)
 
 func RunDBScript(name string, ctx context.Context) error {
 	if script, ok := availableScripts[name]; ok {
-		util.Log().Info("开始执行数据库脚本 [%s]", name)
+		util.Log().Info("Start executing database script %q.", name)
 		script.Run(ctx)
 		return nil
 	}
 
-	return fmt.Errorf("数据库脚本 [%s] 不存在", name)
+	return fmt.Errorf("Database script %q not exist.", name)
 }
 
 func Register(name string, script DBScript) {
