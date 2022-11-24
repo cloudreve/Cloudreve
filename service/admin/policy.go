@@ -318,12 +318,20 @@ func (service *AdminListService) Policies() serializer.Response {
 
 	// 统计每个策略的文件使用
 	statics := make(map[uint][2]int, len(res))
+	policyIds := make([]uint, 0, len(res))
 	for i := 0; i < len(res); i++ {
+		policyIds = append(policyIds, res[i].ID)
+	}
+
+	rows, _ := model.DB.Model(&model.File{}).Where("policy_id in (?)", policyIds).
+		Select("policy_id,count(id),sum(size)").Group("policy_id").Rows()
+
+	for rows.Next() {
+		policyId := uint(0)
 		total := [2]int{}
-		row := model.DB.Model(&model.File{}).Where("policy_id = ?", res[i].ID).
-			Select("count(id),sum(size)").Row()
-		row.Scan(&total[0], &total[1])
-		statics[res[i].ID] = total
+		rows.Scan(&policyId, &total[0], &total[1])
+
+		statics[policyId] = total
 	}
 
 	return serializer.Response{Data: map[string]interface{}{
