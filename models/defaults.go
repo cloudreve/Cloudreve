@@ -113,4 +113,5 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "pwa_theme_color", Value: "#000000", Type: "pwa"},
 	{Name: "pwa_background_color", Value: "#ffffff", Type: "pwa"},
 	{Name: "office_preview_service", Value: "https://view.officeapps.live.com/op/view.aspx?src={$src}", Type: "preview"},
+	{Name: "show_app_promotion", Value: "1", Type: "mobile"},
 }
