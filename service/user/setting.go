@@ -76,8 +76,6 @@ type ThemeChose struct {
 	Theme string `json:"theme" binding:"required,hexcolor|rgb|rgba|hsl"`
 }
 
-const avatarMaxAge = 3600
-
 // Update 更新主题设定
 func (service *ThemeChose) Update(c *gin.Context, user *model.User) serializer.Response {
 	user.OptionsSerialized.PreferredTheme = service.Theme
@@ -195,8 +193,6 @@ func (service *AvatarService) Get(c *gin.Context) serializer.Response {
 		"m": model.GetSettingByName("avatar_size_m"),
 		"l": model.GetSettingByName("avatar_size_l"),
 	}
-
-	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", avatarMaxAge))
 
 	// Gravatar 头像重定向
 	if user.Avatar == "gravatar" {

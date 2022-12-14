@@ -206,6 +206,7 @@ func InitMasterRouter() *gin.Engine {
 			// 获取用户头像
 			user.GET("avatar/:id/:size",
 				middleware.HashID(hashid.UserID),
+				middleware.StaticResourceCache(),
 				controllers.GetUserAvatar,
 			)
 		}
@@ -217,11 +218,18 @@ func InitMasterRouter() *gin.Engine {
 			file := sign.Group("file")
 			{
 				// 文件外链（直接输出文件数据）
-				file.GET("get/:id/:name", middleware.Sandbox(), controllers.AnonymousGetContent)
+				file.GET("get/:id/:name",
+					middleware.Sandbox(),
+					middleware.StaticResourceCache(),
+					controllers.AnonymousGetContent,
+				)
 				// 文件外链(301跳转)
 				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
 				// 下载文件
-				file.GET("download/:id", controllers.Download)
+				file.GET("download/:id",
+					middleware.StaticResourceCache(),
+					controllers.Download,
+				)
 				// 打包并下载文件
 				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}

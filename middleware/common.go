@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -49,5 +50,13 @@ func CacheControl() gin.HandlerFunc {
 func Sandbox() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("Content-Security-Policy", "sandbox")
+	}
+}
+
+// StaticResourceCache 使用静态资源缓存策略
+func StaticResourceCache() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", model.GetIntSetting("public_resource_maxage", 86400)))
+
 	}
 }
