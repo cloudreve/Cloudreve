@@ -118,8 +118,21 @@ func RunUnix(server *http.Server) error {
 	if err != nil {
 		return err
 	}
+
 	defer listener.Close()
 	defer os.Remove(conf.UnixConfig.Listen)
+
+	if conf.UnixConfig.Perm > 0 {
+		err = os.Chmod(conf.UnixConfig.Listen, os.FileMode(conf.UnixConfig.Perm))
+		if err != nil {
+			util.Log().Warning(
+				"Failed to set permission to %q for socket file %q: %s",
+				conf.UnixConfig.Perm,
+				conf.UnixConfig.Listen,
+				err,
+			)
+		}
+	}
 
 	return server.Serve(listener)
 }

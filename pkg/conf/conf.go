@@ -38,6 +38,7 @@ type ssl struct {
 type unix struct {
 	Listen      string
 	ProxyHeader string `validate:"required_with=Listen"`
+	Perm        uint32
 }
 
 // slave 作为slave存储端配置
