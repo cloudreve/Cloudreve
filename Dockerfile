@@ -10,6 +10,8 @@ RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 # build frontend
 WORKDIR /cloudreve_builder/Cloudreve/assets
 ENV GENERATE_SOURCEMAP false
+# Disable new OpenSSL to prevent 0308010C:digital envelope routines::unsupported
+ENV NODE_OPTIONS --openssl-legacy-provider
 
 RUN yarn install --network-timeout 1000000
 RUN yarn run build
