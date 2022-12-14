@@ -1,44 +1,47 @@
-FROM golang:1.18-alpine as cloudreve_builder
+# the frontend builder
+# cloudreve need node.js 16* to build frontend,
+# separate build step and custom image tag will resolve this
+FROM node:16-alpine as cloudreve_frontend_builder
 
+RUN apk update \
+    && apk add --no-cache wget curl git yarn zip bash \
+    && git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git /cloudreve_frontend
+
+# build frontend assets using build script, make sure all the steps just follow the regular release
+WORKDIR /cloudreve_frontend
+ENV GENERATE_SOURCEMAP false
+RUN chmod +x ./build.sh && ./build.sh -a
+
+
+# the backend builder
+# cloudreve backend needs golang 1.18* to build
+FROM golang:1.18-alpine as cloudreve_backend_builder
 
 # install dependencies and build tools
-RUN apk update && apk add --no-cache wget curl git yarn build-base gcc abuild binutils binutils-doc gcc-doc zip
+RUN apk update \
+    # install dependencies and build tools
+    && apk add --no-cache wget curl git build-base gcc abuild binutils binutils-doc gcc-doc zip bash \
+    && git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git /cloudreve_backend
 
-WORKDIR /cloudreve_builder
-RUN git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
-
-# build frontend
-WORKDIR /cloudreve_builder/Cloudreve/assets
-ENV GENERATE_SOURCEMAP false
-# Disable new OpenSSL to prevent 0308010C:digital envelope routines::unsupported
-ENV NODE_OPTIONS --openssl-legacy-provider
-
-RUN yarn install --network-timeout 1000000
-RUN yarn run build
-
-# build backend
-WORKDIR /cloudreve_builder/Cloudreve
-RUN zip -r - assets/build >assets.zip
-RUN tag_name=$(git describe --tags) \
-    && export COMMIT_SHA=$(git rev-parse --short HEAD) \
-    && go build -a -o cloudreve -ldflags " -X 'github.com/HFO4/cloudreve/pkg/conf.BackendVersion=$tag_name' -X 'github.com/HFO4/cloudreve/pkg/conf.LastCommit=$COMMIT_SHA'"
+WORKDIR /cloudreve_backend
+COPY --from=cloudreve_frontend_builder /cloudreve_frontend/assets.zip ./
+RUN chmod +x ./build.sh && ./build.sh -c
 
 
-# build final image
+# TODO: merge the frontend build and backend build into a single one image
+# the final published image
 FROM alpine:latest
 
 WORKDIR /cloudreve
+COPY --from=cloudreve_backend_builder /cloudreve_backend/cloudreve ./cloudreve
 
-RUN apk update && apk add --no-cache tzdata
-
-# we using the `Asia/Shanghai` timezone by default, you can do modification at your will
-RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
-
-COPY --from=cloudreve_builder /cloudreve_builder/Cloudreve/cloudreve ./
-
-# prepare permissions and aria2 dir
-RUN chmod +x ./cloudreve && mkdir -p /data/aria2 && chmod -R 766 /data/aria2
+RUN apk update \
+    && apk add --no-cache tzdata \
+    && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && chmod +x ./cloudreve \
+    && mkdir -p /data/aria2 \
+    && chmod -R 766 /data/aria2
 
 EXPOSE 5212
 VOLUME ["/cloudreve/uploads", "/cloudreve/avatar", "/data"]
