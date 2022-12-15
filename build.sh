@@ -32,11 +32,15 @@ buildAssets() {
   yarn run build
   cd build
   cd $REPO
+
+  # please keep in mind that if this final output binary `assets.zip` name changed, please go and update the `Dockerfile` as well
   zip -r - assets/build >assets.zip
 }
 
 buildBinary() {
   cd $REPO
+
+  # same as assets, if this final output binary `cloudreve` name changed, please go and update the `Dockerfile`
   go build -a -o cloudreve -ldflags " -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
 }
 
