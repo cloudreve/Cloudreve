@@ -18,9 +18,10 @@ var DatabaseConfig = &database{
 
 // SystemConfig 系统公用配置
 var SystemConfig = &system{
-	Debug:  false,
-	Mode:   "master",
-	Listen: ":5212",
+	Debug:       false,
+	Mode:        "master",
+	Listen:      ":5212",
+	ProxyHeader: "X-Forwarded-For",
 }
 
 // CORSConfig 跨域配置
@@ -47,8 +48,7 @@ var SSLConfig = &ssl{
 }
 
 var UnixConfig = &unix{
-	Listen:      "",
-	ProxyHeader: "X-Forwarded-For",
+	Listen: "",
 }
 
 var OptionOverwrite = map[string]interface{}{}

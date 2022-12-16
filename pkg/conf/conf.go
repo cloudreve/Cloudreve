@@ -26,7 +26,8 @@ type system struct {
 	Debug         bool
 	SessionSecret string
 	HashIDSalt    string
-	GracePeriod   int `validate:"gte=0"`
+	GracePeriod   int    `validate:"gte=0"`
+	ProxyHeader   string `validate:"required_with=Listen"`
 }
 
 type ssl struct {
@@ -36,9 +37,8 @@ type ssl struct {
 }
 
 type unix struct {
-	Listen      string
-	ProxyHeader string `validate:"required_with=Listen"`
-	Perm        uint32
+	Listen string
+	Perm   uint32
 }
 
 // slave 作为slave存储端配置
