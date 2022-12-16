@@ -89,12 +89,12 @@ func Resume(p Pool) {
 	if len(tasks) == 0 {
 		return
 	}
-	util.Log().Info("从数据库中恢复 %d 个未完成任务", len(tasks))
+	util.Log().Info("Resume %d unfinished task(s) from database.", len(tasks))
 
 	for i := 0; i < len(tasks); i++ {
 		job, err := GetJobFromModel(&tasks[i])
 		if err != nil {
-			util.Log().Warning("无法恢复任务，%s", err)
+			util.Log().Warning("Failed to resume task: %s", err)
 			continue
 		}
 

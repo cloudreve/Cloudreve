@@ -133,3 +133,8 @@ type Site struct {
 func init() {
 	gob.Register(Credential{})
 }
+
+// Error 实现error接口
+func (err RespError) Error() string {
+	return err.APIError.Message
+}

@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path"
 	"path/filepath"
 	"strings"
@@ -94,6 +95,7 @@ func (job *TransferTask) Do() {
 	}
 
 	successCount := 0
+	errorList := make([]string, 0, len(job.TaskProps.Src))
 	for _, file := range job.TaskProps.Src {
 		dst := path.Join(job.TaskProps.Dst, filepath.Base(file))
 		if job.TaskProps.TrimPath {
@@ -109,7 +111,7 @@ func (job *TransferTask) Do() {
 			// 获取从机节点
 			node := cluster.Default.GetNodeByID(job.TaskProps.NodeID)
 			if node == nil {
-				job.SetErrorMsg("从机节点不可用", nil)
+				job.SetErrorMsg("Invalid slave node.", nil)
 			}
 
 			// 切换为从机节点处理上传
@@ -127,11 +129,15 @@ func (job *TransferTask) Do() {
 		}
 
 		if err != nil {
-			job.SetErrorMsg("文件转存失败", err)
+			errorList = append(errorList, err.Error())
 		} else {
 			successCount++
 			job.TaskModel.SetProgress(successCount)
 		}
+	}
+
+	if len(errorList) > 0 {
+		job.SetErrorMsg("Failed to transfer one or more file(s).", fmt.Errorf(strings.Join(errorList, "\n")))
 	}
 
 }

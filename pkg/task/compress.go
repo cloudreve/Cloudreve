@@ -69,7 +69,7 @@ func (job *CompressTask) SetError(err *JobError) {
 func (job *CompressTask) removeZipFile() {
 	if job.zipPath != "" {
 		if err := os.Remove(job.zipPath); err != nil {
-			util.Log().Warning("无法删除临时压缩文件 %s , %s", job.zipPath, err)
+			util.Log().Warning("Failed to delete temp zip file %q: %s", job.zipPath, err)
 		}
 	}
 }
@@ -93,7 +93,7 @@ func (job *CompressTask) Do() {
 		return
 	}
 
-	util.Log().Debug("开始压缩文件")
+	util.Log().Debug("Starting compress file...")
 	job.TaskModel.SetProgress(CompressingProgress)
 
 	// 创建临时压缩文件
@@ -122,7 +122,7 @@ func (job *CompressTask) Do() {
 
 	job.zipPath = zipFilePath
 	zipFile.Close()
-	util.Log().Debug("压缩文件存放至%s，开始上传", zipFilePath)
+	util.Log().Debug("Compressed file saved to %q, start uploading it...", zipFilePath)
 	job.TaskModel.SetProgress(TransferringProgress)
 
 	// 上传文件

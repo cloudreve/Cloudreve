@@ -398,8 +398,8 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 
 // Meta 获取文件信息
 func (handler *Driver) Meta(ctx context.Context, path string) (*MetaData, error) {
-	res, err := handler.svc.GetObject(
-		&s3.GetObjectInput{
+	res, err := handler.svc.HeadObject(
+		&s3.HeadObjectInput{
 			Bucket: &handler.Policy.BucketName,
 			Key:    &path,
 		})

@@ -32,6 +32,7 @@ type Download struct {
 	// 数据库忽略字段
 	StatusInfo rpc.StatusInfo `gorm:"-"`
 	Task       *Task          `gorm:"-"`
+	NodeName   string         `gorm:"-"`
 }
 
 // AfterFind 找到下载任务后的钩子，处理Status结构

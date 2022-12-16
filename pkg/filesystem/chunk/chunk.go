@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
+	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
 	"os"
@@ -66,7 +67,7 @@ func (c *ChunkGroup) TempAvailable() bool {
 
 // Process a chunk with retry logic
 func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
-	reader := io.LimitReader(c.file, int64(c.chunkSize))
+	reader := io.LimitReader(c.file, c.Length())
 
 	// If useBuffer is enabled, tee the reader to a temp file
 	if c.enableRetryBuffer && c.bufferTemp == nil && !c.file.Seekable() {
@@ -90,13 +91,17 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 			}
 
 			util.Log().Debug("Chunk %d will be read from temp file %q.", c.Index(), c.bufferTemp.Name())
-			reader = c.bufferTemp
+			reader = io.NopCloser(c.bufferTemp)
 		}
 	}
 
 	err := processor(c, reader)
 	if err != nil {
-		if err != context.Canceled && (c.file.Seekable() || c.TempAvailable()) && c.backoff.Next() {
+		if c.enableRetryBuffer {
+			request.BlackHole(reader)
+		}
+
+		if err != context.Canceled && (c.file.Seekable() || c.TempAvailable()) && c.backoff.Next(err) {
 			if c.file.Seekable() {
 				if _, seekErr := c.file.Seek(c.Start(), io.SeekStart); seekErr != nil {
 					return fmt.Errorf("failed to seek back to chunk start: %w, last error: %s", seekErr, err)

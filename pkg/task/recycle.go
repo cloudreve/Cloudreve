@@ -73,21 +73,21 @@ func (job *RecycleTask) GetError() *JobError {
 func (job *RecycleTask) Do() {
 	download, err := model.GetDownloadByGid(job.TaskProps.DownloadGID, job.User.ID)
 	if err != nil {
-		util.Log().Warning("回收任务 %d 找不到下载记录", job.TaskModel.ID)
-		job.SetErrorMsg("无法找到下载任务", err)
+		util.Log().Warning("Recycle task %d cannot found download record.", job.TaskModel.ID)
+		job.SetErrorMsg("Cannot found download task.", err)
 		return
 	}
 	nodeID := download.GetNodeID()
 	node := cluster.Default.GetNodeByID(nodeID)
 	if node == nil {
-		util.Log().Warning("回收任务 %d 找不到节点", job.TaskModel.ID)
-		job.SetErrorMsg("从机节点不可用", nil)
+		util.Log().Warning("Recycle task %d cannot found node.", job.TaskModel.ID)
+		job.SetErrorMsg("Invalid slave node.", nil)
 		return
 	}
 	err = node.GetAria2Instance().DeleteTempFile(download)
 	if err != nil {
-		util.Log().Warning("无法删除中转临时目录[%s], %s", download.Parent, err)
-		job.SetErrorMsg("文件回收失败", err)
+		util.Log().Warning("Failed to delete transfer temp folder %q: %s", download.Parent, err)
+		job.SetErrorMsg("Failed to recycle files.", err)
 		return
 	}
 }

@@ -112,6 +112,35 @@ func TestRequest(t *testing.T) {
 		asserts.Equal("error msg", err.Error())
 	}
 
+	// OneDrive返回429错误
+	{
+		header := http.Header{}
+		header.Add("retry-after", "120")
+		clientMock := ClientMock{}
+		clientMock.On(
+			"Request",
+			"POST",
+			"http://dev.com",
+			testMock.Anything,
+			testMock.Anything,
+		).Return(&request.Response{
+			Err: nil,
+			Response: &http.Response{
+				StatusCode: 429,
+				Header:     header,
+				Body:       ioutil.NopCloser(strings.NewReader(`{"error":{"message":"error msg"}}`)),
+			},
+		})
+		client.Request = clientMock
+		res, err := client.request(context.Background(), "POST", "http://dev.com", strings.NewReader(""))
+		clientMock.AssertExpectations(t)
+		asserts.Error(err)
+		asserts.Empty(res)
+		var retryErr *backoff.RetryableError
+		asserts.ErrorAs(err, &retryErr)
+		asserts.EqualValues(time.Duration(120)*time.Second, retryErr.RetryAfter)
+	}
+
 	// OneDrive返回未知响应
 	{
 		clientMock := ClientMock{}
@@ -144,18 +173,18 @@ func TestFileInfo_GetSourcePath(t *testing.T) {
 		fileInfo := FileInfo{
 			Name: "%e6%96%87%e4%bb%b6%e5%90%8d.jpg",
 			ParentReference: parentReference{
-				Path: "/drive/root:/123/321",
+				Path: "/drive/root:/123/32%201",
 			},
 		}
-		asserts.Equal("123/321/文件名.jpg", fileInfo.GetSourcePath())
+		asserts.Equal("123/32 1/%e6%96%87%e4%bb%b6%e5%90%8d.jpg", fileInfo.GetSourcePath())
 	}
 
 	// 失败
 	{
 		fileInfo := FileInfo{
-			Name: "%e6%96%87%e4%bb%b6%e5%90%8g.jpg",
+			Name: "123.jpg",
 			ParentReference: parentReference{
-				Path: "/drive/root:/123/321",
+				Path: "/drive/root:/123/%e6%96%87%e4%bb%b6%e5%90%8g",
 			},
 		}
 		asserts.Equal("", fileInfo.GetSourcePath())

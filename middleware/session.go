@@ -46,7 +46,7 @@ func Session(secret string) gin.HandlerFunc {
 	// Also set Secure: true if using SSL, you should though
 	Store.Options(sessions.Options{
 		HttpOnly: true,
-		MaxAge:   7 * 86400,
+		MaxAge:   60 * 86400,
 		Path:     "/",
 		SameSite: sameSiteMode,
 		Secure:   conf.CORSConfig.Secure,

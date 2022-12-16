@@ -23,16 +23,17 @@ type Group struct {
 
 // GroupOption 用户组其他配置
 type GroupOption struct {
-	ArchiveDownload bool                   `json:"archive_download,omitempty"` // 打包下载
-	ArchiveTask     bool                   `json:"archive_task,omitempty"`     // 在线压缩
-	CompressSize    uint64                 `json:"compress_size,omitempty"`    // 可压缩大小
-	DecompressSize  uint64                 `json:"decompress_size,omitempty"`
-	OneTimeDownload bool                   `json:"one_time_download,omitempty"`
-	ShareDownload   bool                   `json:"share_download,omitempty"`
-	Aria2           bool                   `json:"aria2,omitempty"`         // 离线下载
-	Aria2Options    map[string]interface{} `json:"aria2_options,omitempty"` // 离线下载用户组配置
-	SourceBatchSize int                    `json:"source_batch,omitempty"`
-	Aria2BatchSize  int                    `json:"aria2_batch,omitempty"`
+	ArchiveDownload  bool                   `json:"archive_download,omitempty"` // 打包下载
+	ArchiveTask      bool                   `json:"archive_task,omitempty"`     // 在线压缩
+	CompressSize     uint64                 `json:"compress_size,omitempty"`    // 可压缩大小
+	DecompressSize   uint64                 `json:"decompress_size,omitempty"`
+	OneTimeDownload  bool                   `json:"one_time_download,omitempty"`
+	ShareDownload    bool                   `json:"share_download,omitempty"`
+	Aria2            bool                   `json:"aria2,omitempty"`         // 离线下载
+	Aria2Options     map[string]interface{} `json:"aria2_options,omitempty"` // 离线下载用户组配置
+	SourceBatchSize  int                    `json:"source_batch,omitempty"`
+	RedirectedSource bool                   `json:"redirected_source,omitempty"`
+	Aria2BatchSize   int                    `json:"aria2_batch,omitempty"`
 }
 
 // GetGroupByID 用ID获取用户组
@@ -66,7 +67,7 @@ func (group *Group) BeforeSave() (err error) {
 	return err
 }
 
-//SerializePolicyList 将序列后的可选策略列表、配置写入数据库字段
+// SerializePolicyList 将序列后的可选策略列表、配置写入数据库字段
 // TODO 完善测试
 func (group *Group) SerializePolicyList() (err error) {
 	policies, err := json.Marshal(&group.PolicyList)

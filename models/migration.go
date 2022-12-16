@@ -19,7 +19,7 @@ func needMigration() bool {
 	return DB.Where("name = ?", "db_version_"+conf.RequiredDBVersion).First(&setting).Error != nil
 }
 
-//执行数据迁移
+// 执行数据迁移
 func migration() {
 	// 确认是否需要执行迁移
 	if !needMigration() {
@@ -41,7 +41,7 @@ func migration() {
 	}
 
 	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{})
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{}, &SourceLink{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -104,12 +104,13 @@ func addDefaultGroups() {
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
-				ArchiveDownload: true,
-				ArchiveTask:     true,
-				ShareDownload:   true,
-				Aria2:           true,
-				SourceBatchSize: 1000,
-				Aria2BatchSize:  50,
+				ArchiveDownload:  true,
+				ArchiveTask:      true,
+				ShareDownload:    true,
+				Aria2:            true,
+				SourceBatchSize:  1000,
+				Aria2BatchSize:   50,
+				RedirectedSource: true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {
@@ -128,9 +129,10 @@ func addDefaultGroups() {
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
 			OptionsSerialized: GroupOption{
-				ShareDownload:   true,
-				SourceBatchSize: 10,
-				Aria2BatchSize:  1,
+				ShareDownload:    true,
+				SourceBatchSize:  10,
+				Aria2BatchSize:   1,
+				RedirectedSource: true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {

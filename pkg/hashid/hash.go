@@ -15,11 +15,12 @@ const (
 	FolderID        // 目录ID
 	TagID           // 标签ID
 	PolicyID        // 存储策略ID
+	SourceLinkID
 )
 
 var (
 	// ErrTypeNotMatch ID类型不匹配
-	ErrTypeNotMatch = errors.New("ID类型不匹配")
+	ErrTypeNotMatch = errors.New("mismatched ID type.")
 )
 
 // HashEncode 对给定数据计算HashID

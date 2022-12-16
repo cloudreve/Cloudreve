@@ -25,7 +25,7 @@ func (script UserStorageCalibration) Run(ctx context.Context) {
 		model.DB.Model(&model.File{}).Where("user_id = ?", user.ID).Select("sum(size) as total").Scan(&total)
 		// 更新用户的容量
 		if user.Storage != total.Total {
-			util.Log().Info("将用户 [%s] 的容量由 %d 校准为 %d", user.Email,
+			util.Log().Info("Calibrate used storage for user %q, from %d to %d.", user.Email,
 				user.Storage, total.Total)
 		}
 		model.DB.Model(&user).Update("storage", total.Total)

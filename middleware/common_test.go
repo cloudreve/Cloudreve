@@ -85,3 +85,21 @@ func TestCacheControl(t *testing.T) {
 	TestFunc(c)
 	a.Contains(c.Writer.Header().Get("Cache-Control"), "no-cache")
 }
+
+func TestSandbox(t *testing.T) {
+	a := assert.New(t)
+	TestFunc := Sandbox()
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	TestFunc(c)
+	a.Contains(c.Writer.Header().Get("Content-Security-Policy"), "sandbox")
+}
+
+func TestStaticResourceCache(t *testing.T) {
+	a := assert.New(t)
+	TestFunc := StaticResourceCache()
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	TestFunc(c)
+	a.Contains(c.Writer.Header().Get("Cache-Control"), "public, max-age")
+}

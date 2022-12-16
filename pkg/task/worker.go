@@ -16,14 +16,14 @@ type GeneralWorker struct {
 
 // Do 执行任务
 func (worker *GeneralWorker) Do(job Job) {
-	util.Log().Debug("开始执行任务")
+	util.Log().Debug("Start executing task.")
 	job.SetStatus(Processing)
 
 	defer func() {
 		// 致命错误捕获
 		if err := recover(); err != nil {
-			util.Log().Debug("任务执行出错，%s", err)
-			job.SetError(&JobError{Msg: "致命错误", Error: fmt.Sprintf("%s", err)})
+			util.Log().Debug("Failed to execute task: %s", err)
+			job.SetError(&JobError{Msg: "Fatal error.", Error: fmt.Sprintf("%s", err)})
 			job.SetStatus(Error)
 		}
 	}()
@@ -33,12 +33,12 @@ func (worker *GeneralWorker) Do(job Job) {
 
 	// 任务执行失败
 	if err := job.GetError(); err != nil {
-		util.Log().Debug("任务执行出错")
+		util.Log().Debug("Failed to execute task.")
 		job.SetStatus(Error)
 		return
 	}
 
-	util.Log().Debug("任务执行完成")
+	util.Log().Debug("Task finished.")
 	// 执行完成
 	job.SetStatus(Complete)
 }
