@@ -42,7 +42,11 @@ func init() {
 
 func main() {
 	// 关闭数据库连接
-	defer model.DB.Close()
+	defer func() {
+		if model.DB != nil {
+			model.DB.Close()
+		}
+	}()
 
 	if isEject {
 		// 开始导出内置静态资源文件
