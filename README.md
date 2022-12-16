@@ -1,3 +1,5 @@
+[中文版本](https://github.com/cloudreve/Cloudreve/blob/master/README.md)
+
 <h1 align="center">
   <br>
   <a href="https://cloudreve.org/" alt="logo" ><img src="https://raw.githubusercontent.com/cloudreve/frontend/master/public/static/img/logo192.png" width="150"/></a>
@@ -5,12 +7,11 @@
   Cloudreve
   <br>
 </h1>
-
-<h4 align="center">支持多家云存储驱动的公有云文件系统.</h4>
+<h4 align="center">Self-hosted file management system with muilt-cloud support.</h4>
 
 <p align="center">
   <a href="https://github.com/cloudreve/Cloudreve/actions/workflows/test.yml">
-    <img src="https://img.shields.io/github/workflow/status/cloudreve/Cloudreve/Test?style=flat-square"
+    <img src="https://img.shields.io/github/actions/workflow/status/cloudreve/Cloudreve/test.yml?branch=master&style=flat-square"
          alt="GitHub Test Workflow">
   </a>
   <a href="https://codecov.io/gh/cloudreve/Cloudreve"><img src="https://img.shields.io/codecov/c/github/cloudreve/Cloudreve?style=flat-square"></a>
@@ -24,108 +25,106 @@
      <img src="https://img.shields.io/docker/image-size/cloudreve/cloudreve?style=flat-square"/>
   </a>
 </p>
-
 <p align="center">
-  <a href="https://demo.cloudreve.org">演示站</a> •
-  <a href="https://forum.cloudreve.org/">讨论社区</a> •
-  <a href="https://docs.cloudreve.org/">文档</a> •
-  <a href="https://github.com/cloudreve/Cloudreve/releases">下载</a> •
-  <a href="https://t.me/cloudreve_official">Telegram 群组</a> •
-  <a href="#scroll-许可证">许可证</a>
+  <a href="https://cloudreve.org">Homepage</a> •
+  <a href="https://demo.cloudreve.org">Demo</a> •
+  <a href="https://forum.cloudreve.org/">Discussion</a> •
+  <a href="https://docs.cloudreve.org/v/en/">Documents</a> •
+  <a href="https://github.com/cloudreve/Cloudreve/releases">Download</a> •
+  <a href="https://t.me/cloudreve_official">Telegram Group</a> •
+  <a href="#scroll-License">License</a>
 </p>
+
+
 
 ![Screenshot](https://raw.githubusercontent.com/cloudreve/docs/master/images/homepage.png)
 
-## :sparkles: 特性
+## :sparkles: Features
 
-* :cloud: 支持本机、从机、七牛、阿里云 OSS、腾讯云 COS、又拍云、OneDrive (包括世纪互联版) 作为存储端
-* :outbox_tray: 上传/下载 支持客户端直传，支持下载限速
-* 💾 可对接 Aria2 离线下载，可使用多个从机节点分担下载任务
-* 📚 在线 压缩/解压缩、多文件打包下载
-* 💻 覆盖全部存储策略的 WebDAV 协议支持
-* :zap: 拖拽上传、目录上传、流式上传处理
-* :card_file_box: 文件拖拽管理
-*  :family_woman_girl_boy:   多用户、用户组
-* :link: 创建文件、目录的分享链接，可设定自动过期
-* :eye_speech_bubble: 视频、图像、音频、文本、Office 文档在线预览
-* :art: 自定义配色、黑暗模式、PWA 应用、全站单页应用
-* :rocket: All-In-One 打包，开箱即用
+* :cloud: Support storing files into Local storage, Remote storage, Qiniu, Aliyun OSS, Tencent COS, Upyun, OneDrive, S3 compatible API.
+* :outbox_tray: Upload/Download in directly transmission with speed limiting support.
+* 💾 Integrate with Aria2 to download files offline, use multiple download nodes to share the load.
+* 📚 Compress/Extract files, download files in batch.
+* 💻 WebDAV support covering all storage providers.
+* :zap:Drag&Drop to upload files or folders, with streaming upload processing.
+* :card_file_box: Drag & Drop to manage your files.
+* :family_woman_girl_boy:   Multi-users with multi-groups.
+* :link: Create share links for files and folders with expiration date.
+* :eye_speech_bubble: Preview videos, images, audios, texts, Office documents, ePub files online.
+* :art: Customize theme colors, dark mode, PWA application, SPA, i18n.
+* :rocket: All-In-One packing, with all features out-of-the-box.
 * 🌈 ... ...
 
-## :hammer_and_wrench: 部署
+## :hammer_and_wrench: Deploy
 
-下载适用于您目标机器操作系统、CPU架构的主程序，直接运行即可。
+Download the main binary for your target machine OS, CPU architecture and run it directly.
 
 ```shell
-# 解压程序包
+# Extract Cloudreve binary
 tar -zxvf cloudreve_VERSION_OS_ARCH.tar.gz
 
-# 赋予执行权限
+# Grant execute permission
 chmod +x ./cloudreve
 
-# 启动 Cloudreve
+# Start Cloudreve
 ./cloudreve
 ```
 
-以上为最简单的部署示例，您可以参考 [文档 - 起步](https://docs.cloudreve.org/) 进行更为完善的部署。
+The above is a minimum deploy example, you can refer to [Getting started](https://docs.cloudreve.org/v/en/getting-started/install) for a completed deployment.
 
-## :gear: 构建
+## :gear: Build
 
-自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`zip` 等必要依赖。
+You need to have `Go >= 1.18`, `node.js`, `yarn`, `zip` and other necessary dependencies before you can build it yourself.
 
-#### 克隆代码
+#### Clone the code
 
 ```shell
 git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 ```
 
-#### 构建静态资源
+#### Build static resources
 
 ```shell
-# 进入前端子模块
+# Enter frontend sub-module
 cd assets
-# 安装依赖
+# Install dependencies
 yarn install
-# 开始构建
+# Start building
 yarn run build
-# 构建完成后删除映射文件
+# Delete unused map files
 cd build
 find . -name "*.map" -type f -delete
-# 返回项目主目录打包静态资源
+# Return to main folder to pack static files
 cd ../../
 zip -r - assets/build >assets.zip
 ```
 
-#### 编译项目
+#### Compile
 
 ```shell
-# 获得当前版本号、Commit
+# Obtain version number, commit SHA
 export COMMIT_SHA=$(git rev-parse --short HEAD)
 export VERSION=$(git describe --tags)
 
-# 开始编译
+# Compile
 go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
 ```
 
-你也可以使用项目根目录下的 `build.sh` 快速开始构建：
+You can also start a quick build using `build.sh` in the project root directory:
 
 ```shell
 ./build.sh  [-a] [-c] [-b] [-r]
-	a - 构建静态资源
-	c - 编译二进制文件
-	b - 构建前端 + 编译二进制文件
-	r - 交叉编译，构建用于release的版本
+	a - Build assets
+	c - Build binary backend
+	b - Build both assets and backend
+	r - Cross-compilation for final release
 ```
 
-## :alembic: 技术栈
+## :alembic: Stacks
 
 * [Go](https://golang.org/) + [Gin](https://github.com/gin-gonic/gin)
 * [React](https://github.com/facebook/react) + [Redux](https://github.com/reduxjs/redux) + [Material-UI](https://github.com/mui-org/material-ui)
 
-## :scroll: 许可证
+## :scroll: License
 
 GPL V3
-
----
-> GitHub [@HFO4](https://github.com/HFO4) &nbsp;&middot;&nbsp;
-> Twitter [@abslant00](https://twitter.com/abslant00)
