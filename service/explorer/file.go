@@ -230,11 +230,13 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 	srcB64 := base64.StdEncoding.EncodeToString([]byte(downloadURL))
 	srcEncoded := url.QueryEscape(downloadURL)
 	srcB64Encoded := url.QueryEscape(srcB64)
+
 	return serializer.Response{
 		Code: 0,
 		Data: util.Replace(map[string]string{
 			"{$src}":    srcEncoded,
 			"{$srcB64}": srcB64Encoded,
+			"{$name}":   url.QueryEscape(fs.FileTarget[0].Name),
 		}, model.GetSettingByName("office_preview_service")),
 	}
 }
