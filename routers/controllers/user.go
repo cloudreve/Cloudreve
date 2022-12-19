@@ -395,5 +395,4 @@ func UserPerformCopySession(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
-
 }

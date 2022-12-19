@@ -234,7 +234,12 @@ func InitMasterRouter() *gin.Engine {
 				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}
 
-			sign.GET("user/session/copy/:id", controllers.UserPerformCopySession)
+			// Copy user session
+			sign.GET(
+				"user/session/copy/:id",
+				middleware.MobileRequestOnly(),
+				controllers.UserPerformCopySession,
+			)
 		}
 
 		// 从机的 RPC 通信
