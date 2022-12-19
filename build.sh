@@ -28,6 +28,7 @@ buildAssets() {
 
   cd $REPO/assets
 
+  yarn install --network-timeout 1000000
   yarn install
   yarn run build
   cd build
