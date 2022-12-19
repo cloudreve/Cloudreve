@@ -233,6 +233,8 @@ func InitMasterRouter() *gin.Engine {
 				// 打包并下载文件
 				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}
+
+			sign.GET("user/session/copy/:id", controllers.UserPerformCopySession)
 		}
 
 		// 从机的 RPC 通信
@@ -523,6 +525,9 @@ func InitMasterRouter() *gin.Engine {
 				user.GET("storage", controllers.UserStorage)
 				// 退出登录
 				user.DELETE("session", controllers.UserSignOut)
+				// Generate temp URL for copying client-side session, used in adding accounts
+				// for mobile App.
+				user.GET("session", controllers.UserPrepareCopySession)
 
 				// WebAuthn 注册相关
 				authn := user.Group("authn",

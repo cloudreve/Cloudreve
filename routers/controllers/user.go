@@ -377,3 +377,23 @@ func UserInit2FA(c *gin.Context) {
 		c.JSON(200, ErrorResponse(err))
 	}
 }
+
+// UserPrepareCopySession generates URL for copy session
+func UserPrepareCopySession(c *gin.Context) {
+	var service user.CopySessionService
+	res := service.Prepare(c, CurrentUser(c))
+	c.JSON(200, res)
+
+}
+
+// UserPerformCopySession copy to create new session or refresh current session
+func UserPerformCopySession(c *gin.Context) {
+	var service user.CopySessionService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Copy(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+
+}

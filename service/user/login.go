@@ -3,12 +3,14 @@ package user
 import (
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/pquerna/otp/totp"
 	"net/url"
 )
@@ -153,4 +155,49 @@ func (service *UserLoginService) Login(c *gin.Context) serializer.Response {
 
 	return serializer.BuildUserResponse(expectedUser)
 
+}
+
+// CopySessionService service for copy user session
+type CopySessionService struct {
+	ID string `uri:"id" binding:"required,uuid4"`
+}
+
+const CopySessionTTL = 60
+
+// Prepare generates the URL with short expiration duration
+func (s *CopySessionService) Prepare(c *gin.Context, user *model.User) serializer.Response {
+	// 用户组有效期
+	urlID := uuid.Must(uuid.NewV4())
+	if err := cache.Set(fmt.Sprintf("copy_session_%s", urlID.String()), user.ID, CopySessionTTL); err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to create copy session", err)
+	}
+
+	base := model.GetSiteURL()
+	apiBaseURI, _ := url.Parse("/api/v3/user/session/copy/" + urlID.String())
+	apiURL := base.ResolveReference(apiBaseURI)
+	res, err := auth.SignURI(auth.General, apiURL.String(), CopySessionTTL)
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, "Failed to sign temp URL", err)
+	}
+
+	return serializer.Response{
+		Data: res.String(),
+	}
+}
+
+// Copy a new session from active session, refresh max-age
+func (s *CopySessionService) Copy(c *gin.Context) serializer.Response {
+	// 用户组有效期
+	cacheKey := fmt.Sprintf("copy_session_%s", s.ID)
+	uid, ok := cache.Get(cacheKey)
+	if !ok {
+		return serializer.Err(serializer.CodeNotFound, "", nil)
+	}
+
+	cache.Deletes([]string{cacheKey}, "")
+	util.SetSession(c, map[string]interface{}{
+		"user_id": uid.(uint),
+	})
+
+	return serializer.Response{}
 }
