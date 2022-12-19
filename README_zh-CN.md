@@ -1,4 +1,4 @@
-[English Version](https://github.com/cloudreve/Cloudreve/blob/master/README_zh-CN.md)
+[English Version](https://github.com/cloudreve/Cloudreve/blob/master/README.md)
 
 <h1 align="center">
   <br>
