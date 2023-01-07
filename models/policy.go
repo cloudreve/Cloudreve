@@ -3,12 +3,13 @@ package model
 import (
 	"encoding/gob"
 	"encoding/json"
-	"github.com/gofrs/uuid"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gofrs/uuid"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -104,6 +105,12 @@ func GetPolicyByID(ID interface{}) (Policy, error) {
 	}
 
 	return policy, result.Error
+}
+
+func GetFirstPolicy() (Policy, error) {
+	var policy Policy
+	err := DB.First(&policy).Error
+	return policy, err
 }
 
 // AfterFind 找到存储策略后的钩子

@@ -2,6 +2,10 @@ package model
 
 import (
 	"context"
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/cloudreve/Cloudreve/v3/models/scripts/invoker"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -9,8 +13,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/hashicorp/go-version"
 	"github.com/jinzhu/gorm"
-	"sort"
-	"strings"
 )
 
 // 是否需要迁移
@@ -46,11 +48,22 @@ func migration() {
 	// 创建初始存储策略
 	addDefaultPolicy()
 
+	// 获取第一个存储策略
+	policy, err := GetFirstPolicy()
+	if err != nil {
+		util.Log().Panic(fmt.Sprintf("Failed to get frist policy: %v", err))
+	}
+
 	// 创建初始用户组
-	addDefaultGroups()
+	addDefaultGroups(policy.ID)
+
+	group, err := GetFristGroup()
+	if err != nil {
+		util.Log().Panic(fmt.Sprintf("Failed to get frist group: %v", err))
+	}
 
 	// 创建初始管理员账户
-	addDefaultUser()
+	addDefaultUser(group.ID)
 
 	// 创建初始节点
 	addDefaultNode()
@@ -93,13 +106,13 @@ func addDefaultSettings() {
 	}
 }
 
-func addDefaultGroups() {
+func addDefaultGroups(pID uint) {
 	_, err := GetGroupByID(1)
 	// 未找到初始管理组时，则创建
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
 			Name:          "Admin",
-			PolicyList:    []uint{1},
+			PolicyList:    []uint{pID},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
@@ -124,7 +137,7 @@ func addDefaultGroups() {
 	if gorm.IsRecordNotFoundError(err) {
 		defaultAdminGroup := Group{
 			Name:          "User",
-			PolicyList:    []uint{1},
+			PolicyList:    []uint{pID},
 			MaxStorage:    1 * 1024 * 1024 * 1024,
 			ShareEnabled:  true,
 			WebDAVEnabled: true,
@@ -158,7 +171,7 @@ func addDefaultGroups() {
 	}
 }
 
-func addDefaultUser() {
+func addDefaultUser(gID uint) {
 	_, err := GetUserByID(1)
 	password := util.RandStringRunes(8)
 
@@ -168,7 +181,7 @@ func addDefaultUser() {
 		defaultUser.Email = "admin@cloudreve.org"
 		defaultUser.Nick = "admin"
 		defaultUser.Status = Active
-		defaultUser.GroupID = 1
+		defaultUser.GroupID = gID
 		err := defaultUser.SetPassword(password)
 		if err != nil {
 			util.Log().Panic("Failed to create password: %s", err)

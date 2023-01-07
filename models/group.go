@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -79,4 +80,10 @@ func (group *Group) SerializePolicyList() (err error) {
 	optionsValue, err := json.Marshal(&group.OptionsSerialized)
 	group.Options = string(optionsValue)
 	return err
+}
+
+func GetFristGroup() (Group, error) {
+	var group Group
+	err := DB.First(&group).Error
+	return group, err
 }
