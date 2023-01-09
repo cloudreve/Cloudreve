@@ -437,18 +437,18 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		fileData.Mode &= ^fsctx.Overwrite
 		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
 		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
+		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
+		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
 		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
+		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
+		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
 	}
 
 	// 给文件系统分配钩子
 	fs.Use("BeforeUpload", filesystem.HookResetPolicy)
 	fs.Use("BeforeUpload", filesystem.HookValidateFile)
 	fs.Use("BeforeUpload", filesystem.HookValidateCapacityDiff)
-	fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
-	fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
 	fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
-	fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
-	fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
 
 	// 执行上传
 	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, originFile[0])
