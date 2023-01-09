@@ -97,6 +97,7 @@ type WopiFileInfo struct {
 	// Required
 	BaseFileName string
 	Version      string
+	Size         int64
 
 	// Breadcrumb
 	BreadcrumbBrandName  string
@@ -117,6 +118,7 @@ type WopiFileInfo struct {
 	IsAnonymousUser  bool
 	UserFriendlyName string
 	UserId           string
+	OwnerId          string
 
 	// Permission
 	ReadOnly      bool

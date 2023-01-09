@@ -58,7 +58,7 @@ const (
 	MethodRename      = "RENAME_FILE"
 
 	wopiSrcPlaceholder    = "WOPI_SOURCE"
-	wopiSrcParamDefault   = "wopisrc"
+	wopiSrcParamDefault   = "WOPISrc"
 	sessionExpiresPadding = 10
 	wopiHeaderPrefix      = "X-WOPI-"
 )
@@ -67,6 +67,9 @@ const (
 func Init() {
 	settings := model.GetSettingByNames("wopi_endpoint", "wopi_enabled")
 	if !model.IsTrueVal(settings["wopi_enabled"]) {
+		DefaultMu.Lock()
+		Default = nil
+		DefaultMu.Unlock()
 		return
 	}
 
@@ -126,12 +129,18 @@ func (c *client) NewSession(user *model.User, file *model.File, action ActonType
 		return nil, ErrActionNotSupported
 	}
 
-	actionConfig, ok := availableActions[string(action)]
-	if !ok {
-		// Preferred action not available, fallback to view only action
-		if actionConfig, ok = availableActions[string(ActionPreview)]; !ok {
-			return nil, ErrActionNotSupported
+	var (
+		actionConfig Action
+	)
+	fallbackOrder := []ActonType{action, ActionPreview, ActionPreviewFallback, ActionEdit}
+	for _, a := range fallbackOrder {
+		if actionConfig, ok = availableActions[string(a)]; ok {
+			break
 		}
+	}
+
+	if actionConfig.Urlsrc == "" {
+		return nil, ErrActionNotSupported
 	}
 
 	// Generate WOPI REST endpoint for given file

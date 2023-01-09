@@ -12,8 +12,9 @@ import (
 type ActonType string
 
 var (
-	ActionPreview = ActonType("embedview")
-	ActionEdit    = ActonType("edit")
+	ActionPreview         = ActonType("embedview")
+	ActionPreviewFallback = ActonType("view")
+	ActionEdit            = ActonType("edit")
 )
 
 const (
@@ -33,8 +34,9 @@ func (c *client) AvailableExts() []string {
 	for ext, actions := range c.actions {
 		_, previewable := actions[string(ActionPreview)]
 		_, editable := actions[string(ActionEdit)]
+		_, previewableFallback := actions[string(ActionPreviewFallback)]
 
-		if previewable || editable {
+		if previewable || editable || previewableFallback {
 			exts = append(exts, strings.TrimPrefix(ext, "."))
 		}
 	}
