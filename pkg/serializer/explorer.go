@@ -84,3 +84,47 @@ type Sources struct {
 	Parent uint   `json:"parent"`
 	Error  string `json:"error,omitempty"`
 }
+
+// DocPreviewSession 文档预览会话响应
+type DocPreviewSession struct {
+	URL            string `json:"url"`
+	AccessToken    string `json:"access_token,omitempty"`
+	AccessTokenTTL int64  `json:"access_token_ttl,omitempty"`
+}
+
+// WopiFileInfo Response for `CheckFileInfo`
+type WopiFileInfo struct {
+	// Required
+	BaseFileName string
+	Version      string
+
+	// Breadcrumb
+	BreadcrumbBrandName  string
+	BreadcrumbBrandUrl   string
+	BreadcrumbFolderName string
+	BreadcrumbFolderUrl  string
+
+	// Post Message
+	FileSharingPostMessage bool
+	ClosePostMessage       bool
+	PostMessageOrigin      string
+
+	// Other miscellaneous properties
+	FileNameMaxLength int
+	LastModifiedTime  string
+
+	// User metadata
+	IsAnonymousUser  bool
+	UserFriendlyName string
+	UserId           string
+
+	// Permission
+	ReadOnly      bool
+	UserCanRename bool
+	UserCanReview bool
+	UserCanWrite  bool
+
+	SupportsRename    bool
+	SupportsReviewing bool
+	SupportsUpdate    bool
+}

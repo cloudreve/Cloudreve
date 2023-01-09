@@ -236,7 +236,7 @@ func GetDocPreview(c *gin.Context) {
 
 	var service explorer.FileIDService
 	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.CreateDocPreviewSession(ctx, c)
+		res := service.CreateDocPreviewSession(ctx, c, true)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

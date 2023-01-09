@@ -25,7 +25,7 @@ var defaultSettings = []Setting{
 	{Name: "smtpUser", Value: `no-reply@acg.blue`, Type: "mail"},
 	{Name: "smtpPass", Value: ``, Type: "mail"},
 	{Name: "smtpEncryption", Value: `0`, Type: "mail"},
-	{Name: "maxEditSize", Value: `4194304`, Type: "file_edit"},
+	{Name: "maxEditSize", Value: `52428800`, Type: "file_edit"},
 	{Name: "archive_timeout", Value: `600`, Type: "timeout"},
 	{Name: "download_timeout", Value: `600`, Type: "timeout"},
 	{Name: "preview_timeout", Value: `600`, Type: "timeout"},
@@ -118,5 +118,5 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "wopi_enabled", Value: "0", Type: "wopi"},
 	{Name: "wopi_endpoint", Value: "", Type: "wopi"},
 	{Name: "wopi_max_size", Value: "52428800", Type: "wopi"},
-	{Name: "wopi_session_timeout", Value: "43200", Type: "wopi"},
+	{Name: "wopi_session_timeout", Value: "36000", Type: "wopi"},
 }

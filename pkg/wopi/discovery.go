@@ -27,7 +27,7 @@ func (c *client) AvailableExts() []string {
 		return nil
 	}
 
-	c.mu.RUnlock()
+	c.mu.RLock()
 	defer c.mu.RUnlock()
 	exts := make([]string, 0, len(c.actions))
 	for ext, actions := range c.actions {

@@ -5,12 +5,15 @@ import (
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gofrs/uuid"
 	"net/url"
 	"path"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Client interface {
@@ -43,7 +46,21 @@ var (
 )
 
 const (
-	wopiSrcPlaceholder = "WOPI_SOURCE"
+	SessionCachePrefix  = "wopi_session_"
+	AccessTokenQuery    = "access_token"
+	OverwriteHeader     = wopiHeaderPrefix + "Override"
+	ServerErrorHeader   = wopiHeaderPrefix + "ServerError"
+	RenameRequestHeader = wopiHeaderPrefix + "RequestedName"
+
+	MethodLock        = "LOCK"
+	MethodUnlock      = "UNLOCK"
+	MethodRefreshLock = "REFRESH_LOCK"
+	MethodRename      = "RENAME_FILE"
+
+	wopiSrcPlaceholder    = "WOPI_SOURCE"
+	wopiSrcParamDefault   = "wopisrc"
+	sessionExpiresPadding = 10
+	wopiHeaderPrefix      = "X-WOPI-"
 )
 
 // Init initializes a new global WOPI client.
@@ -53,6 +70,7 @@ func Init() {
 		return
 	}
 
+	cache.Deletes([]string{DiscoverResponseCacheKey}, "")
 	wopiClient, err := NewClient(settings["wopi_endpoint"], cache.Store, request.NewClient())
 	if err != nil {
 		util.Log().Error("Failed to initialize WOPI client: %s", err)
@@ -99,6 +117,9 @@ func (c *client) NewSession(user *model.User, file *model.File, action ActonType
 		return nil, err
 	}
 
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
 	ext := path.Ext(file.Name)
 	availableActions, ok := c.actions[ext]
 	if !ok {
@@ -107,17 +128,46 @@ func (c *client) NewSession(user *model.User, file *model.File, action ActonType
 
 	actionConfig, ok := availableActions[string(action)]
 	if !ok {
-		return nil, ErrActionNotSupported
+		// Preferred action not available, fallback to view only action
+		if actionConfig, ok = availableActions[string(ActionPreview)]; !ok {
+			return nil, ErrActionNotSupported
+		}
 	}
 
-	actionUrl, err := generateActionUrl(actionConfig.Urlsrc, "")
+	// Generate WOPI REST endpoint for given file
+	baseURL := model.GetSiteURL()
+	linkPath, err := url.Parse(fmt.Sprintf("/api/v3/wopi/files/%s", hashid.HashID(file.ID, hashid.FileID)))
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(actionUrl)
+	actionUrl, err := generateActionUrl(actionConfig.Urlsrc, baseURL.ResolveReference(linkPath).String())
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	// Create document session
+	sessionID := uuid.Must(uuid.NewV4())
+	token := util.RandStringRunes(64)
+	ttl := model.GetIntSetting("wopi_session_timeout", 36000)
+	session := &SessionCache{
+		AccessToken: fmt.Sprintf("%s.%s", sessionID, token),
+		FileID:      file.ID,
+		UserID:      user.ID,
+		Action:      action,
+	}
+	err = cache.Set(SessionCachePrefix+sessionID.String(), *session, ttl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create document session: %s", err)
+	}
+
+	sessionRes := &Session{
+		AccessToken:    session.AccessToken,
+		ActionURL:      actionUrl,
+		AccessTokenTTL: time.Now().Add(time.Duration(ttl-sessionExpiresPadding) * time.Second).UnixMilli(),
+	}
+
+	return sessionRes, nil
 }
 
 // Replace query parameters in action URL template. Some placeholders need to be replaced
@@ -131,6 +181,7 @@ func generateActionUrl(src string, fileSrc string) (*url.URL, error) {
 	}
 
 	queries := actionUrl.Query()
+	srcReplaced := false
 	queryReplaced := url.Values{}
 	for k := range queries {
 		if placeholder, ok := queryPlaceholders[queries.Get(k)]; ok {
@@ -143,10 +194,15 @@ func generateActionUrl(src string, fileSrc string) (*url.URL, error) {
 
 		if queries.Get(k) == wopiSrcPlaceholder {
 			queryReplaced.Set(k, fileSrc)
+			srcReplaced = true
 			continue
 		}
 
 		queryReplaced.Set(k, queries.Get(k))
+	}
+
+	if !srcReplaced {
+		queryReplaced.Set(wopiSrcParamDefault, fileSrc)
 	}
 
 	actionUrl.RawQuery = queryReplaced.Encode()

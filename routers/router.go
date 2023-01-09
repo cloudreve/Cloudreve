@@ -3,10 +3,12 @@ package routers
 import (
 	"github.com/cloudreve/Cloudreve/v3/middleware"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	wopi2 "github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
@@ -383,6 +385,22 @@ func InitMasterRouter() *gin.Engine {
 			)
 			// 搜索公共分享
 			v3.Group("share").GET("search", controllers.SearchShare)
+		}
+
+		wopi := v3.Group(
+			"wopi",
+			middleware.HashID(hashid.FileID),
+			middleware.WopiAccessValidation(wopi2.Default, cache.Store),
+		)
+		{
+			// 获取文件信息
+			wopi.GET("files/:id", controllers.CheckFileInfo)
+			// 获取文件内容
+			wopi.GET("files/:id/contents", controllers.GetFile)
+			// 更新文件内容
+			wopi.POST("files/:id/contents", middleware.WopiWriteAccess(), controllers.PutFile)
+			// 通用文件操作
+			wopi.POST("files/:id", middleware.WopiWriteAccess(), controllers.ModifyFile)
 		}
 
 		// 需要登录保护的

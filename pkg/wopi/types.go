@@ -3,6 +3,7 @@ package wopi
 import (
 	"encoding/gob"
 	"encoding/xml"
+	"net/url"
 )
 
 // Response content from discovery endpoint.
@@ -49,10 +50,21 @@ type Action struct {
 	Newext    string `xml:"newext,attr"`
 }
 
+type Session struct {
+	AccessToken    string
+	AccessTokenTTL int64
+	ActionURL      *url.URL
+}
+
+type SessionCache struct {
+	AccessToken string
+	FileID      uint
+	UserID      uint
+	Action      ActonType
+}
+
 func init() {
 	gob.Register(WopiDiscovery{})
 	gob.Register(Action{})
-}
-
-type Session struct {
+	gob.Register(SessionCache{})
 }

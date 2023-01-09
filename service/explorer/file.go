@@ -18,6 +18,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/gin-gonic/gin"
 )
 
@@ -192,7 +193,7 @@ func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Conte
 }
 
 // CreateDocPreviewSession 创建DOC文件预览会话，返回预览地址
-func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gin.Context) serializer.Response {
+func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gin.Context, editable bool) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
@@ -226,18 +227,47 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	var resp serializer.DocPreviewSession
+
+	// Use WOPI preview if available
+	if model.IsTrueVal(model.GetSettingByName("wopi_enabled")) && wopi.Default != nil {
+		maxSize := model.GetIntSetting("maxEditSize", 0)
+		if maxSize > 0 && fs.FileTarget[0].Size > uint64(maxSize) {
+			return serializer.Err(serializer.CodeFileTooLarge, "", nil)
+		}
+
+		action := wopi.ActionPreview
+		if editable {
+			action = wopi.ActionEdit
+		}
+
+		session, err := wopi.Default.NewSession(fs.User, &fs.FileTarget[0], action)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "Failed to create WOPI session", err)
+		}
+
+		resp.URL = session.ActionURL.String()
+		resp.AccessTokenTTL = session.AccessTokenTTL
+		resp.AccessToken = session.AccessToken
+		return serializer.Response{
+			Code: 0,
+			Data: resp,
+		}
+	}
+
 	// 生成最终的预览器地址
 	srcB64 := base64.StdEncoding.EncodeToString([]byte(downloadURL))
 	srcEncoded := url.QueryEscape(downloadURL)
 	srcB64Encoded := url.QueryEscape(srcB64)
+	resp.URL = util.Replace(map[string]string{
+		"{$src}":    srcEncoded,
+		"{$srcB64}": srcB64Encoded,
+		"{$name}":   url.QueryEscape(fs.FileTarget[0].Name),
+	}, model.GetSettingByName("office_preview_service"))
 
 	return serializer.Response{
 		Code: 0,
-		Data: util.Replace(map[string]string{
-			"{$src}":    srcEncoded,
-			"{$srcB64}": srcB64Encoded,
-			"{$name}":   url.QueryEscape(fs.FileTarget[0].Name),
-		}, model.GetSettingByName("office_preview_service")),
+		Data: resp,
 	}
 }
 

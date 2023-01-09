@@ -221,7 +221,7 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	}
 	subService := explorer.FileIDService{}
 
-	return subService.CreateDocPreviewSession(ctx, c)
+	return subService.CreateDocPreviewSession(ctx, c, false)
 }
 
 // List 列出分享的目录下的对象
