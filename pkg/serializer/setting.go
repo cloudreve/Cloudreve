@@ -7,22 +7,23 @@ import (
 
 // SiteConfig 站点全局设置序列
 type SiteConfig struct {
-	SiteName             string `json:"title"`
-	LoginCaptcha         bool   `json:"loginCaptcha"`
-	RegCaptcha           bool   `json:"regCaptcha"`
-	ForgetCaptcha        bool   `json:"forgetCaptcha"`
-	EmailActive          bool   `json:"emailActive"`
-	Themes               string `json:"themes"`
-	DefaultTheme         string `json:"defaultTheme"`
-	HomepageViewMethod   string `json:"home_view_method"`
-	ShareViewMethod      string `json:"share_view_method"`
-	Authn                bool   `json:"authn"`
-	User                 User   `json:"user"`
-	ReCaptchaKey         string `json:"captcha_ReCaptchaKey"`
-	CaptchaType          string `json:"captcha_type"`
-	TCaptchaCaptchaAppId string `json:"tcaptcha_captcha_app_id"`
-	RegisterEnabled      bool   `json:"registerEnabled"`
-	AppPromotion         bool   `json:"app_promotion"`
+	SiteName             string   `json:"title"`
+	LoginCaptcha         bool     `json:"loginCaptcha"`
+	RegCaptcha           bool     `json:"regCaptcha"`
+	ForgetCaptcha        bool     `json:"forgetCaptcha"`
+	EmailActive          bool     `json:"emailActive"`
+	Themes               string   `json:"themes"`
+	DefaultTheme         string   `json:"defaultTheme"`
+	HomepageViewMethod   string   `json:"home_view_method"`
+	ShareViewMethod      string   `json:"share_view_method"`
+	Authn                bool     `json:"authn"`
+	User                 User     `json:"user"`
+	ReCaptchaKey         string   `json:"captcha_ReCaptchaKey"`
+	CaptchaType          string   `json:"captcha_type"`
+	TCaptchaCaptchaAppId string   `json:"tcaptcha_captcha_app_id"`
+	RegisterEnabled      bool     `json:"registerEnabled"`
+	AppPromotion         bool     `json:"app_promotion"`
+	WopiExts             []string `json:"wopi_exts"`
 }
 
 type task struct {
@@ -60,7 +61,7 @@ func checkSettingValue(setting map[string]string, key string) string {
 }
 
 // BuildSiteConfig 站点全局设置
-func BuildSiteConfig(settings map[string]string, user *model.User) Response {
+func BuildSiteConfig(settings map[string]string, user *model.User, wopiExts []string) Response {
 	var userRes User
 	if user != nil {
 		userRes = BuildUser(*user)
@@ -85,6 +86,7 @@ func BuildSiteConfig(settings map[string]string, user *model.User) Response {
 			TCaptchaCaptchaAppId: checkSettingValue(settings, "captcha_TCaptcha_CaptchaAppId"),
 			RegisterEnabled:      model.IsTrueVal(checkSettingValue(settings, "register_enabled")),
 			AppPromotion:         model.IsTrueVal(checkSettingValue(settings, "show_app_promotion")),
+			WopiExts:             wopiExts,
 		}}
 	return res
 }

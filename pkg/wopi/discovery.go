@@ -4,7 +4,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/http"
+	"strings"
 )
 
 type ActonType string
@@ -18,6 +20,27 @@ const (
 	DiscoverResponseCacheKey = "wopi_discover"
 	DiscoverRefreshDuration  = 24 * 3600 // 24 hrs
 )
+
+func (c *client) AvailableExts() []string {
+	if err := c.checkDiscovery(); err != nil {
+		util.Log().Error("Failed to check WOPI discovery: %s", err)
+		return nil
+	}
+
+	c.mu.RUnlock()
+	defer c.mu.RUnlock()
+	exts := make([]string, 0, len(c.actions))
+	for ext, actions := range c.actions {
+		_, previewable := actions[string(ActionPreview)]
+		_, editable := actions[string(ActionEdit)]
+
+		if previewable || editable {
+			exts = append(exts, strings.TrimPrefix(ext, "."))
+		}
+	}
+
+	return exts
+}
 
 // checkDiscovery checks if discovery content is needed to be refreshed.
 // If so, it will refresh discovery content.

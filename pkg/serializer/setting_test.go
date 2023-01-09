@@ -18,10 +18,10 @@ func TestCheckSettingValue(t *testing.T) {
 func TestBuildSiteConfig(t *testing.T) {
 	asserts := assert.New(t)
 
-	res := BuildSiteConfig(map[string]string{"not exist": ""}, &model.User{})
+	res := BuildSiteConfig(map[string]string{"not exist": ""}, &model.User{}, nil)
 	asserts.Equal("", res.Data.(SiteConfig).SiteName)
 
-	res = BuildSiteConfig(map[string]string{"siteName": "123"}, &model.User{})
+	res = BuildSiteConfig(map[string]string{"siteName": "123"}, &model.User{}, nil)
 	asserts.Equal("123", res.Data.(SiteConfig).SiteName)
 
 	// 非空用户
@@ -29,7 +29,7 @@ func TestBuildSiteConfig(t *testing.T) {
 		Model: gorm.Model{
 			ID: 5,
 		},
-	})
+	}, nil)
 	asserts.Len(res.Data.(SiteConfig).User.ID, 4)
 }
 

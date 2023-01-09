@@ -12,6 +12,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
+	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/gin-gonic/gin"
 	"io/fs"
 )
@@ -93,6 +94,12 @@ func Init(path string, statics fs.FS) {
 			"both",
 			func() {
 				auth.Init()
+			},
+		},
+		{
+			"master",
+			func() {
+				wopi.Init()
 			},
 		},
 	}

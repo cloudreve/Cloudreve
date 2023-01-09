@@ -115,4 +115,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "office_preview_service", Value: "https://view.officeapps.live.com/op/view.aspx?src={$src}", Type: "preview"},
 	{Name: "show_app_promotion", Value: "1", Type: "mobile"},
 	{Name: "public_resource_maxage", Value: "86400", Type: "timeout"},
+	{Name: "wopi_enabled", Value: "0", Type: "wopi"},
+	{Name: "wopi_endpoint", Value: "", Type: "wopi"},
+	{Name: "wopi_max_size", Value: "52428800", Type: "wopi"},
+	{Name: "wopi_session_timeout", Value: "43200", Type: "wopi"},
 }
