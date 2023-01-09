@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
 	"github.com/gin-gonic/gin"
 )
@@ -79,6 +80,8 @@ func AdminReloadService(c *gin.Context) {
 		email.Init()
 	case "aria2":
 		aria2.Init(true, cluster.Default, mq.GlobalMQ)
+	case "wopi":
+		wopi.Init()
 	}
 
 	c.JSON(200, serializer.Response{})
