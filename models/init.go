@@ -43,11 +43,20 @@ func Init() {
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Port))
 		case "mysql", "mssql":
-			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+			var host string
+			if conf.DatabaseConfig.UnixSocket {
+				host = fmt.Sprintf("unix(%s)",
+					conf.DatabaseConfig.Host)
+			} else {
+				host = fmt.Sprintf("(%s:%d)",
+					conf.DatabaseConfig.Host,
+					conf.DatabaseConfig.Port)
+			}
+
+			db, err = gorm.Open(conf.DatabaseConfig.Type, fmt.Sprintf("%s:%s@%s/%s?charset=%s&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
-				conf.DatabaseConfig.Host,
-				conf.DatabaseConfig.Port,
+				host,
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset))
 		default:

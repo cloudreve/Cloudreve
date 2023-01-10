@@ -10,10 +10,11 @@ var RedisConfig = &redis{
 
 // DatabaseConfig 数据库配置
 var DatabaseConfig = &database{
-	Type:    "UNSET",
-	Charset: "utf8",
-	DBFile:  "cloudreve.db",
-	Port:    3306,
+	Type:       "UNSET",
+	Charset:    "utf8",
+	DBFile:     "cloudreve.db",
+	Port:       3306,
+	UnixSocket: false,
 }
 
 // SystemConfig 系统公用配置
