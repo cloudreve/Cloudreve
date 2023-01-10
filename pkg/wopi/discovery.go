@@ -3,7 +3,6 @@ package wopi
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"net/http"
 	"strings"
@@ -62,7 +61,7 @@ func (c *client) refreshDiscovery() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	cached, exist := cache.Get(DiscoverResponseCacheKey)
+	cached, exist := c.cache.Get(DiscoverResponseCacheKey)
 	if exist {
 		cachedDiscovery := cached.(WopiDiscovery)
 		c.discovery = &cachedDiscovery
@@ -70,14 +69,14 @@ func (c *client) refreshDiscovery() error {
 		res, err := c.http.Request("GET", c.config.discoveryEndpoint.String(), nil).
 			CheckHTTPResponse(http.StatusOK).GetResponse()
 		if err != nil {
-			return fmt.Errorf("failed to request discovery endpoint: %s", err)
+			return fmt.Errorf("failed to request discovery endpoint: %w", err)
 		}
 
 		if err := xml.Unmarshal([]byte(res), &c.discovery); err != nil {
-			return fmt.Errorf("failed to parse response discovery endpoint: %s", err)
+			return fmt.Errorf("failed to parse response discovery endpoint: %w", err)
 		}
 
-		if err := cache.Set(DiscoverResponseCacheKey, *c.discovery, DiscoverRefreshDuration); err != nil {
+		if err := c.cache.Set(DiscoverResponseCacheKey, *c.discovery, DiscoverRefreshDuration); err != nil {
 			return err
 		}
 	}

@@ -165,9 +165,9 @@ func (c *client) NewSession(user *model.User, file *model.File, action ActonType
 		UserID:      user.ID,
 		Action:      action,
 	}
-	err = cache.Set(SessionCachePrefix+sessionID.String(), *session, ttl)
+	err = c.cache.Set(SessionCachePrefix+sessionID.String(), *session, ttl)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create document session: %s", err)
+		return nil, fmt.Errorf("failed to create document session: %w", err)
 	}
 
 	sessionRes := &Session{
