@@ -1,0 +1,111 @@
+version: '3'
+
+vars:
+  VERSION:
+    sh: git describe --tags --always
+  COMMIT_SHA:
+    sh: git rev-parse --short HEAD
+  CGO_ENABLED: 1
+
+tasks:
+  clean:
+    desc: Clean Build Dir
+    cmds:
+      - rm -rf assets/build assets/node_modules assets.zip release 
+    status:
+      - test ! -d assets/build
+      - test ! -f assets.zip
+      - test ! -d release
+
+  mkdir:
+    desc: Create Build Dir
+    cmds:
+      - mkdir -p release
+    status:
+      - test -d release
+
+  build-frontend:
+    desc: Build Cloudreve Frontend
+    vars:
+      CI: false
+      GENERATE_SOURCEMAP: false
+    dir: assets
+    cmds:
+      - yarn install
+      - yarn build
+      - zip -r - build > ../assets.zip
+    status:
+      - test -d node_modules
+      - test -d build
+
+  build-backend:
+    desc: Cloudreve Backend Build Template(Do not execute this Task directly)
+    label: build-{{.PLATFORM}}
+    cmds:
+      - task: mkdir
+      - task: build-frontend
+      - |
+        GOOS={{.GOOS}} GOARCH={{.GOARCH}} GOARM={{.GOARM}} GOMIPS={{.GOMIPS}} CC={{.CC}} \
+        go build -trimpath -o release/cloudreve-{{.PLATFORM}}{{.OSEXT}} -ldflags \
+        "-w -s -X github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion={{.VERSION}} \
+         -X github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit={{.COMMIT_SHA}}"
+
+  linux-amd64-gcc:
+    desc: Build Cloudreve Backend(linux/amd64/gcc)
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: linux-amd64-gcc,
+          GOOS: linux,
+          GOARCH: amd64,
+          CC: gcc
+        }
+  linux-arm-gnueabihf-gcc:
+    desc: Build Cloudreve Backend(linux/arm/arm-linux-gnueabihf-gcc)
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: linux-arm-gnueabihf-gcc,
+          GOOS: linux,
+          GOARCH: arm,
+          CC: arm-linux-gnueabihf-gcc
+        }
+  linux-arm64-gnu-gcc:
+    desc: Build Cloudreve Backend(linux/arm64/aarch64-linux-gnu-gcc)
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: linux-arm64-gnu-gcc,
+          GOOS: linux,
+          GOARCH: arm64,
+          CC: aarch64-linux-gnu-gcc
+        }
+  windows-amd64-mingw32-gcc:
+    desc: Build Cloudreve Backend(windows/amd64/x86_64-w64-mingw32-gcc)
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: windows-amd64-mingw32-gcc,
+          GOOS: windows,
+          GOARCH: amd64,
+          CC: x86_64-w64-mingw32-gcc,
+          OSEXT: .exe
+        }
+
+
+  default:
+    cmds:
+      - task: clean
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{OS}}-{{ARCH}}",
+          OSEXT: "{{exeExt}}"
+        }
+
+  release:
+    cmds:
+      - task: clean
+      - task: linux-amd64-gcc
+      - task: linux-arm-gnueabihf-gcc
+      - task: linux-arm64-gnu-gcc
+      - task: windows-amd64-mingw32-gcc
