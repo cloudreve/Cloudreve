@@ -106,7 +106,7 @@ func TestFolder_GetChildFolder(t *testing.T) {
 }
 
 func TestGetRecursiveChildFolderSQLite(t *testing.T) {
-	conf.DatabaseConfig.Type = "sqlite3"
+	conf.DatabaseConfig.Type = "sqlite"
 	asserts := assert.New(t)
 
 	// 测试目录结构
