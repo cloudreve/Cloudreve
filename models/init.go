@@ -23,26 +23,26 @@ func Init() {
 	util.Log().Info("Initializing database connection...")
 
 	var (
-		db           *gorm.DB
-		err          error
-		confDataType string = conf.DatabaseConfig.Type
+		db         *gorm.DB
+		err        error
+		confDBType string = conf.DatabaseConfig.Type
 	)
 
 	// 兼容已有配置中的 "sqlite3" 配置项
-	if confDataType == "sqlite3" {
-		confDataType = "sqlite"
+	if confDBType == "sqlite3" {
+		confDBType = "sqlite"
 	}
 
 	if gin.Mode() == gin.TestMode {
 		// 测试模式下，使用内存数据库
 		db, err = gorm.Open("sqlite", ":memory:")
 	} else {
-		switch confDataType {
+		switch confDBType {
 		case "UNSET", "sqlite":
 			// 未指定数据库或者明确指定为 sqlite 时，使用 SQLite 数据库
 			db, err = gorm.Open("sqlite", util.RelativePath(conf.DatabaseConfig.DBFile))
 		case "postgres":
-			db, err = gorm.Open(confDataType, fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
+			db, err = gorm.Open(confDBType, fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
 				conf.DatabaseConfig.Host,
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
@@ -59,14 +59,14 @@ func Init() {
 					conf.DatabaseConfig.Port)
 			}
 
-			db, err = gorm.Open(confDataType, fmt.Sprintf("%s:%s@%s/%s?charset=%s&parseTime=True&loc=Local",
+			db, err = gorm.Open(confDBType, fmt.Sprintf("%s:%s@%s/%s?charset=%s&parseTime=True&loc=Local",
 				conf.DatabaseConfig.User,
 				conf.DatabaseConfig.Password,
 				host,
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset))
 		default:
-			util.Log().Panic("Unsupported database type %q.", confDataType)
+			util.Log().Panic("Unsupported database type %q.", confDBType)
 		}
 	}
 
@@ -89,7 +89,7 @@ func Init() {
 
 	//设置连接池
 	db.DB().SetMaxIdleConns(50)
-	if confDataType == "sqlite" || confDataType == "UNSET" {
+	if confDBType == "sqlite" || confDBType == "UNSET" {
 		db.DB().SetMaxOpenConns(1)
 	} else {
 		db.DB().SetMaxOpenConns(100)
