@@ -237,7 +237,7 @@ func (service *UploadSessionService) Delete(ctx context.Context, c *gin.Context)
 	}
 
 	// 删除文件
-	if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false); err != nil {
+	if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false, false); err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "Failed to delete upload session", err)
 	}
 
@@ -283,7 +283,7 @@ func DeleteAllUploadSession(ctx context.Context, c *gin.Context) serializer.Resp
 	}
 
 	// 删除文件
-	if err := fs.Delete(ctx, []uint{}, fileIDs, false); err != nil {
+	if err := fs.Delete(ctx, []uint{}, fileIDs, false, false); err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "Failed to cleanup upload session", err)
 	}
 

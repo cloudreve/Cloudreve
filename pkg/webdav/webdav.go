@@ -218,7 +218,7 @@ func (h *Handler) confirmLocks(r *http.Request, src, dst string, fs *filesystem.
 	}, 0, nil
 }
 
-//OK
+// OK
 func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request, fs *filesystem.FileSystem) (status int, err error) {
 	reqPath, status, err := h.stripPrefix(r.URL.Path, fs.User.ID)
 	if err != nil {
@@ -303,7 +303,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *files
 
 	// 尝试作为文件删除
 	if ok, file := fs.IsFileExist(reqPath); ok {
-		if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false); err != nil {
+		if err := fs.Delete(ctx, []uint{}, []uint{file.ID}, false, false); err != nil {
 			return http.StatusMethodNotAllowed, err
 		}
 		return http.StatusNoContent, nil
@@ -311,7 +311,7 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request, fs *files
 
 	// 尝试作为目录删除
 	if ok, folder := fs.IsPathExist(reqPath); ok {
-		if err := fs.Delete(ctx, []uint{folder.ID}, []uint{}, false); err != nil {
+		if err := fs.Delete(ctx, []uint{folder.ID}, []uint{}, false, false); err != nil {
 			return http.StatusMethodNotAllowed, err
 		}
 		return http.StatusNoContent, nil
@@ -783,10 +783,11 @@ const (
 // infiniteDepth. Parsing any other string returns invalidDepth.
 //
 // Different WebDAV methods have further constraints on valid depths:
-//	- PROPFIND has no further restrictions, as per section 9.1.
-//	- COPY accepts only "0" or "infinity", as per section 9.8.3.
-//	- MOVE accepts only "infinity", as per section 9.9.2.
-//	- LOCK accepts only "0" or "infinity", as per section 9.10.3.
+//   - PROPFIND has no further restrictions, as per section 9.1.
+//   - COPY accepts only "0" or "infinity", as per section 9.8.3.
+//   - MOVE accepts only "infinity", as per section 9.9.2.
+//   - LOCK accepts only "0" or "infinity", as per section 9.10.3.
+//
 // These constraints are enforced by the handleXxx methods.
 func parseDepth(s string) int {
 	switch s {

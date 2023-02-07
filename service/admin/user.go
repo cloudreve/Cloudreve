@@ -66,7 +66,7 @@ func (service *UserBatchService) Delete() serializer.Response {
 		if err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "User's root folder not exist", err)
 		}
-		fs.Delete(context.Background(), []uint{root.ID}, []uint{}, false)
+		fs.Delete(context.Background(), []uint{root.ID}, []uint{}, false, false)
 
 		// 删除相关任务
 		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})

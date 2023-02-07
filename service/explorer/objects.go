@@ -274,7 +274,7 @@ func (service *ItemIDService) Delete(ctx context.Context, c *gin.Context) serial
 
 	// 删除对象
 	items := service.Raw()
-	err = fs.Delete(ctx, items.Dirs, items.Items, false)
+	err = fs.Delete(ctx, items.Dirs, items.Items, false, false)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

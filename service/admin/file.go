@@ -19,8 +19,9 @@ type FileService struct {
 
 // FileBatchService 文件批量操作服务
 type FileBatchService struct {
-	ID    []uint `json:"id" binding:"min=1"`
-	Force bool   `json:"force"`
+	ID         []uint `json:"id" binding:"min=1"`
+	Force      bool   `json:"force"`
+	UnlinkOnly bool   `json:"unlink"`
 }
 
 // ListFolderService 列目录结构
@@ -128,7 +129,7 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 			}
 
 			// 执行删除
-			fs.Delete(context.Background(), []uint{}, ids, service.Force)
+			fs.Delete(context.Background(), []uint{}, ids, service.Force, service.UnlinkOnly)
 			fs.Recycle()
 		}
 	}(userFile)
