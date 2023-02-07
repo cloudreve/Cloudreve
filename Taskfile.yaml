@@ -345,30 +345,64 @@ tasks:
           BINEXT: "{{exeExt}}"
         }
 
-  release:
+  cross-platform:
     cmds:
       - task: build-frontend
-      - task: linux-amd64
-      - task: linux-amd64-v2
-      - task: linux-amd64-v3
-      - task: linux-amd64-v4
-      - task: linux-armv5
-      - task: linux-armv6
-      - task: linux-armv7
-      - task: linux-armv8
-      - task: linux-mips-hardfloat
-      - task: linux-mipsle-softfloat
-      - task: linux-mipsle-hardfloat
-      - task: linux-mips64
-      - task: linux-mips64le
-      - task: darwin-amd64
-      - task: darwin-amd64-v2
-      - task: darwin-amd64-v3
-      - task: darwin-amd64-v4
-      - task: darwin-arm64
-      - task: windows-386
-      - task: windows-amd64
-      - task: windows-amd64-v2
-      - task: windows-amd64-v3
-      - task: windows-amd64-v4
-      - task: windows-arm64
+      - |
+        apt update
+        apt install -y \
+          curl wget git \
+          gcc-mingw-w64-x86-64 \
+          gcc-aarch64-linux-gnu \
+          libc6-dev-arm64-cross
+      - task: build-backend
+        vars: {
+          TASK: "linux-amd64",
+          GOOS: linux,
+          GOARCH: amd64,
+          CC: "gcc"
+        }
+      - task: build-backend
+        vars: {
+          TASK: "linux-arm64",
+          GOOS: linux,
+          GOARCH: arm64,
+          CC: "aarch64-linux-gnu-gcc"
+        }
+      - task: build-backend
+        vars: {
+          TASK: "windows-amd64",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: amd64,
+          CC: "x86_64-w64-mingw32-gcc"
+        }
+
+#  all:
+#    cmds:
+#      - task: build-frontend
+#      - task: linux-amd64
+#      - task: linux-amd64-v2
+#      - task: linux-amd64-v3
+#      - task: linux-amd64-v4
+#      - task: linux-armv5
+#      - task: linux-armv6
+#      - task: linux-armv7
+#      - task: linux-armv8
+#      - task: linux-mips-hardfloat
+#      - task: linux-mipsle-softfloat
+#      - task: linux-mipsle-hardfloat
+#      - task: linux-mips64
+#      - task: linux-mips64le
+#      - task: darwin-amd64
+#      - task: darwin-amd64-v2
+#      - task: darwin-amd64-v3
+#      - task: darwin-amd64-v4
+#      - task: darwin-arm64
+#      - task: windows-386
+#      - task: windows-amd64
+#      - task: windows-amd64-v2
+#      - task: windows-amd64-v3
+#      - task: windows-amd64-v4
+#      - task: windows-arm64
+
