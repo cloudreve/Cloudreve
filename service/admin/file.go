@@ -103,15 +103,22 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 	// 异步执行删除
 	go func(files map[uint][]model.File) {
 		for uid, file := range files {
+			var (
+				fs  *filesystem.FileSystem
+				err error
+			)
 			user, err := model.GetUserByID(uid)
 			if err != nil {
-				continue
-			}
-
-			fs, err := filesystem.NewFileSystem(&user)
-			if err != nil {
-				fs.Recycle()
-				continue
+				fs, err = filesystem.NewAnonymousFileSystem()
+				if err != nil {
+					continue
+				}
+			} else {
+				fs, err = filesystem.NewFileSystem(&user)
+				if err != nil {
+					fs.Recycle()
+					continue
+				}
 			}
 
 			// 汇总文件ID

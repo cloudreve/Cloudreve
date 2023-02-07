@@ -234,7 +234,7 @@ func DeleteFiles(files []*File, uid uint) error {
 	user.ID = uid
 	var size uint64
 	for _, file := range files {
-		if file.UserID != uid {
+		if uid > 0 && file.UserID != uid {
 			tx.Rollback()
 			return errors.New("user id not consistent")
 		}
@@ -253,9 +253,11 @@ func DeleteFiles(files []*File, uid uint) error {
 		size += file.Size
 	}
 
-	if err := user.ChangeStorage(tx, "-", size); err != nil {
-		tx.Rollback()
-		return err
+	if uid > 0 {
+		if err := user.ChangeStorage(tx, "-", size); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit().Error
