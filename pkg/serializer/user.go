@@ -41,6 +41,7 @@ type group struct {
 	CompressEnabled      bool   `json:"compress"`
 	WebDAVEnabled        bool   `json:"webdav"`
 	SourceBatchSize      int    `json:"sourceBatch"`
+	AdvanceDelete        bool   `json:"advanceDelete"`
 }
 
 type tag struct {
@@ -100,6 +101,7 @@ func BuildUser(user model.User) User {
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 			WebDAVEnabled:        user.Group.WebDAVEnabled,
 			SourceBatchSize:      user.Group.OptionsSerialized.SourceBatchSize,
+			AdvanceDelete:        user.Group.OptionsSerialized.AdvanceDelete,
 		},
 		Tags: buildTagRes(tags),
 	}
