@@ -485,7 +485,6 @@ func TestFileSystem_Delete(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
@@ -543,7 +542,6 @@ func TestFileSystem_Delete(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
