@@ -24,32 +24,11 @@ jobs:
       - name: Get dependencies and build
         run: |
           sudo apt-get update
-          sudo apt-get -y install gcc-mingw-w64-x86-64
-          sudo apt-get -y install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
-          sudo apt-get -y install gcc-aarch64-linux-gnu libc6-dev-arm64-cross
-          chmod +x ./build.sh
-          ./build.sh -r b
+          sh -c "$(curl -sSL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          task release
 
-      - name: Upload binary files (windows_amd64)
-        uses: actions/upload-artifact@v2
+      - name: Upload binary files
+        uses: actions/upload-artifact@v3
         with:
-          name: cloudreve_windows_amd64
-          path: release/cloudreve*windows_amd64.*
-
-      - name: Upload binary files (linux_amd64)
-        uses: actions/upload-artifact@v2
-        with:
-          name: cloudreve_linux_amd64
-          path: release/cloudreve*linux_amd64.*
-
-      - name: Upload binary files (linux_arm)
-        uses: actions/upload-artifact@v2
-        with:
-          name: cloudreve_linux_arm
-          path: release/cloudreve*linux_arm.*
-
-      - name: Upload binary files (linux_arm64)
-        uses: actions/upload-artifact@v2
-        with:
-          name: cloudreve_linux_arm64
-          path: release/cloudreve*linux_arm64.*
+          name: release_artifacts
+          path: release/*

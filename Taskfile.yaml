@@ -12,10 +12,9 @@ tasks:
   clean-frontend:
     desc: Clean Frontend Build Cache
     cmds:
-      - rm -rf assets/build assets/node_modules assets.zip
+      - rm -rf assets/build assets.zip
     status:
       - test ! -d assets/build
-      - test ! -d assets/node_modules
       - test ! -f assets.zip
 
   clean-backend:
@@ -39,16 +38,16 @@ tasks:
 
   build-frontend:
     desc: Build Frontend
-    vars:
+    env:
       CI: false
       GENERATE_SOURCEMAP: false
+      NODE_OPTIONS: --openssl-legacy-provider
     dir: assets
     cmds:
-      - yarn install
+      - yarn install --network-timeout 1000000
       - yarn build
       - cd .. && zip -r - assets/build > assets.zip
     status:
-      - test -d node_modules
       - test -d build
 
   build-backend:
@@ -412,3 +411,19 @@ tasks:
       - task: windows-amd64-v4
       - task: windows-arm64
 
+  release:
+    desc: Build common platforms for release
+    env:
+      RELEASE_PACKING: true
+    cmds:
+      - task: clean
+      - task: build-frontend
+      - task: linux-amd64
+      - task: linux-armv5
+      - task: linux-armv6
+      - task: linux-armv7
+      - task: linux-armv8
+      - task: darwin-amd64
+      - task: darwin-arm64
+      - task: windows-amd64
+      - task: windows-arm64
