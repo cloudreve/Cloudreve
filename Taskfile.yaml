@@ -1,0 +1,414 @@
+version: '3'
+
+vars:
+  VERSION:
+    sh: git describe --tags --always
+  COMMIT_SHA:
+    sh: git rev-parse --short HEAD
+  CGO_ENABLED: 0
+  DEFAULT_PLATFORM: "{{OS}}-{{ARCH}}"
+
+tasks:
+  clean-frontend:
+    desc: Clean Frontend Build Cache
+    cmds:
+      - rm -rf assets/build assets/node_modules assets.zip
+    status:
+      - test ! -d assets/build
+      - test ! -d assets/node_modules
+      - test ! -f assets.zip
+
+  clean-backend:
+    desc: Clean Backend Build Cache
+    cmds:
+      - rm -rf release
+    status:
+      - test ! -d release
+
+  clean:
+    desc: Clean All Build Cache
+    cmds:
+      - task: clean-frontend
+      - task: clean-backend
+
+  mkdir:
+    cmds:
+      - mkdir -p release
+    status:
+      - test -d release
+
+  build-frontend:
+    desc: Build Frontend
+    vars:
+      CI: false
+      GENERATE_SOURCEMAP: false
+    dir: assets
+    cmds:
+      - yarn install
+      - yarn build
+      - cd .. && zip -r - assets/build > assets.zip
+    status:
+      - test -d node_modules
+      - test -d build
+
+  build-backend:
+    desc: Build Backend
+    label: build-{{.PLATFORM | default "backend"}}
+    cmds:
+      - task: mkdir
+      - |
+        GOOS={{.GOOS}} GOARCH={{.GOARCH}} GOARM={{.GOARM}} GOMIPS={{.GOMIPS}} CGO_ENABLED={{.CGO_ENABLED}} CC={{.CC}} \
+        go build -trimpath -o release/cloudreve-{{.PLATFORM}}{{.BINEXT}} -ldflags \
+        "-w -s -X github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion={{.VERSION}} \
+         -X github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit={{.COMMIT_SHA}}"
+
+
+  linux-amd64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: amd64
+        }
+  linux-amd64-v2:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: amd64,
+          GOAMD64: v2
+        }
+  linux-amd64-v3:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: amd64,
+          GOAMD64: v3
+        }
+  linux-amd64-v4:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: amd64,
+          GOAMD64: v4
+        }
+  linux-armv5:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: arm,
+          GOARM: 5
+        }
+  linux-armv6:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: arm,
+          GOARM: 6
+        }
+  linux-armv7:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: arm,
+          GOARM: 7
+        }
+  linux-armv8:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: linux,
+          GOARCH: arm64
+        }
+#
+# !!! modernc.org/libc doesn't support mips architecture yet
+#
+#  linux-mips-hardfloat:
+#    desc: Build Backend({{.TASK}})
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          GOOS: linux,
+#          GOARCH: mips,
+#          GOMIPS: hardfloat
+#        }
+#  linux-mipsle-softfloat:
+#    desc: Build Backend({{.TASK}})
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          GOOS: linux,
+#          GOARCH: mipsle,
+#          GOMIPS: softfloat
+#        }
+#  linux-mipsle-hardfloat:
+#    desc: Build Backend({{.TASK}})
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          GOOS: linux,
+#          GOARCH: mipsle,
+#          GOMIPS: hardfloat
+#        }
+#  linux-mips64:
+#    desc: Build Backend({{.TASK}})
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          GOOS: linux,
+#          GOARCH: mips64
+#        }
+#  linux-mips64le:
+#    desc: Build Backend({{.TASK}})
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          GOOS: linux,
+#          GOARCH: mips64le
+#        }
+  darwin-amd64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: amd64
+        }
+  darwin-amd64-v2:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: amd64,
+          GOAMD64: v2
+        }
+  darwin-amd64-v3:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: amd64,
+          GOAMD64: v3
+        }
+  darwin-amd64-v4:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: amd64,
+          GOAMD64: v4
+        }
+  darwin-arm64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: darwin,
+          GOARCH: arm64
+        }
+  freebsd-386:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: 386
+        }
+  freebsd-amd64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: amd64
+        }
+  freebsd-amd64-v2:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: amd64,
+          GOAMD64: v2
+        }
+  freebsd-amd64-v3:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: amd64,
+          GOAMD64: v3
+        }
+  freebsd-amd64-v4:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: amd64,
+          GOAMD64: v4
+        }
+  freebsd-arm:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: arm
+        }
+  freebsd-arm64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          GOOS: freebsd,
+          GOARCH: arm64
+        }
+#
+# The sqlite library does not support the windows 386 architecture
+#   https://gitlab.com/cznic/sqlite/-/issues/86
+#
+#  windows-386:
+#    cmds:
+#      - task: build-backend
+#        vars: {
+#          PLATFORM: "{{.TASK}}",
+#          BINEXT: ".exe",
+#          GOOS: windows,
+#          GOARCH: 386
+#        }
+  windows-amd64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: amd64
+        }
+  windows-amd64-v2:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: amd64,
+          GOAMD64: v2
+        }
+  windows-amd64-v3:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: amd64,
+          GOAMD64: v3
+        }
+  windows-amd64-v4:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: amd64,
+          GOAMD64: v4
+        }
+  windows-arm64:
+    desc: Build Backend({{.TASK}})
+    cmds:
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.TASK}}",
+          BINEXT: ".exe",
+          GOOS: windows,
+          GOARCH: arm64
+        }
+
+  build:
+    desc: Build Cloudreve
+    cmds:
+      - task: clean
+      - task: build-frontend
+      - task: build-backend
+        vars: {
+          PLATFORM: "{{.DEFAULT_PLATFORM}}",
+          BINEXT: "{{exeExt}}"
+        }
+
+  default:
+    cmds:
+      - task: build
+
+  all:
+    desc: Build All Platform
+    cmds:
+      - task: clean
+      - task: build-frontend
+      - task: linux-amd64
+      - task: linux-amd64-v2
+      - task: linux-amd64-v3
+      - task: linux-amd64-v4
+      - task: linux-armv5
+      - task: linux-armv6
+      - task: linux-armv7
+      - task: linux-armv8
+      - task: darwin-amd64
+      - task: darwin-amd64-v2
+      - task: darwin-amd64-v3
+      - task: darwin-amd64-v4
+      - task: darwin-arm64
+      - task: windows-amd64
+      - task: windows-amd64-v2
+      - task: windows-amd64-v3
+      - task: windows-amd64-v4
+      - task: windows-arm64
+

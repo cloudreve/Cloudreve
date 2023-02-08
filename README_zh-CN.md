@@ -74,7 +74,15 @@ chmod +x ./cloudreve
 
 ## :gear: 构建
 
-自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`zip` 等必要依赖。
+自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`curl`、`zip`、`go-task` 等必要依赖。
+
+#### 安装 go-task
+
+```shell
+sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+```
+
+对于其他平台或者其他安装方式, 请参考官方安装文档: [https://taskfile.dev/installation/](https://taskfile.dev/installation/)
 
 #### 克隆代码
 
@@ -82,42 +90,59 @@ chmod +x ./cloudreve
 git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 ```
 
-#### 构建静态资源
-
-```shell
-# 进入前端子模块
-cd assets
-# 安装依赖
-yarn install
-# 开始构建
-yarn run build
-# 构建完成后删除映射文件
-cd build
-find . -name "*.map" -type f -delete
-# 返回项目主目录打包静态资源
-cd ../../
-zip -r - assets/build >assets.zip
-```
-
 #### 编译项目
 
 ```shell
-# 获得当前版本号、Commit
-export COMMIT_SHA=$(git rev-parse --short HEAD)
-export VERSION=$(git describe --tags)
+# 进入项目目录
+cd Cloudreve
 
-# 开始编译
-go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
+# 执行 task 命令
+# 提示: 单独执行 `task` 命令实际上默认执行叫做 `default` 的 task
+task
+
+# 查看已编译好的文件
+ls release
 ```
 
-你也可以使用项目根目录下的 `build.sh` 快速开始构建：
+如果你期望单独编译前端代码, 请执行 `task build-frontend` 命令; 同样你可以通过执行 `task build-backend` 命令单独编译后端代码.
+
+你可以通过执行 `task --list` 命令查看所以已支持的 task.
 
 ```shell
-./build.sh  [-a] [-c] [-b] [-r]
-	a - 构建静态资源
-	c - 编译二进制文件
-	b - 构建前端 + 编译二进制文件
-	r - 交叉编译，构建用于release的版本
+~/Cloudreve ❯❯❯ task --list                                                                                                                                          ✘ 146 master ✱
+task: Available tasks for this project:
+* all:                  Build All Platform
+* build:                Build Cloudreve
+* build-backend:        Build Backend
+* build-frontend:       Build Frontend
+* clean:                Clean All Build Cache
+* clean-backend:        Clean Backend Build Cache
+* clean-frontend:       Clean Frontend Build Cache
+* darwin-amd64:         Build Backend(darwin-amd64)
+* darwin-amd64-v2:      Build Backend(darwin-amd64-v2)
+* darwin-amd64-v3:      Build Backend(darwin-amd64-v3)
+* darwin-amd64-v4:      Build Backend(darwin-amd64-v4)
+* darwin-arm64:         Build Backend(darwin-arm64)
+* freebsd-386:          Build Backend(freebsd-386)
+* freebsd-amd64:        Build Backend(freebsd-amd64)
+* freebsd-amd64-v2:     Build Backend(freebsd-amd64-v2)
+* freebsd-amd64-v3:     Build Backend(freebsd-amd64-v3)
+* freebsd-amd64-v4:     Build Backend(freebsd-amd64-v4)
+* freebsd-arm:          Build Backend(freebsd-arm)
+* freebsd-arm64:        Build Backend(freebsd-arm64)
+* linux-amd64:          Build Backend(linux-amd64)
+* linux-amd64-v2:       Build Backend(linux-amd64-v2)
+* linux-amd64-v3:       Build Backend(linux-amd64-v3)
+* linux-amd64-v4:       Build Backend(linux-amd64-v4)
+* linux-armv5:          Build Backend(linux-armv5)
+* linux-armv6:          Build Backend(linux-armv6)
+* linux-armv7:          Build Backend(linux-armv7)
+* linux-armv8:          Build Backend(linux-armv8)
+* windows-amd64:        Build Backend(windows-amd64)
+* windows-amd64-v2:     Build Backend(windows-amd64-v2)
+* windows-amd64-v3:     Build Backend(windows-amd64-v3)
+* windows-amd64-v4:     Build Backend(windows-amd64-v4)
+* windows-arm64:        Build Backend(windows-arm64)
 ```
 
 ## :alembic: 技术栈
