@@ -39,10 +39,10 @@ tasks:
   build-frontend:
     desc: Build Frontend
     env:
-      CI: false
       GENERATE_SOURCEMAP: false
     dir: assets
     cmds:
+      - env CI=false
       - yarn install --network-timeout 1000000
       - yarn build
       - cd .. && zip -r - assets/build > assets.zip
