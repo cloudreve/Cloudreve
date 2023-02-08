@@ -1,0 +1,68 @@
+env:
+  - CI=false
+  - GENERATE_SOURCEMAP=false
+before:
+  hooks:
+    - go mod tidy
+    - sh -c "cd assets && rm -rf build && yarn install --network-timeout 1000000 && yarn run build && cd ../ && zip -r - assets/build >assets.zip"
+builds:
+  -
+    env:
+      - CGO_ENABLED=0
+
+    ldflags:
+      - -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion={{.Version}}' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit={{.ShortCommit}}'
+
+    goos:
+      - linux
+      - windows
+      - darwin
+
+    goarch:
+      - amd64
+      - arm
+      - arm64
+
+    goarm:
+      - 5
+      - 6
+      - 7
+
+    ignore:
+      - goos: windows
+        goarm: 5
+      - goos: windows
+        goarm: 6
+      - goos: windows
+        goarm: 7
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+    - goos: windows
+      format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  draft: true
+  prerelease: auto
+  target_commitish: '{{ .Commit }}'
+  name_template: "{{.Version}}"

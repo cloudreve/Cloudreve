@@ -29,3 +29,5 @@ version.lock
 conf/conf.ini
 /statik/
 .vscode/
+
+dist/
