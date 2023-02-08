@@ -66,7 +66,7 @@ func TestBuildRegexp(t *testing.T) {
 func TestBuildConcat(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.Equal("CONCAT(1,2)", BuildConcat("1", "2", "mysql"))
-	asserts.Equal("1||2", BuildConcat("1", "2", "sqlite3"))
+	asserts.Equal("1||2", BuildConcat("1", "2", "sqlite"))
 }
 
 func TestSliceDifference(t *testing.T) {

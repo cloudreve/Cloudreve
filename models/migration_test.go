@@ -10,8 +10,8 @@ import (
 
 func TestMigration(t *testing.T) {
 	asserts := assert.New(t)
-	conf.DatabaseConfig.Type = "sqlite3"
-	DB, _ = gorm.Open("sqlite3", ":memory:")
+	conf.DatabaseConfig.Type = "sqlite"
+	DB, _ = gorm.Open("sqlite", ":memory:")
 
 	asserts.NotPanics(func() {
 		migration()
