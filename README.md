@@ -74,15 +74,7 @@ The above is a minimum deploy example, you can refer to [Getting started](https:
 
 ## :gear: Build
 
-You need to have `Go >= 1.18`, `node.js`, `yarn`, `curl`, `zip`, `go-task` and other necessary dependencies before you can build it yourself.
-
-#### Install go-task
-
-```shell
-sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-```
-
-For more installation methods, please refer to the official documentation: [https://taskfile.dev/installation/](https://taskfile.dev/installation/)
+You need to have `Go >= 1.18`, `node.js`, `yarn`, `zip` and other necessary dependencies before you can build it yourself.
 
 #### Clone the code
 
@@ -90,59 +82,42 @@ For more installation methods, please refer to the official documentation: [http
 git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 ```
 
+#### Build static resources
+
+```shell
+# Enter frontend sub-module
+cd assets
+# Install dependencies
+yarn install
+# Start building
+yarn run build
+# Delete unused map files
+cd build
+find . -name "*.map" -type f -delete
+# Return to main folder to pack static files
+cd ../../
+zip -r - assets/build >assets.zip
+```
+
 #### Compile
 
 ```shell
-# Enter the project directory
-cd Cloudreve
+# Obtain version number, commit SHA
+export COMMIT_SHA=$(git rev-parse --short HEAD)
+export VERSION=$(git describe --tags)
 
-# Execute the task command
-# Note: The `task` command executes the task named `default` by default.
-task
-
-# View compiled files
-ls release
+# Compile
+go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
 ```
 
-If you want to compile only the frontend code, please execute `task build-frontend`; similarly you can also execute `task build-backend` to only compile the backend code.
-
-You can view all supported tasks through the `task --list` command:
+You can also start a quick build using `build.sh` in the project root directory:
 
 ```shell
-~/Cloudreve ❯❯❯ task --list                                                                                                                                            ✘ 146 master
-task: Available tasks for this project:
-* all:                  Build All Platform
-* build:                Build Cloudreve
-* build-backend:        Build Backend
-* build-frontend:       Build Frontend
-* clean:                Clean All Build Cache
-* clean-backend:        Clean Backend Build Cache
-* clean-frontend:       Clean Frontend Build Cache
-* darwin-amd64:         Build Backend(darwin-amd64)
-* darwin-amd64-v2:      Build Backend(darwin-amd64-v2)
-* darwin-amd64-v3:      Build Backend(darwin-amd64-v3)
-* darwin-amd64-v4:      Build Backend(darwin-amd64-v4)
-* darwin-arm64:         Build Backend(darwin-arm64)
-* freebsd-386:          Build Backend(freebsd-386)
-* freebsd-amd64:        Build Backend(freebsd-amd64)
-* freebsd-amd64-v2:     Build Backend(freebsd-amd64-v2)
-* freebsd-amd64-v3:     Build Backend(freebsd-amd64-v3)
-* freebsd-amd64-v4:     Build Backend(freebsd-amd64-v4)
-* freebsd-arm:          Build Backend(freebsd-arm)
-* freebsd-arm64:        Build Backend(freebsd-arm64)
-* linux-amd64:          Build Backend(linux-amd64)
-* linux-amd64-v2:       Build Backend(linux-amd64-v2)
-* linux-amd64-v3:       Build Backend(linux-amd64-v3)
-* linux-amd64-v4:       Build Backend(linux-amd64-v4)
-* linux-armv5:          Build Backend(linux-armv5)
-* linux-armv6:          Build Backend(linux-armv6)
-* linux-armv7:          Build Backend(linux-armv7)
-* linux-armv8:          Build Backend(linux-armv8)
-* windows-amd64:        Build Backend(windows-amd64)
-* windows-amd64-v2:     Build Backend(windows-amd64-v2)
-* windows-amd64-v3:     Build Backend(windows-amd64-v3)
-* windows-amd64-v4:     Build Backend(windows-amd64-v4)
-* windows-arm64:        Build Backend(windows-arm64)
+./build.sh  [-a] [-c] [-b] [-r]
+	a - Build assets
+	c - Build binary backend
+	b - Build both assets and backend
+	r - Cross-compilation for final release
 ```
 
 ## :alembic: Stacks
