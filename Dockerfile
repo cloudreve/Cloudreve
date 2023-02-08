@@ -7,14 +7,14 @@ RUN set -e \
     && apk update \
     && apk add bash wget curl git zip \
     && sh -c "$(curl -sSL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-
+# Maybe copying the current directory is more accurate?
 #    && git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git /cloudreve
 
 COPY . /cloudreve
 
 WORKDIR /cloudreve
 
-RUN task build-frontend
+RUN task clean-frontend build-frontend
 
 
 # the backend builder
@@ -27,7 +27,7 @@ RUN set -e \
     && apk update \
     && apk add bash wget curl git build-base \
     && sh -c "$(curl -sSL https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-
+# Maybe copying the current directory is more accurate?
 #    && git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git /cloudreve
 
 COPY . /cloudreve
@@ -36,7 +36,7 @@ WORKDIR /cloudreve
 
 COPY --from=frontend_builder /cloudreve/assets.zip ./
 
-RUN task build-backend "TASK=docker"
+RUN task clean-backend build-backend "PLATFORM=docker"
 
 
 # the final builder
