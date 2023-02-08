@@ -75,6 +75,7 @@ dockers:
       - "--platform=linux/amd64"
     goos: linux
     goarch: amd64
+    goamd64: v1
     image_templates:
       - "cloudreve/cloudreve:{{ .Tag }}-amd64"
   -
