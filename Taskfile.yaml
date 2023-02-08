@@ -41,7 +41,6 @@ tasks:
     env:
       CI: false
       GENERATE_SOURCEMAP: false
-      NODE_OPTIONS: --openssl-legacy-provider
     dir: assets
     cmds:
       - yarn install --network-timeout 1000000
