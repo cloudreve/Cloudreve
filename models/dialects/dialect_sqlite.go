@@ -1,4 +1,4 @@
-package model
+package dialects
 
 import (
 	"fmt"
