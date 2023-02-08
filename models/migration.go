@@ -111,6 +111,7 @@ func addDefaultGroups() {
 				SourceBatchSize:  1000,
 				Aria2BatchSize:   50,
 				RedirectedSource: true,
+				AdvanceDelete:    true,
 			},
 		}
 		if err := DB.Create(&defaultAdminGroup).Error; err != nil {

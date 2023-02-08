@@ -88,7 +88,7 @@ func uploadSessionCollect() {
 			continue
 		}
 
-		if err = fs.Delete(context.Background(), []uint{}, filesIDs, false); err != nil {
+		if err = fs.Delete(context.Background(), []uint{}, filesIDs, false, false); err != nil {
 			util.Log().Warning("Failed to delete upload session: %s", err)
 		}
 

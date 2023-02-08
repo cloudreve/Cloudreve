@@ -3,13 +3,13 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	"os"
 	"testing"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	testMock "github.com/stretchr/testify/mock"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -485,7 +485,6 @@ func TestFileSystem_Delete(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
@@ -505,7 +504,7 @@ func TestFileSystem_Delete(t *testing.T) {
 
 		fs.FileTarget = []model.File{}
 		fs.DirTarget = []model.Folder{}
-		err := fs.Delete(ctx, []uint{1}, []uint{1}, true)
+		err := fs.Delete(ctx, []uint{1}, []uint{1}, true, false)
 		asserts.NoError(err)
 	}
 	//全部成功
@@ -543,7 +542,6 @@ func TestFileSystem_Delete(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		mock.ExpectExec("UPDATE(.+)users(.+)storage(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		// 删除对应分享
 		mock.ExpectBegin()
@@ -563,7 +561,7 @@ func TestFileSystem_Delete(t *testing.T) {
 
 		fs.FileTarget = []model.File{}
 		fs.DirTarget = []model.Folder{}
-		err = fs.Delete(ctx, []uint{1}, []uint{1}, false)
+		err = fs.Delete(ctx, []uint{1}, []uint{1}, false, false)
 		asserts.NoError(err)
 	}
 

@@ -11,6 +11,7 @@ type Webdav struct {
 	Password string `gorm:"unique_index:password_only_on"` // 应用密码
 	UserID   uint   `gorm:"unique_index:password_only_on"` // 用户ID
 	Root     string `gorm:"type:text"`                     // 根目录
+	Readonly bool   `gorm:"type:bool"`                     // 是否只读
 }
 
 // Create 创建账户
@@ -38,4 +39,9 @@ func ListWebDAVAccounts(uid uint) []Webdav {
 // DeleteWebDAVAccountByID 根据账户ID和UID删除账户
 func DeleteWebDAVAccountByID(id, uid uint) {
 	DB.Where("user_id = ? and id = ?", uid, id).Delete(&Webdav{})
+}
+
+// UpdateWebDAVAccountReadonlyByID 根据账户ID和UID更新账户的只读性
+func UpdateWebDAVAccountReadonlyByID(id, uid uint, readonly bool) {
+	DB.Model(&Webdav{Model: gorm.Model{ID: id}, UserID: uid}).UpdateColumn("readonly", readonly)
 }

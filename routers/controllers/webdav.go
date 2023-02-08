@@ -7,6 +7,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
 	"github.com/cloudreve/Cloudreve/v3/service/setting"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"sync"
 )
 
@@ -39,6 +40,15 @@ func ServeWebDAV(c *gin.Context) {
 				fs.Root = root
 			}
 		}
+
+		// 检查是否只读
+		if application.Readonly {
+			switch c.Request.Method {
+			case "DELETE", "PUT", "MKCOL", "COPY", "MOVE":
+				c.Status(http.StatusForbidden)
+				return
+			}
+		}
 	}
 
 	handler.ServeHTTP(c.Writer, c.Request, fs)
@@ -60,6 +70,17 @@ func DeleteWebDAVAccounts(c *gin.Context) {
 	var service setting.WebDAVAccountService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Delete(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UpdateWebDAVAccountsReadonly 更改WebDAV账户只读性
+func UpdateWebDAVAccountsReadonly(c *gin.Context) {
+	var service setting.WebDAVAccountUpdateReadonlyService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Update(c, CurrentUser(c))
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

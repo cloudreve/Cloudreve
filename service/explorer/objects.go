@@ -41,9 +41,11 @@ type ItemService struct {
 
 // ItemIDService 处理多文件/目录相关服务，字段值为HashID，可通过Raw()方法获取原始ID
 type ItemIDService struct {
-	Items  []string `json:"items"`
-	Dirs   []string `json:"dirs"`
-	Source *ItemService
+	Items      []string `json:"items"`
+	Dirs       []string `json:"dirs"`
+	Source     *ItemService
+	Force      bool `json:"force"`
+	UnlinkOnly bool `json:"unlink"`
 }
 
 // ItemCompressService 文件压缩任务服务
@@ -272,9 +274,15 @@ func (service *ItemIDService) Delete(ctx context.Context, c *gin.Context) serial
 	}
 	defer fs.Recycle()
 
+	force, unlink := false, false
+	if fs.User.Group.OptionsSerialized.AdvanceDelete {
+		force = service.Force
+		unlink = service.UnlinkOnly
+	}
+
 	// 删除对象
 	items := service.Raw()
-	err = fs.Delete(ctx, items.Dirs, items.Items, false)
+	err = fs.Delete(ctx, items.Dirs, items.Items, force, unlink)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}

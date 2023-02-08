@@ -365,7 +365,7 @@ func TestDeleteFiles(t *testing.T) {
 
 	// uid 不一致
 	{
-		err := DeleteFiles([]*File{{}}, 1)
+		err := DeleteFiles([]*File{{UserID: 2}}, 1)
 		a.Contains("user id not consistent", err.Error())
 	}
 
@@ -375,7 +375,7 @@ func TestDeleteFiles(t *testing.T) {
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
-		err := DeleteFiles([]*File{{}}, 0)
+		err := DeleteFiles([]*File{{UserID: 1}}, 1)
 		a.NoError(mock.ExpectationsWereMet())
 		a.Error(err)
 	}
@@ -387,7 +387,7 @@ func TestDeleteFiles(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectExec("UPDATE(.+)storage(.+)").WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
-		err := DeleteFiles([]*File{{}}, 0)
+		err := DeleteFiles([]*File{{UserID: 1}}, 1)
 		a.NoError(mock.ExpectationsWereMet())
 		a.Error(err)
 	}
@@ -398,7 +398,7 @@ func TestDeleteFiles(t *testing.T) {
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(1, 0))
 		mock.ExpectRollback()
-		err := DeleteFiles([]*File{{Size: 1}, {Size: 2}}, 0)
+		err := DeleteFiles([]*File{{Size: 1, UserID: 1}, {Size: 2, UserID: 1}}, 1)
 		a.NoError(mock.ExpectationsWereMet())
 		a.Error(err)
 		a.Contains("file size is dirty", err.Error())
@@ -411,9 +411,22 @@ func TestDeleteFiles(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(2, 1))
 		mock.ExpectExec("DELETE(.+)").
 			WillReturnResult(sqlmock.NewResult(2, 1))
-		mock.ExpectExec("UPDATE(.+)storage(.+)").WithArgs(uint64(3), sqlmock.AnyArg()).WillReturnResult(sqlmock.NewResult(1, 1))
+		mock.ExpectExec("UPDATE(.+)storage(.+)").WithArgs(uint64(3), sqlmock.AnyArg(), uint(1)).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		err := DeleteFiles([]*File{{Size: 1}, {Size: 2}}, 0)
+		err := DeleteFiles([]*File{{Size: 1, UserID: 1}, {Size: 2, UserID: 1}}, 1)
+		a.NoError(mock.ExpectationsWereMet())
+		a.NoError(err)
+	}
+
+	// 成功,  关联用户不存在
+	{
+		mock.ExpectBegin()
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectExec("DELETE(.+)").
+			WillReturnResult(sqlmock.NewResult(2, 1))
+		mock.ExpectCommit()
+		err := DeleteFiles([]*File{{Size: 1, UserID: 1}, {Size: 2, UserID: 1}}, 0)
 		a.NoError(mock.ExpectationsWereMet())
 		a.NoError(err)
 	}
