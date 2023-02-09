@@ -50,7 +50,7 @@
 * :card_file_box: Drag & Drop to manage your files.
 * :family_woman_girl_boy:   Multi-users with multi-groups.
 * :link: Create share links for files and folders with expiration date.
-* :eye_speech_bubble: Preview videos, images, audios, texts, Office documents, ePub files online.
+* :eye_speech_bubble: Preview videos, images, audios, ePub files online; edit texts, Office documents online.
 * :art: Customize theme colors, dark mode, PWA application, SPA, i18n.
 * :rocket: All-In-One packing, with all features out-of-the-box.
 * 🌈 ... ...
@@ -74,7 +74,13 @@ The above is a minimum deploy example, you can refer to [Getting started](https:
 
 ## :gear: Build
 
-You need to have `Go >= 1.18`, `node.js`, `yarn`, `zip` and other necessary dependencies before you can build it yourself.
+You need to have `Go >= 1.18`, `node.js`, `yarn`, `zip`, [goreleaser](https://goreleaser.com/intro/) and other necessary dependencies before you can build it yourself.
+
+#### Install goreleaser
+
+```shell
+go install github.com/goreleaser/goreleaser@latest
+```
 
 #### Clone the code
 
@@ -82,42 +88,10 @@ You need to have `Go >= 1.18`, `node.js`, `yarn`, `zip` and other necessary depe
 git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 ```
 
-#### Build static resources
-
-```shell
-# Enter frontend sub-module
-cd assets
-# Install dependencies
-yarn install
-# Start building
-yarn run build
-# Delete unused map files
-cd build
-find . -name "*.map" -type f -delete
-# Return to main folder to pack static files
-cd ../../
-zip -r - assets/build >assets.zip
-```
-
 #### Compile
 
 ```shell
-# Obtain version number, commit SHA
-export COMMIT_SHA=$(git rev-parse --short HEAD)
-export VERSION=$(git describe --tags)
-
-# Compile
-go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
-```
-
-You can also start a quick build using `build.sh` in the project root directory:
-
-```shell
-./build.sh  [-a] [-c] [-b] [-r]
-	a - Build assets
-	c - Build binary backend
-	b - Build both assets and backend
-	r - Cross-compilation for final release
+goreleaser build --clean --single-target --snapshot
 ```
 
 ## :alembic: Stacks

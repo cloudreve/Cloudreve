@@ -50,7 +50,7 @@
 * :card_file_box: 文件拖拽管理
 * :family_woman_girl_boy:   多用户、用户组、多存储策略
 * :link: 创建文件、目录的分享链接，可设定自动过期
-* :eye_speech_bubble: 视频、图像、音频、文本、Office 文档、 ePub 在线预览
+* :eye_speech_bubble: 视频、图像、音频、 ePub 在线预览，文本、Office 文档在线编辑
 * :art: 自定义配色、黑暗模式、PWA 应用、全站单页应用、国际化支持
 * :rocket: All-In-One 打包，开箱即用
 * 🌈 ... ...
@@ -74,7 +74,13 @@ chmod +x ./cloudreve
 
 ## :gear: 构建
 
-自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`zip` 等必要依赖。
+自行构建前需要拥有 `Go >= 1.18`、`node.js`、`yarn`、`zip`, [goreleaser](https://goreleaser.com/intro/) 等必要依赖。
+
+#### 安装 goreleaser
+
+```shell
+go install github.com/goreleaser/goreleaser@latest
+```
 
 #### 克隆代码
 
@@ -82,42 +88,10 @@ chmod +x ./cloudreve
 git clone --recurse-submodules https://github.com/cloudreve/Cloudreve.git
 ```
 
-#### 构建静态资源
-
-```shell
-# 进入前端子模块
-cd assets
-# 安装依赖
-yarn install
-# 开始构建
-yarn run build
-# 构建完成后删除映射文件
-cd build
-find . -name "*.map" -type f -delete
-# 返回项目主目录打包静态资源
-cd ../../
-zip -r - assets/build >assets.zip
-```
-
 #### 编译项目
 
 ```shell
-# 获得当前版本号、Commit
-export COMMIT_SHA=$(git rev-parse --short HEAD)
-export VERSION=$(git describe --tags)
-
-# 开始编译
-go build -a -o cloudreve -ldflags "-s -w -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion=$VERSION' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit=$COMMIT_SHA'"
-```
-
-你也可以使用项目根目录下的 `build.sh` 快速开始构建：
-
-```shell
-./build.sh  [-a] [-c] [-b] [-r]
-	a - 构建静态资源
-	c - 编译二进制文件
-	b - 构建前端 + 编译二进制文件
-	r - 交叉编译，构建用于release的版本
+goreleaser build --clean --single-target --snapshot
 ```
 
 ## :alembic: 技术栈
