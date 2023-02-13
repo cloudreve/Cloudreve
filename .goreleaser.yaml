@@ -10,6 +10,8 @@ builds:
     env:
       - CGO_ENABLED=0
 
+    binary: cloudreve
+
     ldflags:
       - -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion={{.Tag}}' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit={{.ShortCommit}}'
 
