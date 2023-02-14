@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/HFO4/aliyun-oss-go-sdk v2.2.3+incompatible
-	github.com/aws/aws-sdk-go v1.31.5
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/fatih/color v1.9.0
 	github.com/gin-contrib/cors v1.3.0
