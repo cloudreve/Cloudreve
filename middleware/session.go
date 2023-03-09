@@ -4,17 +4,18 @@ import (
 	"net/http"
 	"strings"
 
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/session"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 )
 
 // Store session存储
-var Store memstore.Store
+var Store sessions.Store
 
 // Session 初始化session
 func Session(secret string) gin.HandlerFunc {
@@ -28,7 +29,7 @@ func Session(secret string) gin.HandlerFunc {
 
 		util.Log().Info("Connect to Redis server %q.", conf.RedisConfig.Server)
 	} else {
-		Store = memstore.NewStore([]byte(secret))
+		Store = session.NewStore(model.DB, []byte(secret))
 	}
 
 	sameSiteMode := http.SameSiteDefaultMode
