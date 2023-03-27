@@ -40,22 +40,11 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 
 	// 判断是否需要移动
 	if src.GetPosition() != path.Dir(dst) {
-		err = fs.Move(
-			ctx,
-			folderIDs,
-			fileIDs,
-			src.GetPosition(),
-			path.Dir(dst),
-		)
-	}
-	if overwrite {
-		if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
-			return http.StatusNoContent, err
+		if overwrite {
+			if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
+				return http.StatusNoContent, err
+			}
 		}
-	}
-
-	// 判断是否需要移动
-	if src.GetPosition() != path.Dir(dst) {
 		err = fs.Move(
 			ctx,
 			folderIDs,
@@ -65,15 +54,6 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 		)
 	}
 
-	// 判断是否需要重命名
-	if err == nil && src.GetName() != path.Base(dst) {
-		err = fs.Rename(
-			ctx,
-			folderIDs,
-			fileIDs,
-			path.Base(dst),
-		)
-	}
 	// 判断是否需要重命名
 	if err == nil && src.GetName() != path.Base(dst) {
 		err = fs.Rename(
