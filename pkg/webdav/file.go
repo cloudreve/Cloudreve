@@ -42,7 +42,7 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 	if src.GetPosition() != path.Dir(dst) {
 		if overwrite {
 			if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
-				return http.StatusNoContent, err
+				return http.StatusInternalServerError, err
 			}
 		}
 		err = fs.Move(
@@ -81,7 +81,7 @@ func copyFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 
 	if overwrite {
 		if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
-			return http.StatusNoContent, err
+			return http.StatusInternalServerError, err
 		}
 	}
 
