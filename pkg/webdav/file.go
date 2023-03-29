@@ -38,13 +38,14 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 		fileIDs = []uint{src.(*model.File).ID}
 	}
 
+	if overwrite {
+		if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
+			return http.StatusInternalServerError, err
+		}
+	}
+
 	// 判断是否需要移动
 	if src.GetPosition() != path.Dir(dst) {
-		if overwrite {
-			if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
-				return http.StatusInternalServerError, err
-			}
-		}
 		err = fs.Move(
 			ctx,
 			folderIDs,
