@@ -3,7 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
-	"io"
+	"os"
 	"sync"
 
 	"runtime"
@@ -32,17 +32,42 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 		}, ErrObjectNotExist
 	}
 
+	file := fs.FileTarget[0]
 	w, h := fs.GenerateThumbnailSize(0, 0)
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
-	ctx = context.WithValue(ctx, fsctx.FileModelCtx, fs.FileTarget[0])
-	res, err := fs.Handler.Thumb(ctx, &fs.FileTarget[0])
+	ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
+	res, err := fs.Handler.Thumb(ctx, &file)
 	if errors.Is(err, driver.ErrorThumbNotExist) {
 		// Regenerate thumb if the thumb is not initialized yet
-		fs.GenerateThumbnail(ctx, &fs.FileTarget[0])
-		res, err = fs.Handler.Thumb(ctx, &fs.FileTarget[0])
+		fs.GenerateThumbnail(ctx, &file)
+		res, err = fs.Handler.Thumb(ctx, &file)
 	} else if errors.Is(err, driver.ErrorThumbNotSupported) {
-		// Policy handler explicitly indicates thumb not available
-		_ = updateThumbStatus(&fs.FileTarget[0], model.ThumbStatusNotAvailable)
+		// Policy handler explicitly indicates thumb not available, check if proxy is enabled
+		if fs.Policy.CouldProxyThumb() {
+			// if thumb id marked as existed, redirect to "sidecar" thumb file.
+			if file.MetadataSerialized != nil &&
+				file.MetadataSerialized[model.ThumbStatusMetadataKey] == model.ThumbStatusExist {
+				// redirect to sidecar file
+				res = &response.ContentResponse{
+					Redirect: true,
+				}
+				res.URL, err = fs.Handler.Source(
+					ctx,
+					file.ThumbFile(),
+					*model.GetSiteURL(),
+					int64(model.GetIntSetting("preview_timeout", 60)),
+					false,
+					0,
+				)
+			} else {
+				// if not exist, generate and upload the sidecar thumb.
+				fs.GenerateThumbnail(ctx, &file)
+				res, err = fs.Handler.Thumb(ctx, &file)
+			}
+		} else {
+			// thumb not supported and proxy is disabled, mark as not available
+			_ = updateThumbStatus(&file, model.ThumbStatusNotAvailable)
+		}
 	}
 
 	if err == nil && conf.SystemConfig.Mode == "master" {
@@ -100,20 +125,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	getThumbWorker().addWorker()
 	defer getThumbWorker().releaseWorker()
 
-	r, w := io.Pipe()
-	defer w.Close()
-
-	errChan := make(chan error, 1)
-	go func(errChan chan error) {
-		errChan <- fs.Handler.Put(newCtx, &fsctx.FileStream{
-			Mode:     fsctx.Overwrite,
-			File:     io.NopCloser(r),
-			Seeker:   nil,
-			SavePath: file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"),
-		})
-	}(errChan)
-
-	if err = thumb.Generators.Generate(source, w, file.Name, model.GetSettingByNames(
+	thumbPath, err := thumb.Generators.Generate(source, file.Name, model.GetSettingByNames(
 		"thumb_width",
 		"thumb_height",
 		"thumb_builtin_enabled",
@@ -121,16 +133,33 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		"thumb_ffmpeg_enabled",
 		"thumb_vips_path",
 		"thumb_ffmpeg_path",
-	)); err != nil {
+	))
+	if err != nil {
 		util.Log().Warning("Failed to generate thumb for %s: %s", file.Name, err)
 		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
-		w.Close()
-		<-errChan
 		return
 	}
 
-	w.Close()
-	if err = <-errChan; err != nil {
+	thumbFile, err := os.Open(thumbPath)
+	if err != nil {
+		util.Log().Warning("Failed to open temp thumb %q: %s", thumbFile, err)
+		return
+	}
+
+	defer thumbFile.Close()
+	fileInfo, err := thumbFile.Stat()
+	if err != nil {
+		util.Log().Warning("Failed to stat temp thumb %q: %s", thumbFile, err)
+		return
+	}
+
+	if err = fs.Handler.Put(newCtx, &fsctx.FileStream{
+		Mode:     fsctx.Overwrite,
+		File:     thumbFile,
+		Seeker:   thumbFile,
+		Size:     uint64(fileInfo.Size()),
+		SavePath: file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"),
+	}); err != nil {
 		util.Log().Warning("Failed to save thumb for %s: %s", file.Name, err)
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"github.com/gofrs/uuid"
+	"github.com/samber/lo"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -226,4 +227,15 @@ func (policy *Policy) UpdateAccessKeyAndClearCache(s string) error {
 // ClearCache 清空policy缓存
 func (policy *Policy) ClearCache() {
 	cache.Deletes([]string{strconv.FormatUint(uint64(policy.ID), 10)}, "policy_")
+}
+
+// CouldProxyThumb return if proxy thumbs is allowed for this policy.
+func (policy *Policy) CouldProxyThumb() bool {
+	if policy.Type == "local" || !IsTrueVal(GetSettingByName("thumb_proxy_enabled")) {
+		return false
+	}
+
+	allowed := make([]uint, 0)
+	_ = json.Unmarshal([]byte(GetSettingByName("thumb_proxy_policy")), &allowed)
+	return lo.Contains[uint](allowed, policy.ID)
 }

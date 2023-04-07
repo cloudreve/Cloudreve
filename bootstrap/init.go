@@ -39,19 +39,25 @@ func Init(path string, statics fs.FS) {
 		{
 			"both",
 			func() {
-				cache.Init(conf.SystemConfig.Mode == "slave")
-			},
-		},
-		{
-			"master",
-			func() {
-				model.Init()
+				cache.Init()
 			},
 		},
 		{
 			"slave",
 			func() {
 				model.InitSlaveDefaults()
+			},
+		},
+		{
+			"slave",
+			func() {
+				cache.InitSlaveOverwrites()
+			},
+		},
+		{
+			"master",
+			func() {
+				model.Init()
 			},
 		},
 		{

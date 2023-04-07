@@ -208,7 +208,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
-	// quick check by extensions
+	// quick check by extension name
 	supported := []string{"png", "jpg", "jpeg", "gif"}
 	if len(handler.Policy.OptionsSerialized.ThumbExts) > 0 {
 		supported = handler.Policy.OptionsSerialized.ThumbExts

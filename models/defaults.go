@@ -112,6 +112,8 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "thumb_ffmpeg_enabled", Value: "0", Type: "thumb"},
 	{Name: "thumb_vips_path", Value: "vips", Type: "thumb"},
 	{Name: "thumb_ffmpeg_path", Value: "ffmpeg", Type: "thumb"},
+	{Name: "thumb_proxy_enabled", Value: "0", Type: "thumb"},
+	{Name: "thumb_proxy_policy", Value: "[]", Type: "thumb"},
 	{Name: "pwa_small_icon", Value: "/static/img/favicon.ico", Type: "pwa"},
 	{Name: "pwa_medium_icon", Value: "/static/img/logo192.png", Type: "pwa"},
 	{Name: "pwa_large_icon", Value: "/static/img/logo512.png", Type: "pwa"},

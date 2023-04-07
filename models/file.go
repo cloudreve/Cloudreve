@@ -466,3 +466,8 @@ func (file *File) GetPosition() string {
 func (file *File) ShouldLoadThumb() bool {
 	return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable
 }
+
+// return sidecar thumb file name
+func (file *File) ThumbFile() string {
+	return file.SourceName + GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")
+}

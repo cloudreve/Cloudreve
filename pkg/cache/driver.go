@@ -10,7 +10,7 @@ import (
 var Store Driver = NewMemoStore()
 
 // Init 初始化缓存
-func Init(isSlave bool) {
+func Init() {
 	if conf.RedisConfig.Server != "" && gin.Mode() != gin.TestMode {
 		Store = NewRedisStore(
 			10,
@@ -20,12 +20,12 @@ func Init(isSlave bool) {
 			conf.RedisConfig.DB,
 		)
 	}
+}
 
-	if isSlave {
-		err := Store.Sets(conf.OptionOverwrite, "setting_")
-		if err != nil {
-			util.Log().Warning("Failed to overwrite database setting: %s", err)
-		}
+func InitSlaveOverwrites() {
+	err := Store.Sets(conf.OptionOverwrite, "setting_")
+	if err != nil {
+		util.Log().Warning("Failed to overwrite database setting: %s", err)
 	}
 }
 

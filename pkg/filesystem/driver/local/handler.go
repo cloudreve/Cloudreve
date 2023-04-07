@@ -203,7 +203,7 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 		return nil, driver.ErrorThumbNotExist
 	}
 
-	thumbFile, err := handler.Get(ctx, file.SourceName+model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"))
+	thumbFile, err := handler.Get(ctx, file.ThumbFile())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			err = fmt.Errorf("thumb not exist: %w (%w)", err, driver.ErrorThumbNotExist)

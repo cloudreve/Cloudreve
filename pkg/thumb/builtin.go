@@ -12,7 +12,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-
+	"github.com/gofrs/uuid"
 	//"github.com/nfnt/resize"
 	"golang.org/x/image/draw"
 )
@@ -156,14 +156,30 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 
 type Builtin struct{}
 
-func (b Builtin) Generate(file io.Reader, w io.Writer, name string, options map[string]string) error {
+func (b Builtin) Generate(file io.Reader, name string, options map[string]string) (string, error) {
 	img, err := NewThumbFromFile(file, name)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	img.GetThumb(thumbSize(options))
-	return img.Save(w)
+	tempPath := filepath.Join(
+		util.RelativePath(model.GetSettingByName("temp_path")),
+		"thumb",
+		fmt.Sprintf("thumb_%s", uuid.Must(uuid.NewV4()).String()),
+	)
+
+	thumbFile, err := util.CreatNestedFile(tempPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+
+	defer thumbFile.Close()
+	if err := img.Save(thumbFile); err != nil {
+		return "", err
+	}
+
+	return tempPath, nil
 }
 
 func (b Builtin) Priority() int {
