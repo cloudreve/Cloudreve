@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"io"
 	"net/http"
 	"net/url"
@@ -265,7 +266,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
-	return nil, errors.New("未实现")
+	return nil, driver.ErrorThumbNotSupported
 }
 
 // Source 获取外链URL
