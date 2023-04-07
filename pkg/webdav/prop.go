@@ -16,8 +16,29 @@ import (
 	"strconv"
 	"time"
 
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 )
+
+type FileDeadProps struct {
+	*model.File
+}
+
+// 实现 webdav.DeadPropsHolder 接口，不能在models.file里面定义
+func (file *FileDeadProps) DeadProps() (map[xml.Name]Property, error) {
+	return map[xml.Name]Property{
+		xml.Name{Space: "http://owncloud.org/ns", Local: "checksums"}: {
+			XMLName: xml.Name{
+				Space: "http://owncloud.org/ns", Local: "checksums",
+			},
+			InnerXML: []byte("<checksum>" + file.MetadataSerialized[model.ChecksumMetadataKey] + "</checksum>"),
+		},
+	}, nil
+}
+
+func (file *FileDeadProps) Patch([]Proppatch) ([]Propstat, error) {
+	return nil, nil
+}
 
 type FileInfo interface {
 	GetSize() uint64
@@ -177,8 +198,18 @@ var liveProps = map[xml.Name]struct {
 // of one Propstat element.
 func props(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi FileInfo, pnames []xml.Name) ([]Propstat, error) {
 	isDir := fi.IsDir()
+	if !isDir {
+		fi = &FileDeadProps{fi.(*model.File)}
+	}
 
 	var deadProps map[xml.Name]Property
+	if dph, ok := fi.(DeadPropsHolder); ok {
+		var err error
+		deadProps, err = dph.DeadProps()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	pstatOK := Propstat{Status: http.StatusOK}
 	pstatNotFound := Propstat{Status: http.StatusNotFound}
@@ -210,14 +241,27 @@ func props(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi Fil
 // Propnames returns the property names defined for resource name.
 func propnames(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi FileInfo) ([]xml.Name, error) {
 	isDir := fi.IsDir()
+	if !isDir {
+		fi = &FileDeadProps{fi.(*model.File)}
+	}
 
 	var deadProps map[xml.Name]Property
+	if dph, ok := fi.(DeadPropsHolder); ok {
+		var err error
+		deadProps, err = dph.DeadProps()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	pnames := make([]xml.Name, 0, len(liveProps)+len(deadProps))
 	for pn, prop := range liveProps {
 		if prop.findFn != nil && (prop.dir || !isDir) {
 			pnames = append(pnames, pn)
 		}
+	}
+	for pn := range deadProps {
+		pnames = append(pnames, pn)
 	}
 	return pnames, nil
 }
