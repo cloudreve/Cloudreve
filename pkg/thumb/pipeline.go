@@ -1,6 +1,7 @@
 package thumb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -12,7 +13,7 @@ import (
 
 // Generator generates a thumbnail for a given reader.
 type Generator interface {
-	Generate(file io.Reader, name string, options map[string]string) (string, error)
+	Generate(ctx context.Context, file io.Reader, name string, options map[string]string) (string, error)
 
 	// Priority of execution order, smaller value means higher priority.
 	Priority() int
@@ -51,10 +52,10 @@ func RegisterGenerator(generator Generator) {
 	sort.Sort(Generators)
 }
 
-func (p GeneratorList) Generate(file io.Reader, name string, options map[string]string) (string, error) {
+func (p GeneratorList) Generate(ctx context.Context, file io.Reader, name string, options map[string]string) (string, error) {
 	for _, generator := range p {
 		if model.IsTrueVal(options[generator.EnableFlag()]) {
-			res, err := generator.Generate(file, name, options)
+			res, err := generator.Generate(ctx, file, name, options)
 			if errors.Is(err, ErrPassThrough) {
 				util.Log().Debug("Failed to generate thumbnail for %s: %s, passing through to next generator.", name, err)
 				continue

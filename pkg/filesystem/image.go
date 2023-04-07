@@ -137,19 +137,19 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) e
 	}
 	defer source.Close()
 
-	thumbPath, err := thumb.Generators.Generate(source, file.Name, model.GetSettingByNames(
+	thumbPath, err := thumb.Generators.Generate(ctx, source, file.Name, model.GetSettingByNames(
 		"thumb_width",
 		"thumb_height",
 		"thumb_builtin_enabled",
 		"thumb_vips_enabled",
 		"thumb_ffmpeg_enabled",
-		"thumb_vips_path",
-		"thumb_ffmpeg_path",
 	))
 	if err != nil {
 		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
 		return fmt.Errorf("failed to generate thumb for %q: %w", file.Name, err)
 	}
+
+	defer os.Remove(thumbPath)
 
 	thumbFile, err := os.Open(thumbPath)
 	if err != nil {
