@@ -62,7 +62,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 			} else {
 				// if not exist, generate and upload the sidecar thumb.
 				fs.GenerateThumbnail(ctx, &file)
-				res, err = fs.Handler.Thumb(ctx, &file)
+				return fs.GetThumb(ctx, id)
 			}
 		} else {
 			// thumb not supported and proxy is disabled, mark as not available
@@ -117,14 +117,15 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	defer cancel()
 	// TODO: check file size
 
+	getThumbWorker().addWorker()
+	defer getThumbWorker().releaseWorker()
+
 	// 获取文件数据
 	source, err := fs.Handler.Get(newCtx, file.SourceName)
 	if err != nil {
 		return
 	}
 	defer source.Close()
-	getThumbWorker().addWorker()
-	defer getThumbWorker().releaseWorker()
 
 	thumbPath, err := thumb.Generators.Generate(source, file.Name, model.GetSettingByNames(
 		"thumb_width",
@@ -186,9 +187,15 @@ func (fs *FileSystem) GenerateThumbnailSize(w, h int) (uint, uint) {
 
 func updateThumbStatus(file *model.File, status string) error {
 	if file.Model.ID > 0 {
-		return file.UpdateMetadata(map[string]string{
+		meta := map[string]string{
 			model.ThumbStatusMetadataKey: status,
-		})
+		}
+
+		if status == model.ThumbStatusExist {
+			meta[model.ThumbSidecarMetadataKey] = "true"
+		}
+
+		return file.UpdateMetadata(meta)
 	} else {
 		if file.MetadataSerialized == nil {
 			file.MetadataSerialized = map[string]string{}

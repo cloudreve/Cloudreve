@@ -171,6 +171,7 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 	// 失败的文件列表
 	// TODO 并行删除
 	failed := make(map[uint][]string, len(files))
+	thumbs := make([]string, 0)
 
 	for policyID, toBeDeletedFiles := range files {
 		// 列举出需要物理删除的文件的物理路径
@@ -185,7 +186,11 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 					uploadSession := session.(serializer.UploadSession)
 					uploadSessions = append(uploadSessions, &uploadSession)
 				}
+			}
 
+			// Check if sidecar thumb file exist
+			if model.IsTrueVal(toBeDeletedFiles[i].MetadataSerialized[model.ThumbSidecarMetadataKey]) {
+				thumbs = append(thumbs, toBeDeletedFiles[i].ThumbFile())
 			}
 		}
 
@@ -207,8 +212,9 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		}
 
 		// 执行删除
-		failedFile, _ := fs.Handler.Delete(ctx, sourceNamesAll)
-		failed[policyID] = failedFile
+		toBeDeletedSrcs := append(sourceNamesAll, thumbs...)
+		failedFile, _ := fs.Handler.Delete(ctx, toBeDeletedSrcs)
+		failed[policyID] = util.SliceDifference(failedFile, thumbs)
 	}
 
 	return failed

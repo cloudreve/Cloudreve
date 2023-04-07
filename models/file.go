@@ -42,7 +42,8 @@ const (
 	ThumbStatusExist        = "exist"
 	ThumbStatusNotAvailable = "not_available"
 
-	ThumbStatusMetadataKey = "thumb_status"
+	ThumbStatusMetadataKey  = "thumb_status"
+	ThumbSidecarMetadataKey = "thumb_sidecar"
 )
 
 func init() {

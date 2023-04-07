@@ -257,7 +257,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 	for _, deleteRes := range res.Deleted {
 		deleted = append(deleted, *deleteRes.Key)
 	}
-	failed = util.SliceDifference(failed, deleted)
+	failed = util.SliceDifference(files, deleted)
 
 	return failed, nil
 
