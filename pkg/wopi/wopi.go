@@ -59,6 +59,7 @@ const (
 
 	wopiSrcPlaceholder    = "WOPI_SOURCE"
 	wopiSrcParamDefault   = "WOPISrc"
+	languageParamDefault  = "lang"
 	sessionExpiresPadding = 10
 	wopiHeaderPrefix      = "X-WOPI-"
 )
@@ -213,6 +214,9 @@ func generateActionUrl(src string, fileSrc string) (*url.URL, error) {
 	if !srcReplaced {
 		queryReplaced.Set(wopiSrcParamDefault, fileSrc)
 	}
+
+	// LibreOffice require this flag to show correct language
+	queryReplaced.Set(languageParamDefault, "lng")
 
 	actionUrl.RawQuery = queryReplaced.Encode()
 	return actionUrl, nil
