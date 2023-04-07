@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
@@ -39,8 +40,11 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	res, err := fs.Handler.Thumb(ctx, &file)
 	if errors.Is(err, driver.ErrorThumbNotExist) {
 		// Regenerate thumb if the thumb is not initialized yet
-		fs.GenerateThumbnail(ctx, &file)
-		res, err = fs.Handler.Thumb(ctx, &file)
+		if generateErr := fs.GenerateThumbnail(ctx, &file); generateErr == nil {
+			res, err = fs.Handler.Thumb(ctx, &file)
+		} else {
+			err = generateErr
+		}
 	} else if errors.Is(err, driver.ErrorThumbNotSupported) {
 		// Policy handler explicitly indicates thumb not available, check if proxy is enabled
 		if fs.Policy.CouldProxyThumb() {
@@ -61,8 +65,9 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 				)
 			} else {
 				// if not exist, generate and upload the sidecar thumb.
-				fs.GenerateThumbnail(ctx, &file)
-				return fs.GetThumb(ctx, id)
+				if err = fs.GenerateThumbnail(ctx, &file); err == nil {
+					return fs.GetThumb(ctx, id)
+				}
 			}
 		} else {
 			// thumb not supported and proxy is disabled, mark as not available
@@ -111,11 +116,16 @@ func (pool *Pool) releaseWorker() {
 }
 
 // GenerateThumbnail generates thumb for given file, upload the thumb file back with given suffix
-func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
+func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) error {
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// TODO: check file size
+
+	if file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
+		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
+		return errors.New("file too large")
+	}
 
 	getThumbWorker().addWorker()
 	defer getThumbWorker().releaseWorker()
@@ -123,7 +133,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 获取文件数据
 	source, err := fs.Handler.Get(newCtx, file.SourceName)
 	if err != nil {
-		return
+		return fmt.Errorf("faield to fetch original file %q: %w", file.SourceName, err)
 	}
 	defer source.Close()
 
@@ -137,22 +147,19 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		"thumb_ffmpeg_path",
 	))
 	if err != nil {
-		util.Log().Warning("Failed to generate thumb for %s: %s", file.Name, err)
 		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
-		return
+		return fmt.Errorf("failed to generate thumb for %q: %w", file.Name, err)
 	}
 
 	thumbFile, err := os.Open(thumbPath)
 	if err != nil {
-		util.Log().Warning("Failed to open temp thumb %q: %s", thumbFile, err)
-		return
+		return fmt.Errorf("failed to open temp thumb %q: %w", thumbFile, err)
 	}
 
 	defer thumbFile.Close()
 	fileInfo, err := thumbFile.Stat()
 	if err != nil {
-		util.Log().Warning("Failed to stat temp thumb %q: %s", thumbFile, err)
-		return
+		return fmt.Errorf("failed to stat temp thumb %q: %w", thumbFile, err)
 	}
 
 	if err = fs.Handler.Put(newCtx, &fsctx.FileStream{
@@ -162,8 +169,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		Size:     uint64(fileInfo.Size()),
 		SavePath: file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"),
 	}); err != nil {
-		util.Log().Warning("Failed to save thumb for %s: %s", file.Name, err)
-		return
+		return fmt.Errorf("failed to save thumb for %q: %w", file.Name, err)
 	}
 
 	if model.IsTrueVal(model.GetSettingByName("thumb_gc_after_gen")) {
@@ -178,6 +184,8 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	if err != nil {
 		_, _ = fs.Handler.Delete(newCtx, []string{file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")})
 	}
+
+	return nil
 }
 
 // GenerateThumbnailSize 获取要生成的缩略图的尺寸

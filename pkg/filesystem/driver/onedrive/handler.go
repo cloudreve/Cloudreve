@@ -145,7 +145,6 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 		return nil, errors.New("failed to get thumbnail size")
 	}
 
-	return nil, driver.ErrorThumbNotSupported
 	res, err := handler.Client.GetThumbURL(ctx, file.SourceName, thumbSize[0], thumbSize[1])
 	if err != nil {
 		var apiErr *RespError

@@ -214,6 +214,8 @@ func (fs *FileSystem) deleteGroupedFile(ctx context.Context, files map[uint][]*m
 		// 执行删除
 		toBeDeletedSrcs := append(sourceNamesAll, thumbs...)
 		failedFile, _ := fs.Handler.Delete(ctx, toBeDeletedSrcs)
+
+		// Exclude failed results related to thumb file
 		failed[policyID] = util.SliceDifference(failedFile, thumbs)
 	}
 
