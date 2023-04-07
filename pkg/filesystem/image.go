@@ -40,6 +40,9 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 		// Regenerate thumb if the thumb is not initialized yet
 		fs.GenerateThumbnail(ctx, &fs.FileTarget[0])
 		res, err = fs.Handler.Thumb(ctx, &fs.FileTarget[0])
+	} else if errors.Is(err, driver.ErrorThumbNotSupported) {
+		// Policy handler explicitly indicates thumb not available
+		_ = updateThumbStatus(&fs.FileTarget[0], model.ThumbStatusNotAvailable)
 	}
 
 	if err == nil && conf.SystemConfig.Mode == "master" {
@@ -157,6 +160,10 @@ func updateThumbStatus(file *model.File, status string) error {
 			model.ThumbStatusMetadataKey: status,
 		})
 	} else {
+		if file.MetadataSerialized == nil {
+			file.MetadataSerialized = map[string]string{}
+		}
+
 		file.MetadataSerialized[model.ThumbStatusMetadataKey] = status
 	}
 

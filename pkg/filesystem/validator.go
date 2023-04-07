@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -63,20 +62,5 @@ func (fs *FileSystem) ValidateExtension(ctx context.Context, fileName string) bo
 		return true
 	}
 
-	return IsInExtensionList(fs.Policy.OptionsSerialized.FileType, fileName)
-}
-
-// IsInExtensionList 返回文件的扩展名是否在给定的列表范围内
-func IsInExtensionList(extList []string, fileName string) bool {
-	ext := strings.ToLower(filepath.Ext(fileName))
-	// 无扩展名时
-	if len(ext) == 0 {
-		return false
-	}
-
-	if util.ContainsString(extList, ext[1:]) {
-		return true
-	}
-
-	return false
+	return util.IsInExtensionList(fs.Policy.OptionsSerialized.FileType, fileName)
 }

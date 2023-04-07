@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gofrs/uuid"
@@ -124,4 +125,10 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "wopi_endpoint", Value: "", Type: "wopi"},
 	{Name: "wopi_max_size", Value: "52428800", Type: "wopi"},
 	{Name: "wopi_session_timeout", Value: "36000", Type: "wopi"},
+}
+
+func InitSlaveDefaults() {
+	for _, setting := range defaultSettings {
+		cache.Set("setting_"+setting.Name, setting.Value, -1)
+	}
 }

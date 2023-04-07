@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -68,18 +67,8 @@ type PolicyOption struct {
 	// Set this to `true` to force the request to use path-style addressing,
 	// i.e., `http://s3.amazonaws.com/BUCKET/KEY `
 	S3ForcePathStyle bool `json:"s3_path_style"`
-}
-
-// thumbSuffix 支持缩略图处理的文件扩展名
-var thumbSuffix = map[string][]string{
-	"local":    {},
-	"qiniu":    {".psd", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
-	"oss":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
-	"cos":      {".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
-	"upyun":    {".svg", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".bmp"},
-	"s3":       {},
-	"remote":   {},
-	"onedrive": {"*"},
+	// File extensions that support thumbnail generation using native policy API.
+	ThumbExts []string `json:"thumb_exts,omitempty"`
 }
 
 func init() {
@@ -190,17 +179,6 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 // IsDirectlyPreview 返回此策略下文件是否可以直接预览（不需要重定向）
 func (policy *Policy) IsDirectlyPreview() bool {
 	return policy.Type == "local"
-}
-
-// IsThumbExist 给定文件名，返回此存储策略下是否可能存在缩略图
-func (policy *Policy) IsThumbExist(name string) bool {
-	if list, ok := thumbSuffix[policy.Type]; ok {
-		if len(list) == 1 && list[0] == "*" {
-			return true
-		}
-		return util.ContainsString(list, strings.ToLower(filepath.Ext(name)))
-	}
-	return false
 }
 
 // IsTransitUpload 返回此策略上传给定size文件时是否需要服务端中转

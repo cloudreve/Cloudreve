@@ -49,6 +49,12 @@ func Init(path string, statics fs.FS) {
 			},
 		},
 		{
+			"slave",
+			func() {
+				model.InitSlaveDefaults()
+			},
+		},
+		{
 			"both",
 			func() {
 				task.Init()

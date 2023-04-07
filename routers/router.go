@@ -64,7 +64,7 @@ func InitSlaveRouter() *gin.Engine {
 		// 预览 / 外链
 		v3.GET("source/:speed/:path/:name", controllers.SlavePreview)
 		// 缩略图
-		v3.GET("thumb/:path", controllers.SlaveThumb)
+		v3.GET("thumb/:path/:ext", controllers.SlaveThumb)
 		// 删除文件
 		v3.POST("delete", controllers.SlaveDelete)
 		// 列出文件

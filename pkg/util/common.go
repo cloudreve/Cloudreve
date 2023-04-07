@@ -2,6 +2,7 @@ package util
 
 import (
 	"math/rand"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -29,6 +30,21 @@ func ContainsUint(s []uint, e uint) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// IsInExtensionList 返回文件的扩展名是否在给定的列表范围内
+func IsInExtensionList(extList []string, fileName string) bool {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	// 无扩展名时
+	if len(ext) == 0 {
+		return false
+	}
+
+	if ContainsString(extList, ext[1:]) {
+		return true
+	}
+
 	return false
 }
 

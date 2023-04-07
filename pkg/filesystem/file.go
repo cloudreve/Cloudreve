@@ -64,10 +64,6 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 		UploadSessionID:    uploadInfo.UploadSessionID,
 	}
 
-	if fs.Policy.IsThumbExist(uploadInfo.FileName) {
-		newFile.PicInfo = "1,1"
-	}
-
 	err = newFile.Create()
 
 	if err != nil {
@@ -97,9 +93,10 @@ func (fs *FileSystem) GetPhysicalFileContent(ctx context.Context, path string) (
 }
 
 // Preview 预览文件
-//   path   -   文件虚拟路径
-//   isText -   是否为文本文件，文本文件会忽略重定向，直接由
-//              服务端拉取中转给用户，故会对文件大小进行限制
+//
+//	path   -   文件虚拟路径
+//	isText -   是否为文本文件，文本文件会忽略重定向，直接由
+//	           服务端拉取中转给用户，故会对文件大小进行限制
 func (fs *FileSystem) Preview(ctx context.Context, id uint, isText bool) (*response.ContentResponse, error) {
 	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {

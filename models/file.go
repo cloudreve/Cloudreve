@@ -464,10 +464,5 @@ func (file *File) GetPosition() string {
 // `True` does not guarantee the load request will success in next step, but the client
 // should try to load and fallback to default placeholder in case error returned.
 func (file *File) ShouldLoadThumb() bool {
-	switch file.GetPolicy().Type {
-	case "local":
-		return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable
-	default:
-		return file.PicInfo != "" && file.PicInfo != " " && file.PicInfo != "null,null"
-	}
+	return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable
 }

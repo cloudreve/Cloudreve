@@ -39,9 +39,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	var err error
 	var img image.Image
 	switch ext[1:] {
-	case "jpg":
-		img, err = jpeg.Decode(file)
-	case "jpeg":
+	case "jpg", "jpeg":
 		img, err = jpeg.Decode(file)
 	case "gif":
 		img, err = gif.Decode(file)

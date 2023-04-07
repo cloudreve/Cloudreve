@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	ErrorThumbNotExist = fmt.Errorf("thumb not exist")
+	ErrorThumbNotExist     = fmt.Errorf("thumb not exist")
+	ErrorThumbNotSupported = fmt.Errorf("thumb not supported")
 )
 
 // Handler 存储策略适配器
@@ -28,6 +29,9 @@ type Handler interface {
 
 	// 获取缩略图，可直接在ContentResponse中返回文件数据流，也可指
 	// 定为重定向
+	// 	如果缩略图不存在, 且需要 Cloudreve 代理生成并上传，应返回 ErrorThumbNotExist，生
+	//  成的缩略图文件存储规则与本机策略一致。
+	// 	如果不支持此文件的缩略图，并且不希望后续继续请求此缩略图，应返回 ErrorThumbNotSupported
 	Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error)
 
 	// 获取外链/下载地址，

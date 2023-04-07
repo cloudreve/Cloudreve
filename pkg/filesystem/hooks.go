@@ -177,23 +177,12 @@ func GenericAfterUpdate(ctx context.Context, fs *FileSystem, newFile fsctx.FileH
 // SlaveAfterUpload Slave模式下上传完成钩子
 func SlaveAfterUpload(session *serializer.UploadSession) Hook {
 	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-		fileInfo := fileHeader.Info()
-
-		// 构造一个model.File，用于生成缩略图
-		file := model.File{
-			Name:       fileInfo.FileName,
-			SourceName: fileInfo.SavePath,
-		}
-
 		if session.Callback == "" {
 			return nil
 		}
 
 		// 发送回调请求
-		callbackBody := serializer.UploadCallback{
-			PicInfo: file.PicInfo,
-		}
-
+		callbackBody := serializer.UploadCallback{}
 		return cluster.RemoteCallback(session.Callback, callbackBody)
 	}
 }
@@ -268,10 +257,6 @@ func HookPopPlaceholderToFile(picInfo string) Hook {
 	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 		fileInfo := fileHeader.Info()
 		fileModel := fileInfo.Model.(*model.File)
-		if picInfo == "" && fs.Policy.IsThumbExist(fileInfo.FileName) {
-			picInfo = "1,1"
-		}
-
 		return fileModel.PopChunkToFile(fileInfo.LastModified, picInfo)
 	}
 }

@@ -8,15 +8,18 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // Driver 远程存储策略适配器
@@ -205,8 +208,18 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 
 // Thumb 获取文件缩略图
 func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
+	// quick check by extensions
+	supported := []string{"png", "jpg", "jpeg", "gif"}
+	if len(handler.Policy.OptionsSerialized.ThumbExts) > 0 {
+		supported = handler.Policy.OptionsSerialized.ThumbExts
+	}
+
+	if !util.IsInExtensionList(supported, file.Name) {
+		return nil, driver.ErrorThumbNotSupported
+	}
+
 	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(file.SourceName))
-	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
+	thumbURL := fmt.Sprintf("%s/%s/%s", handler.getAPIUrl("thumb"), sourcePath, filepath.Ext(file.Name))
 	ttl := model.GetIntSetting("preview_timeout", 60)
 	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))
 	if err != nil {
