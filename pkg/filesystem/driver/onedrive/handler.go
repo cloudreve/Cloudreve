@@ -147,11 +147,13 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 
 	res, err := handler.Client.GetThumbURL(ctx, file.SourceName, thumbSize[0], thumbSize[1])
 	if err != nil {
-		// 如果出现异常，就清空文件的pic_info
-		if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
-			file.UpdatePicInfo("")
+		var apiErr *RespError
+		if errors.As(err, &apiErr); err == ErrThumbSizeNotFound || (apiErr != nil && apiErr.APIError.Code == notFoundError) {
+			// OneDrive cannot generate thumbnail for this file
+			return nil, driver.ErrorThumbNotSupported
 		}
 	}
+
 	return &response.ContentResponse{
 		Redirect: true,
 		URL:      res,

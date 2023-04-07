@@ -17,6 +17,8 @@ var (
 	ErrDeleteFile = errors.New("cannot delete file")
 	// ErrClientCanceled 客户端取消操作
 	ErrClientCanceled = errors.New("client canceled")
+	// Desired thumb size not available
+	ErrThumbSizeNotFound = errors.New("thumb size not found")
 )
 
 // Client OneDrive客户端

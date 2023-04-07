@@ -3,7 +3,6 @@ package onedrive
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"io"
@@ -32,6 +31,8 @@ const (
 	// ListRetry 列取请求重试次数
 	ListRetry       = 1
 	chunkRetrySleep = time.Second * 5
+
+	notFoundError = "itemNotFound"
 )
 
 // GetSourcePath 获取文件的绝对路径
@@ -438,7 +439,7 @@ func (client *Client) GetThumbURL(ctx context.Context, dst string, w, h uint) (s
 		}
 	}
 
-	return "", errors.New("failed to generate thumb")
+	return "", ErrThumbSizeNotFound
 }
 
 // MonitorUpload 监控客户端分片上传进度
@@ -469,7 +470,7 @@ func (client *Client) MonitorUpload(uploadURL, callbackKey, path string, size ui
 
 			if err != nil {
 				if resErr, ok := err.(*RespError); ok {
-					if resErr.APIError.Code == "itemNotFound" {
+					if resErr.APIError.Code == notFoundError {
 						util.Log().Debug("Upload completed, will check upload callback later.")
 						select {
 						case <-time.After(time.Duration(interval) * time.Second):

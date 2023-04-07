@@ -115,6 +115,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	// TODO: check file size
 
 	// 获取文件数据
 	source, err := fs.Handler.Get(newCtx, file.SourceName)
