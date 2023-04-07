@@ -101,14 +101,14 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 	defer w.Close()
 
 	errChan := make(chan error, 1)
-	go func() {
+	go func(errChan chan error) {
 		errChan <- fs.Handler.Put(newCtx, &fsctx.FileStream{
 			Mode:     fsctx.Overwrite,
 			File:     io.NopCloser(r),
 			Seeker:   nil,
 			SavePath: file.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"),
 		})
-	}()
+	}(errChan)
 
 	if err = thumb.Generators.Generate(source, w, file.Name, model.GetSettingByNames(
 		"thumb_width",
@@ -120,11 +120,9 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) {
 		"thumb_ffmpeg_path",
 	)); err != nil {
 		util.Log().Warning("Failed to generate thumb for %s: %s", file.Name, err)
-		if errors.Is(err, thumb.ErrNotAvailable) {
-			// Mark this file as no thumb available
-			_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
-		}
-
+		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
+		w.Close()
+		<-errChan
 		return
 	}
 

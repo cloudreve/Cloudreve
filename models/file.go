@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -294,8 +296,13 @@ func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
 
 // Rename 重命名文件
 func (file *File) Rename(new string) error {
-	if err := file.resetThumb(); err != nil {
-		return err
+	if file.MetadataSerialized[ThumbStatusMetadataKey] == ThumbStatusNotAvailable {
+		if !strings.EqualFold(filepath.Ext(new), filepath.Ext(file.Name)) {
+			// Reset thumb status for new ext name.
+			if err := file.resetThumb(); err != nil {
+				return err
+			}
+		}
 	}
 
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).Updates(map[string]interface{}{

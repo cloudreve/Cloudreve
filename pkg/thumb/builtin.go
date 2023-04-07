@@ -51,7 +51,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 		return nil, fmt.Errorf("unknown image format: %w", ErrPassThrough)
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse image: %w (%w)", err, ErrPassThrough)
 	}
 
 	return &Thumb{
