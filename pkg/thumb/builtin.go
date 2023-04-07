@@ -157,7 +157,7 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 
 type Builtin struct{}
 
-func (b Builtin) Generate(ctx context.Context, file io.Reader, name string, options map[string]string) (string, error) {
+func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (string, error) {
 	img, err := NewThumbFromFile(file, name)
 	if err != nil {
 		return "", err

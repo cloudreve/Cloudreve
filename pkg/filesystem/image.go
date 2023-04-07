@@ -137,7 +137,13 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) e
 	}
 	defer source.Close()
 
-	thumbPath, err := thumb.Generators.Generate(ctx, source, file.Name, model.GetSettingByNames(
+	// Provide file source path for local policy files
+	src := ""
+	if file.GetPolicy().Type == "local" {
+		src = file.SourceName
+	}
+
+	thumbPath, err := thumb.Generators.Generate(ctx, source, src, file.Name, model.GetSettingByNames(
 		"thumb_width",
 		"thumb_height",
 		"thumb_builtin_enabled",
