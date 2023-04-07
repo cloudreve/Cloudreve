@@ -212,57 +212,6 @@ func TestPolicy_Props(t *testing.T) {
 	asserts.True(policy.IsUploadPlaceholderWithSize())
 }
 
-func TestPolicy_IsThumbExist(t *testing.T) {
-	asserts := assert.New(t)
-
-	testCases := []struct {
-		name   string
-		expect bool
-		policy string
-	}{
-		{
-			"1.png",
-			false,
-			"unknown",
-		},
-		{
-			"1.png",
-			false,
-			"local",
-		},
-		{
-			"1.png",
-			true,
-			"cos",
-		},
-		{
-			"1",
-			false,
-			"cos",
-		},
-		{
-			"1.txt.png",
-			true,
-			"cos",
-		},
-		{
-			"1.png.txt",
-			false,
-			"cos",
-		},
-		{
-			"1",
-			true,
-			"onedrive",
-		},
-	}
-
-	for _, testCase := range testCases {
-		policy := Policy{Type: testCase.policy}
-		asserts.Equal(testCase.expect, policy.IsThumbExist(testCase.name))
-	}
-}
-
 func TestPolicy_UpdateAccessKeyAndClearCache(t *testing.T) {
 	a := assert.New(t)
 	cache.Set("policy_1331", Policy{}, 3600)
@@ -276,4 +225,39 @@ func TestPolicy_UpdateAccessKeyAndClearCache(t *testing.T) {
 	a.NoError(mock.ExpectationsWereMet())
 	_, ok := cache.Get("policy_1331")
 	a.False(ok)
+}
+
+func TestPolicy_CouldProxyThumb(t *testing.T) {
+	a := assert.New(t)
+	p := &Policy{Type: "local"}
+
+	// local policy
+	{
+		a.False(p.CouldProxyThumb())
+	}
+
+	// feature not enabled
+	{
+		p.Type = "remote"
+		cache.Set("setting_thumb_proxy_enabled", "0", 0)
+		a.False(p.CouldProxyThumb())
+	}
+
+	// list not contain current policy
+	{
+		p.ID = 2
+		cache.Set("setting_thumb_proxy_enabled", "1", 0)
+		cache.Set("setting_thumb_proxy_policy", "[1]", 0)
+		a.False(p.CouldProxyThumb())
+	}
+
+	// enabled
+	{
+		p.ID = 2
+		cache.Set("setting_thumb_proxy_enabled", "1", 0)
+		cache.Set("setting_thumb_proxy_policy", "[2]", 0)
+		a.True(p.CouldProxyThumb())
+	}
+
+	cache.Deletes([]string{"thumb_proxy_enabled", "thumb_proxy_policy"}, "setting_")
 }

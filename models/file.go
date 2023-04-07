@@ -430,10 +430,6 @@ func (file *File) resetThumb() error {
 
 	delete(file.MetadataSerialized, ThumbStatusMetadataKey)
 	metaValue, err := json.Marshal(&file.MetadataSerialized)
-	if err != nil {
-		return err
-	}
-
 	file.Metadata = string(metaValue)
 	return err
 }
