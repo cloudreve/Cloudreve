@@ -112,6 +112,7 @@ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; verti
 	{Name: "thumb_ffmpeg_enabled", Value: "0", Type: "thumb"},
 	{Name: "thumb_vips_path", Value: "vips", Type: "thumb"},
 	{Name: "thumb_vips_exts", Value: "csv,mat,img,hdr,pbm,pgm,ppm,pfm,pnm,svg,svgz,j2k,jp2,jpt,j2c,jpc,gif,png,jpg,jpeg,jpe,webp,tif,tiff,fits,fit,fts,exr,jxl,pdf,heic,heif,avif,svs,vms,vmu,ndpi,scn,mrxs,svslide,bif,raw", Type: "thumb"},
+	{Name: "thumb_ffmpeg_seek", Value: "00:00:01.00", Type: "thumb"},
 	{Name: "thumb_ffmpeg_path", Value: "ffmpeg", Type: "thumb"},
 	{Name: "thumb_ffmpeg_exts", Value: "3g2,3gp,asf,asx,avi,divx,flv,m2ts,m2v,m4v,mkv,mov,mp4,mpeg,mpg,mts,mxf,ogv,rm,swf,webm,wmv", Type: "thumb"},
 	{Name: "thumb_libreoffice_path", Value: "soffice", Type: "thumb"},

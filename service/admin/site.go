@@ -9,6 +9,8 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
+	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -141,5 +143,23 @@ func (service *NoParamService) Summary() serializer.Response {
 	cache.Set("admin_summary", resp, 86400)
 	return serializer.Response{
 		Data: resp,
+	}
+}
+
+// ThumbGeneratorTestService 缩略图生成测试服务
+type ThumbGeneratorTestService struct {
+	Name       string `json:"name" binding:"required"`
+	Executable string `json:"executable" binding:"required"`
+}
+
+// Test 通过获取生成器版本来测试
+func (s *ThumbGeneratorTestService) Test(c *gin.Context) serializer.Response {
+	version, err := thumb.TestGenerator(c, s.Name, s.Executable)
+	if err != nil {
+		return serializer.Err(serializer.CodeParamErr, err.Error(), err)
+	}
+
+	return serializer.Response{
+		Data: version,
 	}
 }

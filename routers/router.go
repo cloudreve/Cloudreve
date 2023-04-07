@@ -422,8 +422,14 @@ func InitMasterRouter() *gin.Engine {
 				admin.GET("groups", controllers.AdminGetGroups)
 				// 重新加载子服务
 				admin.GET("reload/:service", controllers.AdminReloadService)
-				// 重新加载子服务
-				admin.POST("mailTest", controllers.AdminSendTestMail)
+				// 测试设置
+				test := admin.Group("test")
+				{
+					// 测试邮件设置
+					test.POST("mail", controllers.AdminSendTestMail)
+					// 测试缩略图生成器调用
+					test.POST("thumb", controllers.AdminTestThumbGenerator)
+				}
 
 				// 离线下载相关
 				aria2 := admin.Group("aria2")

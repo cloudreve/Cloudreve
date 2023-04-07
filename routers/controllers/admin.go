@@ -98,6 +98,17 @@ func AdminSendTestMail(c *gin.Context) {
 	}
 }
 
+// AdminTestThumbGenerator Tests thumb generator
+func AdminTestThumbGenerator(c *gin.Context) {
+	var service admin.ThumbGeneratorTestService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Test(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AdminTestAria2 测试aria2连接
 func AdminTestAria2(c *gin.Context) {
 	var service admin.Aria2TestService
