@@ -22,7 +22,7 @@ type VipsGenerator struct {
 	lastRawExts string
 }
 
-func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (string, error) {
+func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
 	vipsOpts := model.GetSettingByNames("thumb_vips_path", "thumb_vips_exts", "thumb_encode_quality", "thumb_encode_method", "temp_path")
 
 	if v.lastRawExts != vipsOpts["thumb_vips_exts"] {
@@ -30,7 +30,7 @@ func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name 
 	}
 
 	if !util.IsInExtensionList(v.exts, name) {
-		return "", fmt.Errorf("unsupported image format: %w", ErrPassThrough)
+		return nil, fmt.Errorf("unsupported image format: %w", ErrPassThrough)
 	}
 
 	outputOpt := ".png"
@@ -50,7 +50,7 @@ func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name 
 
 	thumbFile, err := util.CreatNestedFile(tempPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 
 	defer thumbFile.Close()
@@ -63,10 +63,10 @@ func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name 
 
 	if err := cmd.Run(); err != nil {
 		util.Log().Warning("Failed to invoke vips: %s", vipsErr.String())
-		return "", fmt.Errorf("failed to invoke vips: %w", err)
+		return nil, fmt.Errorf("failed to invoke vips: %w", err)
 	}
 
-	return tempPath, nil
+	return &Result{Path: tempPath}, nil
 }
 
 func (v *VipsGenerator) Priority() int {

@@ -7,6 +7,9 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io"
+	"os"
+	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 )
@@ -15,13 +18,19 @@ import (
 type Generator interface {
 	// Generate generates a thumbnail for a given reader. Src is the original file path, only provided
 	// for local policy files.
-	Generate(ctx context.Context, file io.Reader, src string, name string, options map[string]string) (string, error)
+	Generate(ctx context.Context, file io.Reader, src string, name string, options map[string]string) (*Result, error)
 
 	// Priority of execution order, smaller value means higher priority.
 	Priority() int
 
 	// EnableFlag returns the setting name to enable this generator.
 	EnableFlag() string
+}
+
+type Result struct {
+	Path     string
+	Continue bool
+	Cleanup  []func()
 }
 
 type (
@@ -54,19 +63,41 @@ func RegisterGenerator(generator Generator) {
 	sort.Sort(Generators)
 }
 
-func (p GeneratorList) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (string, error) {
+func (p GeneratorList) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
+	inputFile, inputSrc, inputName := file, src, name
 	for _, generator := range p {
 		if model.IsTrueVal(options[generator.EnableFlag()]) {
-			res, err := generator.Generate(ctx, file, src, name, options)
+			res, err := generator.Generate(ctx, inputFile, inputSrc, inputName, options)
 			if errors.Is(err, ErrPassThrough) {
-				util.Log().Debug("Failed to generate thumbnail for %s: %s, passing through to next generator.", name, err)
+				util.Log().Debug("Failed to generate thumbnail using %s for %s: %s, passing through to next generator.", reflect.TypeOf(generator).String(), name, err)
+				continue
+			}
+
+			if res.Continue {
+				util.Log().Debug("Generator %s for %s returned continue, passing through to next generator.", reflect.TypeOf(generator).String(), name)
+
+				// defer cleanup funcs
+				for _, cleanup := range res.Cleanup {
+					defer cleanup()
+				}
+
+				// prepare file reader for next generator
+				intermediate, err := os.Open(res.Path)
+				if err != nil {
+					return nil, fmt.Errorf("failed to open intermediate thumb file: %w", err)
+				}
+
+				defer intermediate.Close()
+				inputFile = intermediate
+				inputSrc = res.Path
+				inputName = filepath.Base(res.Path)
 				continue
 			}
 
 			return res, err
 		}
 	}
-	return "", ErrNotAvailable
+	return nil, ErrNotAvailable
 }
 
 func (p GeneratorList) Priority() int {

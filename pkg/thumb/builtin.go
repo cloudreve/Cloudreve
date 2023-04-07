@@ -157,10 +157,10 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 
 type Builtin struct{}
 
-func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (string, error) {
+func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
 	img, err := NewThumbFromFile(file, name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	img.GetThumb(thumbSize(options))
@@ -172,15 +172,15 @@ func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string,
 
 	thumbFile, err := util.CreatNestedFile(tempPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 
 	defer thumbFile.Close()
 	if err := img.Save(thumbFile); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return tempPath, nil
+	return &Result{Path: tempPath}, nil
 }
 
 func (b Builtin) Priority() int {

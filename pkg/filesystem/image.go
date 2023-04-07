@@ -34,6 +34,10 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	}
 
 	file := fs.FileTarget[0]
+	if !file.ShouldLoadThumb() {
+		return nil, ErrObjectNotExist
+	}
+
 	w, h := fs.GenerateThumbnailSize(0, 0)
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, [2]uint{w, h})
 	ctx = context.WithValue(ctx, fsctx.FileModelCtx, file)
@@ -143,21 +147,22 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) e
 		src = file.SourceName
 	}
 
-	thumbPath, err := thumb.Generators.Generate(ctx, source, src, file.Name, model.GetSettingByNames(
+	thumbRes, err := thumb.Generators.Generate(ctx, source, src, file.Name, model.GetSettingByNames(
 		"thumb_width",
 		"thumb_height",
 		"thumb_builtin_enabled",
 		"thumb_vips_enabled",
 		"thumb_ffmpeg_enabled",
+		"thumb_libreoffice_enabled",
 	))
 	if err != nil {
 		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
 		return fmt.Errorf("failed to generate thumb for %q: %w", file.Name, err)
 	}
 
-	defer os.Remove(thumbPath)
+	defer os.Remove(thumbRes.Path)
 
-	thumbFile, err := os.Open(thumbPath)
+	thumbFile, err := os.Open(thumbRes.Path)
 	if err != nil {
 		return fmt.Errorf("failed to open temp thumb %q: %w", thumbFile, err)
 	}

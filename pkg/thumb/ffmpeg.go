@@ -23,7 +23,7 @@ type FfmpegGenerator struct {
 	lastRawExts string
 }
 
-func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (string, error) {
+func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
 	ffmpegOpts := model.GetSettingByNames("thumb_ffmpeg_path", "thumb_ffmpeg_exts", "thumb_ffmpeg_seek", "thumb_encode_method", "temp_path")
 
 	if f.lastRawExts != ffmpegOpts["thumb_ffmpeg_exts"] {
@@ -31,7 +31,7 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 	}
 
 	if !util.IsInExtensionList(f.exts, name) {
-		return "", fmt.Errorf("unsupported video format: %w", ErrPassThrough)
+		return nil, fmt.Errorf("unsupported video format: %w", ErrPassThrough)
 	}
 
 	tempOutputPath := filepath.Join(
@@ -52,14 +52,14 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 		// Due to limitations of ffmpeg, we need to write the input file to disk first
 		tempInputFile, err := util.CreatNestedFile(tempInputPath)
 		if err != nil {
-			return "", fmt.Errorf("failed to create temp file: %w", err)
+			return nil, fmt.Errorf("failed to create temp file: %w", err)
 		}
 
 		defer os.Remove(tempInputPath)
 		defer tempInputFile.Close()
 
 		if _, err = io.Copy(tempInputFile, file); err != nil {
-			return "", fmt.Errorf("failed to write input file: %w", err)
+			return nil, fmt.Errorf("failed to write input file: %w", err)
 		}
 
 		tempInputFile.Close()
@@ -79,10 +79,10 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 
 	if err := cmd.Run(); err != nil {
 		util.Log().Warning("Failed to invoke ffmpeg: %s", stdErr.String())
-		return "", fmt.Errorf("failed to invoke ffmpeg: %w", err)
+		return nil, fmt.Errorf("failed to invoke ffmpeg: %w", err)
 	}
 
-	return tempOutputPath, nil
+	return &Result{Path: tempOutputPath}, nil
 }
 
 func (f *FfmpegGenerator) Priority() int {
