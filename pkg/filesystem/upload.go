@@ -210,7 +210,6 @@ func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStre
 		fs.Use("BeforeUpload", HookValidateCapacity)
 		fs.Use("AfterUploadCanceled", HookDeleteTempFile)
 		fs.Use("AfterUpload", GenericAfterUpload)
-		fs.Use("AfterUpload", HookGenerateThumb)
 		fs.Use("AfterValidateFailed", HookDeleteTempFile)
 	}
 	fs.Lock.Unlock()

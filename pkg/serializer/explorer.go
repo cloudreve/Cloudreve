@@ -36,7 +36,7 @@ type Object struct {
 	ID            string    `json:"id"`
 	Name          string    `json:"name"`
 	Path          string    `json:"path"`
-	Pic           string    `json:"pic"`
+	Thumb         bool      `json:"thumb"`
 	Size          uint64    `json:"size"`
 	Type          string    `json:"type"`
 	Date          time.Time `json:"date"`

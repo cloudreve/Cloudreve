@@ -102,7 +102,7 @@ func (d *Driver) Get(ctx context.Context, path string) (response.RSCloser, error
 	return nil, ErrNotImplemented
 }
 
-func (d *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (d *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
 	return nil, ErrNotImplemented
 }
 

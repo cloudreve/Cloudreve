@@ -230,7 +230,7 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
+func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
 	var (
 		thumbSize = [2]uint{400, 300}
 		ok        = false
@@ -239,12 +239,12 @@ func (handler *Driver) Thumb(ctx context.Context, path string) (*response.Conten
 		return nil, errors.New("无法获取缩略图尺寸设置")
 	}
 
-	path = fmt.Sprintf("%s?imageView2/1/w/%d/h/%d", path, thumbSize[0], thumbSize[1])
+	thumb := fmt.Sprintf("%s?imageView2/1/w/%d/h/%d", file.SourceName, thumbSize[0], thumbSize[1])
 	return &response.ContentResponse{
 		Redirect: true,
 		URL: handler.signSourceURL(
 			ctx,
-			path,
+			thumb,
 			int64(model.GetIntSetting("preview_timeout", 60)),
 		),
 	}, nil

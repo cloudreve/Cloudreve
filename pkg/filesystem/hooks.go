@@ -184,7 +184,6 @@ func SlaveAfterUpload(session *serializer.UploadSession) Hook {
 			Name:       fileInfo.FileName,
 			SourceName: fileInfo.SavePath,
 		}
-		fs.GenerateThumbnail(ctx, &file)
 
 		if session.Callback == "" {
 			return nil
@@ -228,21 +227,6 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 	}
 	fileHeader.SetModel(file)
 
-	return nil
-}
-
-// HookGenerateThumb 生成缩略图
-func HookGenerateThumb(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
-	// 异步尝试生成缩略图
-	fileMode := fileHeader.Info().Model.(*model.File)
-	if fs.Policy.IsThumbGenerateNeeded() {
-		fs.recycleLock.Lock()
-		go func() {
-			defer fs.recycleLock.Unlock()
-			_, _ = fs.Handler.Delete(ctx, []string{fileMode.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")})
-			fs.GenerateThumbnail(ctx, fileMode)
-		}()
-	}
 	return nil
 }
 

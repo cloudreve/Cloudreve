@@ -12,6 +12,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
@@ -194,15 +195,20 @@ func (handler Driver) Delete(ctx context.Context, files []string) ([]string, err
 }
 
 // Thumb 获取文件缩略图
-func (handler Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	file, err := handler.Get(ctx, path+model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"))
+func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
+	if file.MetadataSerialized[model.ThumbStatusMetadataKey] == model.ThumbStatusNotExist {
+		// Tell invoker to generate a thumb
+		return nil, driver.ErrorThumbNotExist
+	}
+
+	thumbFile, err := handler.Get(ctx, file.SourceName+model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb"))
 	if err != nil {
 		return nil, err
 	}
 
 	return &response.ContentResponse{
 		Redirect: false,
-		Content:  file,
+		Content:  thumbFile,
 	}, nil
 }
 

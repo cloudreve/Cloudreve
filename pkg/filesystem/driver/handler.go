@@ -2,10 +2,16 @@ package driver
 
 import (
 	"context"
+	"fmt"
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"net/url"
+)
+
+var (
+	ErrorThumbNotExist = fmt.Errorf("thumb not exist")
 )
 
 // Handler 存储策略适配器
@@ -22,7 +28,7 @@ type Handler interface {
 
 	// 获取缩略图，可直接在ContentResponse中返回文件数据流，也可指
 	// 定为重定向
-	Thumb(ctx context.Context, path string) (*response.ContentResponse, error)
+	Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error)
 
 	// 获取外链/下载地址，
 	// url - 站点本身地址,

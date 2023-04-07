@@ -204,8 +204,8 @@ func (handler *Driver) Delete(ctx context.Context, files []string) ([]string, er
 }
 
 // Thumb 获取文件缩略图
-func (handler *Driver) Thumb(ctx context.Context, path string) (*response.ContentResponse, error) {
-	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
+func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.ContentResponse, error) {
+	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(file.SourceName))
 	thumbURL := handler.getAPIUrl("thumb") + "/" + sourcePath
 	ttl := model.GetIntSetting("preview_timeout", 60)
 	signedThumbURL, err := auth.SignURI(handler.AuthInstance, thumbURL, int64(ttl))

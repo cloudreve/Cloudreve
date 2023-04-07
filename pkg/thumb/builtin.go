@@ -1,7 +1,6 @@
 package thumb
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image/gif"
@@ -18,6 +17,10 @@ import (
 	"golang.org/x/image/draw"
 )
 
+func init() {
+	RegisterGenerator(&Builtin{})
+}
+
 // Thumb 缩略图
 type Thumb struct {
 	src image.Image
@@ -30,7 +33,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	ext := strings.ToLower(filepath.Ext(name))
 	// 无扩展名时
 	if len(ext) == 0 {
-		return nil, errors.New("未知的图像类型")
+		return nil, fmt.Errorf("unknown image format: %w", ErrPassThrough)
 	}
 
 	var err error
@@ -45,7 +48,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	case "png":
 		img, err = png.Decode(file)
 	default:
-		return nil, errors.New("unknown image format")
+		return nil, fmt.Errorf("unknown image format: %w", ErrPassThrough)
 	}
 	if err != nil {
 		return nil, err
@@ -70,18 +73,12 @@ func (image *Thumb) GetSize() (int, int) {
 }
 
 // Save 保存图像到给定路径
-func (image *Thumb) Save(path string) (err error) {
-	out, err := util.CreatNestedFile(path)
-
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+func (image *Thumb) Save(w io.Writer) (err error) {
 	switch model.GetSettingByNameWithDefault("thumb_encode_method", "jpg") {
 	case "png":
-		err = png.Encode(out, image.src)
+		err = png.Encode(w, image.src)
 	default:
-		err = jpeg.Encode(out, image.src, &jpeg.Options{Quality: model.GetIntSetting("thumb_encode_quality", 85)})
+		err = jpeg.Encode(w, image.src, &jpeg.Options{Quality: model.GetIntSetting("thumb_encode_quality", 85)})
 	}
 
 	return err
@@ -141,9 +138,15 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 	// 生成头像缩略图
 	src := image.src
 	for k, size := range []int{s, m, l} {
-		//image.src = resize.Resize(uint(size), uint(size), src, resize.Lanczos3)
+		out, err := util.CreatNestedFile(filepath.Join(savePath, fmt.Sprintf("avatar_%d_%d.png", uid, k)))
+
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+
 		image.src = Resize(uint(size), uint(size), src)
-		err := image.Save(filepath.Join(savePath, fmt.Sprintf("avatar_%d_%d.png", uid, k)))
+		err = image.Save(out)
 		if err != nil {
 			return err
 		}
@@ -151,4 +154,24 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 
 	return nil
 
+}
+
+type Builtin struct{}
+
+func (b Builtin) Generate(file io.Reader, w io.Writer, name string, options map[string]string) error {
+	img, err := NewThumbFromFile(file, name)
+	if err != nil {
+		return err
+	}
+
+	img.GetThumb(thumbSize(options))
+	return img.Save(w)
+}
+
+func (b Builtin) Priority() int {
+	return 300
+}
+
+func (b Builtin) EnableFlag() string {
+	return "thumb_builtin_enabled"
 }

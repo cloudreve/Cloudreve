@@ -34,6 +34,15 @@ type File struct {
 	MetadataSerialized map[string]string `gorm:"-"`
 }
 
+// Thumb related metadata
+const (
+	ThumbStatusNotExist     = ""
+	ThumbStatusExist        = "exist"
+	ThumbStatusNotAvailable = "not_available"
+
+	ThumbStatusMetadataKey = "thumb_status"
+)
+
 func init() {
 	// 注册缓存用到的复杂结构
 	gob.Register(File{})
@@ -64,6 +73,8 @@ func (file *File) AfterFind() (err error) {
 	// 反序列化文件元数据
 	if file.Metadata != "" {
 		err = json.Unmarshal([]byte(file.Metadata), &file.MetadataSerialized)
+	} else {
+		file.MetadataSerialized = make(map[string]string)
 	}
 
 	return
@@ -71,9 +82,13 @@ func (file *File) AfterFind() (err error) {
 
 // BeforeSave Save策略前的钩子
 func (file *File) BeforeSave() (err error) {
-	metaValue, err := json.Marshal(&file.MetadataSerialized)
-	file.Metadata = string(metaValue)
-	return err
+	if len(file.MetadataSerialized) > 0 {
+		metaValue, err := json.Marshal(&file.MetadataSerialized)
+		file.Metadata = string(metaValue)
+		return err
+	}
+
+	return nil
 }
 
 // GetChildFile 查找目录下名为name的子文件
@@ -279,12 +294,36 @@ func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
 
 // Rename 重命名文件
 func (file *File) Rename(new string) error {
-	return DB.Model(&file).UpdateColumn("name", new).Error
+	if err := file.resetThumb(); err != nil {
+		return err
+	}
+
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Updates(map[string]interface{}{
+		"name":     new,
+		"metadata": file.Metadata,
+	}).Error
 }
 
 // UpdatePicInfo 更新文件的图像信息
 func (file *File) UpdatePicInfo(value string) error {
 	return DB.Model(&file).Set("gorm:association_autoupdate", false).UpdateColumns(File{PicInfo: value}).Error
+}
+
+// UpdateMetadata 新增或修改文件的元信息
+func (file *File) UpdateMetadata(data map[string]string) error {
+	if file.MetadataSerialized == nil {
+		file.MetadataSerialized = make(map[string]string)
+	}
+
+	for k, v := range data {
+		file.MetadataSerialized[k] = v
+	}
+	metaValue, err := json.Marshal(&file.MetadataSerialized)
+	if err != nil {
+		return err
+	}
+
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).UpdateColumns(File{Metadata: string(metaValue)}).Error
 }
 
 // UpdateSize 更新文件的大小信息
@@ -302,10 +341,18 @@ func (file *File) UpdateSize(value uint64) error {
 		sizeDelta = file.Size - value
 	}
 
+	if err := file.resetThumb(); err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	if res := tx.Model(&file).
 		Where("size = ?", file.Size).
 		Set("gorm:association_autoupdate", false).
-		Update("size", value); res.Error != nil {
+		Updates(map[string]interface{}{
+			"size":     value,
+			"metadata": file.Metadata,
+		}); res.Error != nil {
 		tx.Rollback()
 		return res.Error
 	}
@@ -321,7 +368,14 @@ func (file *File) UpdateSize(value uint64) error {
 
 // UpdateSourceName 更新文件的源文件名
 func (file *File) UpdateSourceName(value string) error {
-	return DB.Model(&file).Set("gorm:association_autoupdate", false).Update("source_name", value).Error
+	if err := file.resetThumb(); err != nil {
+		return err
+	}
+
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Updates(map[string]interface{}{
+		"source_name": value,
+		"metadata":    file.Metadata,
+	}).Error
 }
 
 func (file *File) PopChunkToFile(lastModified *time.Time, picInfo string) error {
@@ -361,6 +415,21 @@ func (file *File) CreateOrGetSourceLink() (*SourceLink, error) {
 	return res, nil
 }
 
+func (file *File) resetThumb() error {
+	if _, ok := file.MetadataSerialized[ThumbStatusMetadataKey]; !ok {
+		return nil
+	}
+
+	delete(file.MetadataSerialized, ThumbStatusMetadataKey)
+	metaValue, err := json.Marshal(&file.MetadataSerialized)
+	if err != nil {
+		return err
+	}
+
+	file.Metadata = string(metaValue)
+	return err
+}
+
 /*
 	实现 webdav.FileInfo 接口
 */
@@ -382,4 +451,16 @@ func (file *File) IsDir() bool {
 
 func (file *File) GetPosition() string {
 	return file.Position
+}
+
+// ShouldLoadThumb returns if file explorer should try to load thumbnail for this file.
+// `True` does not guarantee the load request will success in next step, but the client
+// should try to load and fallback to default placeholder in case error returned.
+func (file *File) ShouldLoadThumb() bool {
+	switch file.GetPolicy().Type {
+	case "local":
+		return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable
+	default:
+		return file.PicInfo != "" && file.PicInfo != " " && file.PicInfo != "null,null"
+	}
 }
