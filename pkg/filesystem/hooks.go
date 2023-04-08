@@ -10,7 +10,10 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io/ioutil"
+	"net/http"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Hook 钩子函数
@@ -265,6 +268,37 @@ func HookPopPlaceholderToFile(picInfo string) Hook {
 func HookDeleteUploadSession(id string) Hook {
 	return func(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
 		cache.Deletes([]string{id}, UploadSessionCachePrefix)
+		return nil
+	}
+}
+
+// NewWebdavAfterUploadHook 每次创建一个新的钩子函数 rclone 在 PUT 请求里有 OC-Checksum 字符串
+// 和 X-OC-Mtime
+func NewWebdavAfterUploadHook(request *http.Request) func(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
+	var modtime time.Time
+	if timeVal := request.Header.Get("X-OC-Mtime"); timeVal != "" {
+		timeUnix, err := strconv.ParseInt(timeVal, 10, 64)
+		if err == nil {
+			modtime = time.Unix(timeUnix, 0)
+		}
+	}
+	checksum := request.Header.Get("OC-Checksum")
+
+	return func(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
+		file := newFile.Info().Model.(*model.File)
+		if !modtime.IsZero() {
+			err := model.DB.Model(file).UpdateColumn("updated_at", modtime).Error
+			if err != nil {
+				return err
+			}
+		}
+
+		if checksum != "" {
+			return file.UpdateMetadata(map[string]string{
+				model.ChecksumMetadataKey: checksum,
+			})
+		}
+
 		return nil
 	}
 }
