@@ -28,9 +28,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	// 根据 ID 查找文件
 	err := fs.resetFileIDIfNotExist(ctx, id)
 	if err != nil {
-		return &response.ContentResponse{
-			Redirect: false,
-		}, ErrObjectNotExist
+		return nil, ErrObjectNotExist
 	}
 
 	file := fs.FileTarget[0]
@@ -44,7 +42,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 	res, err := fs.Handler.Thumb(ctx, &file)
 	if errors.Is(err, driver.ErrorThumbNotExist) {
 		// Regenerate thumb if the thumb is not initialized yet
-		if generateErr := fs.GenerateThumbnail(ctx, &file); generateErr == nil {
+		if generateErr := fs.generateThumbnail(ctx, &file); generateErr == nil {
 			res, err = fs.Handler.Thumb(ctx, &file)
 		} else {
 			err = generateErr
@@ -69,7 +67,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 				)
 			} else {
 				// if not exist, generate and upload the sidecar thumb.
-				if err = fs.GenerateThumbnail(ctx, &file); err == nil {
+				if err = fs.generateThumbnail(ctx, &file); err == nil {
 					return fs.GetThumb(ctx, id)
 				}
 			}
@@ -119,8 +117,8 @@ func (pool *Pool) releaseWorker() {
 	<-pool.worker
 }
 
-// GenerateThumbnail generates thumb for given file, upload the thumb file back with given suffix
-func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) error {
+// generateThumbnail generates thumb for given file, upload the thumb file back with given suffix
+func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) error {
 	// 新建上下文
 	newCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -164,13 +162,13 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) e
 
 	thumbFile, err := os.Open(thumbRes.Path)
 	if err != nil {
-		return fmt.Errorf("failed to open temp thumb %q: %w", thumbFile, err)
+		return fmt.Errorf("failed to open temp thumb %q: %w", thumbRes.Path, err)
 	}
 
 	defer thumbFile.Close()
 	fileInfo, err := thumbFile.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to stat temp thumb %q: %w", thumbFile, err)
+		return fmt.Errorf("failed to stat temp thumb %q: %w", thumbRes.Path, err)
 	}
 
 	if err = fs.Handler.Put(newCtx, &fsctx.FileStream{
@@ -184,7 +182,7 @@ func (fs *FileSystem) GenerateThumbnail(ctx context.Context, file *model.File) e
 	}
 
 	if model.IsTrueVal(model.GetSettingByName("thumb_gc_after_gen")) {
-		util.Log().Debug("GenerateThumbnail runtime.GC")
+		util.Log().Debug("generateThumbnail runtime.GC")
 		runtime.GC()
 	}
 

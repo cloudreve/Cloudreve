@@ -55,7 +55,7 @@ func (m FileHeaderMock) Delete(ctx context.Context, files []string) ([]string, e
 	return args.Get(0).([]string), args.Error(1)
 }
 
-func (m FileHeaderMock) Thumb(ctx context.Context, files string) (*response.ContentResponse, error) {
+func (m FileHeaderMock) Thumb(ctx context.Context, files *model.File) (*response.ContentResponse, error) {
 	args := m.Called(ctx, files)
 	return args.Get(0).(*response.ContentResponse), args.Error(1)
 }

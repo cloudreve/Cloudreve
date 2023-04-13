@@ -4,6 +4,7 @@ import (
 	"context"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
@@ -141,17 +142,34 @@ func TestHandler_Thumb(t *testing.T) {
 	asserts.NoError(err)
 	file.Close()
 
+	f := &model.File{
+		SourceName: "TestHandler_Thumb",
+		MetadataSerialized: map[string]string{
+			model.ThumbStatusMetadataKey: model.ThumbStatusExist,
+		},
+	}
+
 	// 正常
 	{
-		thumb, err := handler.Thumb(ctx, "TestHandler_Thumb")
+		thumb, err := handler.Thumb(ctx, f)
 		asserts.NoError(err)
 		asserts.NotNil(thumb.Content)
 	}
 
-	// 不存在
+	// file 不存在
 	{
-		_, err := handler.Thumb(ctx, "not_exist")
+		f.SourceName = "not_exist"
+		_, err := handler.Thumb(ctx, f)
 		asserts.Error(err)
+		asserts.ErrorIs(err, driver.ErrorThumbNotExist)
+	}
+
+	// thumb not exist
+	{
+		f.MetadataSerialized[model.ThumbStatusMetadataKey] = model.ThumbStatusNotExist
+		_, err := handler.Thumb(ctx, f)
+		asserts.Error(err)
+		asserts.ErrorIs(err, driver.ErrorThumbNotExist)
 	}
 }
 

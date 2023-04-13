@@ -246,19 +246,19 @@ func TestDriver_Thumb(t *testing.T) {
 	}
 	handler.Client, _ = NewClient(&model.Policy{})
 	handler.Client.Credential.ExpiresIn = time.Now().Add(time.Duration(100) * time.Hour).Unix()
+	file := &model.File{PicInfo: "1,1", Model: gorm.Model{ID: 1}}
 
 	// 失败
 	{
 		ctx := context.WithValue(context.Background(), fsctx.ThumbSizeCtx, [2]uint{10, 20})
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, model.File{PicInfo: "1,1", Model: gorm.Model{ID: 1}})
-		res, err := handler.Thumb(ctx, "123.jpg")
+		res, err := handler.Thumb(ctx, file)
 		asserts.Error(err)
 		asserts.Empty(res.URL)
 	}
 
 	// 上下文错误
 	{
-		_, err := handler.Thumb(context.Background(), "123.jpg")
+		_, err := handler.Thumb(context.Background(), file)
 		asserts.Error(err)
 	}
 }

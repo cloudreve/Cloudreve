@@ -58,7 +58,6 @@ func TestFileSystem_AddFile(t *testing.T) {
 	asserts.NoError(err)
 	asserts.NoError(mock.ExpectationsWereMet())
 	asserts.Equal("/Uploads/1_sad.png", f.SourceName)
-	asserts.NotEmpty(f.PicInfo)
 
 	// 前置钩子执行失败
 	{
@@ -311,6 +310,19 @@ func TestFileSystem_deleteGroupedFile(t *testing.T) {
 		}, failed)
 		_, ok := cache.Get(UploadSessionCachePrefix + sessionID)
 		asserts.False(ok)
+	}
+
+	// 包含缩略图
+	{
+		files[0].MetadataSerialized = map[string]string{
+			model.ThumbSidecarMetadataKey: "1",
+		}
+		failed := fs.deleteGroupedFile(ctx, fs.GroupFileByPolicy(ctx, files))
+		asserts.Equal(map[uint][]string{
+			1: {},
+			2: {},
+			3: {},
+		}, failed)
 	}
 }
 

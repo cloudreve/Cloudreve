@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"errors"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/remoteclientmock"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"io"
@@ -373,14 +374,33 @@ func TestHandler_Thumb(t *testing.T) {
 			Type:      "remote",
 			SecretKey: "test",
 			Server:    "http://test.com",
+			OptionsSerialized: model.PolicyOption{
+				ThumbExts: []string{"txt"},
+			},
 		},
 		AuthInstance: auth.HMACAuth{},
 	}
+	file := &model.File{
+		Name:       "1.txt",
+		SourceName: "1.txt",
+	}
 	ctx := context.Background()
 	asserts.NoError(cache.Set("setting_preview_timeout", "60", 0))
-	resp, err := handler.Thumb(ctx, "/1.txt")
-	asserts.NoError(err)
-	asserts.True(resp.Redirect)
+
+	// no error
+	{
+		resp, err := handler.Thumb(ctx, file)
+		asserts.NoError(err)
+		asserts.True(resp.Redirect)
+	}
+
+	// ext not support
+	{
+		file.Name = "1.jpg"
+		resp, err := handler.Thumb(ctx, file)
+		asserts.ErrorIs(err, driver.ErrorThumbNotSupported)
+		asserts.Nil(resp)
+	}
 }
 
 func TestHandler_Token(t *testing.T) {
