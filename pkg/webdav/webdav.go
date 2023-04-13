@@ -389,6 +389,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
 	}
 
+	// rclone 请求
+	fs.Use("AfterUpload", filesystem.NewWebdavAfterUploadHook(r))
+
 	// 执行上传
 	err = fs.Upload(ctx, &fileData)
 	if err != nil {

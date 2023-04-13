@@ -38,26 +38,33 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 		fileIDs = []uint{src.(*model.File).ID}
 	}
 
-        // 判断是否需要移动
-        if src.GetPosition() != path.Dir(dst) {
-                err = fs.Move(
-                        ctx,
-                        folderIDs,
-                        fileIDs,
-                        src.GetPosition(),
-                        path.Dir(dst),
-                )
-        }
+	if overwrite {
+		if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
+			return http.StatusInternalServerError, err
+		}
+	}
 
-        // 判断是否需要重命名
-        if err == nil && src.GetName() != path.Base(dst) {
-                err = fs.Rename(
-                        ctx,
-                        folderIDs,
-                        fileIDs,
-                        path.Base(dst),
-                )
-        }
+
+	// 判断是否需要移动
+	if src.GetPosition() != path.Dir(dst) {
+		err = fs.Move(
+			ctx,
+			folderIDs,
+			fileIDs,
+			src.GetPosition(),
+			path.Dir(dst),
+		)
+	}
+
+	// 判断是否需要重命名
+	if err == nil && src.GetName() != path.Base(dst) {
+		err = fs.Rename(
+			ctx,
+			folderIDs,
+			fileIDs,
+			path.Base(dst),
+		)
+	}
 
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -74,24 +81,52 @@ func copyFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 	}
 	recursion++
 
-	if src.IsDir() {
-		err := fs.Copy(
-			ctx,
-			[]uint{src.(*model.Folder).ID},
-			[]uint{}, src.(*model.Folder).Position,
-			path.Dir(dst),
-		)
-		if err != nil {
-			return http.StatusInternalServerError, err
-		}
-	} else {
-		err := fs.Copy(ctx, []uint{}, []uint{src.(*model.File).ID}, src.(*model.File).Position, path.Dir(dst))
-		if err != nil {
+
+	var (
+		fileIDs   []uint
+		folderIDs []uint
+	)
+
+	if overwrite {
+		if err := _checkOverwriteFile(ctx, fs, src, dst); err != nil {
 			return http.StatusInternalServerError, err
 		}
 	}
 
+	if src.IsDir() {
+		folderIDs = []uint{src.(*model.Folder).ID}
+	} else {
+		fileIDs = []uint{src.(*model.File).ID}
+	}
+
+	err = fs.Copy(
+		ctx,
+		folderIDs,
+		fileIDs,
+		src.GetPosition(),
+		path.Dir(dst),
+	)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+
 	return http.StatusNoContent, nil
+}
+
+// 判断目标 文件/夹 是否已经存在，存在则先删除目标文件/夹
+func _checkOverwriteFile(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst string) error {
+	if src.IsDir() {
+		ok, folder := fs.IsPathExist(dst)
+		if ok {
+			return fs.Delete(ctx, []uint{folder.ID}, []uint{}, false, false)
+		}
+	} else {
+		ok, file := fs.IsFileExist(dst)
+		if ok {
+			return fs.Delete(ctx, []uint{}, []uint{file.ID}, false, false)
+		}
+	}
+	return nil
 }
 
 // walkFS traverses filesystem fs starting at name up to depth levels.
