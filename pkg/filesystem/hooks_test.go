@@ -683,3 +683,26 @@ func TestHookDeleteUploadSession(t *testing.T) {
 	_, ok := cache.Get(UploadSessionCachePrefix + "TestHookDeleteUploadSession")
 	a.False(ok)
 }
+func TestNewWebdavAfterUploadHook(t *testing.T) {
+	a := assert.New(t)
+	fs := &FileSystem{}
+	file := &fsctx.FileStream{
+		Model: &model.File{
+			Model: gorm.Model{ID: 1},
+		},
+	}
+
+	req, _ := http.NewRequest("get", "http://localhost", nil)
+	req.Header.Add("X-Oc-Mtime", "1681521402")
+	req.Header.Add("OC-Checksum", "checksum")
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)files(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectExec("UPDATE(.+)files(.+)").WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
+	err := NewWebdavAfterUploadHook(req)(context.Background(), fs, file)
+	a.NoError(err)
+	a.NoError(mock.ExpectationsWereMet())
+
+}
