@@ -5,7 +5,7 @@ on: workflow_dispatch
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.20
         uses: actions/setup-go@v2
