@@ -27,3 +27,11 @@ func (c CacheClientMock) Sets(values map[string]interface{}, prefix string) erro
 func (c CacheClientMock) Delete(keys []string, prefix string) error {
 	return c.Called(keys, prefix).Error(0)
 }
+
+func (c CacheClientMock) Persist(path string) error {
+	return c.Called(path).Error(0)
+}
+
+func (c CacheClientMock) Restore(path string) error {
+	return c.Called(path).Error(0)
+}

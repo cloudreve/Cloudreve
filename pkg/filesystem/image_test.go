@@ -8,7 +8,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/thumbmock"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
 	testMock "github.com/stretchr/testify/mock"
 	"testing"
@@ -125,23 +124,4 @@ func TestFileSystem_ThumbWorker(t *testing.T) {
 		getThumbWorker().addWorker()
 		getThumbWorker().releaseWorker()
 	})
-}
-
-func TestFileSystem_GenerateThumbnail(t *testing.T) {
-	fs := &FileSystem{User: &model.User{}}
-
-	// 无法生成缩略图
-	{
-		fs.SetTargetFile(&[]model.File{{}})
-		fs.generateThumbnail(context.Background(), &model.File{})
-	}
-
-	// 无法获取文件数据
-	{
-		testHandller := new(FileHeaderMock)
-		testHandller.On("Get", testMock.Anything, "").Return(request.NopRSCloser{}, errors.New("error"))
-		fs.Handler = testHandller
-		fs.generateThumbnail(context.Background(), &model.File{Name: "test.png"})
-		testHandller.AssertExpectations(t)
-	}
 }
