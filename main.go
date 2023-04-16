@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/bootstrap"
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/routers"
@@ -67,20 +69,10 @@ func main() {
 	// 收到信号后关闭服务器
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	go func() {
-		sig := <-sigChan
-		util.Log().Info("Signal %s received, shutting down server...", sig)
-		ctx := context.Background()
-		if conf.SystemConfig.GracePeriod != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, time.Duration(conf.SystemConfig.GracePeriod)*time.Second)
-			defer cancel()
-		}
+	go shutdown(sigChan, server)
 
-		err := server.Shutdown(ctx)
-		if err != nil {
-			util.Log().Error("Failed to shutdown server: %s", err)
-		}
+	defer func() {
+		<-sigChan
 	}()
 
 	// 如果启用了SSL
@@ -139,4 +131,28 @@ func RunUnix(server *http.Server) error {
 	}
 
 	return server.Serve(listener)
+}
+
+func shutdown(sigChan chan os.Signal, server *http.Server) {
+	sig := <-sigChan
+	util.Log().Info("Signal %s received, shutting down server...", sig)
+	ctx := context.Background()
+	if conf.SystemConfig.GracePeriod != 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(conf.SystemConfig.GracePeriod)*time.Second)
+		defer cancel()
+	}
+
+	// Shutdown http server
+	err := server.Shutdown(ctx)
+	if err != nil {
+		util.Log().Error("Failed to shutdown server: %s", err)
+	}
+
+	// Persist in-memory cache
+	if err := cache.Store.Persist(filepath.Join(model.GetSettingByName("temp_path"), cache.DefaultCacheFile)); err != nil {
+		util.Log().Warning("Failed to persist cache: %s", err)
+	}
+
+	close(sigChan)
 }

@@ -215,3 +215,13 @@ func (store *RedisStore) DeleteAll() error {
 
 	return err
 }
+
+// Persist Dummy implementation
+func (store *RedisStore) Persist(path string) error {
+	return nil
+}
+
+// Restore dummy implementation
+func (store *RedisStore) Restore(path string) error {
+	return nil
+}

@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -20,14 +19,6 @@ func TestSession(t *testing.T) {
 		asserts.NotNil(Store)
 		asserts.IsType(emptyFunc(), handler)
 	}
-	{
-		conf.RedisConfig.Server = "123"
-		asserts.Panics(func() {
-			Session("2333")
-		})
-		conf.RedisConfig.Server = ""
-	}
-
 }
 
 func emptyFunc() gin.HandlerFunc {

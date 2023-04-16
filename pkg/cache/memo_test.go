@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/stretchr/testify/assert"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -23,7 +24,7 @@ func TestMemoStore_Set(t *testing.T) {
 
 	val, ok := store.Store.Load("KEY")
 	asserts.True(ok)
-	asserts.Equal("vAL", val.(itemWithTTL).value)
+	asserts.Equal("vAL", val.(itemWithTTL).Value)
 }
 
 func TestMemoStore_Get(t *testing.T) {
@@ -144,4 +145,47 @@ func TestMemoStore_GarbageCollect(t *testing.T) {
 	store.GarbageCollect()
 	_, ok := store.Get("test")
 	asserts.False(ok)
+}
+
+func TestMemoStore_PersistFailed(t *testing.T) {
+	a := assert.New(t)
+	store := NewMemoStore()
+	type testStruct struct{ v string }
+	store.Set("test", 1, 0)
+	store.Set("test2", testStruct{v: "test"}, 0)
+	err := store.Persist(filepath.Join(t.TempDir(), "TestMemoStore_PersistFailed"))
+	a.Error(err)
+}
+
+func TestMemoStore_PersistAndRestore(t *testing.T) {
+	a := assert.New(t)
+	store := NewMemoStore()
+	store.Set("test", 1, 0)
+	// already expired
+	store.Store.Store("test2", itemWithTTL{Value: "test", Expires: 1})
+	// expired after persist
+	store.Set("test3", 1, 1)
+	temp := filepath.Join(t.TempDir(), "TestMemoStore_PersistFailed")
+
+	// Persist
+	err := store.Persist(temp)
+	a.NoError(err)
+	a.FileExists(temp)
+
+	time.Sleep(2 * time.Second)
+	// Restore
+	store2 := NewMemoStore()
+	err = store2.Restore(temp)
+	a.NoError(err)
+	test, testOk := store2.Get("test")
+	a.EqualValues(1, test)
+	a.True(testOk)
+	test2, test2Ok := store2.Get("test2")
+	a.Nil(test2)
+	a.False(test2Ok)
+	test3, test3Ok := store2.Get("test3")
+	a.Nil(test3)
+	a.False(test3Ok)
+
+	a.NoFileExists(temp)
 }
