@@ -134,6 +134,12 @@ func TestPolicy_GenerateFileName(t *testing.T) {
 		testPolicy.FileNameRule = "123{date}ss{datetime}"
 		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 27)
 
+		testPolicy.FileNameRule = "{originname_without_ext}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 3)
+
+		testPolicy.FileNameRule = "{originname_without_ext}_{randomkey8}{ext}"
+		asserts.Len(testPolicy.GenerateFileName(1, "123.txt"), 16)
+
 		// 支持{originname}的策略
 		testPolicy.Type = "local"
 		testPolicy.FileNameRule = "123{originname}"
