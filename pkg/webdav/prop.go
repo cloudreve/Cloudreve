@@ -36,8 +36,54 @@ func (file *FileDeadProps) DeadProps() (map[xml.Name]Property, error) {
 	}, nil
 }
 
-func (file *FileDeadProps) Patch([]Proppatch) ([]Propstat, error) {
+func (file *FileDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
+	var (
+		stat Propstat
+		err  error
+	)
+	stat.Status = http.StatusOK
+	for _, patch := range proppatches {
+		for _, prop := range patch.Props {
+			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
+			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
+				var modtimeUnix int64
+				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
+				if err == nil {
+					err = model.DB.Model(file).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+				}
+			}
+		}
+	}
+	return []Propstat{stat}, err
+}
+
+type FolderDeadProps struct {
+	*model.Folder
+}
+
+func (folder *FolderDeadProps) DeadProps() (map[xml.Name]Property, error) {
 	return nil, nil
+}
+
+func (folder *FolderDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
+	var (
+		stat Propstat
+		err  error
+	)
+	stat.Status = http.StatusOK
+	for _, patch := range proppatches {
+		for _, prop := range patch.Props {
+			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
+			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
+				var modtimeUnix int64
+				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
+				if err == nil {
+					err = model.DB.Model(folder).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+				}
+			}
+		}
+	}
+	return []Propstat{stat}, err
 }
 
 type FileInfo interface {
@@ -325,6 +371,29 @@ loop:
 		return makePropstats(pstatForbidden, pstatFailedDep), nil
 	}
 
+	// very unlikely to be false
+	exist, info := isPathExist(ctx, fs, name)
+	if exist {
+		var dph DeadPropsHolder
+		if info.IsDir() {
+			dph = &FolderDeadProps{info.(*model.Folder)}
+		} else {
+			dph = &FileDeadProps{info.(*model.File)}
+		}
+		ret, err := dph.Patch(patches)
+		if err != nil {
+			return nil, err
+		}
+		// http://www.webdav.org/specs/rfc4918.html#ELEMENT_propstat says that
+		// "The contents of the prop XML element must only list the names of
+		// properties to which the result in the status element applies."
+		for _, pstat := range ret {
+			for i, p := range pstat.Props {
+				pstat.Props[i] = Property{XMLName: p.XMLName}
+			}
+		}
+		return ret, nil
+	}
 	// The file doesn't implement the optional DeadPropsHolder interface, so
 	// all patches are forbidden.
 	pstat := Propstat{Status: http.StatusOK}
