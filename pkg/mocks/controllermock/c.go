@@ -37,7 +37,7 @@ func (s SlaveControllerMock) GetMasterInfo(s2 string) (*cluster.MasterInfo, erro
 	return args.Get(0).(*cluster.MasterInfo), args.Error(1)
 }
 
-func (s SlaveControllerMock) GetOneDriveToken(s2 string, u uint) (string, error) {
+func (s SlaveControllerMock) GetPolicyOauthToken(s2 string, u uint) (string, error) {
 	args := s.Called(s2, u)
 	return args.String(0), args.Error(1)
 }

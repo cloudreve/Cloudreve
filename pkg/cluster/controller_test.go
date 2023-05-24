@@ -320,7 +320,7 @@ func TestSlaveController_GetOneDriveToken(t *testing.T) {
 
 	// node not exit
 	{
-		res, err := c.GetOneDriveToken("2", 1)
+		res, err := c.GetPolicyOauthToken("2", 1)
 		a.Equal(ErrMasterNotFound, err)
 		a.Empty(res)
 	}
@@ -336,7 +336,7 @@ func TestSlaveController_GetOneDriveToken(t *testing.T) {
 				"1": {Client: mockRequest},
 			},
 		}
-		res, err := c.GetOneDriveToken("1", 1)
+		res, err := c.GetPolicyOauthToken("1", 1)
 		a.Error(err)
 		a.Empty(res)
 		mockRequest.AssertExpectations(t)
@@ -356,7 +356,7 @@ func TestSlaveController_GetOneDriveToken(t *testing.T) {
 				"1": {Client: mockRequest},
 			},
 		}
-		res, err := c.GetOneDriveToken("1", 1)
+		res, err := c.GetPolicyOauthToken("1", 1)
 		a.Equal(1, err.(serializer.AppError).Code)
 		a.Empty(res)
 		mockRequest.AssertExpectations(t)
@@ -376,7 +376,7 @@ func TestSlaveController_GetOneDriveToken(t *testing.T) {
 				"1": {Client: mockRequest},
 			},
 		}
-		res, err := c.GetOneDriveToken("1", 1)
+		res, err := c.GetPolicyOauthToken("1", 1)
 		a.NoError(err)
 		a.Equal("expected", res)
 		mockRequest.AssertExpectations(t)

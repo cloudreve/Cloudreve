@@ -35,8 +35,8 @@ type Controller interface {
 	// Get master node info
 	GetMasterInfo(string) (*MasterInfo, error)
 
-	// Get master OneDrive policy credential
-	GetOneDriveToken(string, uint) (string, error)
+	// Get master Oauth based policy credential
+	GetPolicyOauthToken(string, uint) (string, error)
 }
 
 type slaveController struct {
@@ -181,8 +181,8 @@ func (c *slaveController) GetMasterInfo(id string) (*MasterInfo, error) {
 	return nil, ErrMasterNotFound
 }
 
-// GetOneDriveToken 获取主机OneDrive凭证
-func (c *slaveController) GetOneDriveToken(id string, policyID uint) (string, error) {
+// GetPolicyOauthToken 获取主机存储策略 Oauth 凭证
+func (c *slaveController) GetPolicyOauthToken(id string, policyID uint) (string, error) {
 	c.lock.RLock()
 
 	if node, ok := c.masters[id]; ok {
@@ -190,7 +190,7 @@ func (c *slaveController) GetOneDriveToken(id string, policyID uint) (string, er
 
 		res, err := node.Client.Request(
 			"GET",
-			fmt.Sprintf("/api/v3/slave/credential/onedrive/%d", policyID),
+			fmt.Sprintf("/api/v3/slave/credential/%d", policyID),
 			nil,
 		).CheckHTTPResponse(200).DecodeResponse()
 		if err != nil {

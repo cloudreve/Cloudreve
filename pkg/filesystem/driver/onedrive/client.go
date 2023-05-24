@@ -58,7 +58,7 @@ func NewClient(policy *model.Policy) (*Client, error) {
 		Policy:            policy,
 		ClientID:          policy.BucketName,
 		ClientSecret:      policy.SecretKey,
-		Redirect:          policy.OptionsSerialized.OdRedirect,
+		Redirect:          policy.OptionsSerialized.OauthRedirect,
 		Request:           request.NewClient(),
 		ClusterController: cluster.DefaultController,
 	}

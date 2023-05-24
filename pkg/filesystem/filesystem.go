@@ -176,6 +176,10 @@ func (fs *FileSystem) DispatchHandler() error {
 		handler, err := s3.NewDriver(currentPolicy)
 		fs.Handler = handler
 		return err
+	case "googledrive":
+		handler, err := googledrive.NewDriver(policy)
+		fs.Handler = handler
+		return err
 	default:
 		return ErrUnknownPolicyType
 	}

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/googledrive"
 	"net/http"
 	"net/url"
 	"os"
@@ -104,27 +105,41 @@ func (service *PolicyService) Get() serializer.Response {
 }
 
 // GetOAuth 获取 OneDrive OAuth 地址
-func (service *PolicyService) GetOAuth(c *gin.Context) serializer.Response {
+func (service *PolicyService) GetOAuth(c *gin.Context, policyType string) serializer.Response {
 	policy, err := model.GetPolicyByID(service.ID)
-	if err != nil || policy.Type != "onedrive" {
+	if err != nil || policy.Type != policyType {
 		return serializer.Err(serializer.CodePolicyNotExist, "", nil)
 	}
 
-	client, err := onedrive.NewClient(&policy)
-	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "Failed to initialize OneDrive client", err)
-	}
-
 	util.SetSession(c, map[string]interface{}{
-		"onedrive_oauth_policy": policy.ID,
+		policyType + "_oauth_policy": policy.ID,
 	})
 
-	cache.Deletes([]string{policy.BucketName}, "onedrive_")
+	var redirect string
+	switch policy.Type {
+	case "onedrive":
+		client, err := onedrive.NewClient(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "Failed to initialize OneDrive client", err)
+		}
 
-	return serializer.Response{Data: client.OAuthURL(context.Background(), []string{
-		"offline_access",
-		"files.readwrite.all",
-	})}
+		redirect = client.OAuthURL(context.Background(), []string{
+			"offline_access",
+			"files.readwrite.all",
+		})
+	case "googledrive":
+		client, err := googledrive.NewClient(&policy)
+		if err != nil {
+			return serializer.Err(serializer.CodeInternalSetting, "Failed to initialize Google Drive client", err)
+		}
+
+		redirect = client.OAuthURL(context.Background(), googledrive.RequiredScope)
+	}
+
+	// Delete token cache
+	cache.Deletes([]string{policy.BucketName}, policyType+"_")
+
+	return serializer.Response{Data: redirect}
 }
 
 // AddSCF 创建回调云函数

@@ -223,9 +223,9 @@ func SlaveNotificationPush(c *gin.Context) {
 	}
 }
 
-// SlaveGetOneDriveCredential 从机获取主机的OneDrive存储策略凭证
-func SlaveGetOneDriveCredential(c *gin.Context) {
-	var service node.OneDriveCredentialService
+// SlaveGetOauthCredential 从机获取主机的OneDrive存储策略凭证
+func SlaveGetOauthCredential(c *gin.Context) {
+	var service node.OauthCredentialService
 	if err := c.ShouldBindUri(&service); err == nil {
 		res := service.Get(c)
 		c.JSON(200, res)

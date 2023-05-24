@@ -192,14 +192,16 @@ func AdminAddSCF(c *gin.Context) {
 	}
 }
 
-// AdminOneDriveOAuth 获取 OneDrive OAuth URL
-func AdminOneDriveOAuth(c *gin.Context) {
-	var service admin.PolicyService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.GetOAuth(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// AdminOAuthURL 获取 OneDrive OAuth URL
+func AdminOAuthURL(policyType string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var service admin.PolicyService
+		if err := c.ShouldBindUri(&service); err == nil {
+			res := service.GetOAuth(c, policyType)
+			c.JSON(200, res)
+		} else {
+			c.JSON(200, ErrorResponse(err))
+		}
 	}
 }
 

@@ -1,19 +1,33 @@
-package onedrive
+package googledrive
 
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
-
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/oauth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
 )
+
+// Credential 获取token时返回的凭证
+type Credential struct {
+	ExpiresIn    int64  `json:"expires_in"`
+	Scope        string `json:"scope"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	UserID       string `json:"user_id"`
+}
+
+// OAuthError OAuth相关接口的错误响应
+type OAuthError struct {
+	ErrorType        string `json:"error"`
+	ErrorDescription string `json:"error_description"`
+}
 
 // Error 实现error接口
 func (err OAuthError) Error() string {
@@ -27,65 +41,35 @@ func (client *Client) OAuthURL(ctx context.Context, scope []string) string {
 		"scope":         {strings.Join(scope, " ")},
 		"response_type": {"code"},
 		"redirect_uri":  {client.Redirect},
-	}
-	client.Endpoints.OAuthEndpoints.authorize.RawQuery = query.Encode()
-	return client.Endpoints.OAuthEndpoints.authorize.String()
-}
-
-// getOAuthEndpoint 根据指定的AuthURL获取详细的认证接口地址
-func (client *Client) getOAuthEndpoint() *oauthEndpoint {
-	base, err := url.Parse(client.Endpoints.OAuthURL)
-	if err != nil {
-		return nil
-	}
-	var (
-		token     *url.URL
-		authorize *url.URL
-	)
-	switch base.Host {
-	case "login.live.com":
-		token, _ = url.Parse("https://login.live.com/oauth20_token.srf")
-		authorize, _ = url.Parse("https://login.live.com/oauth20_authorize.srf")
-	case "login.chinacloudapi.cn":
-		client.Endpoints.isInChina = true
-		token, _ = url.Parse("https://login.chinacloudapi.cn/common/oauth2/v2.0/token")
-		authorize, _ = url.Parse("https://login.chinacloudapi.cn/common/oauth2/v2.0/authorize")
-	default:
-		token, _ = url.Parse("https://login.microsoftonline.com/common/oauth2/v2.0/token")
-		authorize, _ = url.Parse("https://login.microsoftonline.com/common/oauth2/v2.0/authorize")
+		"access_type":   {"offline"},
+		"prompt":        {"consent"},
 	}
 
-	return &oauthEndpoint{
-		token:     *token,
-		authorize: *authorize,
-	}
+	u, _ := url.Parse(client.Endpoints.UserConsentEndpoint)
+	u.RawQuery = query.Encode()
+	return u.String()
 }
 
 // ObtainToken 通过code或refresh_token兑换token
-func (client *Client) ObtainToken(ctx context.Context, opts ...Option) (*Credential, error) {
-	options := newDefaultOption()
-	for _, o := range opts {
-		o.apply(options)
-	}
-
+func (client *Client) ObtainToken(ctx context.Context, code, refreshToken string) (*Credential, error) {
 	body := url.Values{
 		"client_id":     {client.ClientID},
 		"redirect_uri":  {client.Redirect},
 		"client_secret": {client.ClientSecret},
 	}
-	if options.code != "" {
+	if code != "" {
 		body.Add("grant_type", "authorization_code")
-		body.Add("code", options.code)
+		body.Add("code", code)
 	} else {
 		body.Add("grant_type", "refresh_token")
-		body.Add("refresh_token", options.refreshToken)
+		body.Add("refresh_token", refreshToken)
 	}
 	strBody := body.Encode()
 
 	res := client.Request.Request(
 		"POST",
-		client.Endpoints.OAuthEndpoints.token.String(),
-		ioutil.NopCloser(strings.NewReader(strBody)),
+		client.Endpoints.TokenEndpoint,
+		io.NopCloser(strings.NewReader(strBody)),
 		request.WithHeader(http.Header{
 			"Content-Type": {"application/x-www-form-urlencoded"}},
 		),
@@ -120,7 +104,6 @@ func (client *Client) ObtainToken(ctx context.Context, opts ...Option) (*Credent
 	}
 
 	return &credential, nil
-
 }
 
 // UpdateCredential 更新凭证，并检查有效期
@@ -142,7 +125,7 @@ func (client *Client) UpdateCredential(ctx context.Context, isSlave bool) error 
 	}
 
 	// 尝试从缓存中获取凭证
-	if cacheCredential, ok := cache.Get("onedrive_" + client.ClientID); ok {
+	if cacheCredential, ok := cache.Get(TokenCachePrefix + client.ClientID); ok {
 		credential := cacheCredential.(Credential)
 		if credential.ExpiresIn > time.Now().Unix() {
 			client.Credential = &credential
@@ -153,11 +136,11 @@ func (client *Client) UpdateCredential(ctx context.Context, isSlave bool) error 
 	// 获取新的凭证
 	if client.Credential == nil || client.Credential.RefreshToken == "" {
 		// 无有效的RefreshToken
-		util.Log().Error("Failed to refresh credential for policy %q, please login your Microsoft account again.", client.Policy.Name)
+		util.Log().Error("Failed to refresh credential for policy %q, please login your Google account again.", client.Policy.Name)
 		return ErrInvalidRefreshToken
 	}
 
-	credential, err := client.ObtainToken(ctx, WithRefreshToken(client.Credential.RefreshToken))
+	credential, err := client.ObtainToken(ctx, "", client.Credential.RefreshToken)
 	if err != nil {
 		return err
 	}
@@ -165,13 +148,12 @@ func (client *Client) UpdateCredential(ctx context.Context, isSlave bool) error 
 	// 更新有效期为绝对时间戳
 	expires := credential.ExpiresIn - 60
 	credential.ExpiresIn = time.Now().Add(time.Duration(expires) * time.Second).Unix()
+	// refresh token for Google Drive does not expire in production
+	credential.RefreshToken = client.Credential.RefreshToken
 	client.Credential = credential
 
-	// 更新存储策略的 RefreshToken
-	client.Policy.UpdateAccessKeyAndClearCache(credential.RefreshToken)
-
 	// 更新缓存
-	cache.Set("onedrive_"+client.ClientID, *credential, int(expires))
+	cache.Set(TokenCachePrefix+client.ClientID, *credential, int(expires))
 
 	return nil
 }

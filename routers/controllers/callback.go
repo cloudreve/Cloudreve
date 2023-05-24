@@ -83,9 +83,27 @@ func OneDriveCallback(c *gin.Context) {
 
 // OneDriveOAuth OneDrive 授权回调
 func OneDriveOAuth(c *gin.Context) {
-	var callbackBody callback.OneDriveOauthService
+	var callbackBody callback.OauthService
 	if err := c.ShouldBindQuery(&callbackBody); err == nil {
-		res := callbackBody.Auth(c)
+		res := callbackBody.OdAuth(c)
+		redirect := model.GetSiteURL()
+		redirect.Path = path.Join(redirect.Path, "/admin/policy")
+		queries := redirect.Query()
+		queries.Add("code", strconv.Itoa(res.Code))
+		queries.Add("msg", res.Msg)
+		queries.Add("err", res.Error)
+		redirect.RawQuery = queries.Encode()
+		c.Redirect(303, redirect.String())
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// GoogleDriveOAuth Google Drive 授权回调
+func GoogleDriveOAuth(c *gin.Context) {
+	var callbackBody callback.OauthService
+	if err := c.ShouldBindQuery(&callbackBody); err == nil {
+		res := callbackBody.GDriveAuth(c)
 		redirect := model.GetSiteURL()
 		redirect.Path = path.Join(redirect.Path, "/admin/policy")
 		queries := redirect.Query()

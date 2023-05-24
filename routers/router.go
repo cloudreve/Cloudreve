@@ -260,8 +260,8 @@ func InitMasterRouter() *gin.Engine {
 				// 删除上传会话
 				upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
 			}
-			// OneDrive 存储策略凭证
-			slave.GET("credential/onedrive/:id", controllers.SlaveGetOneDriveCredential)
+			// Oauth 存储策略凭证
+			slave.GET("credential/:id", controllers.SlaveGetOauthCredential)
 		}
 
 		// 回调接口
@@ -308,6 +308,15 @@ func InitMasterRouter() *gin.Engine {
 				onedrive.GET(
 					"auth",
 					controllers.OneDriveOAuth,
+				)
+			}
+			// Google Drive related
+			gdrive := callback.Group("googledrive")
+			{
+				// OAuth 完成
+				gdrive.GET(
+					"auth",
+					controllers.GoogleDriveOAuth,
 				)
 			}
 			// 腾讯云COS策略上传回调
@@ -454,7 +463,14 @@ func InitMasterRouter() *gin.Engine {
 					// 创建COS回调函数
 					policy.POST("scf", controllers.AdminAddSCF)
 					// 获取 OneDrive OAuth URL
-					policy.GET(":id/oauth", controllers.AdminOneDriveOAuth)
+					oauth := policy.Group(":id/oauth")
+					{
+						// 获取 OneDrive OAuth URL
+						oauth.GET("onedrive", controllers.AdminOAuthURL("onedrive"))
+						// 获取 Google Drive OAuth URL
+						oauth.GET("googledrive", controllers.AdminOAuthURL("googledrive"))
+					}
+
 					// 获取 存储策略
 					policy.GET(":id", controllers.AdminGetPolicy)
 					// 删除 存储策略

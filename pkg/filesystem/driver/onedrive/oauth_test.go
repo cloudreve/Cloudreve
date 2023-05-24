@@ -368,7 +368,7 @@ func TestClient_UpdateCredential(t *testing.T) {
 	// slave failed
 	{
 		mockController := &controllermock.SlaveControllerMock{}
-		mockController.On("GetOneDriveToken", testMock.Anything, testMock.Anything).Return("", errors.New("error"))
+		mockController.On("GetPolicyOauthToken", testMock.Anything, testMock.Anything).Return("", errors.New("error"))
 		client.ClusterController = mockController
 		err := client.UpdateCredential(context.Background(), true)
 		asserts.Error(err)
@@ -377,7 +377,7 @@ func TestClient_UpdateCredential(t *testing.T) {
 	// slave success
 	{
 		mockController := &controllermock.SlaveControllerMock{}
-		mockController.On("GetOneDriveToken", testMock.Anything, testMock.Anything).Return("AccessToken3", nil)
+		mockController.On("GetPolicyOauthToken", testMock.Anything, testMock.Anything).Return("AccessToken3", nil)
 		client.ClusterController = mockController
 		err := client.UpdateCredential(context.Background(), true)
 		asserts.NoError(err)

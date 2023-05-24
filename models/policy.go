@@ -47,8 +47,8 @@ type PolicyOption struct {
 	FileType []string `json:"file_type"`
 	// MimeType
 	MimeType string `json:"mimetype"`
-	// OdRedirect Onedrive 重定向地址
-	OdRedirect string `json:"od_redirect,omitempty"`
+	// OauthRedirect Oauth 重定向地址
+	OauthRedirect string `json:"od_redirect,omitempty"`
 	// OdProxy Onedrive 反代地址
 	OdProxy string `json:"od_proxy,omitempty"`
 	// OdDriver OneDrive 驱动器定位符
@@ -155,23 +155,23 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 	fileRule := policy.FileNameRule
 
 	replaceTable := map[string]string{
-		"{randomkey16}":    util.RandStringRunes(16),
-		"{randomkey8}":     util.RandStringRunes(8),
-		"{timestamp}":      strconv.FormatInt(time.Now().Unix(), 10),
-		"{timestamp_nano}": strconv.FormatInt(time.Now().UnixNano(), 10),
-		"{uid}":            strconv.Itoa(int(uid)),
-		"{datetime}":       time.Now().Format("20060102150405"),
-		"{date}":           time.Now().Format("20060102"),
-		"{year}":           time.Now().Format("2006"),
-		"{month}":          time.Now().Format("01"),
-		"{day}":            time.Now().Format("02"),
-		"{hour}":           time.Now().Format("15"),
-		"{minute}":         time.Now().Format("04"),
-		"{second}":         time.Now().Format("05"),
-		"{originname}":     origin,
-		"{ext}":            filepath.Ext(origin),
+		"{randomkey16}":            util.RandStringRunes(16),
+		"{randomkey8}":             util.RandStringRunes(8),
+		"{timestamp}":              strconv.FormatInt(time.Now().Unix(), 10),
+		"{timestamp_nano}":         strconv.FormatInt(time.Now().UnixNano(), 10),
+		"{uid}":                    strconv.Itoa(int(uid)),
+		"{datetime}":               time.Now().Format("20060102150405"),
+		"{date}":                   time.Now().Format("20060102"),
+		"{year}":                   time.Now().Format("2006"),
+		"{month}":                  time.Now().Format("01"),
+		"{day}":                    time.Now().Format("02"),
+		"{hour}":                   time.Now().Format("15"),
+		"{minute}":                 time.Now().Format("04"),
+		"{second}":                 time.Now().Format("05"),
+		"{originname}":             origin,
+		"{ext}":                    filepath.Ext(origin),
 		"{originname_without_ext}": strings.TrimSuffix(origin, filepath.Ext(origin)),
-		"{uuid}":           uuid.Must(uuid.NewV4()).String(),
+		"{uuid}":                   uuid.Must(uuid.NewV4()).String(),
 	}
 
 	fileRule = util.Replace(replaceTable, fileRule)
