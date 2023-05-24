@@ -170,6 +170,7 @@ func (policy *Policy) GenerateFileName(uid uint, origin string) string {
 		"{second}":         time.Now().Format("05"),
 		"{originname}":     origin,
 		"{ext}":            filepath.Ext(origin),
+		"{originname_without_ext}": strings.TrimSuffix(origin, filepath.Ext(origin)),
 		"{uuid}":           uuid.Must(uuid.NewV4()).String(),
 	}
 
