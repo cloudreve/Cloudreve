@@ -219,26 +219,20 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(
-	ctx context.Context,
-	path string,
-	baseURL url.URL,
-	ttl int64,
-	isDownload bool,
-	speed int,
-) (string, error) {
+func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {
 		return "", errors.New("failed to read file model context")
 	}
 
+	var baseURL *url.URL
 	// 是否启用了CDN
 	if handler.Policy.BaseURL != "" {
 		cdnURL, err := url.Parse(handler.Policy.BaseURL)
 		if err != nil {
 			return "", err
 		}
-		baseURL = *cdnURL
+		baseURL = cdnURL
 	}
 
 	var (
@@ -272,7 +266,11 @@ func (handler Driver) Source(
 		return "", serializer.NewError(serializer.CodeEncryptError, "Failed to sign url", err)
 	}
 
-	finalURL := baseURL.ResolveReference(signedURI).String()
+	finalURL := signedURI.String()
+	if baseURL != nil {
+		finalURL = baseURL.ResolveReference(signedURI).String()
+	}
+
 	return finalURL, nil
 }
 

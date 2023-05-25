@@ -8,7 +8,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"net/url"
 )
 
 // Driver Google Drive 适配器
@@ -45,7 +44,7 @@ func (d *Driver) Thumb(ctx context.Context, file *model.File) (*response.Content
 	panic("implement me")
 }
 
-func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error) {
+func (d *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	//TODO implement me
 	panic("implement me")
 }

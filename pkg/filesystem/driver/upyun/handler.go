@@ -107,14 +107,7 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 // Get 获取文件
 func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
 	// 获取文件源地址
-	downloadURL, err := handler.Source(
-		ctx,
-		path,
-		url.URL{},
-		int64(model.GetIntSetting("preview_timeout", 60)),
-		false,
-		0,
-	)
+	downloadURL, err := handler.Source(ctx, path, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -243,14 +236,7 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 	}
 
 	thumbParam := fmt.Sprintf("!/fwfh/%dx%d", thumbSize[0], thumbSize[1])
-	thumbURL, err := handler.Source(
-		ctx,
-		file.SourceName+thumbParam,
-		url.URL{},
-		int64(model.GetIntSetting("preview_timeout", 60)),
-		false,
-		0,
-	)
+	thumbURL, err := handler.Source(ctx, file.SourceName+thumbParam, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -262,14 +248,7 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(
-	ctx context.Context,
-	path string,
-	baseURL url.URL,
-	ttl int64,
-	isDownload bool,
-	speed int,
-) (string, error) {
+func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 尝试从上下文获取文件名
 	fileName := ""
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {

@@ -91,7 +91,6 @@ func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, 
 	downloadURL, err := handler.Source(
 		ctx,
 		path,
-		url.URL{},
 		60,
 		false,
 		0,
@@ -164,7 +163,6 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 func (handler Driver) Source(
 	ctx context.Context,
 	path string,
-	baseURL url.URL,
 	ttl int64,
 	isDownload bool,
 	speed int,

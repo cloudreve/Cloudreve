@@ -300,8 +300,7 @@ func (fs *FileSystem) SignURL(ctx context.Context, file *model.File, ttl int64, 
 
 	// 签名最终URL
 	// 生成外链地址
-	siteURL := model.GetSiteURL()
-	source, err := fs.Handler.Source(ctx, fs.FileTarget[0].SourceName, *siteURL, ttl, isDownload, fs.User.Group.SpeedLimit)
+	source, err := fs.Handler.Source(ctx, fs.FileTarget[0].SourceName, ttl, isDownload, fs.User.Group.SpeedLimit)
 	if err != nil {
 		return "", serializer.NewError(serializer.CodeNotSet, "Failed to get source link", err)
 	}

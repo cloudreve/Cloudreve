@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -51,7 +50,7 @@ func TestHandler_Source(t *testing.T) {
 			AuthInstance: auth.HMACAuth{},
 		}
 		ctx := context.Background()
-		res, err := handler.Source(ctx, "", url.URL{}, 0, true, 0)
+		res, err := handler.Source(ctx, "", 0, true, 0)
 		asserts.NoError(err)
 		asserts.NotEmpty(res)
 	}
@@ -66,7 +65,7 @@ func TestHandler_Source(t *testing.T) {
 			SourceName: "1.txt",
 		}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
-		res, err := handler.Source(ctx, "", url.URL{}, 10, true, 0)
+		res, err := handler.Source(ctx, "", 10, true, 0)
 		asserts.NoError(err)
 		asserts.Contains(res, "api/v3/slave/download/0")
 	}
@@ -81,7 +80,7 @@ func TestHandler_Source(t *testing.T) {
 			SourceName: "1.txt",
 		}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
-		res, err := handler.Source(ctx, "", url.URL{}, 10, true, 0)
+		res, err := handler.Source(ctx, "", 10, true, 0)
 		asserts.NoError(err)
 		asserts.Contains(res, "api/v3/slave/download/0")
 		asserts.Contains(res, "https://cqu.edu.cn")
@@ -97,7 +96,7 @@ func TestHandler_Source(t *testing.T) {
 			SourceName: "1.txt",
 		}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
-		res, err := handler.Source(ctx, "", url.URL{}, 10, true, 0)
+		res, err := handler.Source(ctx, "", 10, true, 0)
 		asserts.Error(err)
 		asserts.Empty(res)
 	}
@@ -112,7 +111,7 @@ func TestHandler_Source(t *testing.T) {
 			SourceName: "1.txt",
 		}
 		ctx := context.WithValue(context.Background(), fsctx.FileModelCtx, file)
-		res, err := handler.Source(ctx, "", url.URL{}, 10, false, 0)
+		res, err := handler.Source(ctx, "", 10, false, 0)
 		asserts.NoError(err)
 		asserts.Contains(res, "api/v3/slave/source/0")
 	}

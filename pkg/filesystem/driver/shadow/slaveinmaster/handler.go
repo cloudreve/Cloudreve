@@ -106,7 +106,7 @@ func (d *Driver) Thumb(ctx context.Context, file *model.File) (*response.Content
 	return nil, ErrNotImplemented
 }
 
-func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error) {
+func (d *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	return "", ErrNotImplemented
 }
 

@@ -7,7 +7,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"net/url"
 )
 
 var (
@@ -37,7 +36,7 @@ type Handler interface {
 	// 获取外链/下载地址，
 	// url - 站点本身地址,
 	// isDownload - 是否直接下载
-	Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error)
+	Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error)
 
 	// Token 获取有效期为ttl的上传凭证和签名
 	Token(ctx context.Context, ttl int64, uploadSession *serializer.UploadSession, file fsctx.FileHeader) (*serializer.UploadCredential, error)

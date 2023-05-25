@@ -8,7 +8,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"net/url"
 )
 
 // Driver 影子存储策略，用于在从机端上传文件
@@ -43,7 +42,7 @@ func (d *Driver) Thumb(ctx context.Context, file *model.File) (*response.Content
 	return nil, ErrNotImplemented
 }
 
-func (d *Driver) Source(ctx context.Context, path string, url url.URL, ttl int64, isDownload bool, speed int) (string, error) {
+func (d *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	return "", ErrNotImplemented
 }
 

@@ -194,14 +194,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 	ctx = context.WithValue(ctx, fsctx.ForceUsePublicEndpointCtx, false)
 
 	// 获取文件源地址
-	downloadURL, err := handler.Source(
-		ctx,
-		path,
-		url.URL{},
-		int64(model.GetIntSetting("preview_timeout", 60)),
-		false,
-		0,
-	)
+	downloadURL, err := handler.Source(ctx, path, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -339,14 +332,7 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 }
 
 // Source 获取外链URL
-func (handler *Driver) Source(
-	ctx context.Context,
-	path string,
-	baseURL url.URL,
-	ttl int64,
-	isDownload bool,
-	speed int,
-) (string, error) {
+func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 初始化客户端
 	usePublicEndpoint := true
 	if forceUsePublicEndpoint, ok := ctx.Value(fsctx.ForceUsePublicEndpointCtx).(bool); ok {

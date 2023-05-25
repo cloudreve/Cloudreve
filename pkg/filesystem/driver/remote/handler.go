@@ -124,7 +124,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 	}
 
 	// 获取文件源地址
-	downloadURL, err := handler.Source(ctx, path, url.URL{}, 0, true, speedLimit)
+	downloadURL, err := handler.Source(ctx, path, 0, true, speedLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -233,14 +233,7 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 }
 
 // Source 获取外链URL
-func (handler *Driver) Source(
-	ctx context.Context,
-	path string,
-	baseURL url.URL,
-	ttl int64,
-	isDownload bool,
-	speed int,
-) (string, error) {
+func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 尝试从上下文获取文件名
 	fileName := "file"
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {

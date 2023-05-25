@@ -57,14 +57,7 @@ func (fs *FileSystem) GetThumb(ctx context.Context, id uint) (*response.ContentR
 				res = &response.ContentResponse{
 					Redirect: true,
 				}
-				res.URL, err = fs.Handler.Source(
-					ctx,
-					file.ThumbFile(),
-					*model.GetSiteURL(),
-					int64(model.GetIntSetting("preview_timeout", 60)),
-					false,
-					0,
-				)
+				res.URL, err = fs.Handler.Source(ctx, file.ThumbFile(), int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 			} else {
 				// if not exist, generate and upload the sidecar thumb.
 				if err = fs.generateThumbnail(ctx, &file); err == nil {
