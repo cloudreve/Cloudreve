@@ -345,7 +345,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	fileName := path.Base(reqPath)
 	filePath := path.Dir(reqPath)
 	fileData := fsctx.FileStream{
-		MIMEType:    r.Header.Get("Content-Type"),
+		MimeType:    r.Header.Get("Content-Type"),
 		File:        r.Body,
 		Size:        fileSize,
 		Name:        fileName,

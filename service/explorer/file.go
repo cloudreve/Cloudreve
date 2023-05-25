@@ -408,7 +408,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	}
 
 	fileData := fsctx.FileStream{
-		MIMEType: c.Request.Header.Get("Content-Type"),
+		MimeType: c.Request.Header.Get("Content-Type"),
 		File:     c.Request.Body,
 		Size:     fileSize,
 		Mode:     fsctx.Overwrite,

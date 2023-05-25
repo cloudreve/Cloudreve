@@ -2,6 +2,7 @@ package fsctx
 
 import (
 	"errors"
+	"github.com/HFO4/aliyun-oss-go-sdk/oss"
 	"io"
 	"time"
 )
@@ -17,7 +18,7 @@ const (
 
 type UploadTaskInfo struct {
 	Size            uint64
-	MIMEType        string
+	MimeType        string
 	FileName        string
 	VirtualPath     string
 	Mode            WriteMode
@@ -28,6 +29,15 @@ type UploadTaskInfo struct {
 	AppendStart     uint64
 	Model           interface{}
 	Src             string
+}
+
+// Get mimetype of uploaded file, if it's not defined, detect it from file name
+func (u *UploadTaskInfo) DetectMimeType() string {
+	if u.MimeType != "" {
+		return u.MimeType
+	}
+
+	return oss.TypeByExtension(u.FileName)
 }
 
 // FileHeader 上传来的文件数据处理器
@@ -51,7 +61,7 @@ type FileStream struct {
 	Size            uint64
 	VirtualPath     string
 	Name            string
-	MIMEType        string
+	MimeType        string
 	SavePath        string
 	UploadSessionID *string
 	AppendStart     uint64
@@ -90,7 +100,7 @@ func (file *FileStream) Seekable() bool {
 func (file *FileStream) Info() *UploadTaskInfo {
 	return &UploadTaskInfo{
 		Size:            file.Size,
-		MIMEType:        file.MIMEType,
+		MimeType:        file.MimeType,
 		FileName:        file.Name,
 		VirtualPath:     file.VirtualPath,
 		Mode:            file.Mode,

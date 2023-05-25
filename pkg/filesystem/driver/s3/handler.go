@@ -326,9 +326,10 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	// 创建分片上传
 	expires := time.Now().Add(time.Duration(ttl) * time.Second)
 	res, err := handler.svc.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
-		Bucket:  &handler.Policy.BucketName,
-		Key:     &fileInfo.SavePath,
-		Expires: &expires,
+		Bucket:      &handler.Policy.BucketName,
+		Key:         &fileInfo.SavePath,
+		Expires:     &expires,
+		ContentType: aws.String(fileInfo.DetectMimeType()),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create multipart upload: %w", err)
