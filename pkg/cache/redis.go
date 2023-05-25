@@ -66,8 +66,7 @@ func NewRedisStore(size int, network, address, password, database string) *Redis
 					redis.DialPassword(password),
 				)
 				if err != nil {
-					util.Log().Warning("Failed to create Redis connection: %s", err)
-					return nil, err
+					util.Log().Panic("Failed to create Redis connection: %s", err)
 				}
 				return c, nil
 			},
