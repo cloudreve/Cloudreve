@@ -5,6 +5,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"google.golang.org/api/drive/v3"
 )
 
 // Client Google Drive client
@@ -39,7 +40,7 @@ const (
 var (
 	// Defualt required scopes
 	RequiredScope = []string{
-		"https://www.googleapis.com/auth/drive",
+		drive.DriveScope,
 		"openid",
 		"profile",
 		"https://www.googleapis.com/auth/userinfo.profile",

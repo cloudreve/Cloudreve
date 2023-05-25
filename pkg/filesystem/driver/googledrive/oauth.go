@@ -14,26 +14,6 @@ import (
 	"time"
 )
 
-// Credential 获取token时返回的凭证
-type Credential struct {
-	ExpiresIn    int64  `json:"expires_in"`
-	Scope        string `json:"scope"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	UserID       string `json:"user_id"`
-}
-
-// OAuthError OAuth相关接口的错误响应
-type OAuthError struct {
-	ErrorType        string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-}
-
-// Error 实现error接口
-func (err OAuthError) Error() string {
-	return err.ErrorDescription
-}
-
 // OAuthURL 获取OAuth认证页面URL
 func (client *Client) OAuthURL(ctx context.Context, scope []string) string {
 	query := url.Values{
