@@ -73,7 +73,7 @@ func (p GeneratorList) Generate(ctx context.Context, file io.Reader, src, name s
 				continue
 			}
 
-			if res.Continue {
+			if res != nil && res.Continue {
 				util.Log().Debug("Generator %s for %s returned continue, passing through to next generator.", reflect.TypeOf(generator).String(), name)
 
 				// defer cleanup funcs
