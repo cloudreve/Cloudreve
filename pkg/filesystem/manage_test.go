@@ -682,7 +682,7 @@ func TestFileSystem_Rename(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)files(.+)SET(.+)").
-			WithArgs("new.txt", 10).
+			WithArgs(sqlmock.AnyArg(), "new.txt", sqlmock.AnyArg(), 10).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
 		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")
@@ -708,7 +708,7 @@ func TestFileSystem_Rename(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(10, "old.text"))
 		mock.ExpectBegin()
 		mock.ExpectExec("UPDATE(.+)files(.+)SET(.+)").
-			WithArgs("new.txt", 10).
+			WithArgs(sqlmock.AnyArg(), "new.txt", sqlmock.AnyArg(), 10).
 			WillReturnError(errors.New("error"))
 		mock.ExpectRollback()
 		err := fs.Rename(ctx, []uint{}, []uint{10}, "new.txt")

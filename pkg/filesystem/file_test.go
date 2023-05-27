@@ -352,8 +352,6 @@ func TestFileSystem_GetSource(t *testing.T) {
 				sqlmock.NewRows([]string{"id", "type", "is_origin_link_enable"}).
 					AddRow(35, "local", true),
 			)
-		// 查找站点URL
-		mock.ExpectQuery("SELECT(.+)").WithArgs("siteURL").WillReturnRows(sqlmock.NewRows([]string{"id", "value"}).AddRow(1, "https://cloudreve.org"))
 
 		sourceURL, err := fs.GetSource(ctx, 2)
 		asserts.NoError(mock.ExpectationsWereMet())

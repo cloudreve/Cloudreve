@@ -433,6 +433,7 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	options := []oss.Option{
 		oss.Expires(time.Now().Add(time.Duration(ttl) * time.Second)),
 		oss.ForbidOverWrite(true),
+		oss.ContentType(fileInfo.DetectMimeType()),
 	}
 	imur, err := handler.bucket.InitiateMultipartUpload(fileInfo.SavePath, options...)
 	if err != nil {

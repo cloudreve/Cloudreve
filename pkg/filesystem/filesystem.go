@@ -8,6 +8,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/cos"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/googledrive"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/local"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/onedrive"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
@@ -177,7 +178,7 @@ func (fs *FileSystem) DispatchHandler() error {
 		fs.Handler = handler
 		return err
 	case "googledrive":
-		handler, err := googledrive.NewDriver(policy)
+		handler, err := googledrive.NewDriver(currentPolicy)
 		fs.Handler = handler
 		return err
 	default:

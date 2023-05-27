@@ -16,13 +16,13 @@ func TestNewRedisStore(t *testing.T) {
 	store := NewRedisStore(10, "tcp", "", "", "0")
 	asserts.NotNil(store)
 
-	conn, err := store.pool.Dial()
-	asserts.Nil(conn)
-	asserts.Error(err)
+	asserts.Panics(func() {
+		store.pool.Dial()
+	})
 
 	testConn := redigomock.NewConn()
 	cmd := testConn.Command("PING").Expect("PONG")
-	err = store.pool.TestOnBorrow(testConn, time.Now())
+	err := store.pool.TestOnBorrow(testConn, time.Now())
 	if testConn.Stats(cmd) != 1 {
 		fmt.Println("Command was not used")
 		return

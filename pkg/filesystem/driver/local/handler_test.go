@@ -11,7 +11,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"io"
-	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -190,13 +189,10 @@ func TestHandler_Source(t *testing.T) {
 			Name: "test.jpg",
 		}
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		sourceURL, err := handler.Source(ctx, "", 0, false, 0)
 		asserts.NoError(err)
 		asserts.NotEmpty(sourceURL)
 		asserts.Contains(sourceURL, "sign=")
-		asserts.Contains(sourceURL, "https://cloudreve.org")
 	}
 
 	// 下载
@@ -208,21 +204,16 @@ func TestHandler_Source(t *testing.T) {
 			Name: "test.jpg",
 		}
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, true, 0)
+		sourceURL, err := handler.Source(ctx, "", 0, true, 0)
 		asserts.NoError(err)
 		asserts.NotEmpty(sourceURL)
 		asserts.Contains(sourceURL, "sign=")
 		asserts.Contains(sourceURL, "download")
-		asserts.Contains(sourceURL, "https://cloudreve.org")
 	}
 
 	// 无法获取上下文
 	{
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		sourceURL, err := handler.Source(ctx, "", 0, false, 0)
 		asserts.Error(err)
 		asserts.Empty(sourceURL)
 	}
@@ -237,9 +228,7 @@ func TestHandler_Source(t *testing.T) {
 			Name: "test.jpg",
 		}
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		sourceURL, err := handler.Source(ctx, "", 0, false, 0)
 		asserts.NoError(err)
 		asserts.NotEmpty(sourceURL)
 		asserts.Contains(sourceURL, "sign=")
@@ -256,9 +245,7 @@ func TestHandler_Source(t *testing.T) {
 			Name: "test.jpg",
 		}
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		sourceURL, err := handler.Source(ctx, "", *baseURL, 0, false, 0)
+		sourceURL, err := handler.Source(ctx, "", 0, false, 0)
 		asserts.Error(err)
 		asserts.Empty(sourceURL)
 	}
@@ -279,19 +266,14 @@ func TestHandler_GetDownloadURL(t *testing.T) {
 			Name: "test.jpg",
 		}
 		ctx := context.WithValue(ctx, fsctx.FileModelCtx, file)
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		downloadURL, err := handler.Source(ctx, "", *baseURL, 10, true, 0)
+		downloadURL, err := handler.Source(ctx, "", 10, true, 0)
 		asserts.NoError(err)
 		asserts.Contains(downloadURL, "sign=")
-		asserts.Contains(downloadURL, "https://cloudreve.org")
 	}
 
 	// 无法获取上下文
 	{
-		baseURL, err := url.Parse("https://cloudreve.org")
-		asserts.NoError(err)
-		downloadURL, err := handler.Source(ctx, "", *baseURL, 10, true, 0)
+		downloadURL, err := handler.Source(ctx, "", 10, true, 0)
 		asserts.Error(err)
 		asserts.Empty(downloadURL)
 	}
