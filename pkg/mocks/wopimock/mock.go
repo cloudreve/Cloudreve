@@ -10,7 +10,7 @@ type WopiClientMock struct {
 	mock.Mock
 }
 
-func (w *WopiClientMock) NewSession(user *model.User, file *model.File, action wopi.ActonType) (*wopi.Session, error) {
+func (w *WopiClientMock) NewSession(user uint, file *model.File, action wopi.ActonType) (*wopi.Session, error) {
 	args := w.Called(user, file, action)
 	return args.Get(0).(*wopi.Session), args.Error(1)
 }
