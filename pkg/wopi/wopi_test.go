@@ -55,7 +55,7 @@ func TestNewSession(t *testing.T) {
 		).Return(&request.Response{
 			Err: expectedErr,
 		})
-		res, err := client.NewSession(&model.User{}, &model.File{}, ActionPreview)
+		res, err := client.NewSession(0, &model.File{}, ActionPreview)
 		a.Nil(res)
 		a.ErrorIs(err, expectedErr)
 		mockHttp.AssertExpectations(t)
@@ -65,7 +65,7 @@ func TestNewSession(t *testing.T) {
 	{
 		client.discovery = &WopiDiscovery{}
 		client.actions = make(map[string]map[string]Action)
-		res, err := client.NewSession(&model.User{}, &model.File{}, ActionPreview)
+		res, err := client.NewSession(0, &model.File{}, ActionPreview)
 		a.Nil(res)
 		a.ErrorIs(err, ErrActionNotSupported)
 	}
@@ -76,7 +76,7 @@ func TestNewSession(t *testing.T) {
 		client.actions = map[string]map[string]Action{
 			".doc": {},
 		}
-		res, err := client.NewSession(&model.User{}, &model.File{Name: "1.doc"}, ActionPreview)
+		res, err := client.NewSession(0, &model.File{Name: "1.doc"}, ActionPreview)
 		a.Nil(res)
 		a.ErrorIs(err, ErrActionNotSupported)
 	}
@@ -91,7 +91,7 @@ func TestNewSession(t *testing.T) {
 				},
 			},
 		}
-		res, err := client.NewSession(&model.User{}, &model.File{Name: "1.doc"}, ActionEdit)
+		res, err := client.NewSession(0, &model.File{Name: "1.doc"}, ActionEdit)
 		a.Nil(res)
 		a.ErrorContains(err, "invalid control character in URL")
 	}
@@ -106,7 +106,7 @@ func TestNewSession(t *testing.T) {
 				},
 			},
 		}
-		res, err := client.NewSession(&model.User{}, &model.File{Name: "1.doc"}, ActionEdit)
+		res, err := client.NewSession(0, &model.File{Name: "1.doc"}, ActionEdit)
 		a.NotNil(res)
 		a.NoError(err)
 		resUrl := res.ActionURL.String()
@@ -123,7 +123,7 @@ func TestNewSession(t *testing.T) {
 				},
 			},
 		}
-		res, err := client.NewSession(&model.User{}, &model.File{Name: "1.doc"}, ActionEdit)
+		res, err := client.NewSession(0, &model.File{Name: "1.doc"}, ActionEdit)
 		a.NotNil(res)
 		a.NoError(err)
 		resUrl := res.ActionURL.String()
@@ -147,7 +147,7 @@ func TestNewSession(t *testing.T) {
 			},
 		}
 		mockCache.On("Set", testMock.Anything, testMock.Anything, testMock.Anything).Return(expectedErr)
-		res, err := client.NewSession(&model.User{}, &model.File{Name: "1.doc"}, ActionEdit)
+		res, err := client.NewSession(0, &model.File{Name: "1.doc"}, ActionEdit)
 		a.Nil(res)
 		a.ErrorIs(err, expectedErr)
 	}

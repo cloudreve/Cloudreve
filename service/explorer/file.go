@@ -245,7 +245,7 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 			action = wopi.ActionEdit
 		}
 
-		session, err := wopi.Default.NewSession(fs.User, &fs.FileTarget[0], action)
+		session, err := wopi.Default.NewSession(fs.FileTarget[0].UserID, &fs.FileTarget[0], action)
 		if err != nil {
 			return serializer.Err(serializer.CodeInternalSetting, "Failed to create WOPI session", err)
 		}
