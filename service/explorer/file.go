@@ -227,6 +227,10 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
 
+	if strings.HasPrefix(downloadURL, "/") {
+		downloadURL = path.Join(model.GetSiteURL().String(), downloadURL)
+	}
+
 	var resp serializer.DocPreviewSession
 
 	// Use WOPI preview if available
