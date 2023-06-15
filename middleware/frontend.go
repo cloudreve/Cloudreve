@@ -66,7 +66,7 @@ func FrontendFileHandler() gin.HandlerFunc {
 			return
 		}
 
-		if path == "/service-worker.js" {
+		if path == "/service-worker.js" || path == "/index.html" {
 			c.Header("Cache-Control", "public, no-cache")
 		}
 
