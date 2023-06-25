@@ -134,7 +134,7 @@ func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) e
 
 	// Provide file source path for local policy files
 	src := ""
-	if file.GetPolicy().Type == "local" {
+	if conf.SystemConfig.Mode == "slave" || file.GetPolicy().Type == "local" {
 		src = file.SourceName
 	}
 
