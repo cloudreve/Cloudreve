@@ -1,5 +1,14 @@
 version: "3.8"
 services:
+  redis:
+    container_name: redis
+    image: bitnami/redis:latest
+    restart: unless-stopped
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - redis_data:/bitnami/redis/data
+
   cloudreve:
     container_name: cloudreve
     image: cloudreve/cloudreve:latest
@@ -14,6 +23,7 @@ services:
       - ./cloudreve/avatar:/cloudreve/avatar
     depends_on:
       - aria2
+
   aria2:
     container_name: aria2
     image: p3terx/aria2-pro # third party image, please keep notice what you are doing
@@ -25,6 +35,8 @@ services:
       - ./aria2/config:/config
       - temp_data:/data
 volumes:
+  redis_data:
+    driver: local
   temp_data:
     driver: local
     driver_opts:
