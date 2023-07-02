@@ -28,4 +28,4 @@ jobs:
           version: latest
           args: release --clean --skip-validate
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
