@@ -312,7 +312,9 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 		return nil, errors.New("failed to get thumbnail size")
 	}
 
-	thumbParam := fmt.Sprintf("image/resize,m_lfit,h_%d,w_%d", thumbSize[1], thumbSize[0])
+	thumbEncodeQuality := model.GetIntSetting("thumb_encode_quality", 85)
+
+	thumbParam := fmt.Sprintf("image/resize,m_lfit,h_%d,w_%d/quality,q_%d", thumbSize[1], thumbSize[0], thumbEncodeQuality)
 	ctx = context.WithValue(ctx, fsctx.ThumbSizeCtx, thumbParam)
 	thumbOption := []oss.Option{oss.Process(thumbParam)}
 	thumbURL, err := handler.signSourceURL(
