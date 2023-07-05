@@ -242,10 +242,12 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 		ok        = false
 	)
 	if thumbSize, ok = ctx.Value(fsctx.ThumbSizeCtx).([2]uint); !ok {
-		return nil, errors.New("无法获取缩略图尺寸设置")
+		return nil, errors.New("failed to get thumbnail size")
 	}
 
-	thumb := fmt.Sprintf("%s?imageView2/1/w/%d/h/%d", file.SourceName, thumbSize[0], thumbSize[1])
+	thumbEncodeQuality := model.GetIntSetting("thumb_encode_quality", 85)
+
+	thumb := fmt.Sprintf("%s?imageView2/1/w/%d/h/%d/q/%d", file.SourceName, thumbSize[0], thumbSize[1], thumbEncodeQuality)
 	return &response.ContentResponse{
 		Redirect: true,
 		URL: handler.signSourceURL(
