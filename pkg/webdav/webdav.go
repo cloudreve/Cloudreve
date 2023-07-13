@@ -496,7 +496,16 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 				return http.StatusBadRequest, errInvalidDepth
 			}
 		}
-		return copyFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") != "F", depth, 0)
+		status, err = copyFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") != "F", depth, 0)
+		if err != nil {
+			return status, err
+		}
+
+		err = updateCopyMoveModtime(r, fs, dst)
+		if err != nil {
+			return http.StatusInternalServerError, err
+		}
+		return status, nil
 	}
 
 	// windows下，某些情况下（网盘根目录下）Office保存文件时附带的锁token只包含源文件，
@@ -515,7 +524,16 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request, fs *fil
 			return http.StatusBadRequest, errInvalidDepth
 		}
 	}
-	return moveFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") == "T")
+	status, err = moveFiles(ctx, fs, target, dst, r.Header.Get("Overwrite") == "T")
+	if err != nil {
+		return status, err
+	}
+
+	err = updateCopyMoveModtime(r, fs, dst)
+	if err != nil {
+		return http.StatusInternalServerError, err
+	}
+	return status, nil
 }
 
 // OK

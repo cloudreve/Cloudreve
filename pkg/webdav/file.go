@@ -9,9 +9,12 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 )
 
 // slashClean is equivalent to but slightly more efficient than
@@ -21,6 +24,31 @@ func slashClean(name string) string {
 		name = "/" + name
 	}
 	return path.Clean(name)
+}
+
+// 更新Copy或Move后的修改时间
+func updateCopyMoveModtime(req *http.Request, fs *filesystem.FileSystem, dst string) error {
+	var modtime time.Time
+	if timeVal := req.Header.Get("X-OC-Mtime"); timeVal != "" {
+		timeUnix, err := strconv.ParseInt(timeVal, 10, 64)
+		if err == nil {
+			modtime = time.Unix(timeUnix, 0)
+		}
+	}
+
+	if modtime.IsZero() {
+		return nil
+	}
+
+	ok, fi := isPathExist(req.Context(), fs, dst)
+	if !ok {
+		return nil
+	}
+
+	if fi.IsDir() {
+		return model.DB.Model(fi.(*model.Folder)).UpdateColumn("updated_at", modtime).Error
+	}
+	return model.DB.Model(fi.(*model.File)).UpdateColumn("updated_at", modtime).Error
 }
 
 // moveFiles moves files and/or directories from src to dst.
@@ -44,20 +72,17 @@ func moveFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 		}
 	}
 
-
 	// 判断是否需要移动
 	if src.GetPosition() != path.Dir(dst) {
 		err = fs.Move(
-			ctx,
+			context.WithValue(ctx, fsctx.WebdavDstName, path.Base(dst)),
 			folderIDs,
 			fileIDs,
 			src.GetPosition(),
 			path.Dir(dst),
 		)
-	}
-
-	// 判断是否需要重命名
-	if err == nil && src.GetName() != path.Base(dst) {
+	} else if src.GetName() != path.Base(dst) {
+		// 判断是否需要重命名
 		err = fs.Rename(
 			ctx,
 			folderIDs,
@@ -81,7 +106,6 @@ func copyFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 	}
 	recursion++
 
-
 	var (
 		fileIDs   []uint
 		folderIDs []uint
@@ -100,7 +124,7 @@ func copyFiles(ctx context.Context, fs *filesystem.FileSystem, src FileInfo, dst
 	}
 
 	err = fs.Copy(
-		ctx,
+		context.WithValue(ctx, fsctx.WebdavDstName, path.Base(dst)),
 		folderIDs,
 		fileIDs,
 		src.GetPosition(),
