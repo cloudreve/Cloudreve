@@ -225,7 +225,7 @@ func InitMasterRouter() *gin.Engine {
 					middleware.StaticResourceCache(),
 					controllers.AnonymousGetContent,
 				)
-				// 文件外链(301跳转)
+				// 文件外链(302跳转)
 				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
 				// 下载文件
 				file.GET("download/:id",

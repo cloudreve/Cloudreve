@@ -279,7 +279,7 @@ func (h *Handler) handleGetHeadPost(w http.ResponseWriter, r *http.Request, fs *
 		return 0, nil
 	}
 
-	http.Redirect(w, r, rs.URL, 301)
+	http.Redirect(w, r, rs.URL, 302)
 
 	return 0, nil
 }
