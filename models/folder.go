@@ -18,7 +18,8 @@ type Folder struct {
 	OwnerID  uint   `gorm:"index:owner_id"`
 
 	// 数据库忽略字段
-	Position string `gorm:"-"`
+	Position      string `gorm:"-"`
+	WebdavDstName string `gorm:"-"`
 }
 
 // Create 创建目录
@@ -169,6 +170,11 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 			oldFile.FolderID = dstFolder.ID
 			oldFile.UserID = dstFolder.OwnerID
 
+			// webdav目标名重置
+			if dstFolder.WebdavDstName != "" {
+				oldFile.Name = dstFolder.WebdavDstName
+			}
+
 			if err := DB.Create(&oldFile).Error; err != nil {
 				return copiedSize, err
 			}
@@ -177,6 +183,14 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 		}
 
 	} else {
+		var updates = map[string]interface{}{
+			"folder_id": dstFolder.ID,
+		}
+		// webdav目标名重置
+		if dstFolder.WebdavDstName != "" {
+			updates["name"] = dstFolder.WebdavDstName
+		}
+
 		// 更改顶级要移动文件的父目录指向
 		err := DB.Model(File{}).Where(
 			"id in (?) and user_id = ? and folder_id = ?",
@@ -184,9 +198,7 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 			folder.OwnerID,
 			folder.ID,
 		).
-			Update(map[string]interface{}{
-				"folder_id": dstFolder.ID,
-			}).
+			Update(updates).
 			Error
 		if err != nil {
 			return 0, err
@@ -221,6 +233,10 @@ func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint6
 		// 顶级目录直接指向新的目的目录
 		if folder.ID == folderID {
 			newID = dstFolder.ID
+			// webdav目标名重置
+			if dstFolder.WebdavDstName != "" {
+				folder.Name = dstFolder.WebdavDstName
+			}
 		} else if IDCache, ok := newIDCache[*folder.ParentID]; ok {
 			newID = IDCache
 		} else {
@@ -282,15 +298,21 @@ func (folder *Folder) MoveFolderTo(dirs []uint, dstFolder *Folder) error {
 		return errors.New("cannot move a folder into itself")
 	}
 
+	var updates = map[string]interface{}{
+		"parent_id": dstFolder.ID,
+	}
+	// webdav目标名重置
+	if dstFolder.WebdavDstName != "" {
+		updates["name"] = dstFolder.WebdavDstName
+	}
+
 	// 更改顶级要移动目录的父目录指向
 	err := DB.Model(Folder{}).Where(
 		"id in (?) and owner_id = ? and parent_id = ?",
 		dirs,
 		folder.OwnerID,
 		folder.ID,
-	).Update(map[string]interface{}{
-		"parent_id": dstFolder.ID,
-	}).Error
+	).Update(updates).Error
 
 	return err
 

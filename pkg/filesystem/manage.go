@@ -69,6 +69,11 @@ func (fs *FileSystem) Copy(ctx context.Context, dirs, files []uint, src, dst str
 	// 记录复制的文件的总容量
 	var newUsedStorage uint64
 
+	// 设置webdav目标名
+	if dstName, ok := ctx.Value(fsctx.WebdavDstName).(string); ok {
+		dstFolder.WebdavDstName = dstName
+	}
+
 	// 复制目录
 	if len(dirs) > 0 {
 		subFileSizes, err := srcFolder.CopyFolderTo(dirs[0], dstFolder)
@@ -101,6 +106,11 @@ func (fs *FileSystem) Move(ctx context.Context, dirs, files []uint, src, dst str
 	// 不存在时返回空的结果
 	if !isDstExist || !isSrcExist {
 		return ErrPathNotExist
+	}
+
+	// 设置webdav目标名
+	if dstName, ok := ctx.Value(fsctx.WebdavDstName).(string); ok {
+		dstFolder.WebdavDstName = dstName
 	}
 
 	// 处理目录及子文件移动
