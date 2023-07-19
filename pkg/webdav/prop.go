@@ -49,7 +49,7 @@ func (file *FileDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
 				var modtimeUnix int64
 				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
 				if err == nil {
-					err = model.DB.Model(file).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+					err = model.DB.Model(file.File).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
 				}
 			}
 		}
@@ -78,7 +78,7 @@ func (folder *FolderDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error
 				var modtimeUnix int64
 				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
 				if err == nil {
-					err = model.DB.Model(folder).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+					err = model.DB.Model(folder.Folder).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
 				}
 			}
 		}

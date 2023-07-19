@@ -21,6 +21,7 @@ func Init() {
 			10,
 			conf.RedisConfig.Network,
 			conf.RedisConfig.Server,
+			conf.RedisConfig.User,
 			conf.RedisConfig.Password,
 			conf.RedisConfig.DB,
 		)

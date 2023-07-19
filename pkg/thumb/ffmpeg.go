@@ -67,9 +67,8 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 
 	// Invoke ffmpeg
 	scaleOpt := fmt.Sprintf("scale=%s:%s:force_original_aspect_ratio=decrease", options["thumb_width"], options["thumb_height"])
-	inputFormat := filepath.Ext(name)[1:]
 	cmd := exec.CommandContext(ctx,
-		ffmpegOpts["thumb_ffmpeg_path"], "-ss", ffmpegOpts["thumb_ffmpeg_seek"], "-f", inputFormat, "-i", tempInputPath,
+		ffmpegOpts["thumb_ffmpeg_path"], "-ss", ffmpegOpts["thumb_ffmpeg_seek"], "-i", tempInputPath,
 		"-vf", scaleOpt, "-vframes", "1", tempOutputPath)
 
 	// Redirect IO

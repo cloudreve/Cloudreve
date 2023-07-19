@@ -44,7 +44,7 @@ func deserializer(value []byte) (interface{}, error) {
 }
 
 // NewRedisStore 创建新的redis存储
-func NewRedisStore(size int, network, address, password, database string) *RedisStore {
+func NewRedisStore(size int, network, address, user, password, database string) *RedisStore {
 	return &RedisStore{
 		pool: &redis.Pool{
 			MaxIdle:     size,
@@ -63,6 +63,7 @@ func NewRedisStore(size int, network, address, password, database string) *Redis
 					network,
 					address,
 					redis.DialDatabase(db),
+					redis.DialUsername(user),
 					redis.DialPassword(password),
 				)
 				if err != nil {
