@@ -180,7 +180,7 @@ func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Conte
 
 	// 获取文件流
 	ttl := int64(model.GetIntSetting("preview_timeout", 60))
-	res, err := fs.SignURL(ctx, &fs.FileTarget[0], ttl, false)
+	res, err := fs.SignURL(ctx, &fs.FileTarget[0], ttl, true)
 	if err != nil {
 		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
 	}
