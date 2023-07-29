@@ -721,8 +721,8 @@ func InitMasterRouter() *gin.Engine {
 				webdav.POST("accounts", controllers.CreateWebDAVAccounts)
 				// 删除账号
 				webdav.DELETE("accounts/:id", controllers.DeleteWebDAVAccounts)
-				// 更新账号可读性
-				webdav.PATCH("accounts", controllers.UpdateWebDAVAccountsReadonly)
+				// 更新账号可读性和是否使用代理服务
+				webdav.PATCH("accounts", controllers.UpdateWebDAVAccounts)
 			}
 
 		}

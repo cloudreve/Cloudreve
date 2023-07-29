@@ -116,6 +116,11 @@ func WebDAVAuth() gin.HandlerFunc {
 			return
 		}
 
+		// 用户组已启用WebDAV代理？
+		if !expectedUser.Group.OptionsSerialized.WebDAVProxy {
+			webdav.UseProxy = false
+		}
+
 		c.Set("user", &expectedUser)
 		c.Set("webdav", webdav)
 		c.Next()

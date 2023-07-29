@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"context"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
 	"github.com/cloudreve/Cloudreve/v3/service/setting"
@@ -49,6 +51,9 @@ func ServeWebDAV(c *gin.Context) {
 				return
 			}
 		}
+
+		// 更新Context
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), fsctx.WebDAVCtx, application))
 	}
 
 	handler.ServeHTTP(c.Writer, c.Request, fs)
@@ -76,9 +81,9 @@ func DeleteWebDAVAccounts(c *gin.Context) {
 	}
 }
 
-// UpdateWebDAVAccountsReadonly 更改WebDAV账户只读性
-func UpdateWebDAVAccountsReadonly(c *gin.Context) {
-	var service setting.WebDAVAccountUpdateReadonlyService
+// UpdateWebDAVAccounts 更改WebDAV账户只读性和是否使用代理服务
+func UpdateWebDAVAccounts(c *gin.Context) {
+	var service setting.WebDAVAccountUpdateService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Update(c, CurrentUser(c))
 		c.JSON(200, res)

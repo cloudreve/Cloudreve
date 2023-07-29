@@ -35,6 +35,7 @@ type GroupOption struct {
 	RedirectedSource bool                   `json:"redirected_source,omitempty"`
 	Aria2BatchSize   int                    `json:"aria2_batch,omitempty"`
 	AdvanceDelete    bool                   `json:"advance_delete,omitempty"`
+	WebDAVProxy      bool                   `json:"webdav_proxy,omitempty"`
 }
 
 // GetGroupByID 用ID获取用户组

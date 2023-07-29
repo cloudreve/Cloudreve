@@ -37,4 +37,8 @@ const (
 	SlaveSrcPath
 	// Webdav目标名称
 	WebdavDstName
+	// WebDAVCtx WebDAV
+	WebDAVCtx
+	// WebDAV反代Url
+	WebDAVProxyUrlCtx
 )

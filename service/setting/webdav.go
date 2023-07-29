@@ -22,10 +22,11 @@ type WebDAVAccountCreateService struct {
 	Name string `json:"name" binding:"required,min=1,max=255"`
 }
 
-// WebDAVAccountUpdateReadonlyService WebDAV 修改只读性服务
-type WebDAVAccountUpdateReadonlyService struct {
-	ID       uint `json:"id" binding:"required,min=1"`
-	Readonly bool `json:"readonly"`
+// WebDAVAccountUpdateService WebDAV 修改只读性和是否使用代理服务
+type WebDAVAccountUpdateService struct {
+	ID       uint  `json:"id" binding:"required,min=1"`
+	Readonly *bool `json:"readonly" binding:"required_without=UseProxy"`
+	UseProxy *bool `json:"use_proxy" binding:"required_without=Readonly"`
 }
 
 // WebDAVMountCreateService WebDAV 挂载创建服务
@@ -62,12 +63,17 @@ func (service *WebDAVAccountService) Delete(c *gin.Context, user *model.User) se
 	return serializer.Response{}
 }
 
-// Update 修改WebDAV账户的只读性
-func (service *WebDAVAccountUpdateReadonlyService) Update(c *gin.Context, user *model.User) serializer.Response {
-	model.UpdateWebDAVAccountReadonlyByID(service.ID, user.ID, service.Readonly)
-	return serializer.Response{Data: map[string]bool{
-		"readonly": service.Readonly,
-	}}
+// Update 修改WebDAV账户只读性和是否使用代理服务
+func (service *WebDAVAccountUpdateService) Update(c *gin.Context, user *model.User) serializer.Response {
+	var updates = make(map[string]interface{})
+	if service.Readonly != nil {
+		updates["readonly"] = *service.Readonly
+	}
+	if service.UseProxy != nil {
+		updates["use_proxy"] = *service.UseProxy
+	}
+	model.UpdateWebDAVAccountByID(service.ID, user.ID, updates)
+	return serializer.Response{Data: updates}
 }
 
 // Accounts 列出WebDAV账号
