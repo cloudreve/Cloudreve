@@ -56,6 +56,12 @@ func Init(path string, statics fs.FS) {
 			},
 		},
 		{
+			"slave",
+			func() {
+				model.Init()
+			},
+		},
+		{
 			"master",
 			func() {
 				model.Init()
