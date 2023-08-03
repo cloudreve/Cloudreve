@@ -2,6 +2,8 @@ package filesystem
 
 import (
 	"context"
+	"crypto/md5"
+	"crypto/sha1"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
@@ -9,6 +11,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -282,23 +285,29 @@ func NewWebdavAfterUploadHook(request *http.Request) func(ctx context.Context, f
 			modtime = time.Unix(timeUnix, 0)
 		}
 	}
-	checksum := request.Header.Get("OC-Checksum")
 
 	return func(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
 		file := newFile.Info().Model.(*model.File)
 		if !modtime.IsZero() {
-			err := model.DB.Model(file).UpdateColumn("updated_at", modtime).Error
-			if err != nil {
-				return err
-			}
-		}
-
-		if checksum != "" {
-			return file.UpdateMetadata(map[string]string{
-				model.ChecksumMetadataKey: checksum,
-			})
+			return model.DB.Model(file).UpdateColumn("updated_at", modtime).Error
 		}
 
 		return nil
+	}
+}
+
+// NewChecksumFileStreamAndAfterUploadHook 创建一个计算hash的数据流和相应的钩子函数
+func NewChecksumFileStreamAndAfterUploadHook(rc io.ReadCloser) (io.ReadCloser, Hook) {
+	cfs := &fsctx.ChecksumFileStream{
+		Md5:    md5.New(),
+		Sha1:   sha1.New(),
+		Closer: rc,
+	}
+	cfs.Reader = io.TeeReader(rc, io.MultiWriter(cfs.Md5, cfs.Sha1))
+	return cfs, func(ctx context.Context, fs *FileSystem, newFile fsctx.FileHeader) error {
+		file := newFile.Info().Model.(*model.File)
+		return file.UpdateMetadata(map[string]string{
+			model.ChecksumMetadataKey: cfs.Hash(),
+		})
 	}
 }
