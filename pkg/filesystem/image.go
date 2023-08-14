@@ -117,11 +117,6 @@ func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) e
 	defer cancel()
 	// TODO: check file size
 
-	if file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
-		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
-		return errors.New("file too large")
-	}
-
 	getThumbWorker().addWorker()
 	defer getThumbWorker().releaseWorker()
 
@@ -136,6 +131,24 @@ func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) e
 	src := ""
 	if conf.SystemConfig.Mode == "slave" || file.GetPolicy().Type == "local" {
 		src = file.SourceName
+	} else {
+		ffmpegFormats := strings.Split(model.GetSettingByName("thumb_ffmpeg_exts"), ",")
+		vipsFormats := strings.Split(model.GetSettingByName("thumb_vips_exts"), ",")
+		// 如果文件格式支持 ffmpeg 或 vips 生成缩略图，则使用源文件链接
+		if (util.IsInExtensionList(ffmpegFormats, file.Name) &&
+			model.IsTrueVal(model.GetSettingByName("thumb_ffmpeg_enabled"))) ||
+			(util.IsInExtensionList(vipsFormats, file.Name) &&
+				model.IsTrueVal(model.GetSettingByName("thumb_vips_enabled"))) {
+			src, err = fs.Handler.Source(ctx, file.SourceName, 300, false, 0)
+			if err != nil {
+				util.Log().Warning("failed to get source url, fallback to source download method: %w", err)
+			}
+		}
+	}
+
+	if src == "" && file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
+		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
+		return errors.New("file too large")
 	}
 
 	thumbRes, err := thumb.Generators.Generate(ctx, source, src, file.Name, model.GetSettingByNames(
