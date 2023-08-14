@@ -22,7 +22,7 @@ type VipsGenerator struct {
 	lastRawExts string
 }
 
-func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
+func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, url, name string, options map[string]string) (*Result, error) {
 	vipsOpts := model.GetSettingByNames("thumb_vips_path", "thumb_vips_exts", "thumb_encode_quality", "thumb_encode_method", "temp_path")
 
 	if v.lastRawExts != vipsOpts["thumb_vips_exts"] {

@@ -16,7 +16,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/response"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-)
+	)
 
 /* ================
      图像处理相关
@@ -117,41 +117,35 @@ func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) e
 	defer cancel()
 	// TODO: check file size
 
+	// Provide file source path for local policy files
+	var err error
+	url, src := "", ""
+	if conf.SystemConfig.Mode == "slave" || file.GetPolicy().Type == "local" {
+		src = file.SourceName
+	} else {
+		url, err = fs.Handler.Source(ctx, file.SourceName, 300, false, 0)
+		if err != nil {
+			util.Log().Warning("failed to get slave file download url: %w", err)
+		}
+	}
+
+	// Only check max size for file that will touch local fs
+	if url == "" && file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
+		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
+		return errors.New("file too large")
+	}
+
 	getThumbWorker().addWorker()
 	defer getThumbWorker().releaseWorker()
 
 	// 获取文件数据
 	source, err := fs.Handler.Get(newCtx, file.SourceName)
 	if err != nil {
-		return fmt.Errorf("faield to fetch original file %q: %w", file.SourceName, err)
+		return fmt.Errorf("failed to fetch original file %q: %w", file.SourceName, err)
 	}
 	defer source.Close()
 
-	// Provide file source path for local policy files
-	src := ""
-	if conf.SystemConfig.Mode == "slave" || file.GetPolicy().Type == "local" {
-		src = file.SourceName
-	} else {
-		ffmpegFormats := strings.Split(model.GetSettingByName("thumb_ffmpeg_exts"), ",")
-		vipsFormats := strings.Split(model.GetSettingByName("thumb_vips_exts"), ",")
-		// 如果文件格式支持 ffmpeg 或 vips 生成缩略图，则使用源文件链接
-		if (util.IsInExtensionList(ffmpegFormats, file.Name) &&
-			model.IsTrueVal(model.GetSettingByName("thumb_ffmpeg_enabled"))) ||
-			(util.IsInExtensionList(vipsFormats, file.Name) &&
-				model.IsTrueVal(model.GetSettingByName("thumb_vips_enabled"))) {
-			src, err = fs.Handler.Source(ctx, file.SourceName, 300, false, 0)
-			if err != nil {
-				util.Log().Warning("failed to get source url, fallback to source download method: %w", err)
-			}
-		}
-	}
-
-	if src == "" && file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
-		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
-		return errors.New("file too large")
-	}
-
-	thumbRes, err := thumb.Generators.Generate(ctx, source, src, file.Name, model.GetSettingByNames(
+	thumbRes, err := thumb.Generators.Generate(ctx, source, src, url, file, model.GetSettingByNames(
 		"thumb_width",
 		"thumb_height",
 		"thumb_builtin_enabled",

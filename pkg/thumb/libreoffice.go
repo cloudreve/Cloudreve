@@ -23,7 +23,7 @@ type LibreOfficeGenerator struct {
 	lastRawExts string
 }
 
-func (l *LibreOfficeGenerator) Generate(ctx context.Context, file io.Reader, src string, name string, options map[string]string) (*Result, error) {
+func (l *LibreOfficeGenerator) Generate(ctx context.Context, file io.Reader, src, url, name string, options map[string]string) (*Result, error) {
 	sofficeOpts := model.GetSettingByNames("thumb_libreoffice_path", "thumb_libreoffice_exts", "thumb_encode_method", "temp_path")
 
 	if l.lastRawExts != sofficeOpts["thumb_libreoffice_exts"] {

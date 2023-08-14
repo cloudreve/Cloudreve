@@ -18,7 +18,7 @@ import (
 type Generator interface {
 	// Generate generates a thumbnail for a given reader. Src is the original file path, only provided
 	// for local policy files.
-	Generate(ctx context.Context, file io.Reader, src string, name string, options map[string]string) (*Result, error)
+	Generate(ctx context.Context, file io.Reader, src, url, name string, options map[string]string) (*Result, error)
 
 	// Priority of execution order, smaller value means higher priority.
 	Priority() int
@@ -63,18 +63,24 @@ func RegisterGenerator(generator Generator) {
 	sort.Sort(Generators)
 }
 
-func (p GeneratorList) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
-	inputFile, inputSrc, inputName := file, src, name
+func (p GeneratorList) Generate(ctx context.Context, fileReader io.Reader, src, url string, file *model.File, options map[string]string) (*Result, error) {
+	inputFile, inputSrc, inputUrl, inputName := fileReader, src, url, file.Name
 	for _, generator := range p {
 		if model.IsTrueVal(options[generator.EnableFlag()]) {
-			res, err := generator.Generate(ctx, inputFile, inputSrc, inputName, options)
+			if generator.EnableFlag() == "thumb_ffmpeg_enabled" &&
+				file.Size > uint64(model.GetIntSetting("thumb_max_src_size", 31457280)) {
+				util.Log().Debug("Generator %s failed to generate thumbnail for %s since file too large, passing through to next generator.", reflect.TypeOf(generator).String(), inputName)
+				continue
+			}
+
+			res, err := generator.Generate(ctx, inputFile, inputSrc, inputUrl, inputName, options)
 			if errors.Is(err, ErrPassThrough) {
-				util.Log().Debug("Failed to generate thumbnail using %s for %s: %s, passing through to next generator.", reflect.TypeOf(generator).String(), name, err)
+				util.Log().Debug("Failed to generate thumbnail using %s for %s: %s, passing through to next generator.", reflect.TypeOf(generator).String(), inputName, err)
 				continue
 			}
 
 			if res != nil && res.Continue {
-				util.Log().Debug("Generator %s for %s returned continue, passing through to next generator.", reflect.TypeOf(generator).String(), name)
+				util.Log().Debug("Generator %s for %s returned continue, passing through to next generator.", reflect.TypeOf(generator).String(), inputName)
 
 				// defer cleanup funcs
 				for _, cleanup := range res.Cleanup {

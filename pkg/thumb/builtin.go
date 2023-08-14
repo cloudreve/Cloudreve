@@ -3,7 +3,7 @@ package thumb
 import (
 	"context"
 	"fmt"
-	"image"
+		"image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -157,7 +157,7 @@ func (image *Thumb) CreateAvatar(uid uint) error {
 
 type Builtin struct{}
 
-func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
+func (b Builtin) Generate(ctx context.Context, file io.Reader, src, url, name string, options map[string]string) (*Result, error) {
 	img, err := NewThumbFromFile(file, name)
 	if err != nil {
 		return nil, err

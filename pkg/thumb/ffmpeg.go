@@ -23,7 +23,7 @@ type FfmpegGenerator struct {
 	lastRawExts string
 }
 
-func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
+func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, url, name string, options map[string]string) (*Result, error) {
 	ffmpegOpts := model.GetSettingByNames("thumb_ffmpeg_path", "thumb_ffmpeg_exts", "thumb_ffmpeg_seek", "thumb_encode_method", "temp_path")
 
 	if f.lastRawExts != ffmpegOpts["thumb_ffmpeg_exts"] {
@@ -41,6 +41,9 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 	)
 
 	tempInputPath := src
+	if url != "" {
+		tempInputPath = url
+	}
 	if tempInputPath == "" {
 		// If not local policy files, download to temp folder
 		tempInputPath = filepath.Join(
