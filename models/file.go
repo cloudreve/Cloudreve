@@ -463,7 +463,7 @@ func (file *File) GetPosition() string {
 // `True` does not guarantee the load request will success in next step, but the client
 // should try to load and fallback to default placeholder in case error returned.
 func (file *File) ShouldLoadThumb() bool {
-	return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable
+	return file.MetadataSerialized[ThumbStatusMetadataKey] != ThumbStatusNotAvailable && file.Size != 0
 }
 
 // return sidecar thumb file name
