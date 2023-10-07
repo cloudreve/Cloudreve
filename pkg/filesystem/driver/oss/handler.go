@@ -172,14 +172,25 @@ func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([
 		if err != nil {
 			continue
 		}
-		res = append(res, response.Object{
-			Name:         path.Base(object.Key),
-			Source:       object.Key,
-			RelativePath: filepath.ToSlash(rel),
-			Size:         uint64(object.Size),
-			IsDir:        false,
-			LastModify:   object.LastModified,
-		})
+		// oss sdk返回的数据在多级目录的情况下偶尔有问题，有些目录被当做了文件处理
+		if strings.HasSuffix(object.Key, "/") {
+			res = append(res, response.Object{
+				Name:         path.Base(object.Key),
+				RelativePath: filepath.ToSlash(rel),
+				Size:         0,
+				IsDir:        true,
+				LastModify:   time.Now(),
+			})
+		} else {
+			res = append(res, response.Object{
+				Name:         path.Base(object.Key),
+				Source:       object.Key,
+				RelativePath: filepath.ToSlash(rel),
+				Size:         uint64(object.Size),
+				IsDir:        false,
+				LastModify:   object.LastModified,
+			})
+		}
 	}
 
 	return res, nil
