@@ -20,7 +20,7 @@ type File struct {
 	gorm.Model
 	Name            string `gorm:"unique_index:idx_only_one"`
 	SourceName      string `gorm:"type:text"`
-	UserID          uint   `gorm:"index:user_id;unique_index:idx_only_one"`
+	UserID          int    `gorm:"index:user_id;unique_index:idx_only_one"`
 	Size            uint64
 	PicInfo         string
 	FolderID        uint `gorm:"index:folder_id;unique_index:idx_only_one"`
@@ -63,8 +63,12 @@ func (file *File) Create() error {
 		return err
 	}
 
+	if file.UserID < 0 {
+		return tx.Commit().Error
+	}
+
 	user := &User{}
-	user.ID = file.UserID
+	user.ID = uint(file.UserID)
 	if err := user.ChangeStorage(tx, "+", file.Size); err != nil {
 		tx.Rollback()
 		return err
@@ -254,7 +258,7 @@ func DeleteFiles(files []*File, uid uint) error {
 	user.ID = uid
 	var size uint64
 	for _, file := range files {
-		if uid > 0 && file.UserID != uid {
+		if uid > 0 && file.UserID > 0 && uint(file.UserID) != uid {
 			tx.Rollback()
 			return errors.New("user id not consistent")
 		}
@@ -342,8 +346,6 @@ func (file *File) UpdateSize(value uint64) error {
 	tx := DB.Begin()
 	var sizeDelta uint64
 	operator := "+"
-	user := User{}
-	user.ID = file.UserID
 	if value > file.Size {
 		sizeDelta = value - file.Size
 	} else {
@@ -367,12 +369,17 @@ func (file *File) UpdateSize(value uint64) error {
 		return res.Error
 	}
 
+	file.Size = value
+	if file.UserID < 0 {
+		return tx.Commit().Error
+	}
+	user := User{}
+	user.ID = uint(file.UserID)
 	if err := user.ChangeStorage(tx, operator, sizeDelta); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	file.Size = value
 	return tx.Commit().Error
 }
 

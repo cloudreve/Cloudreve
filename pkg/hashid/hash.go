@@ -56,7 +56,11 @@ func HashDecode(raw string) ([]int, error) {
 
 // HashID 计算数据库内主键对应的HashID
 func HashID(id uint, t int) string {
-	v, _ := HashEncode([]int{int(id), t})
+	return HashIDInt(int(id), t)
+}
+
+func HashIDInt(id int, t int) string {
+	v, _ := HashEncode([]int{id, t})
 	return v
 }
 

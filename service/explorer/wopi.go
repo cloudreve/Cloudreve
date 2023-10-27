@@ -94,7 +94,7 @@ func (service *WopiService) FileInfo(c *gin.Context) (*serializer.WopiFileInfo, 
 		ReadOnly:               true,
 		ClosePostMessage:       true,
 		Size:                   int64(fs.FileTarget[0].Size),
-		OwnerId:                hashid.HashID(fs.FileTarget[0].UserID, hashid.UserID),
+		OwnerId:                hashid.HashIDInt(fs.FileTarget[0].UserID, hashid.UserID),
 	}
 
 	if session.Action == wopi.ActionEdit {

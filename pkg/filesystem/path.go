@@ -29,11 +29,11 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 		currentFolder = fs.Root
 	}
 
-	for _, folderName := range pathList {
+	for i, folderName := range pathList {
 		var err error
 
 		// 根目录
-		if folderName == "/" {
+		if i == 0 && folderName == "/" {
 			if currentFolder != nil {
 				continue
 			}
@@ -42,6 +42,13 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 				return false, nil
 			}
 		} else {
+			if i == 1 {
+				groupFolder := fs.User.Group.GroupFolder
+				if groupFolder != nil && folderName == groupFolder.Name {
+					currentFolder = groupFolder
+					continue
+				}
+			}
 			currentFolder, err = currentFolder.GetChild(folderName)
 			if err != nil {
 				return false, nil

@@ -59,7 +59,7 @@ type Session struct {
 type SessionCache struct {
 	AccessToken string
 	FileID      uint
-	UserID      uint
+	UserID      int
 	Action      ActonType
 }
 

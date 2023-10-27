@@ -3,14 +3,13 @@ package filesystem
 import (
 	"context"
 	"fmt"
-	"path"
-	"strings"
-
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"path"
+	"strings"
 )
 
 /* =================
@@ -288,6 +287,12 @@ func (fs *FileSystem) List(ctx context.Context, dirPath string, pathProcessor fu
 	// 获取子文件
 	childFiles, _ = folder.GetChildFiles()
 
+	if dirPath == "/" {
+		if fs.User.Group.GroupFolder != nil {
+			childFolders = append(childFolders, *fs.User.Group.GroupFolder)
+		}
+	}
+
 	return fs.listObjects(ctx, parentPath, childFiles, childFolders, pathProcessor), nil
 }
 
@@ -336,15 +341,18 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 	// 所有对象的父目录
 	var processedPath string
 
+	// 路径处理钩子，
+	// 所有对象父目录都是一样的，所以只处理一次
+	if pathProcessor != nil {
+		processedPath = pathProcessor(parent)
+	} else {
+		processedPath = parent
+	}
+
 	for _, subFolder := range folders {
-		// 路径处理钩子，
-		// 所有对象父目录都是一样的，所以只处理一次
-		if processedPath == "" {
-			if pathProcessor != nil {
-				processedPath = pathProcessor(parent)
-			} else {
-				processedPath = parent
-			}
+		var key string
+		if subFolder.OwnerID < 0 {
+			key = "group"
 		}
 
 		objects = append(objects, serializer.Object{
@@ -353,20 +361,13 @@ func (fs *FileSystem) listObjects(ctx context.Context, parent string, files []mo
 			Path:       processedPath,
 			Size:       0,
 			Type:       "dir",
+			Key:        key,
 			Date:       subFolder.UpdatedAt,
 			CreateDate: subFolder.CreatedAt,
 		})
 	}
 
 	for _, file := range files {
-		if processedPath == "" {
-			if pathProcessor != nil {
-				processedPath = pathProcessor(parent)
-			} else {
-				processedPath = parent
-			}
-		}
-
 		if file.UploadSessionID == nil {
 			newFile := serializer.Object{
 				ID:            hashid.HashID(file.ID, hashid.FileID),
@@ -431,11 +432,17 @@ func (fs *FileSystem) CreateDirectory(ctx context.Context, fullPath string) (*mo
 		return nil, ErrFileExisted
 	}
 
+	if base == "/" &&
+		fs.User.Group.GroupFolder != nil &&
+		fs.User.Group.GroupFolder.Name == dir {
+		return fs.User.Group.GroupFolder, nil
+	}
+
 	// 创建目录
 	newFolder := model.Folder{
 		Name:     dir,
 		ParentID: &parent.ID,
-		OwnerID:  fs.User.ID,
+		OwnerID:  parent.OwnerID,
 	}
 	_, err := newFolder.Create()
 

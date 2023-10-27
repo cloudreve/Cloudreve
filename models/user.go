@@ -137,6 +137,13 @@ func GetUserByID(ID interface{}) (User, error) {
 func GetActiveUserByID(ID interface{}) (User, error) {
 	var user User
 	result := DB.Set("gorm:auto_preload", true).Where("status = ?", Active).First(&user, ID)
+
+	if user.Group.GroupFolder == nil {
+		folder, ok := user.Group.getGroupFolder()
+		if ok {
+			user.Group.GroupFolder = folder
+		}
+	}
 	return user, result.Error
 }
 
@@ -180,7 +187,7 @@ func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 	// 创建用户的默认根目录
 	defaultFolder := &Folder{
 		Name:    "/",
-		OwnerID: user.ID,
+		OwnerID: int(user.ID),
 	}
 	tx.Create(defaultFolder)
 	return err
@@ -198,7 +205,7 @@ func (user *User) AfterFind() (err error) {
 	return err
 }
 
-//SerializeOptions 将序列后的Option写入到数据库字段
+// SerializeOptions 将序列后的Option写入到数据库字段
 func (user *User) SerializeOptions() (err error) {
 	optionsValue, err := json.Marshal(&user.OptionsSerialized)
 	user.Options = string(optionsValue)

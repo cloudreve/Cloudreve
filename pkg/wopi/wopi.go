@@ -18,7 +18,7 @@ import (
 
 type Client interface {
 	// NewSession creates a new document session with access token.
-	NewSession(uid uint, file *model.File, action ActonType) (*Session, error)
+	NewSession(uid int, file *model.File, action ActonType) (*Session, error)
 	// AvailableExts returns a list of file extensions that are supported by WOPI.
 	AvailableExts() []string
 }
@@ -116,7 +116,7 @@ func NewClient(endpoint string, cache cache.Driver, http request.Client) (Client
 	}, nil
 }
 
-func (c *client) NewSession(uid uint, file *model.File, action ActonType) (*Session, error) {
+func (c *client) NewSession(uid int, file *model.File, action ActonType) (*Session, error) {
 	if err := c.checkDiscovery(); err != nil {
 		return nil, err
 	}

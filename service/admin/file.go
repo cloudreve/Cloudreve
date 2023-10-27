@@ -93,7 +93,7 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 	}
 
 	// 根据用户分组
-	userFile := make(map[uint][]model.File)
+	userFile := make(map[int][]model.File)
 	for i := 0; i < len(files); i++ {
 		if _, ok := userFile[files[i].UserID]; !ok {
 			userFile[files[i].UserID] = []model.File{}
@@ -102,7 +102,7 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 	}
 
 	// 异步执行删除
-	go func(files map[uint][]model.File) {
+	go func(files map[int][]model.File) {
 		for uid, file := range files {
 			var (
 				fs  *filesystem.FileSystem
@@ -183,12 +183,12 @@ func (service *AdminListService) Files() serializer.Response {
 	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
 
 	// 查询对应用户
-	users := make(map[uint]model.User)
+	users := make(map[int]model.User)
 	for _, file := range res {
 		users[file.UserID] = model.User{}
 	}
 
-	userIDs := make([]uint, 0, len(users))
+	userIDs := make([]int, 0, len(users))
 	for k := range users {
 		userIDs = append(userIDs, k)
 	}
@@ -197,7 +197,7 @@ func (service *AdminListService) Files() serializer.Response {
 	model.DB.Where("id in (?)", userIDs).Find(&userList)
 
 	for _, v := range userList {
-		users[v.ID] = v
+		users[int(v.ID)] = v
 	}
 
 	return serializer.Response{Data: map[string]interface{}{

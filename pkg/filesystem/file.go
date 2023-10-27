@@ -56,7 +56,7 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 	newFile := model.File{
 		Name:               uploadInfo.FileName,
 		SourceName:         uploadInfo.SavePath,
-		UserID:             fs.User.ID,
+		UserID:             int(fs.User.ID),
 		Size:               uploadInfo.Size,
 		FolderID:           parent.ID,
 		PolicyID:           fs.Policy.ID,

@@ -19,6 +19,7 @@ type Group struct {
 	// 数据库忽略字段
 	PolicyList        []uint      `gorm:"-"`
 	OptionsSerialized GroupOption `gorm:"-"`
+	GroupFolder       *Folder     `gorm:"-"`
 }
 
 // GroupOption 用户组其他配置
@@ -81,4 +82,10 @@ func (group *Group) SerializePolicyList() (err error) {
 	optionsValue, err := json.Marshal(&group.OptionsSerialized)
 	group.Options = string(optionsValue)
 	return err
+}
+
+func (group *Group) getGroupFolder() (*Folder, bool) {
+	var folder Folder
+	result := DB.Where("owner_id = ?", -int(group.ID)).First(&folder)
+	return &folder, !result.RecordNotFound()
 }

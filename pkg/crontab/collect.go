@@ -60,7 +60,7 @@ func uploadSessionCollect() {
 	placeholders := model.GetUploadPlaceholderFiles(0)
 
 	// 将过期的上传会话按照用户分组
-	userToFiles := make(map[uint][]uint)
+	userToFiles := make(map[int][]uint)
 	for _, file := range placeholders {
 		_, sessionExist := cache.Get(filesystem.UploadSessionCachePrefix + *file.UploadSessionID)
 		if sessionExist {

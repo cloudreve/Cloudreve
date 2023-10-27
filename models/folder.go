@@ -15,7 +15,7 @@ type Folder struct {
 	gorm.Model
 	Name     string `gorm:"unique_index:idx_only_one_name"`
 	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
-	OwnerID  uint   `gorm:"index:owner_id"`
+	OwnerID  int    `gorm:"index:owner_id"`
 
 	// 数据库忽略字段
 	Position      string `gorm:"-"`
@@ -213,8 +213,14 @@ func (folder *Folder) MoveOrCopyFileTo(files []uint, dstFolder *Folder, isCopy b
 // CopyFolderTo 将此目录及其子目录及文件递归复制至dstFolder
 // 返回此操作新增的容量
 func (folder *Folder) CopyFolderTo(folderID uint, dstFolder *Folder) (size uint64, err error) {
+	if folder.OwnerID < 0 {
+		return 0, errors.New("cannot copy group folder")
+	}
+
+	ownerId := uint(folder.OwnerID)
+
 	// 列出所有子目录
-	subFolders, err := GetRecursiveChildFolder([]uint{folderID}, folder.OwnerID, true)
+	subFolders, err := GetRecursiveChildFolder([]uint{folderID}, ownerId, true)
 	if err != nil {
 		return 0, err
 	}
