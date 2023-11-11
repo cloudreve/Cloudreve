@@ -284,7 +284,9 @@ func DeleteFiles(files []*File, uid uint) error {
 			return errors.New("file size is dirty")
 		}
 
-		size += file.Size
+		if file.UserID > 0 {
+			size += file.Size
+		}
 	}
 
 	if uid > 0 {
