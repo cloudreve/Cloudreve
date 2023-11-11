@@ -32,7 +32,7 @@ func (s *SourceLink) Link() (string, error) {
 func GetSourceLinkByID(id interface{}) (*SourceLink, error) {
 	link := &SourceLink{}
 	result := DB.Where("id = ?", id).First(link)
-	files, _ := GetFilesByIDs([]uint{link.FileID}, 0)
+	files, _ := GetFilesByIDs([]uint{link.FileID}, 0, 0)
 	if len(files) > 0 {
 		link.File = files[0]
 	}

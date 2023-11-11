@@ -53,10 +53,17 @@ func (fs *FileSystem) AddFile(ctx context.Context, parent *model.Folder, file fs
 	}
 
 	uploadInfo := file.Info()
+
+	var id int
+	if parent.OwnerID < 0 {
+		id = parent.OwnerID
+	} else {
+		id = int(fs.User.ID)
+	}
 	newFile := model.File{
 		Name:               uploadInfo.FileName,
 		SourceName:         uploadInfo.SavePath,
-		UserID:             int(fs.User.ID),
+		UserID:             id,
 		Size:               uploadInfo.Size,
 		FolderID:           parent.ID,
 		PolicyID:           fs.Policy.ID,
@@ -325,20 +332,20 @@ func (fs *FileSystem) ResetFileIfNotExist(ctx context.Context, path string) erro
 
 // ResetFileIfNotExist 重设当前目标文件为 id，如果当前目标为空
 func (fs *FileSystem) resetFileIDIfNotExist(ctx context.Context, id uint) error {
-	// 找到文件
-	if len(fs.FileTarget) == 0 {
-		file, err := model.GetFilesByIDs([]uint{id}, fs.User.ID)
-		if err != nil || len(file) == 0 {
-			return ErrObjectNotExist
-		}
-		fs.FileTarget = []model.File{file[0]}
-	}
-
 	// 如果上下文限制了父目录，则进行检查
 	if parent, ok := ctx.Value(fsctx.LimitParentCtx).(*model.Folder); ok {
 		if parent.ID != fs.FileTarget[0].FolderID {
 			return ErrObjectNotExist
 		}
+	}
+
+	// 找到文件
+	if len(fs.FileTarget) == 0 {
+		file, err := model.GetFilesByIDs([]uint{id}, fs.User.ID, fs.User.GroupID)
+		if err != nil || len(file) == 0 {
+			return ErrObjectNotExist
+		}
+		fs.FileTarget = []model.File{file[0]}
 	}
 
 	// 将当前存储策略重设为文件使用的

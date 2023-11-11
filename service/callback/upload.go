@@ -120,7 +120,7 @@ func ProcessCallback(service CallbackProcessService, c *gin.Context) serializer.
 	uploadSession := c.MustGet(filesystem.UploadSessionCtx).(*serializer.UploadSession)
 
 	// 查找上传会话创建的占位文件
-	file, err := model.GetFilesByUploadSession(uploadSession.Key, fs.User.ID)
+	file, err := model.GetFilesByUploadSession(uploadSession.Key, fs.User)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadSessionExpired, "LocalUpload session file placeholder not exist", err)
 	}

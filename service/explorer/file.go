@@ -433,7 +433,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 
 	// 取得现有文件
 	fileID, _ := c.Get("object_id")
-	originFile, _ := model.GetFilesByIDs([]uint{fileID.(uint)}, fs.User.ID)
+	originFile, _ := model.GetFilesByIDs([]uint{fileID.(uint)}, fs.User.ID, fs.User.GroupID)
 	if len(originFile) == 0 {
 		return serializer.Err(serializer.CodeFileNotFound, "", nil)
 	}
@@ -485,7 +485,7 @@ func (s *ItemIDService) Sources(ctx context.Context, c *gin.Context) serializer.
 	}
 
 	res := make([]serializer.Sources, 0, len(s.Raw().Items))
-	files, err := model.GetFilesByIDs(s.Raw().Items, fs.User.ID)
+	files, err := model.GetFilesByIDs(s.Raw().Items, fs.User.ID, fs.User.GroupID)
 	if err != nil || len(files) == 0 {
 		return serializer.Err(serializer.CodeFileNotFound, "", err)
 	}

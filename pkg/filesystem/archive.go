@@ -33,7 +33,7 @@ func (fs *FileSystem) Compress(ctx context.Context, writer io.Writer, folderIDs,
 	}
 
 	// 查找待压缩文件
-	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID)
+	files, err := model.GetFilesByIDs(fileIDs, fs.User.ID, fs.User.GroupID)
 	if err != nil && len(fileIDs) != 0 {
 		return ErrDBListObjects
 	}

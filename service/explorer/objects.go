@@ -381,7 +381,7 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 			return serializer.Err(serializer.CodeNotFound, "", err)
 		}
 
-		file, err := model.GetFilesByIDs([]uint{res}, user.ID)
+		file, err := model.GetFilesByIDs([]uint{res}, user.ID, user.GroupID)
 		if err != nil {
 			return serializer.DBErr("Failed to query file records", err)
 		}

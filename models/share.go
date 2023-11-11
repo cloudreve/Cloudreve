@@ -118,7 +118,7 @@ func (share *Share) SourceFolder() *Folder {
 // SourceFile 获取源文件
 func (share *Share) SourceFile() *File {
 	if share.File.ID == 0 {
-		files, _ := GetFilesByIDs([]uint{share.SourceID}, share.UserID)
+		files, _ := GetFilesByIDs([]uint{share.SourceID}, share.UserID, 0)
 		if len(files) > 0 {
 			share.File = files[0]
 		}

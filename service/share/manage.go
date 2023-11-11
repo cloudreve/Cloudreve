@@ -101,7 +101,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 			sourceName = folder[0].Name
 		}
 	} else {
-		file, err := model.GetFilesByIDs([]uint{sourceID}, user.ID)
+		file, err := model.GetFilesByIDs([]uint{sourceID}, user.ID, user.GroupID)
 		if err != nil || len(file) == 0 {
 			exist = false
 		} else {

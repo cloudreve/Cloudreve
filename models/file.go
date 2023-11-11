@@ -126,11 +126,21 @@ func (folder *Folder) GetChildFiles() ([]File, error) {
 
 // GetFilesByIDs 根据文件ID批量获取文件,
 // UID为0表示忽略用户，只根据文件ID检索
-func GetFilesByIDs(ids []uint, uid uint) ([]File, error) {
-	return GetFilesByIDsFromTX(DB, ids, uid)
+func GetFilesByIDs(ids []uint, uid, gid uint) ([]File, error) {
+	uResult, err := GetFilesByIDsFromTX(DB, ids, int(uid))
+	if err == nil && len(uResult) > 0 {
+		return uResult, nil
+	}
+
+	gResult, err := GetFilesByIDsFromTX(DB, ids, -int(gid))
+	if err == nil && len(gResult) > 0 {
+		return gResult, nil
+	}
+
+	return []File{}, err
 }
 
-func GetFilesByIDsFromTX(tx *gorm.DB, ids []uint, uid uint) ([]File, error) {
+func GetFilesByIDsFromTX(tx *gorm.DB, ids []uint, uid int) ([]File, error) {
 	var files []File
 	var result *gorm.DB
 	if uid == 0 {
@@ -295,9 +305,13 @@ func GetFilesByParentIDs(ids []uint, uid uint) ([]File, error) {
 }
 
 // GetFilesByUploadSession 查找上传会话对应的文件
-func GetFilesByUploadSession(sessionID string, uid uint) (*File, error) {
+func GetFilesByUploadSession(sessionID string, user *User) (*File, error) {
 	file := File{}
-	result := DB.Where("user_id = ? and upload_session_id = ?", uid, sessionID).Find(&file)
+	result := DB.Where("user_id = ? and upload_session_id = ?", user.ID, sessionID).Find(&file)
+	if result.Error != nil {
+		result = DB.Where("user_id = ? and upload_session_id = ?", -int(user.GroupID), sessionID).Find(&file)
+	}
+
 	return &file, result.Error
 }
 

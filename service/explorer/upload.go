@@ -94,7 +94,7 @@ func (service *UploadService) LocalUpload(ctx context.Context, c *gin.Context) s
 	}
 
 	// 查找上传会话创建的占位文件
-	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
+	file, err := model.GetFilesByUploadSession(service.ID, fs.User)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadSessionExpired, "", err)
 	}
@@ -232,7 +232,7 @@ func (service *UploadSessionService) Delete(ctx context.Context, c *gin.Context)
 	defer fs.Recycle()
 
 	// 查找需要删除的上传会话的占位文件
-	file, err := model.GetFilesByUploadSession(service.ID, fs.User.ID)
+	file, err := model.GetFilesByUploadSession(service.ID, fs.User)
 	if err != nil {
 		return serializer.Err(serializer.CodeUploadSessionExpired, "", err)
 	}

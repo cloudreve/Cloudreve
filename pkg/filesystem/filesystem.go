@@ -262,7 +262,7 @@ func (fs *FileSystem) SetTargetDir(dirs *[]model.Folder) {
 
 // SetTargetFileByIDs 根据文件ID设置目标文件，忽略用户ID
 func (fs *FileSystem) SetTargetFileByIDs(ids []uint) error {
-	files, err := model.GetFilesByIDs(ids, 0)
+	files, err := model.GetFilesByIDs(ids, 0, 0)
 	if err != nil || len(files) == 0 {
 		return ErrFileExisted.WithError(err)
 	}

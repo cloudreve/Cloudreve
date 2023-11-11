@@ -26,7 +26,7 @@ func (fs *FileSystem) Rename(ctx context.Context, dir, file []uint, new string) 
 
 	// 如果源对象是文件
 	if len(file) > 0 {
-		fileObject, err := model.GetFilesByIDs([]uint{file[0]}, fs.User.ID)
+		fileObject, err := model.GetFilesByIDs([]uint{file[0]}, fs.User.ID, fs.User.GroupID)
 		if err != nil || len(fileObject) == 0 {
 			return ErrPathNotExist
 		}
@@ -257,7 +257,7 @@ func (fs *FileSystem) ListDeleteDirs(ctx context.Context, ids []uint) error {
 
 // ListDeleteFiles 根据给定的路径列出要删除的文件
 func (fs *FileSystem) ListDeleteFiles(ctx context.Context, ids []uint) error {
-	files, err := model.GetFilesByIDs(ids, fs.User.ID)
+	files, err := model.GetFilesByIDs(ids, fs.User.ID, fs.User.GroupID)
 	if err != nil {
 		return ErrDBListObjects.WithError(err)
 	}

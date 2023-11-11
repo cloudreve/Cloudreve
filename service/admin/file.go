@@ -87,7 +87,7 @@ func (service *ListFolderService) List(c *gin.Context) serializer.Response {
 
 // Delete 删除文件
 func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
-	files, err := model.GetFilesByIDs(service.ID, 0)
+	files, err := model.GetFilesByIDs(service.ID, 0, 0)
 	if err != nil {
 		return serializer.DBErr("Failed to list files for deleting", err)
 	}
@@ -141,7 +141,7 @@ func (service *FileBatchService) Delete(c *gin.Context) serializer.Response {
 
 // Get 预览文件
 func (service *FileService) Get(c *gin.Context) serializer.Response {
-	file, err := model.GetFilesByIDs([]uint{service.ID}, 0)
+	file, err := model.GetFilesByIDs([]uint{service.ID}, 0, 0)
 	if err != nil {
 		return serializer.Err(serializer.CodeFileNotFound, "", err)
 	}
