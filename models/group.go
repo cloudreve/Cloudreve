@@ -81,7 +81,7 @@ func (group *Group) AfterSave() (err error) {
 	if group.OptionsSerialized.GroupFolderEnabled {
 		err = group.createGroupFolder(group.OptionsSerialized.GroupFolder)
 	} else {
-		err = group.deleteGroupFolder()
+		err = nil
 	}
 
 	return err
@@ -131,16 +131,16 @@ func (group *Group) createGroupFolder(name string) error {
 }
 
 // deleteGroupFolder 删除用户组文件夹
-func (group *Group) deleteGroupFolder() error {
+func (group *Group) deleteGroupFolder() {
 	tx := DB.Begin()
 	var folder Folder
 	if err := tx.Where("owner_id = ?", -int(group.ID)).First(&folder).Error; err != nil {
-		return err
+		return
 	}
 
 	if err := tx.Delete(&folder).Error; err != nil {
-		return err
+		return
 	}
 
-	return tx.Commit().Error
+	tx.Commit()
 }
