@@ -81,7 +81,7 @@ func (group *Group) AfterSave() (err error) {
 	if group.OptionsSerialized.GroupFolderEnabled {
 		err = group.createGroupFolder(group.OptionsSerialized.GroupFolder)
 	} else {
-		err = nil
+		group.deleteGroupFolder()
 	}
 
 	return err
