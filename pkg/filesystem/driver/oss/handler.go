@@ -403,7 +403,7 @@ func (handler *Driver) signSourceURL(ctx context.Context, path string, ttl int64
 		finalURL.Scheme = cdnURL.Scheme
 	}
 
-	return finalURL.String(), nil
+	return strings.Replace(finalURL.String(), "%2F", "/", -1), nil
 }
 
 // Token 获取上传策略和认证Token
