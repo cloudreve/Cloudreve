@@ -1,0 +1,14 @@
+version: '3.1'
+services:
+  testing:
+    build:
+      context: .
+    environment:
+      SERVER: http://cloudreve:5212
+    depends_on:
+      cloudreve:
+        condition: service_started
+    links:
+      - cloudreve
+  cloudreve:
+    image: cloudreve/cloudreve:latest

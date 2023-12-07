@@ -33,3 +33,10 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v2
+
+      - name: E2E
+        run: |
+          CGO_ENABLED=0 go build -o cloudreve .
+          docker build . -t cloudreve/cloudreve:latest
+
+          cd e2e && ./start.sh

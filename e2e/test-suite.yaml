@@ -1,0 +1,74 @@
+#!api-testing
+# yaml-language-server: $schema=https://linuxsuren.github.io/api-testing/api-testing-schema.json
+name: atest
+api: |
+  {{default "http://localhost:5212" (env "SERVER")}}/api/v3
+param:
+  username: admin@admin.com
+  password: "123456"
+items:
+- name: signup
+  request:
+    api: /user
+    method: POST
+    header:
+      Content-Type: application/json
+    body: |
+      {
+        "userName": "{{.param.username}}",
+        "Password": "{{.param.password}}",
+        "captchaCode": ""
+      }
+- name: login
+  request:
+    api: /user/session
+    method: POST
+    header:
+      Content-Type: application/json
+    body: |
+      {
+        "userName": "{{.param.username}}",
+        "Password": "{{.param.password}}",
+        "captchaCode": ""
+      }
+- name: login-failed
+  request:
+    api: /user/session
+    method: POST
+    header:
+      Content-Type: application/json
+    body: |
+      {
+        "userName": "{{.param.username}}",
+        "Password": "wrong-pass",
+        "captchaCode": ""
+      }
+  expect:
+    bodyFieldsExpect:
+      code: "40020"
+- name: getStorageInfo
+  request:
+    api: /user/storage
+  expect:
+    bodyFieldsExpect:
+      code: "0"
+- name: addTag
+  request:
+    api: /tag/filter
+    method: POST
+    header:
+      Content-Type: application/json
+    body: |
+      {
+        "expression": "{{randAlpha 4}}",
+        "name": "{{randAlpha 4}}",
+        "color": "rgba(0, 0, 0, 0.54)",
+        "icon": "Circle"
+      }
+- name: getSetting
+  request:
+    api: /user/setting
+- name: signOff
+  request:
+    api: /user/session
+    method: DELETE
