@@ -172,6 +172,7 @@ func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([
 		if err != nil {
 			continue
 		}
+
 		if strings.HasSuffix(object.Key, "/") {
 			res = append(res, response.Object{
 				Name:         path.Base(object.Key),
