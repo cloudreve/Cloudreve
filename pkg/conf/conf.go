@@ -53,7 +53,7 @@ type slave struct {
 type redis struct {
 	Network  string
 	Server   string
-	User	 string
+	User     string
 	Password string
 	DB       string
 }

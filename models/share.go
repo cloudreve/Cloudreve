@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+)
+
+var (
+	ErrInsufficientCredit = errors.New("积分不足")
 )
 
 // Share 分享模型
@@ -24,6 +29,7 @@ type Share struct {
 	Downloads       int        // 下载数
 	RemainDownloads int        // 剩余下载配额，负值标识无限制
 	Expires         *time.Time // 过期时间，空值表示无过期时间
+	Score           int        // 每人次下载扣除积分
 	PreviewEnabled  bool       // 是否允许直接预览
 	SourceName      string     `gorm:"index:source"` // 用于搜索的字段
 
@@ -135,6 +141,12 @@ func (share *Share) CanBeDownloadBy(user *User) error {
 		}
 		return errors.New("your group has no permission to download")
 	}
+
+	// 需要积分但未登录
+	if share.Score > 0 && user.IsAnonymous() {
+		return errors.New("you must login to download")
+	}
+
 	return nil
 }
 
@@ -149,9 +161,12 @@ func (share *Share) WasDownloadedBy(user *User, c *gin.Context) (exist bool) {
 	return exist
 }
 
-// DownloadBy 增加下载次数，匿名用户不会缓存
+// DownloadBy 增加下载次数、检查积分等，匿名用户不会缓存
 func (share *Share) DownloadBy(user *User, c *gin.Context) error {
 	if !share.WasDownloadedBy(user, c) {
+		if err := share.Purchase(user); err != nil {
+			return err
+		}
 		share.Downloaded()
 		if !user.IsAnonymous() {
 			cache.Set(fmt.Sprintf("share_%d_%d", share.ID, user.ID), true,
@@ -160,6 +175,25 @@ func (share *Share) DownloadBy(user *User, c *gin.Context) error {
 			util.SetSession(c, map[string]interface{}{fmt.Sprintf("share_%d_%d", share.ID, user.ID): true})
 		}
 	}
+	return nil
+}
+
+// Purchase 使用积分购买分享
+func (share *Share) Purchase(user *User) error {
+	// 不需要付积分
+	if share.Score == 0 || user.Group.OptionsSerialized.ShareFree || user.ID == share.UserID {
+		return nil
+	}
+
+	ok := user.PayScore(share.Score)
+	if !ok {
+		return ErrInsufficientCredit
+	}
+
+	scoreRate := GetIntSetting("share_score_rate", 100)
+	gainedScore := int(math.Ceil(float64(share.Score*scoreRate) / 100))
+	share.Creator().AddScore(gainedScore)
+
 	return nil
 }
 

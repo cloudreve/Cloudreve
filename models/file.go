@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
 )
@@ -388,6 +389,15 @@ func (file *File) UpdateSourceName(value string) error {
 	}).Error
 }
 
+// Relocate 更新文件的物理指向
+func (file *File) Relocate(src string, policyID uint) error {
+	file.Policy = Policy{}
+	return DB.Model(&file).Set("gorm:association_autoupdate", false).Updates(map[string]interface{}{
+		"source_name": src,
+		"policy_id":   policyID,
+	}).Error
+}
+
 func (file *File) PopChunkToFile(lastModified *time.Time, picInfo string) error {
 	file.UploadSessionID = nil
 	if lastModified != nil {
@@ -469,4 +479,47 @@ func (file *File) ShouldLoadThumb() bool {
 // return sidecar thumb file name
 func (file *File) ThumbFile() string {
 	return file.SourceName + GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")
+}
+
+/*
+	实现 filesystem.FileHeader 接口
+*/
+
+// Read 实现 io.Reader
+func (file *File) Read(p []byte) (n int, err error) {
+	return 0, errors.New("noe supported")
+}
+
+// Close 实现io.Closer
+func (file *File) Close() error {
+	return errors.New("noe supported")
+}
+
+// Seeker 实现io.Seeker
+func (file *File) Seek(offset int64, whence int) (int64, error) {
+	return 0, errors.New("noe supported")
+}
+
+func (file *File) Info() *fsctx.UploadTaskInfo {
+	return &fsctx.UploadTaskInfo{
+		Size:            file.Size,
+		FileName:        file.Name,
+		VirtualPath:     file.Position,
+		Mode:            0,
+		Metadata:        file.MetadataSerialized,
+		LastModified:    &file.UpdatedAt,
+		SavePath:        file.SourceName,
+		UploadSessionID: file.UploadSessionID,
+	}
+}
+
+func (file *File) SetSize(size uint64) {
+	file.Size = size
+}
+
+func (file *File) SetModel(newFile interface{}) {
+}
+
+func (file *File) Seekable() bool {
+	return false
 }

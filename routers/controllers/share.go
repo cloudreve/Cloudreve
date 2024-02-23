@@ -173,6 +173,17 @@ func GetShareDocPreview(c *gin.Context) {
 	}
 }
 
+// SaveShare 转存他人分享
+func SaveShare(c *gin.Context) {
+	var service share.Service
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.SaveToMyFile(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // ListSharedFolder 列出分享的目录下的对象
 func ListSharedFolder(c *gin.Context) {
 	var service share.Service
@@ -230,6 +241,17 @@ func GetUserShare(c *gin.Context) {
 	var service share.ShareUserGetService
 	if err := c.ShouldBindQuery(&service); err == nil {
 		res := service.Get(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// ReportShare 举报分享
+func ReportShare(c *gin.Context) {
+	var service share.ShareReportService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Report(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))

@@ -17,6 +17,7 @@ type ShareCreateService struct {
 	Password        string `json:"password" binding:"max=255"`
 	RemainDownloads int    `json:"downloads"`
 	Expire          int    `json:"expire"`
+	Score           int    `json:"score" binding:"gte=0"`
 	Preview         bool   `json:"preview"`
 }
 
@@ -117,6 +118,7 @@ func (service *ShareCreateService) Create(c *gin.Context) serializer.Response {
 		IsDir:           service.IsDir,
 		UserID:          user.ID,
 		SourceID:        sourceID,
+		Score:           service.Score,
 		RemainDownloads: -1,
 		PreviewEnabled:  service.Preview,
 		SourceName:      sourceName,

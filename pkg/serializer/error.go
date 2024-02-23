@@ -78,6 +78,8 @@ const (
 	CodeInvalidChunkIndex = 40012
 	// CodeInvalidContentLength 无效的正文长度
 	CodeInvalidContentLength = 40013
+	// CodePhoneRequired 未绑定手机
+	CodePhoneRequired = 40010
 	// CodeBatchSourceSize 超出批量获取外链限制
 	CodeBatchSourceSize = 40014
 	// CodeBatchAria2Size 超出最大 Aria2 任务数量限制
@@ -112,6 +114,8 @@ const (
 	CodeInvalidTempLink = 40029
 	// CodeTempLinkExpired 临时链接过期
 	CodeTempLinkExpired = 40030
+	// CodeEmailProviderBaned 邮箱后缀被禁用
+	CodeEmailProviderBaned = 40031
 	// CodeEmailExisted 邮箱已被使用
 	CodeEmailExisted = 40032
 	// CodeEmailSent 邮箱已重新发送
@@ -192,6 +196,8 @@ const (
 	CodeDisabledSharePreview = 40070
 	// 签名无效
 	CodeInvalidSign = 40071
+	// 管理员无法购买用户组
+	CodeFulfillAdminGroup = 40072
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败

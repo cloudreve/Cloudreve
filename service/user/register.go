@@ -9,6 +9,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,7 +23,22 @@ type UserRegisterService struct {
 // Register 新用户注册
 func (service *UserRegisterService) Register(c *gin.Context) serializer.Response {
 	// 相关设定
-	options := model.GetSettingByNames("email_active")
+	options := model.GetSettingByNames("email_active", "reg_captcha", "mail_domain_filter", "mail_domain_filter_list")
+
+	// 检查是否在邮件域黑名单里
+	if options["mail_domain_filter"] != "0" {
+		filterList := strings.Split(options["mail_domain_filter_list"], ",")
+		emailSplit := strings.Split(service.UserName, "@")
+		emailDomain := emailSplit[len(emailSplit)-1]
+		inList := util.ContainsString(filterList, emailDomain)
+		domainErr := serializer.Err(serializer.CodeEmailProviderBaned, "Email provider banned", nil)
+		if options["mail_domain_filter"] == "1" && !inList {
+			return domainErr
+		}
+		if options["mail_domain_filter"] == "2" && inList {
+			return domainErr
+		}
+	}
 
 	// 相关设定
 	isEmailRequired := model.IsTrueVal(options["email_active"])

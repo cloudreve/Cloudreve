@@ -3,17 +3,18 @@ package wopi
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
+	"strings"
+	"sync"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gofrs/uuid"
-	"net/url"
-	"path"
-	"strings"
-	"sync"
-	"time"
 )
 
 type Client interface {

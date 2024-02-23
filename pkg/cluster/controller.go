@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"net/url"
+	"sync"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/common"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2/rpc"
@@ -12,8 +15,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/jinzhu/gorm"
-	"net/url"
-	"sync"
 )
 
 var DefaultController Controller

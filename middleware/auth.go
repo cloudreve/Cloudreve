@@ -5,14 +5,15 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/oss"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/upyun"
 	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
-	"io/ioutil"
-	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
@@ -74,6 +75,24 @@ func AuthRequired() gin.HandlerFunc {
 
 		c.JSON(200, serializer.CheckLogin())
 		c.Abort()
+	}
+}
+
+// PhoneRequired 需要绑定手机
+// TODO 有bug
+func PhoneRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if model.IsTrueVal(model.GetSettingByName("phone_required")) &&
+			model.IsTrueVal(model.GetSettingByName("phone_enabled")) {
+			user, _ := c.Get("user")
+			if user.(*model.User).Phone != "" {
+				// TODO 忽略管理员
+				c.Next()
+				return
+			}
+		}
+
+		c.Next()
 	}
 }
 

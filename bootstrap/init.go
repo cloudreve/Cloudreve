@@ -1,6 +1,9 @@
 package bootstrap
 
 import (
+	"io/fs"
+	"path/filepath"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/models/scripts"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
@@ -14,8 +17,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/task"
 	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/gin-gonic/gin"
-	"io/fs"
-	"path/filepath"
 )
 
 // Init 初始化启动

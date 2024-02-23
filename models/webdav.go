@@ -46,3 +46,8 @@ func DeleteWebDAVAccountByID(id, uid uint) {
 func UpdateWebDAVAccountByID(id, uid uint, updates map[string]interface{}) {
 	DB.Model(&Webdav{Model: gorm.Model{ID: id}, UserID: uid}).Updates(updates)
 }
+
+// UpdateWebDAVAccountReadonlyByID 根据账户ID和UID更新账户的只读性
+func UpdateWebDAVAccountReadonlyByID(id, uid uint, readonly bool) {
+	DB.Model(&Webdav{Model: gorm.Model{ID: id}, UserID: uid}).UpdateColumn("readonly", readonly)
+}
