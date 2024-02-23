@@ -4,6 +4,7 @@ import (
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/samber/lo"
 	"sync"
 )
 
@@ -15,7 +16,7 @@ var featureGroup = []string{"aria2"}
 // Pool 节点池
 type Pool interface {
 	// Returns active node selected by given feature and load balancer
-	BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node)
+	BalanceNodeByFeature(feature string, lb balancer.Balancer, available []uint, prefer uint) (error, Node)
 
 	// Returns node by ID
 	GetNodeByID(id uint) Node
@@ -174,11 +175,33 @@ func (pool *NodePool) Delete(id uint) {
 }
 
 // BalanceNodeByFeature 根据 feature 和 LoadBalancer 取出节点
-func (pool *NodePool) BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node) {
+func (pool *NodePool) BalanceNodeByFeature(feature string, lb balancer.Balancer,
+	available []uint, prefer uint) (error, Node) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	if nodes, ok := pool.featureMap[feature]; ok {
-		err, res := lb.NextPeer(nodes)
+		// Find nodes that are allowed to be used in user group
+		availableNodes := nodes
+		if len(available) > 0 {
+			idHash := make(map[uint]struct{}, len(available))
+			for _, id := range available {
+				idHash[id] = struct{}{}
+			}
+
+			availableNodes = lo.Filter[Node](nodes, func(node Node, index int) bool {
+				_, exist := idHash[node.ID()]
+				return exist
+			})
+		}
+
+		// Return preferred node if exists
+		if preferredNode, found := lo.Find[Node](availableNodes, func(node Node) bool {
+			return node.ID() == prefer
+		}); found {
+			return nil, preferredNode
+		}
+
+		err, res := lb.NextPeer(availableNodes)
 		if err == nil {
 			return nil, res.(Node)
 		}

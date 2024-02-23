@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	"net/http"
+	"sync"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
@@ -9,8 +12,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
 	"github.com/cloudreve/Cloudreve/v3/service/setting"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"sync"
 )
 
 var handler *webdav.Handler
@@ -92,9 +93,42 @@ func UpdateWebDAVAccounts(c *gin.Context) {
 	}
 }
 
+// DeleteWebDAVMounts 删除WebDAV挂载
+func DeleteWebDAVMounts(c *gin.Context) {
+	var service setting.WebDAVListService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Unmount(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UpdateWebDAVAccountsReadonly 更改WebDAV账户只读性
+func UpdateWebDAVAccountsReadonly(c *gin.Context) {
+	var service setting.WebDAVAccountUpdateReadonlyService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Update(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // CreateWebDAVAccounts 创建WebDAV账户
 func CreateWebDAVAccounts(c *gin.Context) {
 	var service setting.WebDAVAccountCreateService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Create(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// CreateWebDAVMounts 创建WebDAV目录挂载
+func CreateWebDAVMounts(c *gin.Context) {
+	var service setting.WebDAVMountCreateService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Create(c, CurrentUser(c))
 		c.JSON(200, res)

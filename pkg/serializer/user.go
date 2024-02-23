@@ -2,11 +2,11 @@ package serializer
 
 import (
 	"fmt"
+	"time"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/duo-labs/webauthn/webauthn"
-	"time"
 )
 
 // CheckLogin 检查登录
@@ -14,6 +14,14 @@ func CheckLogin() Response {
 	return Response{
 		Code: CodeCheckLogin,
 		Msg:  "Login required",
+	}
+}
+
+// PhoneRequired 需要绑定手机
+func PhoneRequired() Response {
+	return Response{
+		Code: CodePhoneRequired,
+		Msg:  "此功能需要绑定手机后使用",
 	}
 }
 
@@ -26,6 +34,7 @@ type User struct {
 	Avatar         string    `json:"avatar"`
 	CreatedAt      time.Time `json:"created_at"`
 	PreferredTheme string    `json:"preferred_theme"`
+	Score          int       `json:"score"`
 	Anonymous      bool      `json:"anonymous"`
 	Group          group     `json:"group"`
 	Tags           []tag     `json:"tags"`
@@ -37,10 +46,13 @@ type group struct {
 	AllowShare           bool   `json:"allowShare"`
 	AllowRemoteDownload  bool   `json:"allowRemoteDownload"`
 	AllowArchiveDownload bool   `json:"allowArchiveDownload"`
+	ShareFreeEnabled     bool   `json:"shareFree"`
 	ShareDownload        bool   `json:"shareDownload"`
 	CompressEnabled      bool   `json:"compress"`
 	WebDAVEnabled        bool   `json:"webdav"`
+	RelocateEnabled      bool   `json:"relocate"`
 	SourceBatchSize      int    `json:"sourceBatch"`
+	SelectNode           bool   `json:"selectNode"`
 	AdvanceDelete        bool   `json:"advanceDelete"`
 	AllowWebDAVProxy     bool   `json:"allowWebDAVProxy"`
 }
@@ -91,6 +103,7 @@ func BuildUser(user model.User) User {
 		Avatar:         user.Avatar,
 		CreatedAt:      user.CreatedAt,
 		PreferredTheme: user.OptionsSerialized.PreferredTheme,
+		Score:          user.Score,
 		Anonymous:      user.IsAnonymous(),
 		Group: group{
 			ID:                   user.GroupID,
@@ -98,11 +111,14 @@ func BuildUser(user model.User) User {
 			AllowShare:           user.Group.ShareEnabled,
 			AllowRemoteDownload:  user.Group.OptionsSerialized.Aria2,
 			AllowArchiveDownload: user.Group.OptionsSerialized.ArchiveDownload,
+			ShareFreeEnabled:     user.Group.OptionsSerialized.ShareFree,
 			ShareDownload:        user.Group.OptionsSerialized.ShareDownload,
 			CompressEnabled:      user.Group.OptionsSerialized.ArchiveTask,
 			WebDAVEnabled:        user.Group.WebDAVEnabled,
 			AllowWebDAVProxy:     user.Group.OptionsSerialized.WebDAVProxy,
+			RelocateEnabled:      user.Group.OptionsSerialized.Relocate,
 			SourceBatchSize:      user.Group.OptionsSerialized.SourceBatchSize,
+			SelectNode:           user.Group.OptionsSerialized.SelectNode,
 			AdvanceDelete:        user.Group.OptionsSerialized.AdvanceDelete,
 		},
 		Tags: buildTagRes(tags),
@@ -118,7 +134,7 @@ func BuildUserResponse(user model.User) Response {
 
 // BuildUserStorageResponse 序列化用户存储概况响应
 func BuildUserStorageResponse(user model.User) Response {
-	total := user.Group.MaxStorage
+	total := user.Group.MaxStorage + user.GetAvailablePackSize()
 	storageResp := storage{
 		Used:  user.Storage,
 		Free:  total - user.Storage,

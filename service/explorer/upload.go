@@ -3,6 +3,11 @@ package explorer
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"strconv"
+	"strings"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
@@ -13,10 +18,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // CreateUploadSessionService 获取上传凭证服务
@@ -43,8 +44,13 @@ func (service *CreateUploadSessionService) Create(ctx context.Context, c *gin.Co
 		return serializer.Err(serializer.CodePolicyNotExist, "", err)
 	}
 
+	// 分配并检查存储策略
+	if err := fs.SetPolicyFromPreference(rawID); err != nil {
+		return serializer.Err(serializer.CodePolicyNotAllowed, "", err)
+	}
+
 	if fs.Policy.ID != rawID {
-		return serializer.Err(serializer.CodePolicyNotAllowed, "存储策略发生变化，请刷新文件列表并重新添加此任务", nil)
+		return serializer.Err(serializer.CodePolicyChanged, "", nil)
 	}
 
 	file := &fsctx.FileStream{

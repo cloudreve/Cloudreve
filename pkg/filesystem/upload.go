@@ -194,17 +194,15 @@ func (fs *FileSystem) CreateUploadSession(ctx context.Context, file *fsctx.FileS
 
 // UploadFromStream 从文件流上传文件
 func (fs *FileSystem) UploadFromStream(ctx context.Context, file *fsctx.FileStream, resetPolicy bool) error {
+	// 给文件系统分配钩子
+	fs.Lock.Lock()
 	if resetPolicy {
-		// 重设存储策略
-		fs.Policy = &fs.User.Policy
-		err := fs.DispatchHandler()
+		err := fs.SetPolicyFromPath(file.VirtualPath)
 		if err != nil {
 			return err
 		}
 	}
 
-	// 给文件系统分配钩子
-	fs.Lock.Lock()
 	if fs.Hooks == nil {
 		fs.Use("BeforeUpload", HookValidateFile)
 		fs.Use("BeforeUpload", HookValidateCapacity)

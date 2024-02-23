@@ -55,6 +55,12 @@ type ItemCompressService struct {
 	Name string        `json:"name" binding:"required,min=1,max=255"`
 }
 
+// ItemRelocateService 文件转移任务服务
+type ItemRelocateService struct {
+	Src         ItemIDService `json:"src"`
+	DstPolicyID string        `json:"dst_policy_id" binding:"required"`
+}
+
 // ItemDecompressService 文件解压缩任务服务
 type ItemDecompressService struct {
 	Src      string `json:"src"`
@@ -234,6 +240,57 @@ func (service *ItemCompressService) CreateCompressTask(c *gin.Context) serialize
 
 }
 
+// CreateRelocateTask 创建文件转移任务
+func (service *ItemRelocateService) CreateRelocateTask(c *gin.Context) serializer.Response {
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
+
+	// 取得存储策略的ID
+	rawID, err := hashid.DecodeHashID(service.DstPolicyID, hashid.PolicyID)
+	if err != nil {
+		return serializer.Err(serializer.CodePolicyNotExist, "", err)
+	}
+
+	// 检查用户组权限
+	if !user.Group.OptionsSerialized.Relocate {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
+	}
+
+	// 用户是否可以使用目的存储策略
+	if !util.ContainsUint(user.Group.PolicyList, rawID) {
+		return serializer.ParamErr("Storage policy is not available", nil)
+	}
+
+	// 查找存储策略
+	if _, err := model.GetPolicyByID(rawID); err != nil {
+		return serializer.ParamErr("Storage policy is not available", nil)
+	}
+
+	// 查找是否有正在进行中的转存任务
+	var tasks []model.Task
+	model.DB.Where("status in (?) and user_id = ? and type = ?",
+		[]int{task.Queued, task.Processing}, user.ID,
+		task.RelocateTaskType).Find(&tasks)
+	if len(tasks) > 0 {
+		return serializer.Response{
+			Code: serializer.CodeConflict,
+			Msg:  "There's ongoing relocate task, please wait for the previous task to finish",
+		}
+	}
+
+	IDRaw := service.Src.Raw()
+
+	// 创建任务
+	job, err := task.NewRelocateTask(user, rawID, IDRaw.Dirs,
+		IDRaw.Items)
+	if err != nil {
+		return serializer.Err(serializer.CodeCreateTaskError, "", err)
+	}
+	task.TaskPoll.Submit(job)
+
+	return serializer.Response{}
+}
+
 // Archive 创建归档
 func (service *ItemIDService) Archive(ctx context.Context, c *gin.Context) serializer.Response {
 	// 创建文件系统
@@ -270,7 +327,7 @@ func (service *ItemIDService) Delete(ctx context.Context, c *gin.Context) serial
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 
@@ -351,7 +408,7 @@ func (service *ItemRenameService) Rename(ctx context.Context, c *gin.Context) se
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
+		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
 	}
 	defer fs.Recycle()
 
@@ -415,6 +472,10 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 			return serializer.DBErr("Failed to query folder records", err)
 		}
 
+		policy := user.GetPolicyID(&folder[0])
+		if folder[0].PolicyID > 0 {
+			props.Policy = policy.Name
+		}
 		props.CreatedAt = folder[0].CreatedAt
 		props.UpdatedAt = folder[0].UpdatedAt
 
@@ -423,6 +484,7 @@ func (service *ItemPropertyService) GetProperty(ctx context.Context, c *gin.Cont
 			res := cacheRes.(serializer.ObjectProps)
 			res.CreatedAt = props.CreatedAt
 			res.UpdatedAt = props.UpdatedAt
+			res.Policy = props.Policy
 			return serializer.Response{Data: res}
 		}
 

@@ -15,13 +15,20 @@ import (
 // IsPathExist 返回给定目录是否存在
 // 如果存在就返回目录
 func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
+	tracedEnd, currentFolder := fs.getClosedParent(path)
+	if tracedEnd {
+		return true, currentFolder
+	}
+	return false, nil
+}
+
+func (fs *FileSystem) getClosedParent(path string) (bool, *model.Folder) {
 	pathList := util.SplitPath(path)
 	if len(pathList) == 0 {
 		return false, nil
 	}
 
 	// 递归步入目录
-	// TODO:测试新增
 	var currentFolder *model.Folder
 
 	// 如果已设定跟目录对象，则从给定目录向下遍历
@@ -42,10 +49,12 @@ func (fs *FileSystem) IsPathExist(path string) (bool, *model.Folder) {
 				return false, nil
 			}
 		} else {
-			currentFolder, err = currentFolder.GetChild(folderName)
+			nextFolder, err := currentFolder.GetChild(folderName)
 			if err != nil {
-				return false, nil
+				return false, currentFolder
 			}
+
+			currentFolder = nextFolder
 		}
 	}
 

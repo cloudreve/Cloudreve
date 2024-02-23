@@ -239,7 +239,7 @@ func (service *S3Callback) PreProcess(c *gin.Context) serializer.Response {
 	return ProcessCallback(service, c)
 }
 
-// PreProcess 对从机客户端回调进行预处理验证
+// PreProcess 对OneDrive客户端回调进行预处理验证
 func (service *UploadCallbackService) PreProcess(c *gin.Context) serializer.Response {
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromCallback(c)

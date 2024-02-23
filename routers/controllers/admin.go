@@ -1,14 +1,15 @@
 package controllers
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
-	"io"
+	// "io"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
+	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
+	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
+
+	// "github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/cloudreve/Cloudreve/v3/service/admin"
@@ -27,17 +28,17 @@ func AdminSummary(c *gin.Context) {
 }
 
 // AdminNews 获取社区新闻
-func AdminNews(c *gin.Context) {
-	tag := "announcements"
-	if c.Query("tag") != "" {
-		tag = c.Query("tag")
-	}
-	r := request.NewClient()
-	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3A"+tag+"&sort=-startTime&page%5Blimit%5D=10", nil)
-	if res.Err == nil {
-		io.Copy(c.Writer, res.Response.Body)
-	}
-}
+// func AdminNews(c *gin.Context) {
+// 	tag := "announcements"
+// 	if c.Query("tag") != "" {
+// 		tag = c.Query("tag")
+// 	}
+// 	r := request.NewClient()
+// 	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3A"+tag+"&sort=-startTime&page%5Blimit%5D=10", nil)
+// 	if res.Err == nil {
+// 		io.Copy(c.Writer, res.Response.Body)
+// 	}
+// }
 
 // AdminChangeSetting 获取站点设定项
 func AdminChangeSetting(c *gin.Context) {
@@ -103,6 +104,39 @@ func AdminTestThumbGenerator(c *gin.Context) {
 	var service admin.ThumbGeneratorTestService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.Test(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminListRedeems 列出激活码
+func AdminListRedeems(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Redeems()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminGenerateRedeems 生成激活码
+func AdminGenerateRedeems(c *gin.Context) {
+	var service admin.GenerateRedeemsService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Generate()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteRedeem 删除激活码
+func AdminDeleteRedeem(c *gin.Context) {
+	var service admin.SingleIDService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.DeleteRedeem()
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
@@ -389,6 +423,28 @@ func AdminDeleteShare(c *gin.Context) {
 	}
 }
 
+// AdminListOrder 列出订单
+func AdminListOrder(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Orders()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteOrder 批量删除订单
+func AdminDeleteOrder(c *gin.Context) {
+	var service admin.OrderBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AdminListDownload 列出离线下载任务
 func AdminListDownload(c *gin.Context) {
 	var service admin.AdminListService
@@ -455,6 +511,28 @@ func AdminListFolders(c *gin.Context) {
 	}
 }
 
+// AdminListReport 列出未处理举报
+func AdminListReport(c *gin.Context) {
+	var service admin.AdminListService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Reports()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// AdminDeleteTask 批量删除举报
+func AdminDeleteReport(c *gin.Context) {
+	var service admin.ReportBatchService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.Delete()
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
 // AdminListNodes 列出从机节点
 func AdminListNodes(c *gin.Context) {
 	var service admin.AdminListService
@@ -508,4 +586,11 @@ func AdminGetNode(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
+}
+
+// AdminSyncVol 同步VOL授权
+func AdminSyncVol(c *gin.Context) {
+	var service admin.VolService
+	res := service.Sync()
+	c.JSON(200, res)
 }

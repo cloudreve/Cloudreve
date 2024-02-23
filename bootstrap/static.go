@@ -79,8 +79,8 @@ func InitStatic(statics fs.FS) {
 	}
 
 	staticName := "cloudreve-frontend"
-	if conf.IsPro == "true" {
-		staticName += "-pro"
+	if conf.IsPlus == "true" {
+		staticName += "-plus"
 	}
 
 	if v.Name != staticName {
@@ -102,8 +102,8 @@ func Eject(statics fs.FS) {
 		util.Log().Panic("Failed to initialize static resources: %s", err)
 	}
 
-	var walk func(relPath string, d fs.DirEntry, err error) error
-	walk = func(relPath string, d fs.DirEntry, err error) error {
+	// var walk func(relPath string, d fs.DirEntry, err error) error
+	walk := func(relPath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return errors.Errorf("Failed to read info of %q: %s, skipping...", relPath, err)
 		}
@@ -111,11 +111,11 @@ func Eject(statics fs.FS) {
 		if !d.IsDir() {
 			// 写入文件
 			out, err := util.CreatNestedFile(filepath.Join(util.RelativePath(""), StaticFolder, relPath))
-			defer out.Close()
 
 			if err != nil {
 				return errors.Errorf("Failed to create file %q: %s, skipping...", relPath, err)
 			}
+			defer out.Close()
 
 			util.Log().Info("Ejecting %q...", relPath)
 			obj, _ := embedFS.Open(relPath)

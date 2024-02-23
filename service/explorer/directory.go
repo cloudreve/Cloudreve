@@ -37,6 +37,11 @@ func (service *DirectoryService) ListDirectory(c *gin.Context) serializer.Respon
 		parentID = fs.DirTarget[0].ID
 	}
 
+	// 获取目录的存储策略
+	if err := fs.SetPolicyFromPath(service.Path); err != nil {
+		return serializer.Err(serializer.CodePolicyNotExist, "", err)
+	}
+
 	return serializer.Response{
 		Code: 0,
 		Data: serializer.BuildObjectList(parentID, objects, fs.Policy),

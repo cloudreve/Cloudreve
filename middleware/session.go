@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/sessionstore"
 	"net/http"
 	"strings"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v3/pkg/sessionstore"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"

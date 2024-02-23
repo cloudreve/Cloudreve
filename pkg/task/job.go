@@ -15,6 +15,8 @@ const (
 	TransferTaskType
 	// ImportTaskType 导入任务
 	ImportTaskType
+	// RelocateTaskType 存储策略迁移任务
+	RelocateTaskType
 	// RecycleTaskType 回收任务
 	RecycleTaskType
 )
@@ -115,6 +117,8 @@ func GetJobFromModel(task *model.Task) (Job, error) {
 		return NewTransferTaskFromModel(task)
 	case ImportTaskType:
 		return NewImportTaskFromModel(task)
+	case RelocateTaskType:
+		return NewRelocateTaskFromModel(task)
 	case RecycleTaskType:
 		return NewRecycleTaskFromModel(task)
 	default:

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/googledrive"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/driver/googledrive"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
@@ -80,7 +81,10 @@ func (service *PolicyService) Delete() serializer.Response {
 	// 检查用户组使用
 	var groups []model.Group
 	model.DB.Model(&model.Group{}).Where(
-		"policies like ?",
+		"policies like ?  OR policies like ? OR policies like ? OR policies like ?",
+		fmt.Sprintf("[%d,%%", service.ID),
+		fmt.Sprintf("%%,%d]", service.ID),
+		fmt.Sprintf("%%,%d,%%", service.ID),
 		fmt.Sprintf("%%[%d]%%", service.ID),
 	).Find(&groups)
 
@@ -185,7 +189,6 @@ func (service *PolicyService) AddCORS() serializer.Response {
 				},
 			}),
 		}
-
 		if err := handler.CORS(); err != nil {
 			return serializer.Err(serializer.CodeAddCORS, "", err)
 		}
@@ -227,8 +230,8 @@ func (service *SlavePingService) Test() serializer.Response {
 	}
 
 	version := conf.BackendVersion
-	if conf.IsPro == "true" {
-		version += "-pro"
+	if conf.IsPlus == "true" {
+		version += "-plus"
 	}
 	if res.Data.(string) != version {
 		return serializer.Err(serializer.CodeVersionMismatch, "Master: "+res.Data.(string)+", Slave: "+version, nil)

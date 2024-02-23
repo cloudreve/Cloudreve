@@ -69,10 +69,11 @@ func main() {
 	// 收到信号后关闭服务器
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT)
-	go shutdown(sigChan, server)
+	wait := shutdown(sigChan, server)
 
 	defer func() {
-		<-sigChan
+		sigChan <- syscall.SIGTERM
+		<-wait
 	}()
 
 	// 如果启用了SSL
@@ -104,7 +105,7 @@ func main() {
 
 	util.Log().Info("Listening to %q", conf.SystemConfig.Listen)
 	server.Addr = conf.SystemConfig.Listen
-	if err := server.ListenAndServe(); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		util.Log().Error("Failed to listen to %q: %s", conf.SystemConfig.Listen, err)
 	}
 }
@@ -133,26 +134,29 @@ func RunUnix(server *http.Server) error {
 	return server.Serve(listener)
 }
 
-func shutdown(sigChan chan os.Signal, server *http.Server) {
-	sig := <-sigChan
-	util.Log().Info("Signal %s received, shutting down server...", sig)
-	ctx := context.Background()
-	if conf.SystemConfig.GracePeriod != 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(conf.SystemConfig.GracePeriod)*time.Second)
+func shutdown(sigChan chan os.Signal, server *http.Server) chan struct{} {
+	wait := make(chan struct{})
+	go func() {
+		sig := <-sigChan
+		util.Log().Info("Signal %s received, shutting down server...", sig)
+		if conf.SystemConfig.GracePeriod == 0 {
+			conf.SystemConfig.GracePeriod = 10
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(conf.SystemConfig.GracePeriod)*time.Second)
 		defer cancel()
-	}
+		// Shutdown http server
+		err := server.Shutdown(ctx)
+		if err != nil {
+			util.Log().Error("Failed to shutdown server: %s", err)
+		}
 
-	// Shutdown http server
-	err := server.Shutdown(ctx)
-	if err != nil {
-		util.Log().Error("Failed to shutdown server: %s", err)
-	}
+		// Persist in-memory cache
+		if err := cache.Store.Persist(filepath.Join(model.GetSettingByName("temp_path"), cache.DefaultCacheFile)); err != nil {
+			util.Log().Warning("Failed to persist cache: %s", err)
+		}
 
-	// Persist in-memory cache
-	if err := cache.Store.Persist(filepath.Join(model.GetSettingByName("temp_path"), cache.DefaultCacheFile)); err != nil {
-		util.Log().Warning("Failed to persist cache: %s", err)
-	}
-
-	close(sigChan)
+		close(sigChan)
+		wait <- struct{}{}
+	}()
+	return wait
 }

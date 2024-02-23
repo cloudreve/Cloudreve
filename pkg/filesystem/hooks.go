@@ -2,6 +2,12 @@ package filesystem
 
 import (
 	"context"
+	"io/ioutil"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
@@ -9,11 +15,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Hook 钩子函数
@@ -221,6 +222,21 @@ func GenericAfterUpload(ctx context.Context, fs *FileSystem, fileHeader fsctx.Fi
 
 	return nil
 }
+
+// HookGenerateThumb 生成缩略图
+// func HookGenerateThumb(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {
+// 	// 异步尝试生成缩略图
+// 	fileMode := fileHeader.Info().Model.(*model.File)
+// 	if fs.Policy.IsThumbGenerateNeeded() {
+// 		fs.recycleLock.Lock()
+// 		go func() {
+// 			defer fs.recycleLock.Unlock()
+// 			_, _ = fs.Handler.Delete(ctx, []string{fileMode.SourceName + model.GetSettingByNameWithDefault("thumb_file_suffix", "._thumb")})
+// 			fs.GenerateThumbnail(ctx, fileMode)
+// 		}()
+// 	}
+// 	return nil
+// }
 
 // HookClearFileHeaderSize 将FileHeader大小设定为0
 func HookClearFileHeaderSize(ctx context.Context, fs *FileSystem, fileHeader fsctx.FileHeader) error {

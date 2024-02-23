@@ -3,6 +3,10 @@ package filesystem
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"sync"
+
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
 	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
@@ -22,9 +26,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	cossdk "github.com/tencentyun/cos-go-sdk-v5"
-	"net/http"
-	"net/url"
-	"sync"
 )
 
 // FSPool 文件系统资源池
@@ -92,7 +93,7 @@ func (fs *FileSystem) reset() {
 func NewFileSystem(user *model.User) (*FileSystem, error) {
 	fs := getEmptyFS()
 	fs.User = user
-	fs.Policy = &fs.User.Policy
+	fs.Policy = user.GetPolicyID(nil)
 
 	// 分配存储策略适配器
 	err := fs.DispatchHandler()
@@ -122,70 +123,57 @@ func NewAnonymousFileSystem() (*FileSystem, error) {
 
 // DispatchHandler 根据存储策略分配文件适配器
 func (fs *FileSystem) DispatchHandler() error {
-	if fs.Policy == nil {
-		return errors.New("未设置存储策略")
+	handler, err := getNewPolicyHandler(fs.Policy)
+	fs.Handler = handler
+
+	return err
+}
+
+// getNewPolicyHandler 根据存储策略类型字段获取处理器
+func getNewPolicyHandler(policy *model.Policy) (driver.Handler, error) {
+	if policy == nil {
+		return nil, ErrUnknownPolicyType
 	}
-	policyType := fs.Policy.Type
-	currentPolicy := fs.Policy
 
-	switch policyType {
+	switch policy.Type {
 	case "mock", "anonymous":
-		return nil
+		return nil, nil
 	case "local":
-		fs.Handler = local.Driver{
-			Policy: currentPolicy,
-		}
-		return nil
+		return local.Driver{
+			Policy: policy,
+		}, nil
 	case "remote":
-		handler, err := remote.NewDriver(currentPolicy)
-		if err != nil {
-			return err
-		}
-
-		fs.Handler = handler
+		return remote.NewDriver(policy)
 	case "qiniu":
-		fs.Handler = qiniu.NewDriver(currentPolicy)
-		return nil
+		return qiniu.NewDriver(policy), nil
 	case "oss":
-		handler, err := oss.NewDriver(currentPolicy)
-		fs.Handler = handler
-		return err
+		return oss.NewDriver(policy)
 	case "upyun":
-		fs.Handler = upyun.Driver{
-			Policy: currentPolicy,
-		}
-		return nil
+		return upyun.Driver{
+			Policy: policy,
+		}, nil
 	case "onedrive":
-		var odErr error
-		fs.Handler, odErr = onedrive.NewDriver(currentPolicy)
-		return odErr
+		return onedrive.NewDriver(policy)
 	case "cos":
-		u, _ := url.Parse(currentPolicy.Server)
+		u, _ := url.Parse(policy.Server)
 		b := &cossdk.BaseURL{BucketURL: u}
-		fs.Handler = cos.Driver{
-			Policy: currentPolicy,
+		return cos.Driver{
+			Policy: policy,
 			Client: cossdk.NewClient(b, &http.Client{
 				Transport: &cossdk.AuthorizationTransport{
-					SecretID:  currentPolicy.AccessKey,
-					SecretKey: currentPolicy.SecretKey,
+					SecretID:  policy.AccessKey,
+					SecretKey: policy.SecretKey,
 				},
 			}),
 			HTTPClient: request.NewClient(),
-		}
-		return nil
+		}, nil
 	case "s3":
-		handler, err := s3.NewDriver(currentPolicy)
-		fs.Handler = handler
-		return err
+		return s3.NewDriver(policy)
 	case "googledrive":
-		handler, err := googledrive.NewDriver(currentPolicy)
-		fs.Handler = handler
-		return err
+		return googledrive.NewDriver(policy)
 	default:
-		return ErrUnknownPolicyType
+		return nil, ErrUnknownPolicyType
 	}
-
-	return nil
 }
 
 // NewFileSystemFromContext 从gin.Context创建文件系统
@@ -289,4 +277,19 @@ func (fs *FileSystem) SetTargetByInterface(target interface{}) error {
 func (fs *FileSystem) CleanTargets() {
 	fs.FileTarget = fs.FileTarget[:0]
 	fs.DirTarget = fs.DirTarget[:0]
+}
+
+// SetPolicyFromPath 根据给定路径尝试设定偏好存储策略
+func (fs *FileSystem) SetPolicyFromPath(filePath string) error {
+	_, parent := fs.getClosedParent(filePath)
+	// 尝试获取并重设存储策略
+	fs.Policy = fs.User.GetPolicyID(parent)
+	return fs.DispatchHandler()
+}
+
+// SetPolicyFromPreference 尝试设定偏好存储策略
+func (fs *FileSystem) SetPolicyFromPreference(preference uint) error {
+	// 尝试获取并重设存储策略
+	fs.Policy = fs.User.GetPolicyByPreference(preference)
+	return fs.DispatchHandler()
 }

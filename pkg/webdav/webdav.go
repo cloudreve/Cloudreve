@@ -414,6 +414,9 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 		ctx = context.WithValue(ctx, fsctx.FileModelCtx, *originFile)
 		fileData.Mode |= fsctx.Overwrite
 	} else {
+		// 尝试获取并重设存储策略
+		fs.SetPolicyFromPath(filePath)
+
 		// 给文件系统分配钩子
 		fs.Use("BeforeUpload", filesystem.HookValidateFile)
 		fs.Use("BeforeUpload", filesystem.HookValidateCapacity)

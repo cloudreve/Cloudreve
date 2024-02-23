@@ -60,8 +60,9 @@ func (service *BatchAddURLService) Add(c *gin.Context, taskType int) serializer.
 
 // AddURLService 添加URL离线下载服务
 type AddURLService struct {
-	URL string `json:"url" binding:"required"`
-	Dst string `json:"dst" binding:"required,min=1"`
+	URL           string `json:"url" binding:"required"`
+	Dst           string `json:"dst" binding:"required,min=1"`
+	PreferredNode uint   `json:"preferred_node"`
 }
 
 // Add 主机创建新的链接离线下载任务
@@ -92,6 +93,10 @@ func (service *AddURLService) Add(c *gin.Context, fs *filesystem.FileSystem, tas
 		return serializer.Err(serializer.CodeBatchAria2Size, "", nil)
 	}
 
+	if service.PreferredNode > 0 && !fs.User.Group.OptionsSerialized.SelectNode {
+		return serializer.Err(serializer.CodeGroupNotAllowed, "not allowed to select nodes", nil)
+	}
+
 	// 创建任务
 	task := &model.Download{
 		Status: common.Ready,
@@ -105,7 +110,8 @@ func (service *AddURLService) Add(c *gin.Context, fs *filesystem.FileSystem, tas
 	lb := aria2.GetLoadBalancer()
 
 	// 获取 Aria2 实例
-	err, node := cluster.Default.BalanceNodeByFeature("aria2", lb)
+	err, node := cluster.Default.BalanceNodeByFeature("aria2", lb, fs.User.Group.OptionsSerialized.AvailableNodes,
+		service.PreferredNode)
 	if err != nil {
 		return serializer.Err(serializer.CodeInternalSetting, "Failed to get Aria2 instance", err)
 	}

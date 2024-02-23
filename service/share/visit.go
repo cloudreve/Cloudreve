@@ -48,6 +48,28 @@ type ShareListService struct {
 	Keywords string `form:"keywords"`
 }
 
+// ShareReportService 举报分享
+type ShareReportService struct {
+	Reason int    `json:"reason" binding:"gte=0,lte=4"`
+	Des    string `json:"des"`
+}
+
+// Get 获取给定用户的分享
+func (service *ShareReportService) Report(c *gin.Context) serializer.Response {
+	// 取得分享ID
+	shareID, _ := c.Get("share")
+
+	report := &model.Report{
+		ShareID:     shareID.(*model.Share).ID,
+		Reason:      service.Reason,
+		Description: service.Des,
+	}
+	if err := report.Create(); err != nil {
+		return serializer.DBErr("Failed to create report record", err)
+	}
+	return serializer.Response{}
+}
+
 // Get 获取给定用户的分享
 func (service *ShareUserGetService) Get(c *gin.Context) serializer.Response {
 	// 取得用户
@@ -118,6 +140,8 @@ func (service *ShareListService) List(c *gin.Context, user *model.User) serializ
 func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 	shareCtx, _ := c.Get("share")
 	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
 
 	// 是否已解锁
 	unlocked := true
@@ -135,6 +159,11 @@ func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
 
 	if unlocked {
 		share.Viewed()
+	}
+
+	// 如果已经下载过或者是自己的分享，不需要付积分
+	if share.UserID == user.ID || share.WasDownloadedBy(user, c) {
+		share.Score = 0
 	}
 
 	return serializer.Response{
@@ -222,6 +251,39 @@ func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Respo
 	subService := explorer.FileIDService{}
 
 	return subService.CreateDocPreviewSession(ctx, c, false)
+}
+
+// SaveToMyFile 将此分享转存到自己的网盘
+func (service *Service) SaveToMyFile(c *gin.Context) serializer.Response {
+	shareCtx, _ := c.Get("share")
+	share := shareCtx.(*model.Share)
+	userCtx, _ := c.Get("user")
+	user := userCtx.(*model.User)
+
+	// 不能转存自己的文件
+	if share.UserID == user.ID {
+		return serializer.Err(serializer.CodeSaveOwnShare, "", nil)
+	}
+
+	// 创建文件系统
+	fs, err := filesystem.NewFileSystem(user)
+	if err != nil {
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
+	}
+	defer fs.Recycle()
+
+	// 重设文件系统处理目标为源文件
+	err = fs.SetTargetByInterface(share.Source())
+	if err != nil {
+		return serializer.Err(serializer.CodeFileNotFound, "", err)
+	}
+
+	err = fs.SaveTo(context.Background(), service.Path)
+	if err != nil {
+		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
+	}
+
+	return serializer.Response{}
 }
 
 // List 列出分享的目录下的对象
@@ -378,11 +440,11 @@ func (service *SearchService) Search(c *gin.Context) serializer.Response {
 	share := shareCtx.(*model.Share)
 
 	if !share.IsDir {
-		return serializer.ParamErr("此分享无法列目录", nil)
+		return serializer.ParamErr("This is not a shared folder", nil)
 	}
 
 	if service.Path != "" && !path.IsAbs(service.Path) {
-		return serializer.ParamErr("路径无效", nil)
+		return serializer.ParamErr("Invalid path", nil)
 	}
 
 	// 创建文件系统
@@ -402,7 +464,7 @@ func (service *SearchService) Search(c *gin.Context) serializer.Response {
 	if service.Path != "" {
 		ok, parent := fs.IsPathExist(service.Path)
 		if !ok {
-			return serializer.Err(serializer.CodeParentNotExist, "Cannot find parent folder", nil)
+			return serializer.Err(serializer.CodeParentNotExist, "", nil)
 		}
 
 		fs.Root = parent

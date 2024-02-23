@@ -14,13 +14,17 @@ import (
 func SiteConfig(c *gin.Context) {
 	siteConfig := model.GetSettingByNames(
 		"siteName",
+		"siteNotice",
 		"login_captcha",
+		"qq_login",
 		"reg_captcha",
 		"email_active",
 		"forget_captcha",
-		"email_active",
+		// "email_active",
 		"themes",
 		"defaultTheme",
+		"score_enabled",
+		"share_score_rate",
 		"home_view_method",
 		"share_view_method",
 		"authn_enabled",
@@ -28,7 +32,10 @@ func SiteConfig(c *gin.Context) {
 		"captcha_type",
 		"captcha_TCaptcha_CaptchaAppId",
 		"register_enabled",
+		"report_enabled",
 		"show_app_promotion",
+		"app_forum_link",
+		"app_feedback_link",
 	)
 
 	var wopiExts []string
@@ -49,8 +56,8 @@ func SiteConfig(c *gin.Context) {
 // Ping 状态检查页面
 func Ping(c *gin.Context) {
 	version := conf.BackendVersion
-	if conf.IsPro == "true" {
-		version += "-pro"
+	if conf.IsPlus == "true" {
+		version += "-plus"
 	}
 
 	c.JSON(200, serializer.Response{
@@ -137,5 +144,24 @@ func Manifest(c *gin.Context) {
 		"display":          options["pwa_display"],
 		"theme_color":      options["pwa_theme_color"],
 		"background_color": options["pwa_background_color"],
+	})
+}
+
+// GetVolSecret 获取 VOL 密钥
+func GetVolSecret(c *gin.Context) {
+	vol := model.GetSettingByNames("vol_content", "vol_signature")
+	if vol["vol_signature"] == "" {
+		c.JSON(200, serializer.Response{
+			Code: serializer.CodeNotFound,
+		})
+
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Data: serializer.VolResponse{
+			Signature: vol["vol_signature"],
+			Content:   vol["vol_content"],
+		},
 	})
 }

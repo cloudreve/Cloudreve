@@ -239,13 +239,6 @@ func (fs *FileSystem) Decompress(ctx context.Context, src, dst, encoding string)
 		reader = zipFile
 	}
 
-	// 重设存储策略
-	fs.Policy = &fs.User.Policy
-	err = fs.DispatchHandler()
-	if err != nil {
-		return err
-	}
-
 	var wg sync.WaitGroup
 	parallel := model.GetIntSetting("max_parallel_transfer", 4)
 	worker := make(chan int, parallel)

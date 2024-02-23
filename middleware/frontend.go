@@ -1,13 +1,14 @@
 package middleware
 
 import (
+	"io/ioutil"
+	"net/http"
+	"strings"
+
 	"github.com/cloudreve/Cloudreve/v3/bootstrap"
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
-	"net/http"
-	"strings"
 )
 
 // FrontendFileHandler 前端静态文件处理
@@ -51,10 +52,16 @@ func FrontendFileHandler() gin.HandlerFunc {
 		// 不存在的路径和index.html均返回index.html
 		if (path == "/index.html") || (path == "/") || !bootstrap.StaticFS.Exists("/", path) {
 			// 读取、替换站点设置
-			options := model.GetSettingByNames("siteName", "siteKeywords", "siteScript",
-				"pwa_small_icon")
+			options := model.GetSettingByNames(
+				"siteName",       // 站点名称
+				"siteKeywords",   // 关键词
+				"siteDes",        // 描述
+				"siteScript",     // 自定义代码
+				"pwa_small_icon", // 图标
+			)
 			finalHTML := util.Replace(map[string]string{
 				"{siteName}":       options["siteName"],
+				"{siteKeywords}":   options["siteKeywords"],
 				"{siteDes}":        options["siteDes"],
 				"{siteScript}":     options["siteScript"],
 				"{pwa_small_icon}": options["pwa_small_icon"],
