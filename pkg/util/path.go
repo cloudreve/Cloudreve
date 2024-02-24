@@ -56,4 +56,3 @@ func RelativePath(name string) string {
 	e, _ := os.Executable()
 	return filepath.Join(filepath.Dir(e), name)
 }
-

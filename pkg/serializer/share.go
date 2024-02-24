@@ -12,6 +12,7 @@ type Share struct {
 	Key        string        `json:"key"`
 	Locked     bool          `json:"locked"`
 	IsDir      bool          `json:"is_dir"`
+	Score      int           `json:"score"`
 	CreateDate time.Time     `json:"create_date,omitempty"`
 	Downloads  int           `json:"downloads"`
 	Views      int           `json:"views"`
@@ -36,6 +37,7 @@ type shareSource struct {
 type myShareItem struct {
 	Key             string       `json:"key"`
 	IsDir           bool         `json:"is_dir"`
+	Score           int          `json:"score"`
 	Password        string       `json:"password"`
 	CreateDate      time.Time    `json:"create_date,omitempty"`
 	Downloads       int          `json:"downloads"`
@@ -54,6 +56,7 @@ func BuildShareList(shares []model.Share, total int) Response {
 		item := myShareItem{
 			Key:             hashid.HashID(shares[i].ID, hashid.ShareID),
 			IsDir:           shares[i].IsDir,
+			Score:           shares[i].Score,
 			Password:        shares[i].Password,
 			CreateDate:      shares[i].CreatedAt,
 			Downloads:       shares[i].Downloads,
@@ -99,6 +102,7 @@ func BuildShareResponse(share *model.Share, unlocked bool) Share {
 			Nick:      creator.Nick,
 			GroupName: creator.Group.Name,
 		},
+		Score:      share.Score,
 		CreateDate: share.CreatedAt,
 	}
 

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -18,6 +17,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
 	"github.com/gin-gonic/gin"
 )
@@ -56,6 +56,9 @@ func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
 	}
 	defer fs.Recycle()
 
+	baseDir := path.Dir(service.Path)
+	fs.SetPolicyFromPath(baseDir)
+
 	// 上下文
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -68,7 +71,7 @@ func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
 	err = fs.Upload(ctx, &fsctx.FileStream{
 		File:        ioutil.NopCloser(strings.NewReader("")),
 		Size:        0,
-		VirtualPath: path.Dir(service.Path),
+		VirtualPath: baseDir,
 		Name:        path.Base(service.Path),
 	})
 	if err != nil {
@@ -197,7 +200,7 @@ func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gi
 	// 创建文件系统
 	fs, err := filesystem.NewFileSystemFromContext(c)
 	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
+		return serializer.Err(serializer.CodeCreateFSError, "", err)
 	}
 	defer fs.Recycle()
 

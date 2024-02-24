@@ -16,10 +16,12 @@ type Folder struct {
 	Name     string `gorm:"unique_index:idx_only_one_name"`
 	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
 	OwnerID  uint   `gorm:"index:owner_id"`
+	PolicyID uint   // Webdav下挂载的存储策略ID
 
 	// 数据库忽略字段
-	Position      string `gorm:"-"`
-	WebdavDstName string `gorm:"-"`
+	Position        string `gorm:"-"`
+	WebdavDstName   string `gorm:"-"`
+	InheritPolicyID uint   `gorm:"-"` //  从父目录继承而来的policy id，默认值则使用自身的的PolicyID
 }
 
 // Create 创建目录
@@ -33,6 +35,13 @@ func (folder *Folder) Create() (uint, error) {
 	return folder.ID, nil
 }
 
+// GetMountedFolders 列出已挂载存储策略的目录
+func GetMountedFolders(uid uint) []Folder {
+	var folders []Folder
+	DB.Where("owner_id = ? and policy_id <> ?", uid, 0).Find(&folders)
+	return folders
+}
+
 // GetChild 返回folder下名为name的子目录，不存在则返回错误
 func (folder *Folder) GetChild(name string) (*Folder, error) {
 	var resFolder Folder
@@ -40,9 +49,14 @@ func (folder *Folder) GetChild(name string) (*Folder, error) {
 		Where("parent_id = ? AND owner_id = ? AND name = ?", folder.ID, folder.OwnerID, name).
 		First(&resFolder).Error
 
-	// 将子目录的路径传递下去
+	// 将子目录的路径及存储策略传递下去
 	if err == nil {
 		resFolder.Position = path.Join(folder.Position, folder.Name)
+		if folder.PolicyID > 0 {
+			resFolder.InheritPolicyID = folder.PolicyID
+		} else if folder.InheritPolicyID > 0 {
+			resFolder.InheritPolicyID = folder.InheritPolicyID
+		}
 	}
 	return &resFolder, err
 }
@@ -321,6 +335,11 @@ func (folder *Folder) MoveFolderTo(dirs []uint, dstFolder *Folder) error {
 // Rename 重命名目录
 func (folder *Folder) Rename(new string) error {
 	return DB.Model(&folder).UpdateColumn("name", new).Error
+}
+
+// Mount 目录挂载
+func (folder *Folder) Mount(new uint) error {
+	return DB.Model(&folder).Update("policy_id", new).Error
 }
 
 /*

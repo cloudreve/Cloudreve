@@ -3,10 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"net/http"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/service/explorer"
@@ -45,6 +45,17 @@ func Compress(c *gin.Context) {
 	var service explorer.ItemCompressService
 	if err := c.ShouldBindJSON(&service); err == nil {
 		res := service.CreateCompressTask(c)
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// Relocate 创建文件转移任务
+func Relocate(c *gin.Context) {
+	var service explorer.ItemRelocateService
+	if err := c.ShouldBindJSON(&service); err == nil {
+		res := service.CreateRelocateTask(c)
 		c.JSON(200, res)
 	} else {
 		c.JSON(200, ErrorResponse(err))
@@ -135,6 +146,7 @@ func AnonymousPermLink(c *gin.Context) {
 
 }
 
+// GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -304,52 +316,6 @@ func FileUpload(c *gin.Context) {
 	} else {
 		c.JSON(200, ErrorResponse(err))
 	}
-
-	//fileData := fsctx.FileStream{
-	//	MIMEType:    c.Request.Header.Get("Content-Type"),
-	//	File:        c.Request.Body,
-	//	Size:        fileSize,
-	//	Name:        fileName,
-	//	VirtualPath: filePath,
-	//	Mode:        fsctx.Create,
-	//}
-	//
-	//// 创建文件系统
-	//fs, err := filesystem.NewFileSystemFromContext(c)
-	//if err != nil {
-	//	c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-	//	return
-	//}
-	//
-	//// 非可用策略时拒绝上传
-	//if !fs.Policy.IsTransitUpload(fileSize) {
-	//	request.BlackHole(c.Request.Body)
-	//	c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
-	//	return
-	//}
-	//
-	//// 给文件系统分配钩子
-	//fs.Use("BeforeUpload", filesystem.HookValidateFile)
-	//fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
-	//fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
-	//fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
-	//fs.Use("AfterUpload", filesystem.GenericAfterUpload)
-	//fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-	//fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
-	//fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
-	//
-	//// 执行上传
-	//ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
-	//uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
-	//err = fs.Upload(uploadCtx, &fileData)
-	//if err != nil {
-	//	c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
-	//	return
-	//}
-	//
-	//c.JSON(200, serializer.Response{
-	//	Code: 0,
-	//})
 }
 
 // DeleteUploadSession 删除上传会话

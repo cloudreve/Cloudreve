@@ -23,6 +23,8 @@ func Init() {
 	// 读取cron日程设置
 	options := model.GetSettingByNames(
 		"cron_garbage_collect",
+		"cron_notify_user",
+		"cron_ban_user",
 		"cron_recycle_upload_session",
 	)
 	Cron := cron.New()
@@ -31,6 +33,10 @@ func Init() {
 		switch k {
 		case "cron_garbage_collect":
 			handler = garbageCollect
+		case "cron_notify_user":
+			handler = notifyExpiredVAS
+		case "cron_ban_user":
+			handler = banOverusedUser
 		case "cron_recycle_upload_session":
 			handler = uploadSessionCollect
 		default:

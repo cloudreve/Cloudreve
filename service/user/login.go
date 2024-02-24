@@ -2,17 +2,19 @@ package user
 
 import (
 	"fmt"
-	model "github.com/cloudreve/Cloudreve/v3/models"
+	"net/url"
+
 	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/gofrs/uuid"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gin-gonic/gin"
-	"github.com/gofrs/uuid"
 	"github.com/pquerna/otp/totp"
-	"net/url"
 )
 
 // UserLoginService 管理用户登录的服务

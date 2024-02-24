@@ -86,7 +86,6 @@ func (job *ImportTask) Do() {
 	}
 
 	// 创建文件系统
-	job.User.Policy = policy
 	fs, err := filesystem.NewFileSystem(job.User)
 	if err != nil {
 		job.SetErrorMsg(err.Error(), nil)

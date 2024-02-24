@@ -118,8 +118,14 @@ func BeforeShareDownload() gin.HandlerFunc {
 				// 对积分、下载次数进行更新
 				err = share.DownloadBy(user, c)
 				if err != nil {
-					c.JSON(200, serializer.Err(serializer.CodeGroupNotAllowed, err.Error(),
-						nil))
+					if err == model.ErrInsufficientCredit {
+						c.JSON(200, serializer.Err(serializer.CodeInsufficientCredit, err.Error(),
+							nil))
+					} else {
+						c.JSON(200, serializer.Err(serializer.CodeGroupNotAllowed, err.Error(),
+							nil))
+					}
+
 					c.Abort()
 					return
 				}

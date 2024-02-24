@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -52,6 +53,7 @@ func NewMonitor(task *model.Download, pool cluster.Pool, mqClient mq.MQ) {
 // Loop 开启监控循环
 func (monitor *Monitor) Loop(mqClient mq.MQ) {
 	defer mqClient.Unsubscribe(monitor.Task.GID, monitor.notifier)
+	fmt.Println(cluster.Default)
 
 	// 首次循环立即更新
 	interval := 50 * time.Millisecond
@@ -189,6 +191,10 @@ func (monitor *Monitor) ValidateFile() error {
 		return err
 	}
 	defer fs.Recycle()
+
+	if err := fs.SetPolicyFromPath(monitor.Task.Dst); err != nil {
+		return fmt.Errorf("failed to switch policy to target dir: %w", err)
+	}
 
 	// 创建上下文环境
 	file := &fsctx.FileStream{

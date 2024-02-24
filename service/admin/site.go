@@ -10,6 +10,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v3/pkg/email"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
+	"github.com/cloudreve/Cloudreve/v3/pkg/vol"
 	"github.com/gin-gonic/gin"
 )
 
@@ -89,7 +90,7 @@ func (service *NoParamService) Summary() serializer.Response {
 		"backend": conf.BackendVersion,
 		"db":      conf.RequiredDBVersion,
 		"commit":  conf.LastCommit,
-		"is_pro":  conf.IsPro,
+		"is_plus": conf.IsPlus,
 	}
 
 	if res, ok := cache.Get("admin_summary"); ok {
@@ -162,4 +163,37 @@ func (s *ThumbGeneratorTestService) Test(c *gin.Context) serializer.Response {
 	return serializer.Response{
 		Data: version,
 	}
+}
+
+// VOL 授权管理服务
+type VolService struct {
+}
+
+// Sync 同步 VOL 授权
+func (s *VolService) Sync() serializer.Response {
+	volClient := vol.New(vol.ClientSecret)
+	content, signature, err := volClient.Sync()
+	if err != nil {
+		return serializer.Err(serializer.CodeInternalSetting, err.Error(), err)
+	}
+
+	subService := &BatchSettingChangeService{
+		Options: []SettingChangeService{
+			{
+				Key:   "vol_content",
+				Value: content,
+			},
+			{
+				Key:   "vol_signature",
+				Value: signature,
+			},
+		},
+	}
+
+	res := subService.Change()
+	if res.Code != 0 {
+		return res
+	}
+
+	return serializer.Response{Data: content}
 }

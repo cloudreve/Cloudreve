@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/jinzhu/gorm"
@@ -28,20 +29,25 @@ const (
 type User struct {
 	// 表字段
 	gorm.Model
-	Email     string `gorm:"type:varchar(100);unique_index"`
-	Nick      string `gorm:"size:50"`
-	Password  string `json:"-"`
-	Status    int
-	GroupID   uint
-	Storage   uint64
-	TwoFactor string
-	Avatar    string
-	Options   string `json:"-" gorm:"size:4294967295"`
-	Authn     string `gorm:"size:4294967295"`
+	Email           string `gorm:"type:varchar(100);unique_index"`
+	Nick            string `gorm:"size:50"`
+	Password        string `json:"-"`
+	Status          int
+	GroupID         uint
+	Storage         uint64
+	OpenID          string
+	TwoFactor       string
+	Avatar          string
+	Options         string `json:"-" gorm:"size:4294967295"`
+	Authn           string `gorm:"size:4294967295"`
+	Score           int
+	PreviousGroupID uint       // 初始用户组
+	GroupExpires    *time.Time // 用户组过期日期
+	NotifyDate      *time.Time // 通知超出配额时的日期
+	Phone           string
 
 	// 关联模型
-	Group  Group  `gorm:"save_associations:false:false"`
-	Policy Policy `gorm:"PRELOAD:false,association_autoupdate:false"`
+	Group Group `gorm:"save_associations:false:false"`
 
 	// 数据库忽略字段
 	OptionsSerialized UserOption `gorm:"-"`
@@ -53,8 +59,9 @@ func init() {
 
 // UserOption 用户个性化配置字段
 type UserOption struct {
-	ProfileOff     bool   `json:"profile_off,omitempty"`
-	PreferredTheme string `json:"preferred_theme,omitempty"`
+	ProfileOff      bool   `json:"profile_off,omitempty"`
+	PreferredPolicy uint   `json:"preferred_policy,omitempty"`
+	PreferredTheme  string `json:"preferred_theme,omitempty"`
 }
 
 // Root 获取用户的根目录
@@ -99,6 +106,25 @@ func (user *User) ChangeStorage(tx *gorm.DB, operator string, size uint64) error
 	return tx.Model(user).Update("storage", gorm.Expr("storage "+operator+" ?", size)).Error
 }
 
+// PayScore 扣除积分，返回是否成功
+func (user *User) PayScore(score int) bool {
+	if score == 0 {
+		return true
+	}
+	if score <= user.Score {
+		user.Score -= score
+		DB.Model(user).Update("score", gorm.Expr("score - ?", score))
+		return true
+	}
+	return false
+}
+
+// AddScore 增加积分
+func (user *User) AddScore(score int) {
+	user.Score += score
+	DB.Model(user).Update("score", gorm.Expr("score + ?", score))
+}
+
 // IncreaseStorageWithoutCheck 忽略可用容量，增加用户已用容量
 func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 	if size == 0 {
@@ -111,19 +137,58 @@ func (user *User) IncreaseStorageWithoutCheck(size uint64) {
 
 // GetRemainingCapacity 获取剩余配额
 func (user *User) GetRemainingCapacity() uint64 {
-	total := user.Group.MaxStorage
+	total := user.Group.MaxStorage + user.GetAvailablePackSize()
 	if total <= user.Storage {
 		return 0
 	}
 	return total - user.Storage
 }
 
-// GetPolicyID 获取用户当前的存储策略ID
-func (user *User) GetPolicyID(prefer uint) uint {
-	if len(user.Group.PolicyList) > 0 {
-		return user.Group.PolicyList[0]
+// GetPolicyID 获取给定目录的存储策略, 如果为 nil 则使用默认
+func (user *User) GetPolicyID(folder *Folder) *Policy {
+	if user.IsAnonymous() {
+		return &Policy{Type: "anonymous"}
 	}
-	return 0
+
+	defaultPolicy := uint(1)
+	if len(user.Group.PolicyList) > 0 {
+		defaultPolicy = user.Group.PolicyList[0]
+	}
+
+	if folder != nil {
+		prefer := folder.PolicyID
+		if prefer == 0 && folder.InheritPolicyID > 0 {
+			prefer = folder.InheritPolicyID
+		}
+
+		if prefer > 0 && util.ContainsUint(user.Group.PolicyList, prefer) {
+			defaultPolicy = prefer
+		}
+	}
+
+	p, _ := GetPolicyByID(defaultPolicy)
+	return &p
+}
+
+// GetPolicyByPreference 在可用存储策略中优先获取 preference
+func (user *User) GetPolicyByPreference(preference uint) *Policy {
+	if user.IsAnonymous() {
+		return &Policy{Type: "anonymous"}
+	}
+
+	defaultPolicy := uint(1)
+	if len(user.Group.PolicyList) > 0 {
+		defaultPolicy = user.Group.PolicyList[0]
+	}
+
+	if preference != 0 {
+		if util.ContainsUint(user.Group.PolicyList, preference) {
+			defaultPolicy = preference
+		}
+	}
+
+	p, _ := GetPolicyByID(defaultPolicy)
+	return &p
 }
 
 // GetUserByID 用ID获取用户
@@ -183,6 +248,27 @@ func (user *User) AfterCreate(tx *gorm.DB) (err error) {
 		OwnerID: user.ID,
 	}
 	tx.Create(defaultFolder)
+
+	// 创建用户初始文件记录
+	initialFiles := GetSettingByNameFromTx(tx, "initial_files")
+	if initialFiles != "" {
+		initialFileIDs := make([]uint, 0)
+		if err := json.Unmarshal([]byte(initialFiles), &initialFileIDs); err != nil {
+			return err
+		}
+
+		if files, err := GetFilesByIDsFromTX(tx, initialFileIDs, 0); err == nil {
+			for _, file := range files {
+				file.ID = 0
+				file.UserID = user.ID
+				file.FolderID = defaultFolder.ID
+				user.Storage += file.Size
+				tx.Create(&file)
+			}
+			tx.Save(user)
+		}
+	}
+
 	return err
 }
 
@@ -193,12 +279,10 @@ func (user *User) AfterFind() (err error) {
 		err = json.Unmarshal([]byte(user.Options), &user.OptionsSerialized)
 	}
 
-	// 预加载存储策略
-	user.Policy, _ = GetPolicyByID(user.GetPolicyID(0))
 	return err
 }
 
-//SerializeOptions 将序列后的Option写入到数据库字段
+// SerializeOptions 将序列后的Option写入到数据库字段
 func (user *User) SerializeOptions() (err error) {
 	optionsValue, err := json.Marshal(&user.OptionsSerialized)
 	user.Options = string(optionsValue)
@@ -261,7 +345,6 @@ func (user *User) SetPassword(password string) error {
 // NewAnonymousUser 返回一个匿名用户
 func NewAnonymousUser() *User {
 	user := User{}
-	user.Policy.Type = "anonymous"
 	user.Group, _ = GetGroupByID(3)
 	return &user
 }
@@ -269,6 +352,20 @@ func NewAnonymousUser() *User {
 // IsAnonymous 返回是否为未登录用户
 func (user *User) IsAnonymous() bool {
 	return user.ID == 0
+}
+
+// Notified 更新用户容量超额通知日期
+func (user *User) Notified() {
+	if user.NotifyDate == nil {
+		timeNow := time.Now()
+		user.NotifyDate = &timeNow
+		DB.Model(&user).Update("notify_date", user.NotifyDate)
+	}
+}
+
+// ClearNotified 清除用户通知标记
+func (user *User) ClearNotified() {
+	DB.Model(&user).Update("notify_date", nil)
 }
 
 // SetStatus 设定用户状态
@@ -287,4 +384,46 @@ func (user *User) UpdateOptions() error {
 		return err
 	}
 	return user.Update(map[string]interface{}{"options": user.Options})
+}
+
+// GetGroupExpiredUsers 获取用户组过期的用户
+func GetGroupExpiredUsers() []User {
+	var users []User
+	DB.Where("group_expires < ? and previous_group_id <> 0", time.Now()).Find(&users)
+	return users
+}
+
+// GetTolerantExpiredUser 获取超过宽容期的用户
+func GetTolerantExpiredUser() []User {
+	var users []User
+	DB.Set("gorm:auto_preload", true).Where("notify_date < ?", time.Now().Add(
+		time.Duration(-GetIntSetting("ban_time", 10))*time.Second),
+	).Find(&users)
+	return users
+}
+
+// GroupFallback 回退到初始用户组
+func (user *User) GroupFallback() {
+	if user.GroupExpires != nil && user.PreviousGroupID != 0 {
+		user.Group.ID = user.PreviousGroupID
+		DB.Model(&user).Updates(map[string]interface{}{
+			"group_expires":     nil,
+			"previous_group_id": 0,
+			"group_id":          user.PreviousGroupID,
+		})
+	}
+}
+
+// UpgradeGroup 升级用户组
+func (user *User) UpgradeGroup(id uint, expires *time.Time) error {
+	user.Group.ID = id
+	previousGroupID := user.GroupID
+	if user.PreviousGroupID != 0 && user.GroupID == id {
+		previousGroupID = user.PreviousGroupID
+	}
+	return DB.Model(&user).Updates(map[string]interface{}{
+		"group_expires":     expires,
+		"previous_group_id": previousGroupID,
+		"group_id":          id,
+	}).Error
 }

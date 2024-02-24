@@ -1,16 +1,22 @@
 package conf
 
+// plusVersion 增强版版本号
+const plusVersion = "+1.1"
+
 // BackendVersion 当前后端版本号
-var BackendVersion = "3.8.3"
+const BackendVersion = "3.8.3" + plusVersion
+
+// KeyVersion 授权版本号
+const KeyVersion = "3.3.1"
 
 // RequiredDBVersion 与当前版本匹配的数据库版本
-var RequiredDBVersion = "3.8.1"
+const RequiredDBVersion = "3.8.1+1.0-plus"
 
 // RequiredStaticVersion 与当前版本匹配的静态资源版本
-var RequiredStaticVersion = "3.8.3"
+const RequiredStaticVersion = "3.8.3" + plusVersion
 
-// IsPro 是否为Pro版本
-var IsPro = "false"
+// IsPlus 是否为Plus版本
+const IsPlus = "true"
 
 // LastCommit 最后commit id
-var LastCommit = "a11f819"
+const LastCommit = "88409cc"

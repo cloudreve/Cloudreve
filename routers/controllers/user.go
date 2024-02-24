@@ -6,6 +6,7 @@ import (
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
 	"github.com/cloudreve/Cloudreve/v3/pkg/authn"
+	"github.com/cloudreve/Cloudreve/v3/pkg/qq"
 	"github.com/cloudreve/Cloudreve/v3/pkg/request"
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
@@ -213,6 +214,24 @@ func UserActivate(c *gin.Context) {
 	}
 }
 
+// UserQQLogin 初始化QQ登录
+func UserQQLogin(c *gin.Context) {
+	// 新建绑定
+	res, err := qq.NewLoginRequest()
+	if err != nil {
+		c.JSON(200, serializer.Err(serializer.CodeNotSet, "无法使用QQ登录", err))
+		return
+	}
+
+	// 设定QQ登录会话Secret
+	util.SetSession(c, map[string]interface{}{"qq_login_secret": res.SecretKey})
+
+	c.JSON(200, serializer.Response{
+		Data: res.URL,
+	})
+
+}
+
 // UserSignOut 用户退出登录
 func UserSignOut(c *gin.Context) {
 	util.DeleteSession(c, "user_id")
@@ -231,6 +250,28 @@ func UserStorage(c *gin.Context) {
 	currUser := CurrentUser(c)
 	res := serializer.BuildUserStorageResponse(*currUser)
 	c.JSON(200, res)
+}
+
+// UserAvailablePolicies 用户存储策略设置
+func UserAvailablePolicies(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Policy(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
+}
+
+// UserAvailableNodes 用户可选节点
+func UserAvailableNodes(c *gin.Context) {
+	var service user.SettingService
+	if err := c.ShouldBindUri(&service); err == nil {
+		res := service.Nodes(c, CurrentUser(c))
+		c.JSON(200, res)
+	} else {
+		c.JSON(200, ErrorResponse(err))
+	}
 }
 
 // UserTasks 获取任务队列
@@ -339,6 +380,12 @@ func UpdateOption(c *gin.Context) {
 		switch service.Option {
 		case "nick":
 			subService = &user.ChangerNick{}
+		case "vip":
+			subService = &user.VIPUnsubscribe{}
+		case "qq":
+			subService = &user.QQBind{}
+		case "policy":
+			subService = &user.PolicyChange{}
 		case "homepage":
 			subService = &user.HomePage{}
 		case "password":

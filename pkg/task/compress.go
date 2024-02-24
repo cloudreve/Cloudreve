@@ -122,7 +122,7 @@ func (job *CompressTask) Do() {
 
 	job.zipPath = zipFilePath
 	zipFile.Close()
-	util.Log().Debug("Compressed file saved to %q, start uploading it...", zipFilePath)
+	util.Log().Debug("Compressed file saved to %q, start uploading it...", zipFile)
 	job.TaskModel.SetProgress(TransferringProgress)
 
 	// 上传文件
@@ -155,7 +155,7 @@ func NewCompressTask(user *model.User, dst string, dirs, files []uint) (Job, err
 	return newTask, nil
 }
 
-// NewCompressTaskFromModel 从数据库记录中恢复压缩任务
+// NewRelocateTaskFromModel 从数据库记录中恢复迁移任务
 func NewCompressTaskFromModel(task *model.Task) (Job, error) {
 	user, err := model.GetActiveUserByID(task.UserID)
 	if err != nil {

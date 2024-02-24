@@ -72,6 +72,12 @@ func (service *UserBatchService) Delete() serializer.Response {
 		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})
 		model.DB.Where("user_id = ?", uid).Delete(&model.Task{})
 
+		// 删除订单记录
+		model.DB.Where("user_id = ?", uid).Delete(&model.Order{})
+
+		// 删除容量包
+		model.DB.Where("user_id = ?", uid).Delete(&model.StoragePack{})
+
 		// 删除标签
 		model.DB.Where("user_id = ?", uid).Delete(&model.Tag{})
 
@@ -109,6 +115,7 @@ func (service *AddUserService) Add() serializer.Response {
 		user.Email = service.User.Email
 		user.GroupID = service.User.GroupID
 		user.Status = service.User.Status
+		user.Score = service.User.Score
 		user.TwoFactor = service.User.TwoFactor
 
 		// 检查愚蠢操作

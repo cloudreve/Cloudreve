@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"errors"
-
 	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
 )
 

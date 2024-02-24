@@ -40,8 +40,8 @@ func migration() {
 		DB = DB.Set("gorm:table_options", "ENGINE=InnoDB")
 	}
 
-	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &Share{},
-		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Node{}, &SourceLink{})
+	DB.AutoMigrate(&User{}, &Setting{}, &Group{}, &Policy{}, &Folder{}, &File{}, &StoragePack{}, &Share{},
+		&Task{}, &Download{}, &Tag{}, &Webdav{}, &Order{}, &Redeem{}, &Report{}, &Node{}, &SourceLink{})
 
 	// 创建初始存储策略
 	addDefaultPolicy()
@@ -107,10 +107,13 @@ func addDefaultGroups() {
 				ArchiveDownload:  true,
 				ArchiveTask:      true,
 				ShareDownload:    true,
+				ShareFree:        true,
 				Aria2:            true,
+				Relocate:         true,
 				SourceBatchSize:  1000,
 				Aria2BatchSize:   50,
 				RedirectedSource: true,
+				SelectNode:       true,
 				AdvanceDelete:    true,
 			},
 		}
