@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gofrs/uuid"
 	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gofrs/uuid"
 )
 
 func init() {
@@ -23,10 +24,18 @@ type VipsGenerator struct {
 }
 
 func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
-	vipsOpts := model.GetSettingByNames("thumb_vips_path", "thumb_vips_exts", "thumb_encode_quality", "thumb_encode_method", "temp_path")
+	const (
+		thumbVipsPath      = "thumb_vips_path"
+		thumbVipsExts      = "thumb_vips_exts"
+		thumbEncodeQuality = "thumb_encode_quality"
+		thumbEncodeMethod  = "thumb_encode_method"
+		tempPath           = "temp_path"
+	)
+	vipsOpts := model.GetSettingByNames(thumbVipsPath, thumbVipsExts, thumbEncodeQuality, thumbEncodeMethod, tempPath)
 
-	if v.lastRawExts != vipsOpts["thumb_vips_exts"] {
-		v.exts = strings.Split(vipsOpts["thumb_vips_exts"], ",")
+	if v.lastRawExts != vipsOpts[thumbVipsExts] {
+		v.exts = strings.Split(vipsOpts[thumbVipsExts], ",")
+		v.lastRawExts = vipsOpts[thumbVipsExts]
 	}
 
 	if !util.IsInExtensionList(v.exts, name) {
@@ -34,21 +43,21 @@ func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name 
 	}
 
 	outputOpt := ".png"
-	if vipsOpts["thumb_encode_method"] == "jpg" {
-		outputOpt = fmt.Sprintf(".jpg[Q=%s]", vipsOpts["thumb_encode_quality"])
+	if vipsOpts[thumbEncodeMethod] == "jpg" {
+		outputOpt = fmt.Sprintf(".jpg[Q=%s]", vipsOpts[thumbEncodeQuality])
 	}
 
 	cmd := exec.CommandContext(ctx,
-		vipsOpts["thumb_vips_path"], "thumbnail_source", "[descriptor=0]", outputOpt, options["thumb_width"],
+		vipsOpts[thumbVipsPath], "thumbnail_source", "[descriptor=0]", outputOpt, options["thumb_width"],
 		"--height", options["thumb_height"])
 
-	tempPath := filepath.Join(
-		util.RelativePath(vipsOpts["temp_path"]),
+	outTempPath := filepath.Join(
+		util.RelativePath(vipsOpts[tempPath]),
 		"thumb",
 		fmt.Sprintf("thumb_%s", uuid.Must(uuid.NewV4()).String()),
 	)
 
-	thumbFile, err := util.CreatNestedFile(tempPath)
+	thumbFile, err := util.CreatNestedFile(outTempPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -66,7 +75,7 @@ func (v *VipsGenerator) Generate(ctx context.Context, file io.Reader, src, name 
 		return nil, fmt.Errorf("failed to invoke vips: %w", err)
 	}
 
-	return &Result{Path: tempPath}, nil
+	return &Result{Path: outTempPath}, nil
 }
 
 func (v *VipsGenerator) Priority() int {

@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gofrs/uuid"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	model "github.com/cloudreve/Cloudreve/v3/models"
+	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/gofrs/uuid"
 )
 
 func init() {
@@ -24,10 +25,18 @@ type FfmpegGenerator struct {
 }
 
 func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
-	ffmpegOpts := model.GetSettingByNames("thumb_ffmpeg_path", "thumb_ffmpeg_exts", "thumb_ffmpeg_seek", "thumb_encode_method", "temp_path")
+	const (
+		thumbFFMpegPath   = "thumb_ffmpeg_path"
+		thumbFFMpegExts   = "thumb_ffmpeg_exts"
+		thumbFFMpegSeek   = "thumb_ffmpeg_seek"
+		thumbEncodeMethod = "thumb_encode_method"
+		tempPath          = "temp_path"
+	)
+	ffmpegOpts := model.GetSettingByNames(thumbFFMpegPath, thumbFFMpegExts, thumbFFMpegSeek, thumbEncodeMethod, tempPath)
 
-	if f.lastRawExts != ffmpegOpts["thumb_ffmpeg_exts"] {
-		f.exts = strings.Split(ffmpegOpts["thumb_ffmpeg_exts"], ",")
+	if f.lastRawExts != ffmpegOpts[thumbFFMpegExts] {
+		f.exts = strings.Split(ffmpegOpts[thumbFFMpegExts], ",")
+		f.lastRawExts = ffmpegOpts[thumbFFMpegExts]
 	}
 
 	if !util.IsInExtensionList(f.exts, name) {
@@ -35,16 +44,16 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 	}
 
 	tempOutputPath := filepath.Join(
-		util.RelativePath(ffmpegOpts["temp_path"]),
+		util.RelativePath(ffmpegOpts[tempPath]),
 		"thumb",
-		fmt.Sprintf("thumb_%s.%s", uuid.Must(uuid.NewV4()).String(), ffmpegOpts["thumb_encode_method"]),
+		fmt.Sprintf("thumb_%s.%s", uuid.Must(uuid.NewV4()).String(), ffmpegOpts[thumbEncodeMethod]),
 	)
 
 	tempInputPath := src
 	if tempInputPath == "" {
 		// If not local policy files, download to temp folder
 		tempInputPath = filepath.Join(
-			util.RelativePath(ffmpegOpts["temp_path"]),
+			util.RelativePath(ffmpegOpts[tempPath]),
 			"thumb",
 			fmt.Sprintf("ffmpeg_%s%s", uuid.Must(uuid.NewV4()).String(), filepath.Ext(name)),
 		)
@@ -68,7 +77,7 @@ func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, nam
 	// Invoke ffmpeg
 	scaleOpt := fmt.Sprintf("scale=%s:%s:force_original_aspect_ratio=decrease", options["thumb_width"], options["thumb_height"])
 	cmd := exec.CommandContext(ctx,
-		ffmpegOpts["thumb_ffmpeg_path"], "-ss", ffmpegOpts["thumb_ffmpeg_seek"], "-i", tempInputPath,
+		ffmpegOpts[thumbFFMpegPath], "-ss", ffmpegOpts[thumbFFMpegSeek], "-i", tempInputPath,
 		"-vf", scaleOpt, "-vframes", "1", tempOutputPath)
 
 	// Redirect IO
