@@ -134,6 +134,14 @@ func rotateImg(filePath string, orientation int) error {
 		img = rotate90(rotate90(img))
 	case 6:
 		img = rotate90(rotate90(rotate90(img)))
+	case 2:
+		img = mirrorImg(img)
+	case 7:
+		img = rotate90(mirrorImg(img))
+	case 4:
+		img = rotate90(rotate90(mirrorImg(img)))
+	case 5:
+		img = rotate90(rotate90(rotate90(mirrorImg(img))))
 	}
 
 	if err = resultImg.Truncate(0); err != nil {
@@ -247,6 +255,18 @@ func rotate90(img image.Image) image.Image {
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
 			newImg.Set(y, width-x-1, img.At(x, y))
+		}
+	}
+	return newImg
+}
+
+func mirrorImg(img image.Image) image.Image {
+	bounds := img.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	newImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			newImg.Set(width-x-1, y, img.At(x, y))
 		}
 	}
 	return newImg
