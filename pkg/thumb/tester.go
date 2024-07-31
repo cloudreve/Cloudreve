@@ -23,6 +23,8 @@ func TestGenerator(ctx context.Context, name, executable string) (string, error)
 		return testFfmpegGenerator(ctx, executable)
 	case "libreOffice":
 		return testLibreOfficeGenerator(ctx, executable)
+	case "libRaw":
+		return testLibRawGenerator(ctx, executable)
 	default:
 		return "", ErrUnknownGenerator
 	}
@@ -67,6 +69,21 @@ func testLibreOfficeGenerator(ctx context.Context, executable string) (string, e
 	}
 
 	if !strings.Contains(output.String(), "LibreOffice") {
+		return "", ErrUnknownOutput
+	}
+
+	return output.String(), nil
+}
+
+func testLibRawGenerator(ctx context.Context, executable string) (string, error) {
+	cmd := exec.CommandContext(ctx, executable)
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to invoke libraw executable: %w", err)
+	}
+
+	if !strings.Contains(output.String(), "LibRaw") {
 		return "", ErrUnknownOutput
 	}
 

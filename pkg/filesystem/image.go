@@ -145,6 +145,7 @@ func (fs *FileSystem) generateThumbnail(ctx context.Context, file *model.File) e
 		"thumb_vips_enabled",
 		"thumb_ffmpeg_enabled",
 		"thumb_libreoffice_enabled",
+		"thumb_libraw_enabled",
 	))
 	if err != nil {
 		_ = updateThumbStatus(file, model.ThumbStatusNotAvailable)
