@@ -378,9 +378,13 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 	}
 	fileName := path.Base(reqPath)
 	filePath := path.Dir(reqPath)
+
+	// 计算hash
+	file, hook := filesystem.NewChecksumFileStreamAndAfterUploadHook(r.Body)
+
 	fileData := fsctx.FileStream{
 		MimeType:    r.Header.Get("Content-Type"),
-		File:        r.Body,
+		File:        file,
 		Size:        fileSize,
 		Name:        fileName,
 		VirtualPath: filePath,
@@ -425,6 +429,7 @@ func (h *Handler) handlePut(w http.ResponseWriter, r *http.Request, fs *filesyst
 
 	// rclone 请求
 	fs.Use("AfterUpload", filesystem.NewWebdavAfterUploadHook(r))
+	fs.Use("AfterUpload", hook)
 
 	// 执行上传
 	err = fs.Upload(ctx, &fileData)
