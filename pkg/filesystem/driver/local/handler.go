@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 
 	model "github.com/cloudreve/Cloudreve/v3/models"
@@ -76,9 +77,9 @@ func (handler Driver) List(ctx context.Context, path string, recursive bool) ([]
 }
 
 // Get 获取文件内容
-func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, objectPath string) (response.RSCloser, error) {
 	// 打开文件
-	file, err := os.Open(util.RelativePath(path))
+	file, err := os.Open(util.RelativePath(objectPath))
 	if err != nil {
 		util.Log().Debug("Failed to open file: %s", err)
 		return nil, err
@@ -219,7 +220,7 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
+func (handler Driver) Source(ctx context.Context, objectPath string, ttl int64, isDownload bool, speed int) (string, error) {
 	file, ok := ctx.Value(fsctx.FileModelCtx).(model.File)
 	if !ok {
 		return "", errors.New("failed to read file model context")
@@ -268,7 +269,11 @@ func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDown
 
 	finalURL := signedURI.String()
 	if baseURL != nil {
-		finalURL = baseURL.ResolveReference(signedURI).String()
+		// 支持代理域名使用子目录
+		// Support sub-directories for proxy domain
+		baseURL.Path = path.Join(baseURL.Path, signedURI.Path)
+		baseURL.RawQuery = signedURI.RawQuery
+		finalURL = baseURL.String()
 	}
 
 	return finalURL, nil

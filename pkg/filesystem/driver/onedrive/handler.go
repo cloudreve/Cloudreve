@@ -86,11 +86,11 @@ func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]
 }
 
 // Get 获取文件
-func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, objectPath string) (response.RSCloser, error) {
 	// 获取文件源地址
 	downloadURL, err := handler.Source(
 		ctx,
-		path,
+		objectPath,
 		60,
 		false,
 		0,
@@ -162,12 +162,12 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 // Source 获取外链URL
 func (handler Driver) Source(
 	ctx context.Context,
-	path string,
+	objectPath string,
 	ttl int64,
 	isDownload bool,
 	speed int,
 ) (string, error) {
-	cacheKey := fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, path)
+	cacheKey := fmt.Sprintf("onedrive_source_%d_%s", handler.Policy.ID, objectPath)
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
 		cacheKey = fmt.Sprintf("onedrive_source_file_%d_%d", file.UpdatedAt.Unix(), file.ID)
 	}
@@ -178,7 +178,7 @@ func (handler Driver) Source(
 	}
 
 	// 缓存不存在，重新获取
-	res, err := handler.Client.Meta(ctx, "", path)
+	res, err := handler.Client.Meta(ctx, "", objectPath)
 	if err == nil {
 		// 写入新的缓存
 		cache.Set(
@@ -206,6 +206,11 @@ func (handler Driver) replaceSourceHost(origin string) (string, error) {
 		// 替换反代地址
 		source.Scheme = cdn.Scheme
 		source.Host = cdn.Host
+
+		// 支持代理域名使用子目录
+		// Support sub-directories for proxy domain
+		source.Path = path.Join(cdn.Path, source.Path)
+
 		return source.String(), nil
 	}
 

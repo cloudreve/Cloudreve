@@ -186,7 +186,7 @@ func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([
 }
 
 // Get 获取文件
-func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler *Driver) Get(ctx context.Context, objectPath string) (response.RSCloser, error) {
 	// 通过VersionID禁止缓存
 	ctx = context.WithValue(ctx, VersionID, time.Now().UnixNano())
 
@@ -194,7 +194,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 	ctx = context.WithValue(ctx, fsctx.ForceUsePublicEndpointCtx, false)
 
 	// 获取文件源地址
-	downloadURL, err := handler.Source(ctx, path, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
+	downloadURL, err := handler.Source(ctx, objectPath, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +334,7 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 }
 
 // Source 获取外链URL
-func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
+func (handler *Driver) Source(ctx context.Context, objectPath string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 初始化客户端
 	usePublicEndpoint := true
 	if forceUsePublicEndpoint, ok := ctx.Value(fsctx.ForceUsePublicEndpointCtx).(bool); ok {
@@ -369,11 +369,11 @@ func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDow
 		signOptions = append(signOptions, oss.TrafficLimitParam(int64(speed)))
 	}
 
-	return handler.signSourceURL(ctx, path, ttl, signOptions)
+	return handler.signSourceURL(ctx, objectPath, ttl, signOptions)
 }
 
-func (handler *Driver) signSourceURL(ctx context.Context, path string, ttl int64, options []oss.Option) (string, error) {
-	signedURL, err := handler.bucket.SignURL(path, oss.HTTPGet, ttl, options...)
+func (handler *Driver) signSourceURL(ctx context.Context, objectPath string, ttl int64, options []oss.Option) (string, error) {
+	signedURL, err := handler.bucket.SignURL(objectPath, oss.HTTPGet, ttl, options...)
 	if err != nil {
 		return "", err
 	}
@@ -401,6 +401,10 @@ func (handler *Driver) signSourceURL(ctx context.Context, path string, ttl int64
 		}
 		finalURL.Host = cdnURL.Host
 		finalURL.Scheme = cdnURL.Scheme
+
+		// 支持代理域名使用子目录
+		// Support sub-directories for proxy domain
+		finalURL.Path = path.Join(cdnURL.Path, finalURL.Path)
 	}
 
 	return finalURL.String(), nil

@@ -148,9 +148,9 @@ func (handler Driver) CORS() error {
 }
 
 // Get 获取文件
-func (handler Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler Driver) Get(ctx context.Context, objectPath string) (response.RSCloser, error) {
 	// 获取文件源地址
-	downloadURL, err := handler.Source(ctx, path, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
+	downloadURL, err := handler.Source(ctx, objectPath, int64(model.GetIntSetting("preview_timeout", 60)), false, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (handler Driver) Thumb(ctx context.Context, file *model.File) (*response.Co
 }
 
 // Source 获取外链URL
-func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
+func (handler Driver) Source(ctx context.Context, objectPath string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 尝试从上下文获取文件名
 	fileName := ""
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
@@ -285,10 +285,10 @@ func (handler Driver) Source(ctx context.Context, path string, ttl int64, isDown
 		options.ContentDescription = "attachment; filename=\"" + url.PathEscape(fileName) + "\""
 	}
 
-	return handler.signSourceURL(ctx, path, ttl, &options)
+	return handler.signSourceURL(ctx, objectPath, ttl, &options)
 }
 
-func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64, options *urlOption) (string, error) {
+func (handler Driver) signSourceURL(ctx context.Context, objectPath string, ttl int64, options *urlOption) (string, error) {
 	cdnURL, err := url.Parse(handler.Policy.BaseURL)
 	if err != nil {
 		return "", err
@@ -296,7 +296,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 
 	// 公有空间不需要签名
 	if !handler.Policy.IsPrivate {
-		file, err := url.Parse(path)
+		file, err := url.Parse(objectPath)
 		if err != nil {
 			return "", err
 		}
@@ -314,7 +314,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 		return sourceURL.String(), nil
 	}
 
-	presignedURL, err := handler.Client.Object.GetPresignedURL(ctx, http.MethodGet, path,
+	presignedURL, err := handler.Client.Object.GetPresignedURL(ctx, http.MethodGet, objectPath,
 		handler.Policy.AccessKey, handler.Policy.SecretKey, time.Duration(ttl)*time.Second, options)
 	if err != nil {
 		return "", err
@@ -323,6 +323,10 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 	// 将最终生成的签名URL域名换成用户自定义的加速域名（如果有）
 	presignedURL.Host = cdnURL.Host
 	presignedURL.Scheme = cdnURL.Scheme
+
+	// 支持代理域名使用子目录
+	// Support sub-directories for proxy domain
+	presignedURL.Path = path.Join(cdnURL.Path, presignedURL.Path)
 
 	return presignedURL.String(), nil
 }
@@ -374,8 +378,8 @@ func (handler Driver) CancelToken(ctx context.Context, uploadSession *serializer
 }
 
 // Meta 获取文件信息
-func (handler Driver) Meta(ctx context.Context, path string) (*MetaData, error) {
-	res, err := handler.Client.Object.Head(ctx, path, &cossdk.ObjectHeadOptions{})
+func (handler Driver) Meta(ctx context.Context, objectPath string) (*MetaData, error) {
+	res, err := handler.Client.Object.Head(ctx, objectPath, &cossdk.ObjectHeadOptions{})
 	if err != nil {
 		return nil, err
 	}
