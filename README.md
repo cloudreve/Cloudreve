@@ -1,4 +1,5 @@
-[中文版本](https://github.com/cloudreve/Cloudreve/blob/master/README_zh-CN.md)
+[中文版本](https://github.com/cloudreve/Cloudreve/blob/master/README_zh-CN.md) •
+[✨V4 版本前瞻](https://forum.cloudreve.org/d/4456)
 
 <h1 align="center">
   <br>
