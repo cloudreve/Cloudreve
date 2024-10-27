@@ -116,7 +116,7 @@ func (handler *Driver) getAPIUrl(scope string, routes ...string) string {
 }
 
 // Get 获取文件内容
-func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser, error) {
+func (handler *Driver) Get(ctx context.Context, objectPath string) (response.RSCloser, error) {
 	// 尝试获取速度限制
 	speedLimit := 0
 	if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
@@ -124,7 +124,7 @@ func (handler *Driver) Get(ctx context.Context, path string) (response.RSCloser,
 	}
 
 	// 获取文件源地址
-	downloadURL, err := handler.Source(ctx, path, 0, true, speedLimit)
+	downloadURL, err := handler.Source(ctx, objectPath, 0, true, speedLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,7 @@ func (handler *Driver) Thumb(ctx context.Context, file *model.File) (*response.C
 }
 
 // Source 获取外链URL
-func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDownload bool, speed int) (string, error) {
+func (handler *Driver) Source(ctx context.Context, objectPath string, ttl int64, isDownload bool, speed int) (string, error) {
 	// 尝试从上下文获取文件名
 	fileName := "file"
 	if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
@@ -263,7 +263,7 @@ func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDow
 	}
 
 	// 签名下载地址
-	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(path))
+	sourcePath := base64.RawURLEncoding.EncodeToString([]byte(objectPath))
 	signedURI, err = auth.SignURI(
 		handler.AuthInstance,
 		fmt.Sprintf("%s/%d/%s/%s", controller, speed, sourcePath, url.PathEscape(fileName)),
@@ -274,9 +274,12 @@ func (handler *Driver) Source(ctx context.Context, path string, ttl int64, isDow
 		return "", serializer.NewError(serializer.CodeEncryptError, "Failed to sign URL", err)
 	}
 
-	finalURL := serverURL.ResolveReference(signedURI).String()
-	return finalURL, nil
+	// 支持代理域名使用子目录
+	// Support sub-directories for proxy domain
+	serverURL.Path = path.Join(serverURL.Path, signedURI.Path)
+	serverURL.RawQuery = signedURI.RawQuery
 
+	return serverURL.String(), nil
 }
 
 // Token 获取上传策略和认证Token
