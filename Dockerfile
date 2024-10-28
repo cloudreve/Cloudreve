@@ -4,7 +4,7 @@ WORKDIR /cloudreve
 COPY cloudreve ./cloudreve
 
 RUN apk update \
-    && apk add --no-cache tzdata \
+    && apk add --no-cache tzdata icu-data-full vips vips-tools ffmpeg libreoffice\
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
     && chmod +x ./cloudreve \
