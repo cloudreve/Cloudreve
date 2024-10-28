@@ -417,9 +417,12 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 		return serializer.ParamErr("Invalid content-length value", err)
 	}
 
+	// 计算hash
+	file, hook := filesystem.NewChecksumFileStreamAndAfterUploadHook(c.Request.Body)
+
 	fileData := fsctx.FileStream{
 		MimeType: c.Request.Header.Get("Content-Type"),
-		File:     c.Request.Body,
+		File:     file,
 		Size:     fileSize,
 		Mode:     fsctx.Overwrite,
 	}
@@ -459,6 +462,7 @@ func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) se
 	fs.Use("BeforeUpload", filesystem.HookValidateFile)
 	fs.Use("BeforeUpload", filesystem.HookValidateCapacityDiff)
 	fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
+	fs.Use("AfterUpload", hook)
 
 	// 执行上传
 	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, originFile[0])

@@ -1,9 +1,12 @@
 package fsctx
 
 import (
+	"encoding/hex"
 	"errors"
 	"github.com/HFO4/aliyun-oss-go-sdk/oss"
+	"hash"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -120,4 +123,25 @@ func (file *FileStream) SetSize(size uint64) {
 
 func (file *FileStream) SetModel(fileModel interface{}) {
 	file.Model = fileModel
+}
+
+type ChecksumFileStream struct {
+	Md5  hash.Hash
+	Sha1 hash.Hash
+	io.Reader
+	io.Closer
+}
+
+func (file *ChecksumFileStream) Hash() string {
+	var sb strings.Builder
+
+	sb.WriteString("MD5:")
+	sb.WriteString(hex.EncodeToString(file.Md5.Sum(nil)))
+
+	sb.WriteByte(' ')
+
+	sb.WriteString("SHA1:")
+	sb.WriteString(hex.EncodeToString(file.Sha1.Sum(nil)))
+
+	return sb.String()
 }
