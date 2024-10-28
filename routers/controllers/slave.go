@@ -234,7 +234,7 @@ func SlaveGetOauthCredential(c *gin.Context) {
 	}
 }
 
-// SlaveSelectTask 从机删除离线下载临时文件
+// SlaveDeleteTempFile 从机删除离线下载临时文件
 func SlaveDeleteTempFile(c *gin.Context) {
 	var service serializer.SlaveAria2Call
 	if err := c.ShouldBindJSON(&service); err == nil {
