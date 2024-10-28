@@ -28,7 +28,7 @@ func (s *SourceLink) Link() (string, error) {
 	return baseURL.ResolveReference(linkPath).String(), nil
 }
 
-// GetTasksByID queries source link based on ID
+// GetSourceLinkByID queries source link based on ID
 func GetSourceLinkByID(id interface{}) (*SourceLink, error) {
 	link := &SourceLink{}
 	result := DB.Where("id = ?", id).First(link)
