@@ -15,7 +15,7 @@ type Folder struct {
 	gorm.Model
 	Name     string `gorm:"unique_index:idx_only_one_name"`
 	ParentID *uint  `gorm:"index:parent_id;unique_index:idx_only_one_name"`
-	OwnerID  uint   `gorm:"index:owner_id"`
+	OwnerID  uint   `gorm:"index:owner_id;unique_index:idx_only_one_name"` //增加 OwnerID进 uniqueIndex
 
 	// 数据库忽略字段
 	Position      string `gorm:"-"`
