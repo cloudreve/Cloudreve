@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 
+	_ "dmgorm1" // 达梦语言包及驱动
+
 	_ "github.com/cloudreve/Cloudreve/v3/models/dialects"
 	_ "github.com/glebarez/go-sqlite"
 	_ "github.com/jinzhu/gorm/dialects/mssql"
@@ -66,6 +68,13 @@ func Init() {
 				host,
 				conf.DatabaseConfig.Name,
 				conf.DatabaseConfig.Charset))
+		// 达梦  dm://user:pass@host:port
+		case "dm":
+			db, err = gorm.Open(confDBType, fmt.Sprintf("dm://%s:%s@%s:%d",
+				conf.DatabaseConfig.User,
+				conf.DatabaseConfig.Password,
+				conf.DatabaseConfig.Host,
+				conf.DatabaseConfig.Port))
 		default:
 			util.Log().Panic("Unsupported database type %q.", confDBType)
 		}
