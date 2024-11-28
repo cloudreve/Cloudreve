@@ -32,10 +32,12 @@ type UploadPolicy struct {
 }
 
 // CallbackPolicy 回调策略
+// https://help.aliyun.com/zh/oss/developer-reference/callback#a8a8e931e392l
 type CallbackPolicy struct {
 	CallbackURL      string `json:"callbackUrl"`
 	CallbackBody     string `json:"callbackBody"`
 	CallbackBodyType string `json:"callbackBodyType"`
+	CallbackSNI      bool `json:"callbackSNI"`
 }
 
 // Driver 阿里云OSS策略适配器
@@ -417,12 +419,14 @@ func (handler *Driver) Token(ctx context.Context, ttl int64, uploadSession *seri
 	siteURL := model.GetSiteURL()
 	apiBaseURI, _ := url.Parse("/api/v3/callback/oss/" + uploadSession.Key)
 	apiURL := siteURL.ResolveReference(apiBaseURI)
+	callbackSNI := apiURL.Scheme == "https"
 
 	// 回调策略
 	callbackPolicy := CallbackPolicy{
 		CallbackURL:      apiURL.String(),
 		CallbackBody:     `{"name":${x:fname},"source_name":${object},"size":${size},"pic_info":"${imageInfo.width},${imageInfo.height}"}`,
 		CallbackBodyType: "application/json",
+		CallbackSNI:      callbackSNI,
 	}
 	callbackPolicyJSON, err := json.Marshal(callbackPolicy)
 	if err != nil {
