@@ -360,7 +360,7 @@ func signCDNURL(rawUrl string) (string, error) {
 	}
 	nonce := strings.Replace(random.String(), "-", "", 4)
 	uid := "0"
-	signatureString := fmt.Sprintf("%s-%d-%s-%s-%s", parsedUrl.Path, timestamp, nonce, uid, cdnSignKey)
+	signatureString := fmt.Sprintf("%s-%d-%s-%s-%s", parsedUrl.EscapedPath(), timestamp, nonce, uid, cdnSignKey)
 	hash := md5.Sum([]byte(signatureString))
 	signature := hex.EncodeToString(hash[:])
 
