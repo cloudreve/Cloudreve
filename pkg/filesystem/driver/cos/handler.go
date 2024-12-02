@@ -3,14 +3,18 @@ package cos
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/md5"
 	"crypto/sha1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -311,7 +315,7 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 		file.RawQuery = optionQuery.Encode()
 		sourceURL := cdnURL.ResolveReference(file)
 
-		return sourceURL.String(), nil
+		return signCDNURL(sourceURL.String())
 	}
 
 	presignedURL, err := handler.Client.Object.GetPresignedURL(ctx, http.MethodGet, path,
@@ -325,6 +329,48 @@ func (handler Driver) signSourceURL(ctx context.Context, path string, ttl int64,
 	presignedURL.Scheme = cdnURL.Scheme
 
 	return presignedURL.String(), nil
+}
+
+// 支持腾讯云 CDN 的 Type A 鉴权
+func signCDNURL(rawUrl string) (string, error) {
+	// 初始化参数
+	cdnHostname := os.Getenv("TCLOUD_CDN_HOSTNAME")
+	cdnSignKey := os.Getenv("TCLOUD_CDN_SIGN_KEY")
+	cdnSignKeyURLParam := os.Getenv("TCLOUD_CDN_KEY_URL_PARAM")
+	if cdnHostname == "" || cdnSignKey == "" || cdnSignKeyURLParam == "" {
+		return rawUrl, nil
+	}
+
+	// 解析 URL
+	parsedUrl, err := url.Parse(rawUrl)
+	if err != nil {
+		return "", err
+	}
+
+	// 判断是否需要签名
+	if parsedUrl.Hostname() != cdnHostname {
+		return rawUrl, nil
+	}
+
+	// 签名
+	timestamp := time.Now().Unix()
+	random, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+	nonce := strings.Replace(random.String(), "-", "", 4)
+	uid := "0"
+	signatureString := fmt.Sprintf("%s-%d-%s-%s-%s", parsedUrl.Path, timestamp, nonce, uid, cdnSignKey)
+	hash := md5.Sum([]byte(signatureString))
+	signature := hex.EncodeToString(hash[:])
+
+	// 添加签名到URL参数
+	urlQuery := parsedUrl.Query()
+	urlQuery.Set(cdnSignKeyURLParam, fmt.Sprintf("%d-%s-%s-%s", timestamp, nonce, uid, signature))
+	parsedUrl.RawQuery = urlQuery.Encode()
+
+	// 返回URL
+	return parsedUrl.String(), nil
 }
 
 // Token 获取上传策略和认证Token
