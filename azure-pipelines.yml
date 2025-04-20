@@ -43,7 +43,5 @@ jobs:
           workdir: "$(Build.SourcesDirectory)"
           args: "release --timeout 60m"
         env:
-          AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-          AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
           GITHUB_TOKEN: $(GITHUB_TOKEN)
           

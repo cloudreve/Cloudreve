@@ -20,10 +20,8 @@ require (
 	github.com/gin-contrib/sessions v1.0.2
 	github.com/gin-contrib/static v0.0.0-20191128031702-f81c604d8ac2
 	github.com/gin-gonic/gin v1.10.0
-	github.com/glebarez/go-sqlite v1.22.0
 	github.com/go-ini/ini v1.50.0
 	github.com/go-mail/mail v2.3.1+incompatible
-	github.com/go-pay/gopay v1.5.109
 	github.com/go-playground/validator/v10 v10.20.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-webauthn/webauthn v0.11.2
@@ -40,7 +38,6 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/juju/ratelimit v1.0.1
 	github.com/lib/pq v1.10.9
-	github.com/logto-io/go/v2 v2.0.0
 	github.com/mholt/archiver/v4 v4.0.0-alpha.6
 	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
 	github.com/pquerna/otp v1.2.0
@@ -48,12 +45,10 @@ require (
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/samber/lo v1.38.1
-	github.com/smartwalle/alipay/v3 v3.2.25
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	github.com/stripe/stripe-go/v81 v81.0.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.54
 	github.com/ua-parser/uap-go v0.0.0-20250213224047-9c035f085b90
 	github.com/upyun/go-sdk v2.1.0+incompatible
@@ -89,14 +84,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
-	github.com/go-pay/crypto v0.0.1 // indirect
-	github.com/go-pay/errgroup v0.0.3 // indirect
-	github.com/go-pay/smap v0.0.2 // indirect
-	github.com/go-pay/util v0.0.4 // indirect
-	github.com/go-pay/xlog v0.0.3 // indirect
-	github.com/go-pay/xtime v0.0.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-webauthn/x v0.1.14 // indirect
@@ -132,9 +120,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/smartwalle/ncrypto v1.0.4 // indirect
-	github.com/smartwalle/ngx v1.0.9 // indirect
-	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

@@ -1,6 +1,6 @@
 services:
   pro:
-    image: cloudreve.azurecr.io/cloudreve/pro:latest
+    image: cloudreve/cloudreve:latest
     container_name: cloudreve-pro-backend
     depends_on:
       - postgresql
@@ -15,7 +15,6 @@ services:
       - CR_CONF_Database.Name=cloudreve
       - CR_CONF_Database.Port=5432
       - CR_CONF_Redis.Server=redis:6379
-      - CR_LICENSE_KEY=${CR_LICENSE_KEY}
     volumes:
       - backend_data:/cloudreve/data
 

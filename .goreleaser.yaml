@@ -65,16 +65,8 @@ changelog:
 release:
   draft: true
   prerelease: auto
-  skip_upload: true
   target_commitish: "{{ .Commit }}"
   name_template: "{{.Version}}"
-
-blobs:
-  - provider: s3
-    endpoint: https://a09fb0452382d8d745cf79d9c5ce7f7d.r2.cloudflarestorage.com
-    region: auto
-    bucket: cloudreve
-    directory: "{{.Version}}"
 
 dockers:
   - dockerfile: Dockerfile
@@ -88,7 +80,7 @@ dockers:
       - .build/aria2.supervisor.conf
       - .build/entrypoint.sh
     image_templates:
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
+      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
   - dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
@@ -99,14 +91,14 @@ dockers:
       - .build/aria2.supervisor.conf
       - .build/entrypoint.sh
     image_templates:
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"
+      - "cloudreve/cloudreve:{{ .Tag }}-arm64"
 
 docker_manifests:
-  - name_template: "cloudreve.azurecr.io/cloudreve/pro:latest"
+  - name_template: "cloudreve/cloudreve:latest"
     image_templates:
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"
-  - name_template: "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}"
+      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
+      - "cloudreve/cloudreve:{{ .Tag }}-arm64"
+  - name_template: "cloudreve/cloudreve:{{ .Tag }}"
     image_templates:
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
-      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"
+      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
+      - "cloudreve/cloudreve:{{ .Tag }}-arm64"

@@ -89,11 +89,11 @@ func NewServerStaticFS(l logging.Logger, statics fs.FS, isPro bool) (static.Serv
 	}
 
 	if v.Name != staticName {
-		l.Panic("Static resource version mismatch, please delete \"statics\" folder and rebuild it.")
+		l.Error("Static resource version mismatch, please delete \"statics\" folder and rebuild it.")
 	}
 
 	if v.Version != constants.BackendVersion {
-		l.Panic("Static resource version mismatch [Current %s, Desired: %s]，please delete \"statics\" folder and rebuild it.", v.Version, constants.BackendVersion)
+		l.Error("Static resource version mismatch [Current %s, Desired: %s]，please delete \"statics\" folder and rebuild it.", v.Version, constants.BackendVersion)
 	}
 
 	return staticFS, nil
