@@ -1,24 +1,39 @@
 package util
 
 import (
+	"context"
+	"fmt"
+	"github.com/gin-gonic/gin"
 	"math/rand"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+var (
+	RandomVariantAll = []rune("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	RandomLowerCases = []rune("1234567890abcdefghijklmnopqrstuvwxyz")
+)
+
 // RandStringRunes 返回随机字符串
 func RandStringRunes(n int) string {
-	var letterRunes = []rune("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		b[i] = RandomVariantAll[rand.Intn(len(RandomVariantAll))]
+	}
+	return string(b)
+}
+
+// RandString returns random string in given length and variant
+func RandString(n int, variant []rune) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = variant[rand.Intn(len(variant))]
 	}
 	return string(b)
 }
@@ -35,13 +50,27 @@ func ContainsUint(s []uint, e uint) bool {
 
 // IsInExtensionList 返回文件的扩展名是否在给定的列表范围内
 func IsInExtensionList(extList []string, fileName string) bool {
-	ext := strings.ToLower(filepath.Ext(fileName))
+	ext := Ext(fileName)
 	// 无扩展名时
 	if len(ext) == 0 {
 		return false
 	}
 
-	if ContainsString(extList, ext[1:]) {
+	if ContainsString(extList, ext) {
+		return true
+	}
+
+	return false
+}
+
+// IsInExtensionList 返回文件的扩展名是否在给定的列表范围内
+func IsInExtensionListExt(extList []string, ext string) bool {
+	// 无扩展名时
+	if len(ext) == 0 {
+		return false
+	}
+
+	if ContainsString(extList, ext) {
 		return true
 	}
 
@@ -121,4 +150,116 @@ func SliceDifference(slice1, slice2 []string) []string {
 		}
 	}
 	return nn
+}
+
+// WithValue inject key-value pair into request context.
+func WithValue(c *gin.Context, key any, value any) {
+	c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), key, value))
+}
+
+// BoolToString transform bool to string
+func BoolToString(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
+func EncodeTimeFlowString(str string, timeNow int64) string {
+	timeNow = timeNow / 1000
+	timeDigits := []int{}
+	timeDigitIndex := 0
+
+	if len(str) == 0 {
+		return ""
+	}
+
+	str = fmt.Sprintf("%d|%s", timeNow, str)
+
+	res := make([]int32, 0, utf8.RuneCountInString(str))
+	for timeNow > 0 {
+		timeDigits = append(timeDigits, int(timeNow%int64(10)))
+		timeNow = timeNow / 10
+	}
+
+	add := false
+	for pos, rune := range str {
+		// take single digit with index timeDigitIndex from timeNow
+		newIndex := pos
+		if add {
+			newIndex = pos + timeDigits[timeDigitIndex]*timeDigitIndex
+		} else {
+			newIndex = 2*timeDigitIndex*timeDigits[timeDigitIndex] - pos
+		}
+
+		if newIndex < 0 {
+			newIndex = newIndex * -1
+		}
+
+		res = append(res, rune)
+		newIndex = newIndex % len(res)
+
+		res[newIndex], res[len(res)-1] = res[len(res)-1], res[newIndex]
+
+		add = !add
+		// Add timeDigitIndex by 1, but does not exceed total digits in timeNow
+		timeDigitIndex++
+		timeDigitIndex = timeDigitIndex % len(timeDigits)
+	}
+
+	return string(res)
+}
+
+func DecodeTimeFlowStringTime(str string, timeNow int64) string {
+	timeNow = timeNow / 1000
+	timeDigits := []int{}
+
+	if len(str) == 0 {
+		return ""
+	}
+
+	for timeNow > 0 {
+		timeDigits = append(timeDigits, int(timeNow%int64(10)))
+		timeNow = timeNow / 10
+	}
+
+	res := make([]int32, utf8.RuneCountInString(str))
+	secret := []rune(str)
+	add := false
+	if len(secret)%2 == 0 {
+		add = true
+	}
+	timeDigitIndex := (len(secret) - 1) % len(timeDigits)
+	for pos := range secret {
+		// take single digit with index timeDigitIndex from timeNow
+		newIndex := len(res) - 1 - pos
+		if add {
+			newIndex = newIndex + timeDigits[timeDigitIndex]*timeDigitIndex
+		} else {
+			newIndex = 2*timeDigitIndex*timeDigits[timeDigitIndex] - newIndex
+		}
+
+		if newIndex < 0 {
+			newIndex = newIndex * -1
+		}
+
+		newIndex = newIndex % len(secret)
+
+		res[len(res)-1-pos] = secret[newIndex]
+		secret[newIndex], secret[len(res)-1-pos] = secret[len(res)-1-pos], secret[newIndex]
+		secret = secret[:len(secret)-1]
+
+		add = !add
+		// Add timeDigitIndex by 1, but does not exceed total digits in timeNow
+		timeDigitIndex--
+		if timeDigitIndex < 0 {
+			timeDigitIndex = len(timeDigits) - 1
+		}
+	}
+
+	return string(res)
+}
+
+func ToPtr[T any](v T) *T {
+	return &v
 }

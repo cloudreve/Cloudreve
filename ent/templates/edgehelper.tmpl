@@ -1,0 +1,20 @@
+{{/* The line below tells Intellij/GoLand to enable the autocompletion based *gen.Type type. */}}
+{{/* gotype: entgo.io/ent/entc/gen.Type */}}
+
+{{ define "model/additional/edgehelper" }}
+
+{{/* A template that adds the "GoString" method to all generated models on the same file they are defined. */}}
+
+{{- with $.Edges }}
+
+{{- range $i, $e := . }}
+	// Set{{ $e.StructField }} manually set the edge as loaded state.
+	func (e *{{ $.Name }}) Set{{ $e.StructField }}(v {{ if not $e.Unique }}[]{{ end }}*{{ $e.Type.Name }}) {
+		e.Edges.{{ $e.StructField }} = v
+		e.Edges.loadedTypes[{{ $i }}] = true
+	}
+{{- end }}
+{{- end }}
+
+
+{{ end }}

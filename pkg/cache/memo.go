@@ -3,11 +3,12 @@ package cache
 import (
 	"encoding/gob"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"os"
+	"strings"
 	"sync"
 	"time"
-
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 )
 
 // MemoStore 内存存储驱动
@@ -35,7 +36,7 @@ func newItem(value interface{}, expires int) itemWithTTL {
 }
 
 // getValue 从itemWithTTL中取值
-func getValue(item interface{}, ok bool) (interface{}, bool) {
+func getValue(item any, ok bool) (any, bool) {
 	if !ok {
 		return nil, ok
 	}
@@ -55,7 +56,7 @@ func getValue(item interface{}, ok bool) (interface{}, bool) {
 
 // GarbageCollect 回收已过期的缓存
 func (store *MemoStore) GarbageCollect() {
-	store.Store.Range(func(key, value interface{}) bool {
+	store.Store.Range(func(key, value any) bool {
 		if item, ok := value.(itemWithTTL); ok {
 			if item.Expires > 0 && item.Expires < time.Now().Unix() {
 				util.Log().Debug("Cache %q is garbage collected.", key.(string))
@@ -67,25 +68,33 @@ func (store *MemoStore) GarbageCollect() {
 }
 
 // NewMemoStore 新建内存存储
-func NewMemoStore() *MemoStore {
-	return &MemoStore{
+func NewMemoStore(persistFile string, l logging.Logger) *MemoStore {
+	store := &MemoStore{
 		Store: &sync.Map{},
 	}
+
+	if persistFile != "" {
+		if err := store.Restore(persistFile); err != nil {
+			l.Warning("Failed to restore cache from disk: %s", err)
+		}
+	}
+
+	return store
 }
 
 // Set 存储值
-func (store *MemoStore) Set(key string, value interface{}, ttl int) error {
+func (store *MemoStore) Set(key string, value any, ttl int) error {
 	store.Store.Store(key, newItem(value, ttl))
 	return nil
 }
 
 // Get 取值
-func (store *MemoStore) Get(key string) (interface{}, bool) {
+func (store *MemoStore) Get(key string) (any, bool) {
 	return getValue(store.Store.Load(key))
 }
 
 // Gets 批量取值
-func (store *MemoStore) Gets(keys []string, prefix string) (map[string]interface{}, []string) {
+func (store *MemoStore) Gets(keys []string, prefix string) (map[string]any, []string) {
 	var res = make(map[string]interface{})
 	var notFound = make([]string, 0, len(keys))
 
@@ -101,7 +110,7 @@ func (store *MemoStore) Gets(keys []string, prefix string) (map[string]interface
 }
 
 // Sets 批量设置值
-func (store *MemoStore) Sets(values map[string]interface{}, prefix string) error {
+func (store *MemoStore) Sets(values map[string]any, prefix string) error {
 	for key, value := range values {
 		store.Store.Store(prefix+key, newItem(value, 0))
 	}
@@ -109,9 +118,19 @@ func (store *MemoStore) Sets(values map[string]interface{}, prefix string) error
 }
 
 // Delete 批量删除值
-func (store *MemoStore) Delete(keys []string, prefix string) error {
+func (store *MemoStore) Delete(prefix string, keys ...string) error {
 	for _, key := range keys {
 		store.Store.Delete(prefix + key)
+	}
+
+	// No key is presented, delete all entries with given prefix.
+	if len(keys) == 0 {
+		store.Store.Range(func(key, value any) bool {
+			if k, ok := key.(string); ok && strings.HasPrefix(k, prefix) {
+				store.Store.Delete(key)
+			}
+			return true
+		})
 	}
 	return nil
 }
@@ -119,7 +138,7 @@ func (store *MemoStore) Delete(keys []string, prefix string) error {
 // Persist write memory store into cache
 func (store *MemoStore) Persist(path string) error {
 	persisted := make(map[string]itemWithTTL)
-	store.Store.Range(func(key, value interface{}) bool {
+	store.Store.Range(func(key, value any) bool {
 		v, ok := store.Store.Load(key)
 		if _, ok := getValue(v, ok); ok {
 			persisted[key.(string)] = v.(itemWithTTL)
@@ -171,5 +190,14 @@ func (store *MemoStore) Restore(path string) error {
 	}
 
 	util.Log().Info("Restored %d items from %q into memory cache.", loaded, path)
+	return nil
+}
+
+func (store *MemoStore) DeleteAll() error {
+	store.Store.Range(func(key any, value any) bool {
+		store.Store.Delete(key)
+		return true
+	})
+
 	return nil
 }

@@ -3,52 +3,56 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/recaptcha"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/recaptcha"
+	request2 "github.com/cloudreve/Cloudreve/v4/pkg/request"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/gin-gonic/gin"
 	"github.com/mojocn/base64Captcha"
-	captcha "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/captcha/v20190722"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
-	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	"io"
-	"io/ioutil"
-	"strconv"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
 type req struct {
-	CaptchaCode string `json:"captchaCode"`
-	Ticket      string `json:"ticket"`
-	Randstr     string `json:"randstr"`
+	Captcha string `json:"captcha"`
+	Ticket  string `json:"ticket"`
+	Randstr string `json:"randstr"`
 }
 
 const (
 	captchaNotMatch = "CAPTCHA not match."
 	captchaRefresh  = "Verification failed, please refresh the page and retry."
+
+	tcCaptchaEndpoint = "captcha.tencentcloudapi.com"
+	turnstileEndpoint = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+)
+
+// CaptchaIDCtx defines keys for captcha ID
+type (
+	CaptchaIDCtx      struct{}
+	turnstileResponse struct {
+		Success bool `json:"success"`
+	}
 )
 
 // CaptchaRequired 验证请求签名
-func CaptchaRequired(configName string) gin.HandlerFunc {
+func CaptchaRequired(enabled func(c *gin.Context) bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 相关设定
-		options := model.GetSettingByNames(configName,
-			"captcha_type",
-			"captcha_ReCaptchaSecret",
-			"captcha_TCaptcha_SecretId",
-			"captcha_TCaptcha_SecretKey",
-			"captcha_TCaptcha_CaptchaAppId",
-			"captcha_TCaptcha_AppSecretKey")
-		// 检查验证码
-		isCaptchaRequired := model.IsTrueVal(options[configName])
+		if enabled(c) {
+			dep := dependency.FromContext(c)
+			settings := dep.SettingProvider()
+			l := logging.FromContext(c)
 
-		if isCaptchaRequired {
 			var service req
 			bodyCopy := new(bytes.Buffer)
 			_, err := io.Copy(bodyCopy, c.Request.Body)
 			if err != nil {
-				c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
+				c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, captchaNotMatch, err))
 				c.Abort()
 				return
 			}
@@ -56,65 +60,69 @@ func CaptchaRequired(configName string) gin.HandlerFunc {
 			bodyData := bodyCopy.Bytes()
 			err = json.Unmarshal(bodyData, &service)
 			if err != nil {
-				c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
+				c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, captchaNotMatch, err))
 				c.Abort()
 				return
 			}
 
-			c.Request.Body = ioutil.NopCloser(bytes.NewReader(bodyData))
-			switch options["captcha_type"] {
-			case "normal":
-				captchaID := util.GetSession(c, "captchaID")
-				util.DeleteSession(c, "captchaID")
-				if captchaID == nil || !base64Captcha.VerifyCaptcha(captchaID.(string), service.CaptchaCode) {
-					c.JSON(200, serializer.Err(serializer.CodeCaptchaError, captchaNotMatch, err))
+			c.Request.Body = io.NopCloser(bytes.NewReader(bodyData))
+			switch settings.CaptchaType(c) {
+			case setting.CaptchaNormal, setting.CaptchaTcaptcha:
+				if service.Ticket == "" || !base64Captcha.VerifyCaptcha(service.Ticket, service.Captcha) {
+					c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, captchaNotMatch, err))
 					c.Abort()
 					return
 				}
 
 				break
-			case "recaptcha":
-				reCAPTCHA, err := recaptcha.NewReCAPTCHA(options["captcha_ReCaptchaSecret"], recaptcha.V2, 10*time.Second)
+			case setting.CaptchaReCaptcha:
+				captchaSetting := settings.ReCaptcha(c)
+				reCAPTCHA, err := recaptcha.NewReCAPTCHA(captchaSetting.Secret, recaptcha.V2, 10*time.Second)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA verification failed, %s", err)
+					l.Warning("reCAPTCHA verification failed, %s", err)
 					c.Abort()
 					break
 				}
 
-				err = reCAPTCHA.Verify(service.CaptchaCode)
+				err = reCAPTCHA.Verify(service.Captcha)
 				if err != nil {
-					util.Log().Warning("reCAPTCHA verification failed, %s", err)
-					c.JSON(200, serializer.Err(serializer.CodeCaptchaRefreshNeeded, captchaRefresh, nil))
+					l.Warning("reCAPTCHA verification failed, %s", err)
+					c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, captchaRefresh, err))
 					c.Abort()
 					return
 				}
 
 				break
-			case "tcaptcha":
-				credential := common.NewCredential(
-					options["captcha_TCaptcha_SecretId"],
-					options["captcha_TCaptcha_SecretKey"],
+			case setting.CaptchaTurnstile:
+				captchaSetting := settings.TurnstileCaptcha(c)
+				r := dep.RequestClient(
+					request2.WithContext(c),
+					request2.WithLogger(logging.FromContext(c)),
+					request2.WithHeader(http.Header{"Content-Type": []string{"application/x-www-form-urlencoded"}}),
 				)
-				cpf := profile.NewClientProfile()
-				cpf.HttpProfile.Endpoint = "captcha.tencentcloudapi.com"
-				client, _ := captcha.NewClient(credential, "", cpf)
-				request := captcha.NewDescribeCaptchaResultRequest()
-				request.CaptchaType = common.Uint64Ptr(9)
-				appid, _ := strconv.Atoi(options["captcha_TCaptcha_CaptchaAppId"])
-				request.CaptchaAppId = common.Uint64Ptr(uint64(appid))
-				request.AppSecretKey = common.StringPtr(options["captcha_TCaptcha_AppSecretKey"])
-				request.Ticket = common.StringPtr(service.Ticket)
-				request.Randstr = common.StringPtr(service.Randstr)
-				request.UserIp = common.StringPtr(c.ClientIP())
-				response, err := client.DescribeCaptchaResult(request)
+				formData := url.Values{}
+				formData.Set("secret", captchaSetting.Secret)
+				formData.Set("response", service.Ticket)
+				res, err := r.Request("POST", turnstileEndpoint, strings.NewReader(formData.Encode())).
+					CheckHTTPResponse(http.StatusOK).
+					GetResponse()
 				if err != nil {
-					util.Log().Warning("TCaptcha verification failed, %s", err)
+					c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, "Captcha validation failed", err))
 					c.Abort()
-					break
+					return
 				}
 
-				if *response.Response.CaptchaCode != int64(1) {
-					c.JSON(200, serializer.Err(serializer.CodeCaptchaRefreshNeeded, captchaRefresh, nil))
+				var trunstileRes turnstileResponse
+				err = json.Unmarshal([]byte(res), &trunstileRes)
+				if err != nil {
+					l.Warning("Turnstile verification failed, %s", err)
+					c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, "Captcha validation failed", err))
+					c.Abort()
+					return
+				}
+
+				if !trunstileRes.Success {
+					c.JSON(200, serializer.ErrWithDetails(c, serializer.CodeCaptchaError, "Captcha validation failed", err))
 					c.Abort()
 					return
 				}

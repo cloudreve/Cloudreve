@@ -1,19 +1,20 @@
-env:
-  - CI=false
-  - GENERATE_SOURCEMAP=false
+version: 2
+
 before:
   hooks:
     - go mod tidy
-    - sh -c "cd assets && rm -rf build && yarn install --network-timeout 1000000 && yarn run build && cd ../ && zip -r - assets/build >assets.zip"
+    - chmod +x ./.build/build-assets.sh
+    - ./.build/build-assets.sh {{.Version}}
+
 builds:
-  -
-    env:
+  - env:
       - CGO_ENABLED=0
 
     binary: cloudreve
 
     ldflags:
-      - -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.BackendVersion={{.Tag}}' -X 'github.com/cloudreve/Cloudreve/v3/pkg/conf.LastCommit={{.ShortCommit}}'
+      - -s -w
+      - -X 'github.com/cloudreve/Cloudreve/v4/application/constants.BackendVersion={{.Tag}}' -X 'github.com/cloudreve/Cloudreve/v4/application/constants.LastCommit={{.ShortCommit}}'
 
     goos:
       - linux
@@ -39,83 +40,73 @@ builds:
         goarm: 7
 
 archives:
-  - format: tar.gz
+  - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       cloudreve_{{.Tag}}_{{- .Os }}_{{ .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives
     format_overrides:
-    - goos: windows
-      format: zip
+      - goos: windows
+        formats: ["zip"]
+
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
+
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
 
 release:
   draft: true
   prerelease: auto
-  target_commitish: '{{ .Commit }}'
+  skip_upload: true
+  target_commitish: "{{ .Commit }}"
   name_template: "{{.Version}}"
 
+blobs:
+  - provider: s3
+    endpoint: https://a09fb0452382d8d745cf79d9c5ce7f7d.r2.cloudflarestorage.com
+    region: auto
+    bucket: cloudreve
+    directory: "{{.Version}}"
+
 dockers:
-  -
-    dockerfile: Dockerfile
+  - dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
     goos: linux
     goarch: amd64
     goamd64: v1
+    extra_files:
+      - .build/aria2.supervisor.conf
+      - .build/entrypoint.sh
     image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
-  -
-    dockerfile: Dockerfile
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
+  - dockerfile: Dockerfile
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64"
     goos: linux
     goarch: arm64
+    extra_files:
+      - .build/aria2.supervisor.conf
+      - .build/entrypoint.sh
     image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-arm64"
-  -
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm/v6"
-    goos: linux
-    goarch: arm
-    goarm: '6'
-    image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-armv6"
-  -
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-    goos: linux
-    goarch: arm
-    goarm: '7'
-    image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-armv7"
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"
 
 docker_manifests:
-  - name_template: "cloudreve/cloudreve:latest"
+  - name_template: "cloudreve.azurecr.io/cloudreve/pro:latest"
     image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
-      - "cloudreve/cloudreve:{{ .Tag }}-arm64"
-      - "cloudreve/cloudreve:{{ .Tag }}-armv6"
-      - "cloudreve/cloudreve:{{ .Tag }}-armv7"
-  - name_template: "cloudreve/cloudreve:{{ .Tag }}"
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"
+  - name_template: "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}"
     image_templates:
-      - "cloudreve/cloudreve:{{ .Tag }}-amd64"
-      - "cloudreve/cloudreve:{{ .Tag }}-arm64"
-      - "cloudreve/cloudreve:{{ .Tag }}-armv6"
-      - "cloudreve/cloudreve:{{ .Tag }}-armv7"
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-amd64"
+      - "cloudreve.azurecr.io/cloudreve/pro:{{ .Tag }}-arm64"

@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/lock"
 	"io"
 	"net/http"
 	"time"
@@ -32,7 +33,7 @@ import (
 	// In the long term, this package should use the standard library's version
 	// only, and the internal fork deleted, once
 	// https://github.com/golang/go/issues/13400 is resolved.
-	ixml "github.com/cloudreve/Cloudreve/v3/pkg/webdav/internal/xml"
+	ixml "github.com/cloudreve/Cloudreve/v4/pkg/webdav/internal/xml"
 )
 
 // http://www.webdav.org/specs/rfc4918.html#ELEMENT_lockinfo
@@ -81,7 +82,7 @@ func (c *countingReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-func writeLockInfo(w io.Writer, token string, ld LockDetails) (int, error) {
+func writeLockInfo(w io.Writer, token string, ld lock.LockDetails) (int, error) {
 	depth := "infinity"
 	if ld.ZeroDepth {
 		depth = "0"
@@ -95,9 +96,9 @@ func writeLockInfo(w io.Writer, token string, ld LockDetails) (int, error) {
 		"	<D:owner>%s</D:owner>\n"+
 		"	<D:timeout>Second-%d</D:timeout>\n"+
 		"	<D:locktoken><D:href>%s</D:href></D:locktoken>\n"+
-		"	<D:lockroot><D:href>%s</D:href></D:lockroot>\n"+
+		"	<D:lockroot><D:href>/%s</D:href></D:lockroot>\n"+
 		"</D:activelock></D:lockdiscovery></D:prop>",
-		depth, ld.OwnerXML, timeout, escape(token), escape(ld.Root),
+		depth, ld.Owner.Application.InnerXML, timeout, escape(token), escape(ld.Root),
 	)
 }
 

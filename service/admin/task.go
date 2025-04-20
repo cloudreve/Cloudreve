@@ -1,159 +1,251 @@
 package admin
 
 import (
-	"strings"
+	"context"
+	"strconv"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/task"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/task"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/queue"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
+	"github.com/samber/lo"
 )
 
-// TaskBatchService 任务批量操作服务
-type TaskBatchService struct {
-	ID []uint `json:"id" binding:"min=1"`
+func GetQueueMetrics(c *gin.Context) ([]QueueMetric, error) {
+	res := []QueueMetric{}
+	dep := dependency.FromContext(c)
+
+	mediaMeta := dep.MediaMetaQueue(c)
+	entityRecycle := dep.EntityRecycleQueue(c)
+	ioIntense := dep.IoIntenseQueue(c)
+	remoteDownload := dep.RemoteDownloadQueue(c)
+	thumb := dep.ThumbQueue(c)
+
+	res = append(res, QueueMetric{
+		Name:            setting.QueueTypeMediaMeta,
+		BusyWorkers:     mediaMeta.BusyWorkers(),
+		SuccessTasks:    mediaMeta.SuccessTasks(),
+		FailureTasks:    mediaMeta.FailureTasks(),
+		SubmittedTasks:  mediaMeta.SubmittedTasks(),
+		SuspendingTasks: mediaMeta.SuspendingTasks(),
+	})
+	res = append(res, QueueMetric{
+		Name:            setting.QueueTypeEntityRecycle,
+		BusyWorkers:     entityRecycle.BusyWorkers(),
+		SuccessTasks:    entityRecycle.SuccessTasks(),
+		FailureTasks:    entityRecycle.FailureTasks(),
+		SubmittedTasks:  entityRecycle.SubmittedTasks(),
+		SuspendingTasks: entityRecycle.SuspendingTasks(),
+	})
+	res = append(res, QueueMetric{
+		Name:            setting.QueueTypeIOIntense,
+		BusyWorkers:     ioIntense.BusyWorkers(),
+		SuccessTasks:    ioIntense.SuccessTasks(),
+		FailureTasks:    ioIntense.FailureTasks(),
+		SubmittedTasks:  ioIntense.SubmittedTasks(),
+		SuspendingTasks: ioIntense.SuspendingTasks(),
+	})
+	res = append(res, QueueMetric{
+		Name:            setting.QueueTypeRemoteDownload,
+		BusyWorkers:     remoteDownload.BusyWorkers(),
+		SuccessTasks:    remoteDownload.SuccessTasks(),
+		FailureTasks:    remoteDownload.FailureTasks(),
+		SubmittedTasks:  remoteDownload.SubmittedTasks(),
+		SuspendingTasks: remoteDownload.SuspendingTasks(),
+	})
+	res = append(res, QueueMetric{
+		Name:            setting.QueueTypeThumb,
+		BusyWorkers:     thumb.BusyWorkers(),
+		SuccessTasks:    thumb.SuccessTasks(),
+		FailureTasks:    thumb.FailureTasks(),
+		SubmittedTasks:  thumb.SubmittedTasks(),
+		SuspendingTasks: thumb.SuspendingTasks(),
+	})
+
+	return res, nil
 }
 
-// ImportTaskService 导入任务
-type ImportTaskService struct {
-	UID       uint   `json:"uid" binding:"required"`
-	PolicyID  uint   `json:"policy_id" binding:"required"`
-	Src       string `json:"src" binding:"required,min=1,max=65535"`
-	Dst       string `json:"dst" binding:"required,min=1,max=65535"`
-	Recursive bool   `json:"recursive"`
-}
+const (
+	taskTypeCondition          = "task_type"
+	taskStatusCondition        = "task_status"
+	taskCorrelationIDCondition = "task_correlation_id"
+	taskUserIDCondition        = "task_user_id"
+)
 
-// Create 新建导入任务
-func (service *ImportTaskService) Create(c *gin.Context, user *model.User) serializer.Response {
-	// 创建任务
-	job, err := task.NewImportTask(service.UID, service.PolicyID, service.Src, service.Dst, service.Recursive)
+func (s *AdminListService) Tasks(c *gin.Context) (*ListTaskResponse, error) {
+	dep := dependency.FromContext(c)
+	taskClient := dep.TaskClient()
+	hasher := dep.HashIDEncoder()
+	var (
+		err           error
+		userID        int
+		correlationID *uuid.UUID
+		status        []task.Status
+		taskType      []string
+	)
+
+	if s.Conditions[taskTypeCondition] != "" {
+		taskType = []string{s.Conditions[taskTypeCondition]}
+	}
+
+	if s.Conditions[taskStatusCondition] != "" {
+		status = []task.Status{task.Status(s.Conditions[taskStatusCondition])}
+	}
+
+	if s.Conditions[taskCorrelationIDCondition] != "" {
+		cid, err := uuid.FromString(s.Conditions[taskCorrelationIDCondition])
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeParamErr, "Invalid task correlation ID", err)
+		}
+		correlationID = &cid
+	}
+
+	if s.Conditions[taskUserIDCondition] != "" {
+		userID, err = strconv.Atoi(s.Conditions[taskUserIDCondition])
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeParamErr, "Invalid task user ID", err)
+		}
+	}
+
+	ctx := context.WithValue(c, inventory.LoadTaskUser{}, true)
+	res, err := taskClient.List(ctx, &inventory.ListTaskArgs{
+		PaginationArgs: &inventory.PaginationArgs{
+			Page:     s.Page - 1,
+			PageSize: s.PageSize,
+			OrderBy:  s.OrderBy,
+			Order:    inventory.OrderDirection(s.OrderDirection),
+		},
+		UserID:        userID,
+		CorrelationID: correlationID,
+		Types:         taskType,
+		Status:        status,
+	})
+
 	if err != nil {
-		return serializer.DBErr("Failed to create task record.", err)
-	}
-	task.TaskPoll.Submit(job)
-	return serializer.Response{}
-}
-
-// Delete 删除任务
-func (service *TaskBatchService) Delete(c *gin.Context) serializer.Response {
-	if err := model.DB.Where("id in (?)", service.ID).Delete(&model.Download{}).Error; err != nil {
-		return serializer.DBErr("Failed to delete task records", err)
-	}
-	return serializer.Response{}
-}
-
-// DeleteGeneral 删除常规任务
-func (service *TaskBatchService) DeleteGeneral(c *gin.Context) serializer.Response {
-	if err := model.DB.Where("id in (?)", service.ID).Delete(&model.Task{}).Error; err != nil {
-		return serializer.DBErr("Failed to delete task records", err)
-	}
-	return serializer.Response{}
-}
-
-// Tasks 列出常规任务
-func (service *AdminListService) Tasks() serializer.Response {
-	var res []model.Task
-	total := 0
-
-	tx := model.DB.Model(&model.Task{})
-	if service.OrderBy != "" {
-		tx = tx.Order(service.OrderBy)
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list tasks", err)
 	}
 
-	for k, v := range service.Conditions {
-		tx = tx.Where(k+" = ?", v)
-	}
-
-	if len(service.Searches) > 0 {
-		search := ""
-		for k, v := range service.Searches {
-			search += k + " like '%" + v + "%' OR "
+	tasks := make([]queue.Task, 0, len(res.Tasks))
+	nodeMap := make(map[int]*ent.Node)
+	for _, t := range res.Tasks {
+		task, err := queue.NewTaskFromModel(t)
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeDBError, "Failed to parse task", err)
 		}
-		search = strings.TrimSuffix(search, " OR ")
-		tx = tx.Where(search)
+
+		summary := task.Summarize(hasher)
+		if summary != nil && summary.NodeID > 0 {
+			if _, ok := nodeMap[summary.NodeID]; !ok {
+				nodeMap[summary.NodeID] = nil
+			}
+		}
+		tasks = append(tasks, task)
 	}
 
-	// 计算总数用于分页
-	tx.Count(&total)
-
-	// 查询记录
-	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
-
-	// 查询对应用户，同时计算HashID
-	users := make(map[uint]model.User)
-	for _, file := range res {
-		users[file.UserID] = model.User{}
+	// Get nodes
+	nodes, err := dep.NodeClient().GetNodeByIds(c, lo.Keys(nodeMap))
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to query nodes", err)
+	}
+	for _, n := range nodes {
+		nodeMap[n.ID] = n
 	}
 
-	userIDs := make([]uint, 0, len(users))
-	for k := range users {
-		userIDs = append(userIDs, k)
-	}
+	return &ListTaskResponse{
+		Pagination: res.PaginationResults,
+		Tasks: lo.Map(res.Tasks, func(task *ent.Task, i int) GetTaskResponse {
+			var (
+				uid     string
+				node    *ent.Node
+				summary *queue.Summary
+			)
 
-	var userList []model.User
-	model.DB.Where("id in (?)", userIDs).Find(&userList)
+			if task.Edges.User != nil {
+				uid = hashid.EncodeUserID(hasher, task.Edges.User.ID)
+			}
 
-	for _, v := range userList {
-		users[v.ID] = v
-	}
+			t := tasks[i]
+			summary = t.Summarize(hasher)
+			if summary != nil && summary.NodeID > 0 {
+				node = nodeMap[summary.NodeID]
+			}
 
-	return serializer.Response{Data: map[string]interface{}{
-		"total": total,
-		"items": res,
-		"users": users,
-	}}
+			return GetTaskResponse{
+				Task:       task,
+				UserHashID: uid,
+				Node:       node,
+				Summary:    summary,
+			}
+		}),
+	}, nil
 }
 
-// Downloads 列出离线下载任务
-func (service *AdminListService) Downloads() serializer.Response {
-	var res []model.Download
-	total := 0
+type (
+	SingleTaskService struct {
+		ID int `uri:"id" json:"id" binding:"required"`
+	}
+	SingleTaskParamCtx struct{}
+)
 
-	tx := model.DB.Model(&model.Download{})
-	if service.OrderBy != "" {
-		tx = tx.Order(service.OrderBy)
+func (s *SingleTaskService) Get(c *gin.Context) (*GetTaskResponse, error) {
+	dep := dependency.FromContext(c)
+	taskClient := dep.TaskClient()
+	hasher := dep.HashIDEncoder()
+
+	ctx := context.WithValue(c, inventory.LoadTaskUser{}, true)
+	task, err := taskClient.GetTaskByID(ctx, s.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get task", err)
 	}
 
-	for k, v := range service.Conditions {
-		tx = tx.Where(k+" = ?", v)
+	t, err := queue.NewTaskFromModel(task)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to parse task", err)
 	}
 
-	if len(service.Searches) > 0 {
-		search := ""
-		for k, v := range service.Searches {
-			search += k + " like '%" + v + "%' OR "
-		}
-		search = strings.TrimSuffix(search, " OR ")
-		tx = tx.Where(search)
+	summary := t.Summarize(hasher)
+	var (
+		node       *ent.Node
+		userHashID string
+	)
+
+	if summary != nil && summary.NodeID > 0 {
+		node, _ = dep.NodeClient().GetNodeById(c, summary.NodeID)
 	}
 
-	// 计算总数用于分页
-	tx.Count(&total)
-
-	// 查询记录
-	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
-
-	// 查询对应用户，同时计算HashID
-	users := make(map[uint]model.User)
-	for _, file := range res {
-		users[file.UserID] = model.User{}
+	if task.Edges.User != nil {
+		userHashID = hashid.EncodeUserID(hasher, task.Edges.User.ID)
 	}
 
-	userIDs := make([]uint, 0, len(users))
-	for k := range users {
-		userIDs = append(userIDs, k)
+	return &GetTaskResponse{
+		Task:       task,
+		Summary:    summary,
+		Node:       node,
+		UserHashID: userHashID,
+	}, nil
+}
+
+type (
+	BatchTaskService struct {
+		IDs []int `json:"ids" binding:"required"`
+	}
+	BatchTaskParamCtx struct{}
+)
+
+func (s *BatchTaskService) Delete(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	taskClient := dep.TaskClient()
+
+	err := taskClient.DeleteByIDs(c, s.IDs...)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "Failed to delete tasks", err)
 	}
 
-	var userList []model.User
-	model.DB.Where("id in (?)", userIDs).Find(&userList)
-
-	for _, v := range userList {
-		users[v.ID] = v
-	}
-
-	return serializer.Response{Data: map[string]interface{}{
-		"total": total,
-		"items": res,
-		"users": users,
-	}}
+	return nil
 }

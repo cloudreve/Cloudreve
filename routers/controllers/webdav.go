@@ -1,104 +1,101 @@
 package controllers
 
 import (
-	"context"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/cloudreve/Cloudreve/v3/pkg/webdav"
-	"github.com/cloudreve/Cloudreve/v3/service/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/service/setting"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"sync"
 )
 
-var handler *webdav.Handler
-
-func init() {
-	handler = &webdav.Handler{
-		Prefix:     "/dav",
-		LockSystem: make(map[uint]webdav.LockSystem),
-		Mutex:      &sync.Mutex{},
-	}
-}
-
-// ServeWebDAV 处理WebDAV相关请求
-func ServeWebDAV(c *gin.Context) {
-	fs, err := filesystem.NewFileSystemFromContext(c)
+// ListDavAccounts lists all WebDAV accounts.
+func ListDavAccounts(c *gin.Context) {
+	service := ParametersFromContext[*setting.ListDavAccountsService](c, setting.ListDavAccountParamCtx{})
+	resp, err := service.List(c)
 	if err != nil {
-		util.Log().Warning("Failed to initialize filesystem for WebDAV，%s", err)
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	if webdavCtx, ok := c.Get("webdav"); ok {
-		application := webdavCtx.(*model.Webdav)
-
-		// 重定根目录
-		if application.Root != "/" {
-			if exist, root := fs.IsPathExist(application.Root); exist {
-				root.Position = ""
-				root.Name = "/"
-				fs.Root = root
-			}
-		}
-
-		// 检查是否只读
-		if application.Readonly {
-			switch c.Request.Method {
-			case "DELETE", "PUT", "MKCOL", "COPY", "MOVE":
-				c.Status(http.StatusForbidden)
-				return
-			}
-		}
-
-		// 更新Context
-		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), fsctx.WebDAVCtx, application))
-	}
-
-	handler.ServeHTTP(c.Writer, c.Request, fs)
-}
-
-// GetWebDAVAccounts 获取webdav账号列表
-func GetWebDAVAccounts(c *gin.Context) {
-	var service setting.WebDAVListService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Accounts(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }
 
-// DeleteWebDAVAccounts 删除WebDAV账户
-func DeleteWebDAVAccounts(c *gin.Context) {
-	var service setting.WebDAVAccountService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Delete(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// CreateDAVAccounts 创建WebDAV账户
+func CreateDAVAccounts(c *gin.Context) {
+	service := ParametersFromContext[*setting.CreateDavAccountService](c, setting.CreateDavAccountParamCtx{})
+	resp, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
 }
 
-// UpdateWebDAVAccounts 更改WebDAV账户只读性和是否使用代理服务
-func UpdateWebDAVAccounts(c *gin.Context) {
-	var service setting.WebDAVAccountUpdateService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Update(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// UpdateDAVAccounts updates WebDAV accounts.
+func UpdateDAVAccounts(c *gin.Context) {
+	service := ParametersFromContext[*setting.CreateDavAccountService](c, setting.CreateDavAccountParamCtx{})
+	resp, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
 }
 
-// CreateWebDAVAccounts 创建WebDAV账户
-func CreateWebDAVAccounts(c *gin.Context) {
-	var service setting.WebDAVAccountCreateService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Create(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// DeleteDAVAccounts deletes WebDAV accounts.
+func DeleteDAVAccounts(c *gin.Context) {
+	err := setting.DeleteDavAccount(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{})
 }
+
+//
+//// DeleteWebDAVAccounts 删除WebDAV账户
+//func DeleteWebDAVAccounts(c *gin.Context) {
+//	var service setting.WebDAVAccountService
+//	if err := c.ShouldBindUri(&service); err == nil {
+//		res := service.Delete(c, CurrentUser(c))
+//		c.JSON(200, res)
+//	} else {
+//		c.JSON(200, ErrorResponse(err))
+//	}
+//}
+//
+//// DeleteWebDAVMounts 删除WebDAV挂载
+//func DeleteWebDAVMounts(c *gin.Context) {
+//	var service setting.WebDAVListService
+//	if err := c.ShouldBindUri(&service); err == nil {
+//		res := service.Unmount(c, CurrentUser(c))
+//		c.JSON(200, res)
+//	} else {
+//		c.JSON(200, ErrorResponse(err))
+//	}
+//}
+//
+//
+//// CreateWebDAVMounts 创建WebDAV目录挂载
+//func CreateWebDAVMounts(c *gin.Context) {
+//	var service setting.WebDAVMountCreateService
+//	if err := c.ShouldBindJSON(&service); err == nil {
+//		res := service.Create(c, CurrentUser(c))
+//		c.JSON(200, res)
+//	} else {
+//		c.JSON(200, ErrorResponse(err))
+//	}
+//}

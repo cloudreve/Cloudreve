@@ -2,414 +2,159 @@ package share
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"path"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/cloudreve/Cloudreve/v3/service/explorer"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 
-// ShareUserGetService 获取用户的分享服务
-type ShareUserGetService struct {
-	Type string `form:"type" binding:"required,eq=hot|eq=default"`
-	Page uint   `form:"page" binding:"required,min=1"`
+type (
+	ShortLinkRedirectService struct {
+		ID       string `uri:"id" binding:"required"`
+		Password string `uri:"password"`
+	}
+	ShortLinkRedirectParamCtx struct{}
+)
+
+func (s *ShortLinkRedirectService) RedirectTo(c *gin.Context) string {
+	return routes.MasterShareLongUrl(s.ID, s.Password).String()
 }
 
-// ShareGetService 获取分享服务
-type ShareGetService struct {
-	Password string `form:"password" binding:"max=255"`
-}
+type (
+	ShareInfoService struct {
+		Password      string `form:"password"`
+		CountViews    bool   `form:"count_views"`
+		OwnerExtended bool   `form:"owner_extended"`
+	}
+	ShareInfoParamCtx struct{}
+)
 
-// Service 对分享进行操作的服务，
-// path 为可选文件完整路径，在目录分享下有效
-type Service struct {
-	Path string `form:"path" uri:"path" binding:"max=65535"`
-}
+func (s *ShareInfoService) Get(c *gin.Context) (*explorer.Share, error) {
+	dep := dependency.FromContext(c)
+	u := inventory.UserFromContext(c)
+	shareClient := dep.ShareClient()
 
-// ArchiveService 分享归档下载服务
-type ArchiveService struct {
-	Path  string   `json:"path" binding:"required,max=65535"`
-	Items []string `json:"items"`
-	Dirs  []string `json:"dirs"`
-}
-
-// ShareListService 列出分享
-type ShareListService struct {
-	Page     uint   `form:"page" binding:"required,min=1"`
-	OrderBy  string `form:"order_by" binding:"required,eq=created_at|eq=downloads|eq=views"`
-	Order    string `form:"order" binding:"required,eq=DESC|eq=ASC"`
-	Keywords string `form:"keywords"`
-}
-
-// Get 获取给定用户的分享
-func (service *ShareUserGetService) Get(c *gin.Context) serializer.Response {
-	// 取得用户
-	userID, _ := c.Get("object_id")
-	user, err := model.GetActiveUserByID(userID.(uint))
-	if err != nil || user.OptionsSerialized.ProfileOff {
-		return serializer.Err(serializer.CodeNotFound, "", err)
+	ctx := context.WithValue(c, inventory.LoadShareUser{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	share, err := shareClient.GetByID(ctx, hashid.FromContext(c))
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, serializer.NewError(serializer.CodeNotFound, "Share not found", nil)
+		}
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get share", err)
 	}
 
-	// 列出分享
-	hotNum := model.GetIntSetting("hot_share_num", 10)
-	if service.Type == "default" {
-		hotNum = 10
-	}
-	orderBy := "created_at desc"
-	if service.Type == "hot" {
-		orderBy = "views desc"
-	}
-	shares, total := model.ListShares(user.ID, int(service.Page), hotNum, orderBy, true)
-	// 列出分享对应的文件
-	for i := 0; i < len(shares); i++ {
-		shares[i].Source()
+	if err := inventory.IsValidShare(share); err != nil {
+		return nil, serializer.NewError(serializer.CodeNotFound, "Share link expired", err)
 	}
 
-	res := serializer.BuildShareList(shares, total)
-	res.Data.(map[string]interface{})["user"] = struct {
-		ID    string `json:"id"`
-		Nick  string `json:"nick"`
-		Group string `json:"group"`
-		Date  string `json:"date"`
-	}{
-		hashid.HashID(user.ID, hashid.UserID),
-		user.Nick,
-		user.Group.Name,
-		user.CreatedAt.Format("2006-01-02 15:04:05"),
+	if s.CountViews {
+		_ = shareClient.Viewed(c, share)
 	}
 
-	return res
-}
-
-// Search 搜索公共分享
-func (service *ShareListService) Search(c *gin.Context) serializer.Response {
-	// 列出分享
-	shares, total := model.SearchShares(int(service.Page), 18, service.OrderBy+" "+
-		service.Order, service.Keywords)
-	// 列出分享对应的文件
-	for i := 0; i < len(shares); i++ {
-		shares[i].Source()
-	}
-
-	return serializer.BuildShareList(shares, total)
-}
-
-// List 列出用户分享
-func (service *ShareListService) List(c *gin.Context, user *model.User) serializer.Response {
-	// 列出分享
-	shares, total := model.ListShares(user.ID, int(service.Page), 18, service.OrderBy+" "+
-		service.Order, false)
-	// 列出分享对应的文件
-	for i := 0; i < len(shares); i++ {
-		shares[i].Source()
-	}
-
-	return serializer.BuildShareList(shares, total)
-}
-
-// Get 获取分享内容
-func (service *ShareGetService) Get(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	// 是否已解锁
 	unlocked := true
-	if share.Password != "" {
-		sessionKey := fmt.Sprintf("share_unlock_%d", share.ID)
-		unlocked = util.GetSession(c, sessionKey) != nil
-		if !unlocked && service.Password != "" {
-			// 如果未解锁，且指定了密码，则尝试解锁
-			if service.Password == share.Password {
-				unlocked = true
-				util.SetSession(c, map[string]interface{}{sessionKey: true})
-			}
-		}
+	// Share requires password
+	if share.Password != "" && s.Password != share.Password && share.Edges.User.ID != u.ID {
+		unlocked = false
 	}
 
-	if unlocked {
-		share.Viewed()
-	}
+	base := dep.SettingProvider().SiteURL(c)
+	res := explorer.BuildShare(share, base, dep.HashIDEncoder(), u, share.Edges.User, share.Edges.File.Name,
+		types.FileType(share.Edges.File.Type), unlocked)
 
-	return serializer.Response{
-		Code: 0,
-		Data: serializer.BuildShareResponse(share, unlocked),
-	}
-}
+	if s.OwnerExtended && share.Edges.User.ID == u.ID {
+		// Add more information about the shared file
+		m := manager.NewFileManager(dep, u)
+		defer m.Recycle()
 
-// CreateDownloadSession 创建下载会话
-func (service *Service) CreateDownloadSession(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-	userCtx, _ := c.Get("user")
-	user := userCtx.(*model.User)
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(user)
-	if err != nil {
-		return serializer.DBErr("Failed to update share record", err)
-	}
-	defer fs.Recycle()
-
-	// 重设文件系统处理目标为源文件
-	err = fs.SetTargetByInterface(share.Source())
-	if err != nil {
-		return serializer.Err(serializer.CodeFileNotFound, "", err)
-	}
-
-	ctx := context.Background()
-
-	// 重设根目录
-	if share.IsDir {
-		fs.Root = &fs.DirTarget[0]
-
-		// 找到目标文件
-		err = fs.ResetFileIfNotExist(ctx, service.Path)
+		shareUri, err := fs.NewUriFromString(fs.NewShareUri(res.ID, s.Password))
 		if err != nil {
-			return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-		}
-	}
-
-	// 取得下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, 0, "download_timeout")
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	return serializer.Response{
-		Code: 0,
-		Data: downloadURL,
-	}
-}
-
-// PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
-// 强制经由服务端中转
-func (service *Service) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	// 用于调下层service
-	if share.IsDir {
-		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
-		ctx = context.WithValue(ctx, fsctx.PathCtx, service.Path)
-	} else {
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
-	}
-	subService := explorer.FileIDService{}
-
-	return subService.PreviewContent(ctx, c, isText)
-}
-
-// CreateDocPreviewSession 创建Office预览会话，返回预览地址
-func (service *Service) CreateDocPreviewSession(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	// 用于调下层service
-	ctx := context.Background()
-	if share.IsDir {
-		ctx = context.WithValue(ctx, fsctx.FolderModelCtx, share.Source())
-		ctx = context.WithValue(ctx, fsctx.PathCtx, service.Path)
-	} else {
-		ctx = context.WithValue(ctx, fsctx.FileModelCtx, share.Source())
-	}
-	subService := explorer.FileIDService{}
-
-	return subService.CreateDocPreviewSession(ctx, c, false)
-}
-
-// List 列出分享的目录下的对象
-func (service *Service) List(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	if !share.IsDir {
-		return serializer.ParamErr("This is not a shared folder", nil)
-	}
-
-	if !path.IsAbs(service.Path) {
-		return serializer.ParamErr("Invalid path", nil)
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(share.Creator())
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 重设根目录
-	fs.Root = share.Source().(*model.Folder)
-	fs.Root.Name = "/"
-
-	// 分享Key上下文
-	ctx = context.WithValue(ctx, fsctx.ShareKeyCtx, hashid.HashID(share.ID, hashid.ShareID))
-
-	// 获取子项目
-	objects, err := fs.List(ctx, service.Path, nil)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	return serializer.Response{
-		Code: 0,
-		Data: serializer.BuildObjectList(0, objects, nil),
-	}
-}
-
-// Thumb 获取被分享文件的缩略图
-func (service *Service) Thumb(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	if !share.IsDir {
-		return serializer.ParamErr("This share has no thumb", nil)
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(share.Creator())
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 重设根目录
-	fs.Root = share.Source().(*model.Folder)
-
-	// 找到缩略图的父目录
-	exist, parent := fs.IsPathExist(service.Path)
-	if !exist {
-		return serializer.Err(serializer.CodeParentNotExist, "", nil)
-	}
-
-	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
-
-	// 获取文件ID
-	fileID, err := hashid.DecodeHashID(c.Param("file"), hashid.FileID)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotFound, "", err)
-	}
-
-	// 获取缩略图
-	resp, err := fs.GetThumb(ctx, uint(fileID))
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "Failed to get thumb", err)
-	}
-
-	if resp.Redirect {
-		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
-		c.Redirect(http.StatusMovedPermanently, resp.URL)
-		return serializer.Response{Code: -1}
-	}
-
-	defer resp.Content.Close()
-	http.ServeContent(c.Writer, c.Request, "thumb.png", fs.FileTarget[0].UpdatedAt, resp.Content)
-
-	return serializer.Response{Code: -1}
-
-}
-
-// Archive 创建批量下载归档
-func (service *ArchiveService) Archive(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-	userCtx, _ := c.Get("user")
-	user := userCtx.(*model.User)
-
-	// 是否有权限
-	if !user.Group.OptionsSerialized.ArchiveDownload {
-		return serializer.Err(serializer.CodeGroupNotAllowed, "", nil)
-	}
-
-	if !share.IsDir {
-		return serializer.ParamErr("This share cannot be batch downloaded", nil)
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(user)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 重设根目录
-	fs.Root = share.Source().(*model.Folder)
-
-	// 找到要打包文件的父目录
-	exist, parent := fs.IsPathExist(service.Path)
-	if !exist {
-		return serializer.Err(serializer.CodeParentNotExist, "", nil)
-	}
-
-	// 限制操作范围为父目录下
-	ctx := context.WithValue(context.Background(), fsctx.LimitParentCtx, parent)
-
-	// 用于调下层service
-	tempUser := share.Creator()
-	tempUser.Group.OptionsSerialized.ArchiveDownload = true
-	c.Set("user", tempUser)
-
-	subService := explorer.ItemIDService{
-		Dirs:  service.Dirs,
-		Items: service.Items,
-	}
-
-	return subService.Archive(ctx, c)
-}
-
-// SearchService 对分享的目录进行搜索
-type SearchService struct {
-	explorer.ItemSearchService
-}
-
-// Search 执行搜索
-func (service *SearchService) Search(c *gin.Context) serializer.Response {
-	shareCtx, _ := c.Get("share")
-	share := shareCtx.(*model.Share)
-
-	if !share.IsDir {
-		return serializer.ParamErr("此分享无法列目录", nil)
-	}
-
-	if service.Path != "" && !path.IsAbs(service.Path) {
-		return serializer.ParamErr("路径无效", nil)
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(share.Creator())
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 重设根目录
-	fs.Root = share.Source().(*model.Folder)
-	fs.Root.Name = "/"
-	if service.Path != "" {
-		ok, parent := fs.IsPathExist(service.Path)
-		if !ok {
-			return serializer.Err(serializer.CodeParentNotExist, "Cannot find parent folder", nil)
+			return nil, serializer.NewError(serializer.CodeInternalSetting, "Invalid share url", err)
 		}
 
-		fs.Root = parent
+		root, err := m.Get(c, shareUri)
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeNotFound, "File not found", err)
+		}
+
+		res.SourceUri = root.Uri(true).String()
 	}
 
-	// 分享Key上下文
-	ctx = context.WithValue(ctx, fsctx.ShareKeyCtx, hashid.HashID(share.ID, hashid.ShareID))
+	return res, nil
 
-	return service.SearchKeywords(c, fs, "%"+service.Keywords+"%")
+}
+
+type (
+	ListShareService struct {
+		PageSize       int    `form:"page_size" binding:"required,min=10,max=100"`
+		OrderBy        string `uri:"order_by" form:"order_by" json:"order_by"`
+		OrderDirection string `uri:"order_direction" form:"order_direction" json:"order_direction"`
+		NextPageToken  string `form:"next_page_token"`
+	}
+	ListShareParamCtx struct{}
+)
+
+func (s *ListShareService) List(c *gin.Context) (*ListShareResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	hasher := dep.HashIDEncoder()
+	shareClient := dep.ShareClient()
+
+	args := &inventory.ListShareArgs{
+		PaginationArgs: &inventory.PaginationArgs{
+			UseCursorPagination: true,
+			PageToken:           s.NextPageToken,
+			PageSize:            s.PageSize,
+			Order:               inventory.OrderDirection(s.OrderDirection),
+			OrderBy:             s.OrderBy,
+		},
+		UserID: user.ID,
+	}
+
+	ctx := context.WithValue(c, inventory.LoadShareUser{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	res, err := shareClient.List(ctx, args)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list shares", err)
+	}
+
+	base := dep.SettingProvider().SiteURL(ctx)
+	return BuildListShareResponse(res, hasher, base, user, true), nil
+}
+
+func (s *ListShareService) ListInUserProfile(c *gin.Context, uid int) (*ListShareResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	hasher := dep.HashIDEncoder()
+	shareClient := dep.ShareClient()
+
+	args := &inventory.ListShareArgs{
+		PaginationArgs: &inventory.PaginationArgs{
+			UseCursorPagination: true,
+			PageToken:           s.NextPageToken,
+			PageSize:            s.PageSize,
+			Order:               inventory.OrderDirection(s.OrderDirection),
+			OrderBy:             s.OrderBy,
+		},
+		UserID:     uid,
+		PublicOnly: true,
+	}
+
+	ctx := context.WithValue(c, inventory.LoadShareUser{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	res, err := shareClient.List(ctx, args)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list shares", err)
+	}
+
+	base := dep.SettingProvider().SiteURL(ctx)
+	return BuildListShareResponse(res, hasher, base, user, false), nil
 }

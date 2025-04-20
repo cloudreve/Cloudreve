@@ -1,11 +1,18 @@
 package util
 
 import (
+	"context"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 )
+
+const (
+	DataFolder = "data"
+)
+
+var UseWorkingDir = false
 
 // DotPathToStandardPath 将","分割的路径转换为标准路径
 func DotPathToStandardPath(path string) string {
@@ -50,6 +57,10 @@ func FormSlash(old string) string {
 
 // RelativePath 获取相对可执行文件的路径
 func RelativePath(name string) string {
+	if UseWorkingDir {
+		return name
+	}
+
 	if filepath.IsAbs(name) {
 		return name
 	}
@@ -57,3 +68,41 @@ func RelativePath(name string) string {
 	return filepath.Join(filepath.Dir(e), name)
 }
 
+// DataPath relative path for store persist data file
+func DataPath(child string) string {
+	dataPath := RelativePath(DataFolder)
+	if !Exists(dataPath) {
+		os.MkdirAll(dataPath, 0700)
+	}
+
+	if filepath.IsAbs(child) {
+		return child
+	}
+
+	return filepath.Join(dataPath, child)
+}
+
+// MkdirIfNotExist create directory if not exist
+func MkdirIfNotExist(ctx context.Context, p string) {
+	if !Exists(p) {
+		os.MkdirAll(p, 0700)
+	}
+}
+
+// SlashClean is equivalent to but slightly more efficient than
+// path.Clean("/" + name).
+func SlashClean(name string) string {
+	if name == "" || name[0] != '/' {
+		name = "/" + name
+	}
+	return path.Clean(name)
+}
+
+// Ext returns the file name extension used by path, without the dot.
+func Ext(name string) string {
+	ext := strings.ToLower(filepath.Ext(name))
+	if len(ext) > 0 {
+		ext = ext[1:]
+	}
+	return ext
+}

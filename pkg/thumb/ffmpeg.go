@@ -4,90 +4,77 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"time"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/driver"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager/entitysource"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gofrs/uuid"
 )
 
-func init() {
-	RegisterGenerator(&FfmpegGenerator{})
+const (
+	urlTimeout = time.Duration(1) * time.Hour
+)
+
+func NewFfmpegGenerator(l logging.Logger, settings setting.Provider) *FfmpegGenerator {
+	return &FfmpegGenerator{l: l, settings: settings}
 }
 
 type FfmpegGenerator struct {
-	exts        []string
-	lastRawExts string
+	l        logging.Logger
+	settings setting.Provider
 }
 
-func (f *FfmpegGenerator) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
-	const (
-		thumbFFMpegPath   = "thumb_ffmpeg_path"
-		thumbFFMpegExts   = "thumb_ffmpeg_exts"
-		thumbFFMpegSeek   = "thumb_ffmpeg_seek"
-		thumbEncodeMethod = "thumb_encode_method"
-		tempPath          = "temp_path"
-	)
-	ffmpegOpts := model.GetSettingByNames(thumbFFMpegPath, thumbFFMpegExts, thumbFFMpegSeek, thumbEncodeMethod, tempPath)
-
-	if f.lastRawExts != ffmpegOpts[thumbFFMpegExts] {
-		f.exts = strings.Split(ffmpegOpts[thumbFFMpegExts], ",")
-		f.lastRawExts = ffmpegOpts[thumbFFMpegExts]
-	}
-
-	if !util.IsInExtensionList(f.exts, name) {
+func (f *FfmpegGenerator) Generate(ctx context.Context, es entitysource.EntitySource, ext string, previous *Result) (*Result, error) {
+	if !util.IsInExtensionListExt(f.settings.FFMpegThumbExts(ctx), ext) {
 		return nil, fmt.Errorf("unsupported video format: %w", ErrPassThrough)
 	}
 
+	if es.Entity().Size() > f.settings.FFMpegThumbMaxSize(ctx) {
+		return nil, fmt.Errorf("file is too big: %w", ErrPassThrough)
+	}
+
 	tempOutputPath := filepath.Join(
-		util.RelativePath(ffmpegOpts[tempPath]),
-		"thumb",
-		fmt.Sprintf("thumb_%s.%s", uuid.Must(uuid.NewV4()).String(), ffmpegOpts[thumbEncodeMethod]),
+		util.DataPath(f.settings.TempPath(ctx)),
+		thumbTempFolder,
+		fmt.Sprintf("thumb_%s.%s", uuid.Must(uuid.NewV4()).String(), f.settings.ThumbEncode(ctx).Format),
 	)
 
-	tempInputPath := src
-	if tempInputPath == "" {
-		// If not local policy files, download to temp folder
-		tempInputPath = filepath.Join(
-			util.RelativePath(ffmpegOpts[tempPath]),
-			"thumb",
-			fmt.Sprintf("ffmpeg_%s%s", uuid.Must(uuid.NewV4()).String(), filepath.Ext(name)),
-		)
+	if err := util.CreatNestedFolder(filepath.Dir(tempOutputPath)); err != nil {
+		return nil, fmt.Errorf("failed to create temp folder: %w", err)
+	}
 
-		// Due to limitations of ffmpeg, we need to write the input file to disk first
-		tempInputFile, err := util.CreatNestedFile(tempInputPath)
+	input := ""
+	expire := time.Now().Add(urlTimeout)
+	if es.IsLocal() {
+		input = es.LocalPath(ctx)
+	} else {
+		src, err := es.Url(driver.WithForcePublicEndpoint(ctx, false), entitysource.WithNoInternalProxy(), entitysource.WithContext(ctx), entitysource.WithExpire(&expire))
 		if err != nil {
-			return nil, fmt.Errorf("failed to create temp file: %w", err)
+			return &Result{Path: tempOutputPath}, fmt.Errorf("failed to get entity url: %w", err)
 		}
 
-		defer os.Remove(tempInputPath)
-		defer tempInputFile.Close()
-
-		if _, err = io.Copy(tempInputFile, file); err != nil {
-			return nil, fmt.Errorf("failed to write input file: %w", err)
-		}
-
-		tempInputFile.Close()
+		input = src.Url
 	}
 
 	// Invoke ffmpeg
-	scaleOpt := fmt.Sprintf("scale=%s:%s:force_original_aspect_ratio=decrease", options["thumb_width"], options["thumb_height"])
+	w, h := f.settings.ThumbSize(ctx)
+	scaleOpt := fmt.Sprintf("scale=%d:%d:force_original_aspect_ratio=decrease", w, h)
 	cmd := exec.CommandContext(ctx,
-		ffmpegOpts[thumbFFMpegPath], "-ss", ffmpegOpts[thumbFFMpegSeek], "-i", tempInputPath,
+		f.settings.FFMpegPath(ctx), "-ss", f.settings.FFMpegThumbSeek(ctx), "-i", input,
 		"-vf", scaleOpt, "-vframes", "1", tempOutputPath)
 
 	// Redirect IO
 	var stdErr bytes.Buffer
-	cmd.Stdin = file
 	cmd.Stderr = &stdErr
 
 	if err := cmd.Run(); err != nil {
-		util.Log().Warning("Failed to invoke ffmpeg: %s", stdErr.String())
-		return nil, fmt.Errorf("failed to invoke ffmpeg: %w", err)
+		f.l.Warning("Failed to invoke ffmpeg: %s", stdErr.String())
+		return &Result{Path: tempOutputPath}, fmt.Errorf("failed to invoke ffmpeg: %w, raw output: %s", err, stdErr.String())
 	}
 
 	return &Result{Path: tempOutputPath}, nil
@@ -97,6 +84,6 @@ func (f *FfmpegGenerator) Priority() int {
 	return 200
 }
 
-func (f *FfmpegGenerator) EnableFlag() string {
-	return "thumb_ffmpeg_enabled"
+func (f *FfmpegGenerator) Enabled(ctx context.Context) bool {
+	return f.settings.FFMpegThumbGeneratorEnabled(ctx)
 }

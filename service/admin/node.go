@@ -1,142 +1,256 @@
 package admin
 
 import (
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/url"
 	"strings"
+	"time"
+
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/node"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/downloader"
+	"github.com/cloudreve/Cloudreve/v4/pkg/downloader/slave"
+	"github.com/cloudreve/Cloudreve/v4/pkg/request"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
-// AddNodeService 节点添加服务
-type AddNodeService struct {
-	Node model.Node `json:"node" binding:"required"`
+const (
+	nodeStatusCondition = "node_status"
+)
+
+func (service *AdminListService) Nodes(c *gin.Context) (*ListNodeResponse, error) {
+	dep := dependency.FromContext(c)
+	nodeClient := dep.NodeClient()
+
+	ctx := context.WithValue(c, inventory.LoadNodeStoragePolicy{}, true)
+	res, err := nodeClient.ListNodes(ctx, &inventory.ListNodeParameters{
+		PaginationArgs: &inventory.PaginationArgs{
+			Page:     service.Page - 1,
+			PageSize: service.PageSize,
+			OrderBy:  service.OrderBy,
+			Order:    inventory.OrderDirection(service.OrderDirection),
+		},
+		Status: node.Status(service.Conditions[nodeStatusCondition]),
+	})
+
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list nodes", err)
+	}
+
+	return &ListNodeResponse{Nodes: res.Nodes, Pagination: res.PaginationResults}, nil
 }
 
-// Add 添加节点
-func (service *AddNodeService) Add() serializer.Response {
-	if service.Node.ID > 0 {
-		if err := model.DB.Save(&service.Node).Error; err != nil {
-			return serializer.DBErr("Failed to save node record", err)
-		}
+type (
+	SingleNodeService struct {
+		ID int `uri:"id" json:"id" binding:"required"`
+	}
+	SingleNodeParamCtx struct{}
+)
+
+func (service *SingleNodeService) Get(c *gin.Context) (*GetNodeResponse, error) {
+	dep := dependency.FromContext(c)
+	nodeClient := dep.NodeClient()
+
+	ctx := context.WithValue(c, inventory.LoadNodeStoragePolicy{}, true)
+	node, err := nodeClient.GetNodeById(ctx, service.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get node", err)
+	}
+
+	return &GetNodeResponse{Node: node}, nil
+}
+
+type (
+	TestNodeService struct {
+		Node *ent.Node `json:"node" binding:"required"`
+	}
+	TestNodeParamCtx struct{}
+)
+
+func (service *TestNodeService) Test(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+
+	slave, err := url.Parse(service.Node.Server)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "Failed to parse node URL", err)
+	}
+
+	primaryURL := settings.SiteURL(setting.UseFirstSiteUrl(c)).String()
+	body := map[string]string{
+		"callback": primaryURL,
+	}
+	bodyByte, _ := json.Marshal(body)
+
+	r := dep.RequestClient()
+	res, err := r.Request(
+		"POST",
+		routes.SlavePingRoute(slave),
+		bytes.NewReader(bodyByte),
+		request.WithTimeout(time.Duration(10)*time.Second),
+		request.WithCredential(
+			auth.HMACAuth{SecretKey: []byte(service.Node.SlaveKey)},
+			int64(settings.SlaveRequestSignTTL(c)),
+		),
+		request.WithSlaveMeta(int(service.Node.ID)),
+		request.WithMasterMeta(settings.SiteBasic(c).ID, primaryURL),
+		request.WithCorrelationID(),
+	).CheckHTTPResponse(http.StatusOK).DecodeResponse()
+
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "Failed to connect to node: "+err.Error(), nil)
+	}
+
+	if res.Code != 0 {
+		return serializer.NewError(serializer.CodeParamErr, "Successfully connected to slave node, but slave returns: "+res.Msg, nil)
+	}
+
+	return nil
+}
+
+type (
+	TestNodeDownloaderService struct {
+		Node *ent.Node `json:"node" binding:"required"`
+	}
+	TestNodeDownloaderParamCtx struct{}
+)
+
+func (service *TestNodeDownloaderService) Test(c *gin.Context) (string, error) {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+	var (
+		dl  downloader.Downloader
+		err error
+	)
+	if service.Node.Type == node.TypeMaster {
+		dl, err = cluster.NewDownloader(c, dep.RequestClient(request.WithContext(c)), dep.SettingProvider(), service.Node.Settings)
 	} else {
-		if err := model.DB.Create(&service.Node).Error; err != nil {
-			return serializer.DBErr("Failed to create node record", err)
-		}
+		dl = slave.NewSlaveDownloader(dep.RequestClient(
+			request.WithContext(c),
+			request.WithCorrelationID(),
+			request.WithSlaveMeta(service.Node.ID),
+			request.WithMasterMeta(settings.SiteBasic(c).ID, settings.SiteURL(setting.UseFirstSiteUrl(c)).String()),
+			request.WithCredential(auth.HMACAuth{[]byte(service.Node.SlaveKey)}, int64(settings.SlaveRequestSignTTL(c))),
+			request.WithEndpoint(service.Node.Server),
+		), service.Node.Settings)
 	}
 
-	if service.Node.Status == model.NodeActive {
-		cluster.Default.Add(&service.Node)
-	}
-
-	return serializer.Response{Data: service.Node.ID}
-}
-
-// Nodes 列出从机节点
-func (service *AdminListService) Nodes() serializer.Response {
-	var res []model.Node
-	total := 0
-
-	tx := model.DB.Model(&model.Node{})
-	if service.OrderBy != "" {
-		tx = tx.Order(service.OrderBy)
-	}
-
-	for k, v := range service.Conditions {
-		tx = tx.Where(k+" = ?", v)
-	}
-
-	if len(service.Searches) > 0 {
-		search := ""
-		for k, v := range service.Searches {
-			search += k + " like '%" + v + "%' OR "
-		}
-		search = strings.TrimSuffix(search, " OR ")
-		tx = tx.Where(search)
-	}
-
-	// 计算总数用于分页
-	tx.Count(&total)
-
-	// 查询记录
-	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
-
-	isActive := make(map[uint]bool)
-	for i := 0; i < len(res); i++ {
-		if node := cluster.Default.GetNodeByID(res[i].ID); node != nil {
-			isActive[res[i].ID] = node.IsActive()
-		}
-	}
-
-	return serializer.Response{Data: map[string]interface{}{
-		"total":  total,
-		"items":  res,
-		"active": isActive,
-	}}
-}
-
-// ToggleNodeService 开关节点服务
-type ToggleNodeService struct {
-	ID      uint             `uri:"id"`
-	Desired model.NodeStatus `uri:"desired"`
-}
-
-// Toggle 开关节点
-func (service *ToggleNodeService) Toggle() serializer.Response {
-	node, err := model.GetNodeByID(service.ID)
 	if err != nil {
-		return serializer.DBErr("Node not found", err)
+		return "", serializer.NewError(serializer.CodeParamErr, "Failed to create downloader", err)
 	}
 
-	// 是否为系统节点
-	if node.ID <= 1 {
-		return serializer.Err(serializer.CodeInvalidActionOnSystemNode, "", err)
-	}
-
-	if err = node.SetStatus(service.Desired); err != nil {
-		return serializer.DBErr("Failed to change node status", err)
-	}
-
-	if service.Desired == model.NodeActive {
-		cluster.Default.Add(&node)
-	} else {
-		cluster.Default.Delete(node.ID)
-	}
-
-	return serializer.Response{}
-}
-
-// NodeService 节点ID服务
-type NodeService struct {
-	ID uint `uri:"id" json:"id" binding:"required"`
-}
-
-// Delete 删除节点
-func (service *NodeService) Delete() serializer.Response {
-	// 查找用户组
-	node, err := model.GetNodeByID(service.ID)
+	version, err := dl.Test(c)
 	if err != nil {
-		return serializer.DBErr("Node record not found", err)
+		return "", serializer.NewError(serializer.CodeParamErr, "Failed to test downloader: "+err.Error(), nil)
 	}
 
-	// 是否为系统节点
-	if node.ID <= 1 {
-		return serializer.Err(serializer.CodeInvalidActionOnSystemNode, "", err)
-	}
-
-	cluster.Default.Delete(node.ID)
-	if err := model.DB.Delete(&node).Error; err != nil {
-		return serializer.DBErr("Failed to delete node record", err)
-	}
-
-	return serializer.Response{}
+	return version, nil
 }
 
-// Get 获取节点详情
-func (service *NodeService) Get() serializer.Response {
-	node, err := model.GetNodeByID(service.ID)
-	if err != nil {
-		return serializer.DBErr("Node not exist", err)
+type (
+	UpsertNodeService struct {
+		Node *ent.Node `json:"node" binding:"required"`
+	}
+	UpsertNodeParamCtx struct{}
+)
+
+func (s *UpsertNodeService) Update(c *gin.Context) (*GetNodeResponse, error) {
+	dep := dependency.FromContext(c)
+	nodeClient := dep.NodeClient()
+
+	if s.Node.ID == 0 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "ID is required", nil)
 	}
 
-	return serializer.Response{Data: node}
+	node, err := nodeClient.Upsert(c, s.Node)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to update node", err)
+	}
+
+	// reload node pool
+	np, err := dep.NodePool(c)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeInternalSetting, "Failed to get node pool", err)
+	}
+	np.Upsert(c, node)
+
+	// Clear policy cache since some this node maybe cached by some storage policy
+	kv := dep.KV()
+	kv.Delete(inventory.StoragePolicyCacheKey)
+
+	service := &SingleNodeService{ID: node.ID}
+	return service.Get(c)
+}
+
+func (s *UpsertNodeService) Create(c *gin.Context) (*GetNodeResponse, error) {
+	dep := dependency.FromContext(c)
+	nodeClient := dep.NodeClient()
+
+	if s.Node.ID > 0 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "ID must be 0", nil)
+	}
+
+	node, err := nodeClient.Upsert(c, s.Node)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to create node", err)
+	}
+
+	// reload node pool
+	np, err := dep.NodePool(c)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeInternalSetting, "Failed to get node pool", err)
+	}
+	np.Upsert(c, node)
+
+	service := &SingleNodeService{ID: node.ID}
+	return service.Get(c)
+}
+
+func (s *SingleNodeService) Delete(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	nodeClient := dep.NodeClient()
+
+	ctx := context.WithValue(c, inventory.LoadNodeStoragePolicy{}, true)
+	existing, err := nodeClient.GetNodeById(ctx, s.ID)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "Failed to get node", err)
+	}
+
+	if existing.Type == node.TypeMaster {
+		return serializer.NewError(serializer.CodeInvalidActionOnSystemNode, "", nil)
+	}
+
+	if len(existing.Edges.StoragePolicy) > 0 {
+		return serializer.NewError(
+			serializer.CodeNodeUsedByStoragePolicy,
+			strings.Join(lo.Map(existing.Edges.StoragePolicy, func(i *ent.StoragePolicy, _ int) string {
+				return i.Name
+			}), ", "),
+			nil,
+		)
+	}
+
+	// insert dummpy disabled node in nodepool to evict it
+	disabledNode := &ent.Node{
+		ID:     s.ID,
+		Type:   node.TypeSlave,
+		Status: node.StatusSuspended,
+	}
+	np, err := dep.NodePool(c)
+	if err != nil {
+		return serializer.NewError(serializer.CodeInternalSetting, "Failed to get node pool", err)
+	}
+	np.Upsert(c, disabledNode)
+	return nodeClient.Delete(c, s.ID)
 }

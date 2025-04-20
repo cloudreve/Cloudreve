@@ -1,8 +1,15 @@
 package serializer
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/lock"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // AppError 应用错误，实现了error接口
@@ -32,13 +39,31 @@ func NewErrorFromResponse(resp *Response) AppError {
 
 // WithError 将应用error携带标准库中的error
 func (err *AppError) WithError(raw error) AppError {
-	err.RawError = raw
-	return *err
+	return AppError{
+		Code:     err.Code,
+		Msg:      err.Msg,
+		RawError: raw,
+	}
 }
 
 // Error 返回业务代码确定的可读错误信息
 func (err AppError) Error() string {
+	if err.RawError != nil {
+		return fmt.Sprintf("%s: %s", err.Msg, err.RawError.Error())
+	}
 	return err.Msg
+}
+
+func (err AppError) ErrCode() int {
+	var inheritedErr AppError
+	if errors.As(err.RawError, &inheritedErr) {
+		return inheritedErr.ErrCode()
+	}
+	return err.Code
+}
+
+func (err AppError) Unwrap() error {
+	return err.RawError
 }
 
 // 三位数错误编码为复用http原本含义
@@ -78,6 +103,8 @@ const (
 	CodeInvalidChunkIndex = 40012
 	// CodeInvalidContentLength 无效的正文长度
 	CodeInvalidContentLength = 40013
+	// CodePhoneRequired 未绑定手机
+	CodePhoneRequired = 40010
 	// CodeBatchSourceSize 超出批量获取外链限制
 	CodeBatchSourceSize = 40014
 	// CodeBatchAria2Size 超出最大 Aria2 任务数量限制
@@ -112,6 +139,8 @@ const (
 	CodeInvalidTempLink = 40029
 	// CodeTempLinkExpired 临时链接过期
 	CodeTempLinkExpired = 40030
+	// CodeEmailProviderBaned 邮箱后缀被禁用
+	CodeEmailProviderBaned = 40031
 	// CodeEmailExisted 邮箱已被使用
 	CodeEmailExisted = 40032
 	// CodeEmailSent 邮箱已重新发送
@@ -180,18 +209,50 @@ const (
 	CodeGroupInvalid = 40064
 	// 兑换码无效
 	CodeInvalidGiftCode = 40065
-	// 已绑定了QQ账号
-	CodeQQBindConflict = 40066
-	// QQ账号已被绑定其他账号
-	CodeQQBindOtherAccount = 40067
-	// QQ 未绑定对应账号
-	CodeQQNotLinked = 40068
+	// 已绑定了对应账号
+	CodeOpenIDBindConflict = 40066
+	// 对应账号已被绑定其他账号
+	CodeOpenIDBindOtherAccount = 40067
+	// 未绑定对应账号
+	CodeOpenIDNotLinked = 40068
 	// 密码不正确
 	CodeIncorrectPassword = 40069
 	// 分享无法预览
 	CodeDisabledSharePreview = 40070
 	// 签名无效
 	CodeInvalidSign = 40071
+	// 管理员无法购买用户组
+	CodeFulfillAdminGroup = 40072
+	// Lock confliced
+	CodeLockConflict = 40073
+	// Too many uris
+	CodeTooManyUris = 40074
+	// Lock token expired
+	CodeLockExpired = 40075
+	// Current updated version is stale
+	CodeStaleVersion = 40076
+	// CodeEntityNotExist Entity not exist
+	CodeEntityNotExist = 40077
+	// CodeFileDeleted File is deleted in recycle bin
+	CodeFileDeleted = 40078
+	// CodeFileCountLimitedReached file count limited reached
+	CodeFileCountLimitedReached = 40079
+	// CodeInvalidPassword invalid password
+	CodeInvalidPassword = 40080
+	// CodeBatchOperationNotFullyCompleted batch operation not fully completed
+	CodeBatchOperationNotFullyCompleted = 40081
+	// CodeOwnerOnly owner operation only
+	CodeOwnerOnly = 40082
+	// CodePurchaseRequired purchase required
+	CodePurchaseRequired = 40083
+	// CodeManagedAccountMinimumOpenID managed account minimum openid
+	CodeManagedAccountMinimumOpenID = 40084
+	// CodeAmountTooSmall amount too small
+	CodeAmountTooSmall = 40085
+	// CodeNodeUsedByStoragePolicy node used by storage policy
+	CodeNodeUsedByStoragePolicy = 40086
+	// CodeDomainNotLicensed domain not licensed
+	CodeDomainNotLicensed = 40087
 	// CodeDBError 数据库操作失败
 	CodeDBError = 50001
 	// CodeEncryptError 加密失败
@@ -218,24 +279,41 @@ const (
 	CodeNotSet = -1
 )
 
-// DBErr 数据库操作失败
-func DBErr(msg string, err error) Response {
+// DBErrDeprecated 数据库操作失败
+func DBErr(c context.Context, msg string, err error) Response {
 	if msg == "" {
 		msg = "Database operation failed."
 	}
-	return Err(CodeDBError, msg, err)
+	return ErrWithDetails(c, CodeDBError, msg, err)
+}
+
+// DBErrDeprecated 数据库操作失败
+func DBErrDeprecated(msg string, err error) Response {
+	if msg == "" {
+		msg = "Database operation failed."
+	}
+	return ErrDeprecated(CodeDBError, msg, err)
 }
 
 // ParamErr 各种参数错误
-func ParamErr(msg string, err error) Response {
+func ParamErr(c context.Context, msg string, err error) Response {
 	if msg == "" {
 		msg = "Invalid parameters."
 	}
-	return Err(CodeParamErr, msg, err)
+	return ErrWithDetails(c, CodeParamErr, msg, err)
 }
 
-// Err 通用错误处理
-func Err(errCode int, msg string, err error) Response {
+// ParamErrDeprecated 各种参数错误
+// Deprecated
+func ParamErrDeprecated(msg string, err error) Response {
+	if msg == "" {
+		msg = "Invalid parameters."
+	}
+	return ErrDeprecated(CodeParamErr, msg, err)
+}
+
+// ErrDeprecated 通用错误处理
+func ErrDeprecated(errCode int, msg string, err error) Response {
 	// 底层错误是AppError，则尝试从AppError中获取详细信息
 	var appError AppError
 	if errors.As(err, &appError) {
@@ -253,4 +331,132 @@ func Err(errCode int, msg string, err error) Response {
 		res.Error = err.Error()
 	}
 	return res
+}
+
+// ErrWithDetails 通用错误处理
+func ErrWithDetails(c context.Context, errCode int, msg string, err error) Response {
+	res := Response{
+		Code:          errCode,
+		Msg:           msg,
+		CorrelationID: logging.CorrelationID(c).String(),
+	}
+
+	// 底层错误是AppError，则尝试从AppError中获取详细信息
+	var appError AppError
+	if errors.As(err, &appError) {
+		res.Code = appError.ErrCode()
+		err = appError.RawError
+		res.Msg = appError.Msg
+
+		// Special case for error with detail data
+		switch res.Code {
+		case CodeLockConflict:
+			var lockConflict lock.ConflictError
+			if errors.As(err, &lockConflict) {
+				res.Data = lockConflict
+			}
+		case CodeBatchOperationNotFullyCompleted:
+			var errs *AggregateError
+			if errors.As(err, &errs) {
+				res.AggregatedError = errs.Expand(c)
+			}
+		}
+	}
+
+	// 生产环境隐藏底层报错
+	if err != nil && gin.Mode() != gin.ReleaseMode {
+		res.Error = err.Error()
+	}
+
+	return res
+}
+
+// Err Builds error response without addition details, code and message will
+// be retrieved from error if possible
+func Err(c context.Context, err error) Response {
+	return ErrWithDetails(c, CodeNotSet, "", err)
+}
+
+// AggregateError is a special error type that contains multiple errors
+type AggregateError struct {
+	errs map[string]error
+}
+
+// NewAggregateError creates a new AggregateError
+func NewAggregateError() *AggregateError {
+	return &AggregateError{
+		errs: make(map[string]error, 0),
+	}
+}
+
+func (e *AggregateError) Error() string {
+	return fmt.Sprintf("aggregate error: one or more operation failed")
+}
+
+// Add adds an error to the aggregate
+func (e *AggregateError) Add(id string, err error) {
+	e.errs[id] = err
+}
+
+// Merge merges another aggregate error into this one
+func (e *AggregateError) Merge(err error) bool {
+	var errs *AggregateError
+	if errors.As(err, &errs) {
+		for id, err := range errs.errs {
+			e.errs[id] = err
+		}
+
+		return true
+	}
+	return false
+}
+
+// Raw returns the raw error map
+func (e *AggregateError) Raw() map[string]error {
+	return e.errs
+}
+
+func (e *AggregateError) Remove(id string) {
+	delete(e.errs, id)
+}
+
+// Expand expands the aggregate error into a list of responses
+func (e *AggregateError) Expand(ctx context.Context) map[string]Response {
+	return lo.MapEntries(e.errs, func(id string, err error) (string, Response) {
+		return id, Err(ctx, err)
+	})
+}
+
+// Aggregate aggregates the error and returns nil if there is no error;
+// otherwise returns the error itself
+func (e *AggregateError) Aggregate() error {
+	if len(e.errs) == 0 {
+		return nil
+	}
+
+	msg := "One or more operation failed"
+	if len(e.errs) == 1 {
+		for _, err := range e.errs {
+			msg = err.Error()
+		}
+	}
+
+	return NewError(CodeBatchOperationNotFullyCompleted, msg, e)
+}
+
+func (e *AggregateError) FormatFirstN(n int) string {
+	if len(e.errs) == 0 {
+		return ""
+	}
+
+	res := make([]string, 0, n)
+	for id, err := range e.errs {
+		res = append(res, fmt.Sprintf("%s: %s", id, err.Error()))
+		if len(res) >= n {
+			break
+		}
+	}
+
+	return strings.Join(res, ", ")
+
 }

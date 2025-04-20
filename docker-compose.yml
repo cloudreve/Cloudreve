@@ -1,45 +1,40 @@
-version: "3.8"
 services:
-  redis:
-    container_name: redis
-    image: bitnami/redis:latest
-    restart: unless-stopped
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-    volumes:
-      - redis_data:/bitnami/redis/data
-
-  cloudreve:
-    container_name: cloudreve
-    image: cloudreve/cloudreve:latest
-    restart: unless-stopped
-    ports:
-      - "5212:5212"
-    volumes:
-      - temp_data:/data
-      - ./cloudreve/uploads:/cloudreve/uploads
-      - ./cloudreve/conf.ini:/cloudreve/conf.ini
-      - ./cloudreve/cloudreve.db:/cloudreve/cloudreve.db
-      - ./cloudreve/avatar:/cloudreve/avatar
+  pro:
+    image: cloudreve.azurecr.io/cloudreve/pro:latest
+    container_name: cloudreve-pro-backend
     depends_on:
-      - aria2
-
-  aria2:
-    container_name: aria2
-    image: p3terx/aria2-pro # third party image, please keep notice what you are doing
-    restart: unless-stopped
+      - postgresql
+      - redis
+    restart: always
+    ports:
+      - 5212:5212
     environment:
-      - RPC_SECRET=your_aria_rpc_token # aria rpc token, customize your own
-      - RPC_PORT=6800
+      - CR_CONF_Database.Type=postgres
+      - CR_CONF_Database.Host=postgresql
+      - CR_CONF_Database.User=cloudreve
+      - CR_CONF_Database.Name=cloudreve
+      - CR_CONF_Database.Port=5432
+      - CR_CONF_Redis.Server=redis:6379
+      - CR_LICENSE_KEY=${CR_LICENSE_KEY}
     volumes:
-      - ./aria2/config:/config
-      - temp_data:/data
+      - backend_data:/cloudreve/data
+
+  postgresql:
+    image: postgres:latest
+    container_name: postgresql
+    environment:
+      - POSTGRES_USER=cloudreve
+      - POSTGRES_DB=cloudreve
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - database_postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    volumes:
+      - backend_data:/data
+
 volumes:
-  redis_data:
-    driver: local
-  temp_data:
-    driver: local
-    driver_opts:
-      type: none
-      device: $PWD/data
-      o: bind
+  backend_data:
+  database_postgres:

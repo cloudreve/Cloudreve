@@ -1,22 +1,21 @@
 package middleware
 
 import (
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/pkg/wopi"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 )
 
-const (
-	WopiSessionCtx = "wopi_session"
-)
-
 // WopiWriteAccess validates if write access is obtained.
 func WopiWriteAccess() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := c.MustGet(WopiSessionCtx).(*wopi.SessionCache)
+		session := c.MustGet(wopi.WopiSessionCtx).(*wopi.SessionCache)
 		if session.Action != wopi.ActionEdit {
 			c.Status(http.StatusNotFound)
 			c.Header(wopi.ServerErrorHeader, "read-only access")
@@ -28,8 +27,12 @@ func WopiWriteAccess() gin.HandlerFunc {
 	}
 }
 
-func WopiAccessValidation(w wopi.Client, store cache.Driver) gin.HandlerFunc {
+func ViewerSessionValidation() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		dep := dependency.FromContext(c)
+		store := dep.KV()
+		settings := dep.SettingProvider()
+
 		accessToken := strings.Split(c.Query(wopi.AccessTokenQuery), ".")
 		if len(accessToken) != 2 {
 			c.Status(http.StatusForbidden)
@@ -38,7 +41,7 @@ func WopiAccessValidation(w wopi.Client, store cache.Driver) gin.HandlerFunc {
 			return
 		}
 
-		sessionRaw, exist := store.Get(wopi.SessionCachePrefix + accessToken[0])
+		sessionRaw, exist := store.Get(manager.ViewerSessionCachePrefix + accessToken[0])
 		if !exist {
 			c.Status(http.StatusForbidden)
 			c.Header(wopi.ServerErrorHeader, "invalid access token")
@@ -46,25 +49,47 @@ func WopiAccessValidation(w wopi.Client, store cache.Driver) gin.HandlerFunc {
 			return
 		}
 
-		session := sessionRaw.(wopi.SessionCache)
-		user, err := model.GetActiveUserByID(session.UserID)
-		if err != nil {
+		session := sessionRaw.(manager.ViewerSessionCache)
+		if err := SetUserCtx(c, session.UserID); err != nil {
 			c.Status(http.StatusInternalServerError)
 			c.Header(wopi.ServerErrorHeader, "user not found")
 			c.Abort()
 			return
 		}
 
-		fileID := c.MustGet("object_id").(uint)
-		if fileID != session.FileID {
-			c.Status(http.StatusInternalServerError)
-			c.Header(wopi.ServerErrorHeader, "file not found")
+		fileId := hashid.FromContext(c)
+		if fileId != session.FileID {
+			c.Status(http.StatusForbidden)
+			c.Header(wopi.ServerErrorHeader, "invalid file")
 			c.Abort()
 			return
 		}
 
-		c.Set("user", &user)
-		c.Set(WopiSessionCtx, &session)
+		// Check if the viewer is still available
+		viewers := settings.FileViewers(c)
+		var v *setting.Viewer
+		for _, group := range viewers {
+			for _, viewer := range group.Viewers {
+				if viewer.ID == session.ViewerID && !viewer.Disabled {
+					v = &viewer
+					break
+				}
+			}
+
+			if v != nil {
+				break
+			}
+		}
+
+		if v == nil {
+			c.Status(http.StatusInternalServerError)
+			c.Header(wopi.ServerErrorHeader, "viewer not found")
+			c.Abort()
+			return
+		}
+
+		util.WithValue(c, manager.ViewerCtx{}, v)
+		util.WithValue(c, manager.ViewerSessionCacheCtx{}, &session)
 		c.Next()
 	}
 }

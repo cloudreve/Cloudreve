@@ -1,11 +1,10 @@
 package hashid
 
 import (
+	"context"
 	"errors"
-
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/speps/go-hashids"
 )
+import "github.com/speps/go-hashids"
 
 // ID类型
 const (
@@ -16,6 +15,13 @@ const (
 	TagID           // 标签ID
 	PolicyID        // 存储策略ID
 	SourceLinkID
+	GroupID
+	EntityID
+	AuditLogID
+	NodeID
+	TaskID
+	DavAccountID
+	PaymentID
 )
 
 var (
@@ -23,48 +29,124 @@ var (
 	ErrTypeNotMatch = errors.New("mismatched ID type.")
 )
 
-// HashEncode 对给定数据计算HashID
-func HashEncode(v []int) (string, error) {
-	hd := hashids.NewData()
-	hd.Salt = conf.SystemConfig.HashIDSalt
+type Encoder interface {
+	Encode(v []int) (string, error)
+	Decode(raw string, t int) (int, error)
+}
 
+// ObjectIDCtx define key for decoded hash ID.
+type (
+	ObjectIDCtx struct{}
+	EncodeFunc  func(encoder Encoder, uid int) string
+)
+
+type hashEncoder struct {
+	h *hashids.HashID
+}
+
+func New(salt string) (Encoder, error) {
+	hd := hashids.NewData()
+	hd.Salt = salt
 	h, err := hashids.NewWithData(hd)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	id, err := h.Encode(v)
+	return &hashEncoder{h: h}, nil
+}
+
+func (e *hashEncoder) Encode(v []int) (string, error) {
+	id, err := e.h.Encode(v)
 	if err != nil {
 		return "", err
 	}
 	return id, nil
 }
 
-// HashDecode 对给定数据计算原始数据
-func HashDecode(raw string) ([]int, error) {
-	hd := hashids.NewData()
-	hd.Salt = conf.SystemConfig.HashIDSalt
-
-	h, err := hashids.NewWithData(hd)
+func (e *hashEncoder) Decode(raw string, t int) (int, error) {
+	res, err := e.h.DecodeWithError(raw)
 	if err != nil {
-		return []int{}, err
+		return 0, err
 	}
 
-	return h.DecodeWithError(raw)
-
-}
-
-// HashID 计算数据库内主键对应的HashID
-func HashID(id uint, t int) string {
-	v, _ := HashEncode([]int{int(id), t})
-	return v
-}
-
-// DecodeHashID 计算HashID对应的数据库ID
-func DecodeHashID(id string, t int) (uint, error) {
-	v, _ := HashDecode(id)
-	if len(v) != 2 || v[1] != t {
+	if len(res) != 2 || res[1] != t {
 		return 0, ErrTypeNotMatch
 	}
-	return uint(v[0]), nil
+	return res[0], nil
+}
+
+// EncodeUserID encode user id to hash id
+func EncodeUserID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, UserID})
+	return res
+}
+
+// EncodeGroupID encode group id to hash id
+func EncodeGroupID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, GroupID})
+	return res
+}
+
+// EncodePaymentID encode payment id to hash id
+func EncodePaymentID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, PaymentID})
+	return res
+}
+
+// EncodeFileID encode file id to hash id
+func EncodeFileID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, FileID})
+	return res
+}
+
+// EncodeAuditLogID encode audit log id to hash id
+func EncodeAuditLogID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, AuditLogID})
+	return res
+}
+
+// EncodeTaskID encode task id to hash id
+func EncodeTaskID(encoder Encoder, uid int) string {
+	res, _ := encoder.Encode([]int{uid, TaskID})
+	return res
+}
+
+// EncodeEntityID encode entity id to hash id
+func EncodeEntityID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, EntityID})
+	return res
+}
+
+// EncodeNodeID encode node id to hash id
+func EncodeNodeID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, NodeID})
+	return res
+}
+
+// EncodeEntityID encode policy id to hash id
+func EncodePolicyID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, PolicyID})
+	return res
+}
+
+// EncodeEntityID encode share id to hash id
+func EncodeShareID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, ShareID})
+	return res
+}
+
+// EncodeDavAccountID encode dav account id to hash id
+func EncodeDavAccountID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, DavAccountID})
+	return res
+}
+
+// EncodeSourceLinkID encode source link id to hash id
+func EncodeSourceLinkID(encoder Encoder, id int) string {
+	res, _ := encoder.Encode([]int{id, SourceLinkID})
+	return res
+}
+
+func FromContext(c context.Context) int {
+	return c.Value(ObjectIDCtx{}).(int)
 }

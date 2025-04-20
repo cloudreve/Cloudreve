@@ -1,216 +1,173 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/authn"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/thumb"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/cloudreve/Cloudreve/v3/service/user"
-	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/service/share"
+	"github.com/cloudreve/Cloudreve/v4/service/user"
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // StartLoginAuthn 开始注册WebAuthn登录
 func StartLoginAuthn(c *gin.Context) {
-	userName := c.Param("username")
-	expectedUser, err := model.GetActiveUserByEmail(userName)
+	res, err := user.PreparePasskeyLogin(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "", err))
+		c.JSON(200, serializer.Err(c, err))
 		return
 	}
 
-	instance, err := authn.NewAuthnInstance()
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
-		return
-	}
-
-	options, sessionData, err := instance.BeginLogin(expectedUser)
-
-	if err != nil {
-		c.JSON(200, ErrorResponse(err))
-		return
-	}
-
-	val, err := json.Marshal(sessionData)
-	if err != nil {
-		c.JSON(200, ErrorResponse(err))
-		return
-	}
-
-	util.SetSession(c, map[string]interface{}{
-		"registration-session": val,
-	})
-	c.JSON(200, serializer.Response{Code: 0, Data: options})
+	c.JSON(200, serializer.Response{Data: res})
 }
 
 // FinishLoginAuthn 完成注册WebAuthn登录
 func FinishLoginAuthn(c *gin.Context) {
-	userName := c.Param("username")
-	expectedUser, err := model.GetActiveUserByEmail(userName)
+	service := ParametersFromContext[*user.FinishPasskeyLoginService](c, user.FinishPasskeyLoginParameterCtx{})
+	u, err := service.FinishPasskeyLogin(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeUserNotFound, "", err))
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	sessionDataJSON := util.GetSession(c, "registration-session").([]byte)
-
-	var sessionData webauthn.SessionData
-	err = json.Unmarshal(sessionDataJSON, &sessionData)
-
-	instance, err := authn.NewAuthnInstance()
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
-		return
-	}
-
-	_, err = instance.FinishLogin(expectedUser, sessionData, c.Request)
-
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeWebAuthnCredentialError, "Verification failed", err))
-		return
-	}
-
-	util.SetSession(c, map[string]interface{}{
-		"user_id": expectedUser.ID,
-	})
-	c.JSON(200, serializer.BuildUserResponse(expectedUser))
+	util.WithValue(c, inventory.UserCtx{}, u)
 }
 
 // StartRegAuthn 开始注册WebAuthn信息
 func StartRegAuthn(c *gin.Context) {
-	currUser := CurrentUser(c)
-
-	instance, err := authn.NewAuthnInstance()
+	res, err := user.PreparePasskeyRegister(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
+		c.JSON(200, serializer.Err(c, err))
 		return
 	}
 
-	options, sessionData, err := instance.BeginRegistration(currUser)
-
-	if err != nil {
-		c.JSON(200, ErrorResponse(err))
-		return
-	}
-
-	val, err := json.Marshal(sessionData)
-	if err != nil {
-		c.JSON(200, ErrorResponse(err))
-		return
-	}
-
-	util.SetSession(c, map[string]interface{}{
-		"registration-session": val,
-	})
-	c.JSON(200, serializer.Response{Code: 0, Data: options})
+	c.JSON(200, serializer.Response{Data: res})
 }
 
 // FinishRegAuthn 完成注册WebAuthn信息
 func FinishRegAuthn(c *gin.Context) {
-	currUser := CurrentUser(c)
-	sessionDataJSON := util.GetSession(c, "registration-session").([]byte)
-
-	var sessionData webauthn.SessionData
-	err := json.Unmarshal(sessionDataJSON, &sessionData)
-
-	instance, err := authn.NewAuthnInstance()
+	service := ParametersFromContext[*user.FinishPasskeyRegisterService](c, user.FinishPasskeyRegisterParameterCtx{})
+	res, err := service.FinishPasskeyRegister(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeInitializeAuthn, "Cannot initialize authn", err))
+		c.JSON(200, serializer.Err(c, err))
 		return
 	}
 
-	credential, err := instance.FinishRegistration(currUser, sessionData, c.Request)
+	c.JSON(200, serializer.Response{Data: res})
+}
 
+// UserDeletePasskey deletes user passkey
+func UserDeletePasskey(c *gin.Context) {
+	service := ParametersFromContext[*user.DeletePasskeyService](c, user.DeletePasskeyParameterCtx{})
+	err := service.DeletePasskey(c)
 	if err != nil {
-		c.JSON(200, ErrorResponse(err))
+		c.JSON(200, serializer.Err(c, err))
 		return
 	}
 
-	err = currUser.RegisterAuthn(credential)
+	c.JSON(200, serializer.Response{})
+}
+
+// UserLoginValidation validates user login request
+func UserLoginValidation(c *gin.Context) {
+	service := ParametersFromContext[*user.UserLoginService](c, user.LoginParameterCtx{})
+	expectedUser, twoFaSession, err := service.Login(c)
 	if err != nil {
-		c.JSON(200, ErrorResponse(err))
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	if twoFaSession == "" {
+		// No 2FA required, proceed
+		util.WithValue(c, inventory.UserCtx{}, expectedUser)
+		c.Next()
+		return
+	}
+
+	c.JSON(200, serializer.Response{Code: serializer.CodeNotFullySuccess, Data: twoFaSession})
+	c.Abort()
+}
+
+// UserLogin2FAValidation validates user OTP code
+func UserLogin2FAValidation(c *gin.Context) {
+	service := ParametersFromContext[*user.OtpValidationService](c, user.OtpValidationParameterCtx{})
+	expectedUser, err := service.Verify2FA(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	util.WithValue(c, inventory.UserCtx{}, expectedUser)
+	c.Next()
+}
+
+// UserIssueToken generates new token pair for user
+func UserIssueToken(c *gin.Context) {
+	resp, err := user.IssueToken(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
 	c.JSON(200, serializer.Response{
-		Code: 0,
-		Data: map[string]interface{}{
-			"id":          credential.ID,
-			"fingerprint": fmt.Sprintf("% X", credential.Authenticator.AAGUID),
-		},
+		Data: resp,
 	})
 }
 
-// UserLogin 用户登录
-func UserLogin(c *gin.Context) {
-	var service user.UserLoginService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Login(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// UserRefreshToken refreshes token pair for user
+func UserRefreshToken(c *gin.Context) {
+	service := ParametersFromContext[*user.RefreshTokenService](c, user.RefreshTokenParameterCtx{})
+	resp, err := service.Refresh(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
 }
 
 // UserRegister 用户注册
 func UserRegister(c *gin.Context) {
-	var service user.UserRegisterService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Register(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// User2FALogin 用户二步验证登录
-func User2FALogin(c *gin.Context) {
-	var service user.Enable2FA
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Login(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
+	service := ParametersFromContext[*user.UserRegisterService](c, user.RegisterParameterCtx{})
+	c.JSON(200, service.Register(c))
 }
 
 // UserSendReset 发送密码重设邮件
 func UserSendReset(c *gin.Context) {
-	var service user.UserResetEmailService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Reset(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*user.UserResetEmailService](c, user.UserResetEmailParameterCtx{})
+	if err := service.Reset(c); err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+	c.JSON(200, serializer.Response{})
 }
 
 // UserReset 重设密码
 func UserReset(c *gin.Context) {
-	var service user.UserResetService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Reset(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*user.UserResetService](c, user.UserResetParameterCtx{})
+	res, err := service.Reset(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
 // UserActivate 用户激活
 func UserActivate(c *gin.Context) {
-	var service user.SettingService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Activate(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
+	c.JSON(200, user.ActivateUser(c))
 }
 
 // UserSignOut 用户退出登录
@@ -221,92 +178,63 @@ func UserSignOut(c *gin.Context) {
 
 // UserMe 获取当前登录的用户
 func UserMe(c *gin.Context) {
-	currUser := CurrentUser(c)
-	res := serializer.BuildUserResponse(*currUser)
-	c.JSON(200, res)
+	dep := dependency.FromContext(c)
+	c.JSON(200, serializer.Response{
+		Data: user.BuildUser(inventory.UserFromContext(c), dep.HashIDEncoder()),
+	})
+}
+
+// UserGet 获取用户信息
+func UserGet(c *gin.Context) {
+	u, err := user.GetUser(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	isAnonymous := inventory.IsAnonymousUser(inventory.UserFromContext(c))
+	redactLevel := user.RedactLevelUser
+	if isAnonymous {
+		redactLevel = user.RedactLevelAnonymous
+	}
+	c.JSON(200, serializer.Response{
+		Data: user.BuildUserRedacted(u, redactLevel, dependency.FromContext(c).HashIDEncoder()),
+	})
 }
 
 // UserStorage 获取用户的存储信息
 func UserStorage(c *gin.Context) {
-	currUser := CurrentUser(c)
-	res := serializer.BuildUserStorageResponse(*currUser)
-	c.JSON(200, res)
-}
-
-// UserTasks 获取任务队列
-func UserTasks(c *gin.Context) {
-	var service user.SettingListService
-	if err := c.ShouldBindQuery(&service); err == nil {
-		res := service.ListTasks(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	res, err := user.GetUserCapacity(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{
+		Data: res,
+	})
 }
 
 // UserSetting 获取用户设定
 func UserSetting(c *gin.Context) {
-	var service user.SettingService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Settings(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// UseGravatar 设定头像使用全球通用
-func UseGravatar(c *gin.Context) {
-	u := CurrentUser(c)
-	if err := u.Update(map[string]interface{}{"avatar": "gravatar"}); err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeDBError, "无法更新头像", err))
+	res, err := user.GetUserSettings(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
-	c.JSON(200, serializer.Response{})
+
+	c.JSON(200, serializer.Response{
+		Data: res,
+	})
 }
 
 // UploadAvatar 从文件上传头像
 func UploadAvatar(c *gin.Context) {
-	// 取得头像上传大小限制
-	maxSize := model.GetIntSetting("avatar_size", 2097152)
-	if c.Request.ContentLength == -1 || c.Request.ContentLength > int64(maxSize) {
-		request.BlackHole(c.Request.Body)
-		c.JSON(200, serializer.Err(serializer.CodeFileTooLarge, "", nil))
-		return
-	}
-
-	// 取得上传的文件
-	file, err := c.FormFile("avatar")
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("Failed to read avatar file data", err))
-		return
-	}
-
-	// 初始化头像
-	r, err := file.Open()
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("Failed to read avatar file data", err))
-		return
-	}
-	avatar, err := thumb.NewThumbFromFile(r, file.Filename)
-	if err != nil {
-		c.JSON(200, serializer.ParamErr("Invalid image", err))
-		return
-	}
-
-	// 创建头像
-	u := CurrentUser(c)
-	err = avatar.CreateAvatar(u.ID)
-	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeIOFailed, "Failed to create avatar file", err))
-		return
-	}
-
-	// 保存头像标记
-	if err := u.Update(map[string]interface{}{
-		"avatar": "file",
-	}); err != nil {
-		c.JSON(200, serializer.DBErr("Failed to update avatar attribute", err))
+	if err := user.UpdateUserAvatar(c); err != nil {
+		c.JSON(200, serializer.Err(c, err))
 		return
 	}
 
@@ -315,84 +243,158 @@ func UploadAvatar(c *gin.Context) {
 
 // GetUserAvatar 获取用户头像
 func GetUserAvatar(c *gin.Context) {
-	var service user.AvatarService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get(c)
-		if res.Code == -301 {
-			// 重定向到gravatar
-			c.Redirect(301, res.Data.(string))
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*user.GetAvatarService](c, user.GetAvatarServiceParamsCtx{})
+	err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
 }
 
 // UpdateOption 更改用户设定
 func UpdateOption(c *gin.Context) {
-	var service user.SettingUpdateService
-	if err := c.ShouldBindUri(&service); err == nil {
-		var (
-			subService user.OptionsChangeHandler
-			subErr     error
-		)
-
-		switch service.Option {
-		case "nick":
-			subService = &user.ChangerNick{}
-		case "homepage":
-			subService = &user.HomePage{}
-		case "password":
-			subService = &user.PasswordChange{}
-		case "2fa":
-			subService = &user.Enable2FA{}
-		case "authn":
-			subService = &user.DeleteWebAuthn{}
-		case "theme":
-			subService = &user.ThemeChose{}
-		default:
-			subService = &user.ChangerNick{}
-		}
-
-		subErr = c.ShouldBindJSON(subService)
-		if subErr != nil {
-			c.JSON(200, ErrorResponse(subErr))
-			return
-		}
-
-		res := subService.Update(c, CurrentUser(c))
-		c.JSON(200, res)
-
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*user.PatchUserSetting](c, user.PatchUserSettingParamsCtx{})
+	err := service.Patch(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{})
+
+	//var service user.SettingUpdateService
+	//if err := c.ShouldBindUri(&service); err == nil {
+	//	var (
+	//		subService user.OptionsChangeHandler
+	//		subErr     error
+	//	)
+	//
+	//	switch service.Option {
+	//	case "nick":
+	//		subService = &user.ChangerNick{}
+	//	case "vip":
+	//		subService = &user.VIPUnsubscribe{}
+	//	case "qq":
+	//		subService = &user.QQBind{}
+	//	case "policy":
+	//		subService = &user.PolicyChange{}
+	//	case "homepage":
+	//		subService = &user.HomePage{}
+	//	case "password":
+	//		subService = &user.PasswordChange{}
+	//	case "2fa":
+	//		subService = &user.Enable2FA{}
+	//	case "authn":
+	//		subService = &user.DeleteWebAuthn{}
+	//	case "theme":
+	//		subService = &user.ThemeChose{}
+	//	default:
+	//		subService = &user.ChangerNick{}
+	//	}
+	//
+	//	subErr = c.ShouldBindJSON(subService)
+	//	if subErr != nil {
+	//		c.JSON(200, ErrorResponse(subErr))
+	//		return
+	//	}
+	//
+	//	res := subService.Update(c, CurrentUser(c))
+	//	c.JSON(200, res)
+	//
+	//} else {
+	//	c.JSON(200, ErrorResponse(err))
+	//}
 }
 
 // UserInit2FA 初始化二步验证
 func UserInit2FA(c *gin.Context) {
-	var service user.SettingService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Init2FA(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	secret, err := user.Init2FA(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
-}
 
-// UserPrepareCopySession generates URL for copy session
-func UserPrepareCopySession(c *gin.Context) {
-	var service user.CopySessionService
-	res := service.Prepare(c, CurrentUser(c))
-	c.JSON(200, res)
-
+	c.JSON(200, serializer.Response{
+		Data: secret,
+	})
 }
 
 // UserPerformCopySession copy to create new session or refresh current session
 func UserPerformCopySession(c *gin.Context) {
-	var service user.CopySessionService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Copy(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	//var service user.CopySessionService
+	//if err := c.ShouldBindUri(&service); err == nil {
+	//	res := service.Copy(c)
+	//	c.JSON(200, res)
+	//} else {
+	//	c.JSON(200, ErrorResponse(err))
+	//}
+}
+
+// UserPrepareLogin validates precondition for login
+func UserPrepareLogin(c *gin.Context) {
+	service := ParametersFromContext[*user.PrepareLoginService](c, user.PrepareLoginParameterCtx{})
+	res, err := service.Prepare(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+// UserSearch Search user by keyword
+func UserSearch(c *gin.Context) {
+	service := ParametersFromContext[*user.SearchUserService](c, user.SearchUserParamCtx{})
+	u, err := service.Search(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	hasher := dependency.FromContext(c).HashIDEncoder()
+	c.JSON(200, serializer.Response{
+		Data: lo.Map(u, func(item *ent.User, index int) user.User {
+			return user.BuildUserRedacted(item, user.RedactLevelUser, hasher)
+		}),
+	})
+}
+
+// GetGroupList list all groups for options
+func GetGroupList(c *gin.Context) {
+	u, err := user.ListAllGroups(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	hasher := dependency.FromContext(c).HashIDEncoder()
+	c.JSON(200, serializer.Response{
+		Data: lo.Map(u, func(item *ent.Group, index int) *user.Group {
+			g := user.BuildGroup(item, hasher)
+			return user.RedactedGroup(g)
+		}),
+	})
+}
+
+// ListPublicShare lists all public shares for given user
+func ListPublicShare(c *gin.Context) {
+	service := ParametersFromContext[*share.ListShareService](c, share.ListShareParamCtx{})
+	resp, err := service.ListInUserProfile(c, hashid.FromContext(c))
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }

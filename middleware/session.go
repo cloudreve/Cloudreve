@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/sessionstore"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/pkg/sessionstore"
 	"net/http"
 	"strings"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
@@ -16,11 +16,11 @@ import (
 // Store session存储
 var Store sessions.Store
 
-// Session 初始化session
-func Session(secret string) gin.HandlerFunc {
-	// Redis设置不为空，且非测试模式时使用Redis
-	Store = sessionstore.NewStore(cache.Store, []byte(secret))
+const SessionName = "cloudreve-session"
 
+// Session 初始化session
+func Session(dep dependency.Dep) gin.HandlerFunc {
+	Store = sessionstore.NewStore(dep.KV(), []byte(dep.ConfigProvider().System().SessionSecret))
 	sameSiteMode := http.SameSiteDefaultMode
 	switch strings.ToLower(conf.CORSConfig.SameSite) {
 	case "default":
@@ -42,7 +42,7 @@ func Session(secret string) gin.HandlerFunc {
 		Secure:   conf.CORSConfig.Secure,
 	})
 
-	return sessions.Sessions("cloudreve-session", Store)
+	return sessions.Sessions(SessionName, Store)
 }
 
 // CSRFInit 初始化CSRF标记
@@ -61,7 +61,7 @@ func CSRFCheck() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(200, serializer.Err(serializer.CodeNoPermissionErr, "Invalid origin", nil))
+		c.JSON(200, serializer.ErrDeprecated(serializer.CodeNoPermissionErr, "Invalid origin", nil))
 		c.Abort()
 	}
 }

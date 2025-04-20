@@ -1,113 +1,148 @@
 package user
 
 import (
-	"net/url"
+	"context"
+	"errors"
 	"strings"
+	"time"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
-	"github.com/cloudreve/Cloudreve/v3/pkg/email"
-	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/user"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/email"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-gonic/gin"
 )
 
+// RegisterParameterCtx define key fore UserRegisterService
+type RegisterParameterCtx struct{}
+
 // UserRegisterService 管理用户注册的服务
 type UserRegisterService struct {
-	//TODO 细致调整验证规则
-	UserName string `form:"userName" json:"userName" binding:"required,email"`
-	Password string `form:"Password" json:"Password" binding:"required,min=4,max=64"`
+	UserName string `form:"email" json:"email" binding:"required,email"`
+	Password string `form:"password" json:"password" binding:"required,min=6,max=64"`
+	Language string `form:"language" json:"language"`
 }
 
 // Register 新用户注册
 func (service *UserRegisterService) Register(c *gin.Context) serializer.Response {
-	// 相关设定
-	options := model.GetSettingByNames("email_active")
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
 
-	// 相关设定
-	isEmailRequired := model.IsTrueVal(options["email_active"])
-	defaultGroup := model.GetIntSetting("default_group", 2)
-
-	// 创建新的用户对象
-	user := model.NewUser()
-	user.Email = service.UserName
-	user.Nick = strings.Split(service.UserName, "@")[0]
-	user.SetPassword(service.Password)
-	user.Status = model.Active
+	isEmailRequired := settings.EmailActivationEnabled(c)
+	args := &inventory.NewUserArgs{
+		Email:         strings.ToLower(service.UserName),
+		PlainPassword: service.Password,
+		Status:        user.StatusActive,
+		GroupID:       settings.DefaultGroup(c),
+		Language:      service.Language,
+	}
 	if isEmailRequired {
-		user.Status = model.NotActivicated
-	}
-	user.GroupID = uint(defaultGroup)
-	userNotActivated := false
-	// 创建用户
-	if err := model.DB.Create(&user).Error; err != nil {
-		//检查已存在使用者是否尚未激活
-		expectedUser, err := model.GetUserByEmail(service.UserName)
-		if expectedUser.Status == model.NotActivicated {
-			userNotActivated = true
-			user = expectedUser
-		} else {
-			return serializer.Err(serializer.CodeEmailExisted, "Email already in use", err)
-		}
+		args.Status = user.StatusInactive
 	}
 
-	// 发送激活邮件
+	userClient := dep.UserClient()
+	uc, tx, _, err := inventory.WithTx(c, userClient)
+	if err != nil {
+		return serializer.DBErr(c, "Failed to start transaction", err)
+	}
+
+	expectedUser, err := uc.Create(c, args)
+	if expectedUser != nil {
+		util.WithValue(c, inventory.UserCtx{}, expectedUser)
+	}
+
+	if err != nil {
+		_ = inventory.Rollback(tx)
+		if errors.Is(err, inventory.ErrUserEmailExisted) {
+			return serializer.ErrWithDetails(c, serializer.CodeEmailExisted, "Email already in use", err)
+		}
+
+		if errors.Is(err, inventory.ErrInactiveUserExisted) {
+			if err := sendActivationEmail(c, dep, expectedUser); err != nil {
+				return serializer.ErrWithDetails(c, serializer.CodeNotSet, "", err)
+			}
+
+			return serializer.ErrWithDetails(c, serializer.CodeEmailSent, "User is not activated, activation email has been resent", nil)
+		}
+
+		return serializer.DBErr(c, "Failed to insert user row", err)
+	}
+
+	if err := inventory.Commit(tx); err != nil {
+		return serializer.DBErr(c, "Failed to commit user row", err)
+	}
+
 	if isEmailRequired {
-
-		// 签名激活请求API
-		base := model.GetSiteURL()
-		userID := hashid.HashID(user.ID, hashid.UserID)
-		controller, _ := url.Parse("/api/v3/user/activate/" + userID)
-		activateURL, err := auth.SignURI(auth.General, base.ResolveReference(controller).String(), 86400)
-		if err != nil {
-			return serializer.Err(serializer.CodeEncryptError, "Failed to sign the activation link", err)
+		if err := sendActivationEmail(c, dep, expectedUser); err != nil {
+			return serializer.ErrWithDetails(c, serializer.CodeNotSet, "", err)
 		}
-
-		// 取得签名
-		credential := activateURL.Query().Get("sign")
-
-		// 生成对用户访问的激活地址
-		controller, _ = url.Parse("/activate")
-		finalURL := base.ResolveReference(controller)
-		queries := finalURL.Query()
-		queries.Add("id", userID)
-		queries.Add("sign", credential)
-		finalURL.RawQuery = queries.Encode()
-
-		// 返送激活邮件
-		title, body := email.NewActivationEmail(user.Email,
-			finalURL.String(),
-		)
-		if err := email.Send(user.Email, title, body); err != nil {
-			return serializer.Err(serializer.CodeFailedSendEmail, "Failed to send activation email", err)
-		}
-		if userNotActivated == true {
-			//原本在上面要抛出的DBErr，放来这边抛出
-			return serializer.Err(serializer.CodeEmailSent, "User is not activated, activation email has been resent", nil)
-		} else {
-			return serializer.Response{Code: 203}
-		}
+		return serializer.Response{Code: serializer.CodeNotFullySuccess}
 	}
 
-	return serializer.Response{}
+	return serializer.Response{Data: BuildUser(expectedUser, dep.HashIDEncoder())}
 }
 
-// Activate 激活用户
-func (service *SettingService) Activate(c *gin.Context) serializer.Response {
-	// 查找待激活用户
-	uid, _ := c.Get("object_id")
-	user, err := model.GetUserByID(uid.(uint))
+func sendActivationEmail(ctx context.Context, dep dependency.Dep, newUser *ent.User) error {
+	base := dep.SettingProvider().SiteURL(ctx)
+	userID := hashid.EncodeUserID(dep.HashIDEncoder(), newUser.ID)
+	ttl := time.Now().Add(time.Duration(24) * time.Hour)
+	activateURL, err := auth.SignURI(ctx, dep.GeneralAuth(), routes.MasterUserActivateAPIUrl(base, userID).String(), &ttl)
 	if err != nil {
-		return serializer.Err(serializer.CodeUserNotFound, "User not fount", err)
+		return serializer.NewError(serializer.CodeEncryptError, "Failed to sign the activation link", err)
+	}
+
+	// 取得签名
+	credential := activateURL.Query().Get("sign")
+
+	// 生成对用户访问的激活地址
+	finalURL := routes.MasterUserActivateUrl(base)
+	queries := finalURL.Query()
+	queries.Add("id", userID)
+	queries.Add("sign", credential)
+	finalURL.RawQuery = queries.Encode()
+
+	// 返送激活邮件
+	title, body, err := email.NewActivationEmail(ctx, dep.SettingProvider(), newUser, finalURL.String())
+	if err != nil {
+		return serializer.NewError(serializer.CodeFailedSendEmail, "Failed to send activation email", err)
+	}
+
+	if err := dep.EmailClient(ctx).Send(ctx, newUser.Email, title, body); err != nil {
+		return serializer.NewError(serializer.CodeFailedSendEmail, "Failed to send activation email", err)
+	}
+
+	return nil
+}
+
+// ActivateUser 激活用户
+func ActivateUser(c *gin.Context) serializer.Response {
+	uid := hashid.FromContext(c)
+	dep := dependency.FromContext(c)
+	userClient := dep.UserClient()
+
+	// 查找待激活用户
+	inactiveUser, err := userClient.GetByID(c, uid)
+	if err != nil {
+		return serializer.ErrWithDetails(c, serializer.CodeUserNotFound, "User not fount", err)
 	}
 
 	// 检查状态
-	if user.Status != model.NotActivicated {
-		return serializer.Err(serializer.CodeUserCannotActivate, "This user cannot be activated", nil)
+	if inactiveUser.Status != user.StatusInactive {
+		return serializer.ErrWithDetails(c, serializer.CodeUserCannotActivate, "This user cannot be activated", nil)
 	}
 
 	// 激活用户
-	user.SetStatus(model.Active)
+	activeUser, err := userClient.SetStatus(c, inactiveUser, user.StatusActive)
+	if err != nil {
+		return serializer.DBErr(c, "Failed to update user", err)
+	}
 
-	return serializer.Response{Data: user.Email}
+	util.WithValue(c, inventory.UserCtx{}, activeUser)
+	return serializer.Response{Data: BuildUser(activeUser, dep.HashIDEncoder())}
 }

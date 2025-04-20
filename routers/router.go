@@ -1,147 +1,238 @@
 package routers
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/middleware"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/conf"
-	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	wopi2 "github.com/cloudreve/Cloudreve/v3/pkg/wopi"
-	"github.com/cloudreve/Cloudreve/v3/routers/controllers"
+	"net/http"
+
+	"github.com/abslant/gzip"
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/middleware"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster"
+	"github.com/cloudreve/Cloudreve/v4/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v4/pkg/downloader/slave"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/webdav"
+	"github.com/cloudreve/Cloudreve/v4/routers/controllers"
+	adminsvc "github.com/cloudreve/Cloudreve/v4/service/admin"
+	"github.com/cloudreve/Cloudreve/v4/service/basic"
+	"github.com/cloudreve/Cloudreve/v4/service/explorer"
+	"github.com/cloudreve/Cloudreve/v4/service/node"
+	"github.com/cloudreve/Cloudreve/v4/service/setting"
+	sharesvc "github.com/cloudreve/Cloudreve/v4/service/share"
+	usersvc "github.com/cloudreve/Cloudreve/v4/service/user"
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
 // InitRouter 初始化路由
-func InitRouter() *gin.Engine {
-	if conf.SystemConfig.Mode == "master" {
-		util.Log().Info("Current running mode: Master.")
-		return InitMasterRouter()
+func InitRouter(dep dependency.Dep) *gin.Engine {
+	l := dep.Logger()
+	if dep.ConfigProvider().System().Mode == conf.MasterMode {
+		l.Info("Current running mode: Master.")
+		return initMasterRouter(dep)
 	}
-	util.Log().Info("Current running mode: Slave.")
-	return InitSlaveRouter()
+
+	l.Info("Current running mode: Slave.")
+	return initSlaveRouter(dep)
 
 }
 
-// InitSlaveRouter 初始化从机模式路由
-func InitSlaveRouter() *gin.Engine {
-	r := gin.Default()
+func newGinEngine(dep dependency.Dep) *gin.Engine {
+	r := gin.New()
+	r.ContextWithFallback = true
+	r.Use(gin.Recovery())
+	r.Use(middleware.InitializeHandling(dep))
+	if dep.ConfigProvider().System().Mode == conf.SlaveMode {
+		r.Use(middleware.InitializeHandlingSlave())
+	}
+	r.Use(middleware.Logging())
+	return r
+}
+
+func initSlaveFileRouter(v4 *gin.RouterGroup) {
+	// Upload related, no signature required under this router group
+	upload := v4.Group("upload")
+	{
+		// 上传分片
+		upload.POST(":sessionId",
+			controllers.FromUri[explorer.UploadService](explorer.UploadParameterCtx{}),
+			controllers.SlaveUpload,
+		)
+		// 创建上传会话上传
+		upload.PUT("",
+			controllers.FromJSON[explorer.SlaveCreateUploadSessionService](explorer.SlaveCreateUploadSessionParamCtx{}),
+			controllers.SlaveGetUploadSession,
+		)
+		// 删除上传会话
+		upload.DELETE(":sessionId",
+			controllers.FromUri[explorer.SlaveDeleteUploadSessionService](explorer.SlaveDeleteUploadSessionParamCtx{}),
+			controllers.SlaveDeleteUploadSession)
+	}
+	file := v4.Group("file")
+	{
+		// Get entity content for preview/download
+		file.GET("content/:nodeId/:src/:speed/:name",
+			middleware.Sandbox(),
+			controllers.FromUri[explorer.EntityDownloadService](explorer.EntityDownloadParameterCtx{}),
+			controllers.SlaveServeEntity,
+		)
+		file.HEAD("content/:nodeId/:src/:speed/:name",
+			controllers.FromUri[explorer.EntityDownloadService](explorer.EntityDownloadParameterCtx{}),
+			controllers.SlaveServeEntity,
+		)
+		// Get media metadata
+		file.GET("meta/:src/:ext",
+			controllers.FromUri[explorer.SlaveMetaService](explorer.SlaveMetaParamCtx{}),
+			controllers.SlaveMeta,
+		)
+		// Get thumbnail
+		file.GET("thumb/:src/:ext",
+			controllers.FromUri[explorer.SlaveThumbService](explorer.SlaveThumbParamCtx{}),
+			controllers.SlaveThumb,
+		)
+		// 删除文件
+		file.DELETE("",
+			controllers.FromJSON[explorer.SlaveDeleteFileService](explorer.SlaveDeleteFileParamCtx{}),
+			controllers.SlaveDelete)
+	}
+}
+
+// initSlaveRouter 初始化从机模式路由
+func initSlaveRouter(dep dependency.Dep) *gin.Engine {
+	r := newGinEngine(dep)
 	// 跨域相关
-	InitCORS(r)
-	v3 := r.Group("/api/v3/slave")
+	initCORS(dep.Logger(), dep.ConfigProvider(), r)
+	v4 := r.Group(constants.APIPrefix + "/slave")
 	// 鉴权中间件
-	v3.Use(middleware.SignRequired(auth.General))
-	// 主机信息解析
-	v3.Use(middleware.MasterMetadata())
+	v4.Use(middleware.SignRequired(dep.GeneralAuth()))
 	// 禁止缓存
-	v3.Use(middleware.CacheControl())
+	v4.Use(middleware.CacheControl())
 
 	/*
 		路由
 	*/
 	{
 		// Ping
-		v3.POST("ping", controllers.SlavePing)
-		// 测试 Aria2 RPC 连接
-		v3.POST("ping/aria2", controllers.AdminTestAria2)
-		// 接收主机心跳包
-		v3.POST("heartbeat", controllers.SlaveHeartbeat)
-		// 上传
-		upload := v3.Group("upload")
-		{
-			// 上传分片
-			upload.POST(":sessionId", controllers.SlaveUpload)
-			// 创建上传会话上传
-			upload.PUT("", controllers.SlaveGetUploadSession)
-			// 删除上传会话
-			upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
-		}
-		// 下载
-		v3.GET("download/:speed/:path/:name", controllers.SlaveDownload)
-		// 预览 / 外链
-		v3.GET("source/:speed/:path/:name", controllers.SlavePreview)
-		// 缩略图
-		v3.GET("thumb/:path/:ext", controllers.SlaveThumb)
-		// 删除文件
-		v3.POST("delete", controllers.SlaveDelete)
+		v4.POST("ping",
+			controllers.FromJSON[adminsvc.SlavePingService](adminsvc.SlavePingParameterCtx{}),
+			controllers.SlavePing,
+		)
+		// // 测试 Aria2 RPC 连接
+		// v4.POST("ping/aria2", controllers.AdminTestAria2)
+		initSlaveFileRouter(v4)
+
 		// 列出文件
-		v3.POST("list", controllers.SlaveList)
+		v4.POST("list", controllers.SlaveList)
 
 		// 离线下载
-		aria2 := v3.Group("aria2")
-		aria2.Use(middleware.UseSlaveAria2Instance(cluster.DefaultController))
+		download := v4.Group("download")
 		{
 			// 创建离线下载任务
-			aria2.POST("task", controllers.SlaveAria2Create)
+			download.POST("task",
+				controllers.FromJSON[slave.CreateSlaveDownload](node.CreateSlaveDownloadTaskParamCtx{}),
+				middleware.PrepareSlaveDownloader(dep, node.CreateSlaveDownloadTaskParamCtx{}),
+				controllers.SlaveDownloadTaskCreate)
 			// 获取任务状态
-			aria2.POST("status", controllers.SlaveAria2Status)
+			download.POST("status",
+				controllers.FromJSON[slave.GetSlaveDownload](node.GetSlaveDownloadTaskParamCtx{}),
+				middleware.PrepareSlaveDownloader(dep, node.GetSlaveDownloadTaskParamCtx{}),
+				controllers.SlaveDownloadTaskStatus)
 			// 取消离线下载任务
-			aria2.POST("cancel", controllers.SlaveCancelAria2Task)
+			download.POST("cancel",
+				controllers.FromJSON[slave.CancelSlaveDownload](node.CancelSlaveDownloadTaskParamCtx{}),
+				middleware.PrepareSlaveDownloader(dep, node.CancelSlaveDownloadTaskParamCtx{}),
+				controllers.SlaveCancelDownloadTask)
 			// 选取任务文件
-			aria2.POST("select", controllers.SlaveSelectTask)
-			// 删除任务临时文件
-			aria2.POST("delete", controllers.SlaveDeleteTempFile)
+			download.POST("select",
+				controllers.FromJSON[slave.SetSlaveFilesToDownload](node.SelectSlaveDownloadFilesParamCtx{}),
+				middleware.PrepareSlaveDownloader(dep, node.SelectSlaveDownloadFilesParamCtx{}),
+				controllers.SlaveSelectFilesToDownload)
+			// 测试下载器连接
+			download.POST("test",
+				controllers.FromJSON[slave.TestSlaveDownload](node.TestSlaveDownloadParamCtx{}),
+				middleware.PrepareSlaveDownloader(dep, node.TestSlaveDownloadParamCtx{}),
+				controllers.SlaveTestDownloader,
+			)
 		}
 
 		// 异步任务
-		task := v3.Group("task")
+		task := v4.Group("task")
 		{
-			task.PUT("transfer", controllers.SlaveCreateTransferTask)
+			task.PUT("",
+				controllers.FromJSON[cluster.CreateSlaveTask](node.CreateSlaveTaskParamCtx{}),
+				controllers.SlaveCreateTask)
+			task.GET(":id",
+				controllers.FromUri[node.GetSlaveTaskService](node.GetSlaveTaskParamCtx{}),
+				controllers.SlaveGetTask)
+			task.POST("cleanup",
+				controllers.FromJSON[cluster.FolderCleanup](node.FolderCleanupParamCtx{}),
+				controllers.SlaveCleanupFolder)
 		}
 	}
 	return r
 }
 
-// InitCORS 初始化跨域配置
-func InitCORS(router *gin.Engine) {
-	if conf.CORSConfig.AllowOrigins[0] != "UNSET" {
+// initCORS 初始化跨域配置
+func initCORS(l logging.Logger, config conf.ConfigProvider, router *gin.Engine) {
+	c := config.Cors()
+	if c.AllowOrigins[0] != "UNSET" {
 		router.Use(cors.New(cors.Config{
-			AllowOrigins:     conf.CORSConfig.AllowOrigins,
-			AllowMethods:     conf.CORSConfig.AllowMethods,
-			AllowHeaders:     conf.CORSConfig.AllowHeaders,
-			AllowCredentials: conf.CORSConfig.AllowCredentials,
-			ExposeHeaders:    conf.CORSConfig.ExposeHeaders,
+			AllowOrigins:     c.AllowOrigins,
+			AllowMethods:     c.AllowMethods,
+			AllowHeaders:     c.AllowHeaders,
+			AllowCredentials: c.AllowCredentials,
+			ExposeHeaders:    c.ExposeHeaders,
 		}))
 		return
 	}
 
 	// slave模式下未启动跨域的警告
-	if conf.SystemConfig.Mode == "slave" {
-		util.Log().Warning("You are running Cloudreve as slave node, if you are using slave storage policy, please enable CORS feature in config file, otherwise file cannot be uploaded from Master site.")
+	if config.System().Mode == conf.SlaveMode {
+		l.Warning("You are running Cloudreve as slave node, if you are using slave storage policy, please enable CORS feature in config file, otherwise file cannot be uploaded from Master basic.")
 	}
 }
 
-// InitMasterRouter 初始化主机模式路由
-func InitMasterRouter() *gin.Engine {
-	r := gin.Default()
+// initMasterRouter 初始化主机模式路由
+func initMasterRouter(dep dependency.Dep) *gin.Engine {
+	r := newGinEngine(dep)
+	// 跨域相关
+	initCORS(dep.Logger(), dep.ConfigProvider(), r) // Done
 
 	/*
 		静态资源
 	*/
-	r.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/"})))
-	r.Use(middleware.FrontendFileHandler())
-	r.GET("manifest.json", controllers.Manifest)
+	r.Use(gzip.GzipHandler())                    // Done
+	r.Use(middleware.FrontendFileHandler(dep))   // Done
+	r.GET("manifest.json", controllers.Manifest) // Done
 
-	v3 := r.Group("/api/v3")
+	noAuth := r.Group(constants.APIPrefix)
+	wopi := noAuth.Group("file/wopi", middleware.HashID(hashid.FileID), middleware.ViewerSessionValidation())
+	{
+		// 获取文件信息
+		wopi.GET(":id", controllers.CheckFileInfo)
+		// 获取文件内容
+		wopi.GET(":id/contents", controllers.GetFile)
+		// 更新文件内容
+		wopi.POST(":id/contents", controllers.PutFile)
+		// 通用文件操作
+		wopi.POST(":id", controllers.ModifyFile)
+	}
+
+	v4 := r.Group(constants.APIPrefix)
 
 	/*
 		中间件
 	*/
-	v3.Use(middleware.Session(conf.SystemConfig.SessionSecret))
-	// 跨域相关
-	InitCORS(r)
-	// 测试模式加入Mock助手中间件
-	if gin.Mode() == gin.TestMode {
-		v3.Use(middleware.MockHelper())
-	}
+	v4.Use(middleware.Session(dep)) // Done
+
 	// 用户会话
-	v3.Use(middleware.CurrentUser())
+	v4.Use(middleware.CurrentUser())
 
 	// 禁止缓存
-	v3.Use(middleware.CacheControl())
+	v4.Use(middleware.CacheControl()) // Done
 
 	/*
 		路由
@@ -152,88 +243,149 @@ func InitMasterRouter() *gin.Engine {
 		{
 			source.GET(":id/:name",
 				middleware.HashID(hashid.SourceLinkID),
-				middleware.ValidateSourceLink(),
 				controllers.AnonymousPermLink)
 		}
 
+		shareShort := r.Group("s")
+		{
+			shareShort.GET(":id",
+				controllers.FromUri[sharesvc.ShortLinkRedirectService](sharesvc.ShortLinkRedirectParamCtx{}),
+				controllers.ShareRedirect,
+			)
+			shareShort.GET(":id/:password",
+				controllers.FromUri[sharesvc.ShortLinkRedirectService](sharesvc.ShortLinkRedirectParamCtx{}),
+				controllers.ShareRedirect,
+			)
+		}
+
 		// 全局设置相关
-		site := v3.Group("site")
+		site := v4.Group("site")
 		{
 			// 测试用路由
 			site.GET("ping", controllers.Ping)
 			// 验证码
 			site.GET("captcha", controllers.Captcha)
 			// 站点全局配置
-			site.GET("config", middleware.CSRFInit(), controllers.SiteConfig)
+			site.GET("config/:section",
+				controllers.FromUri[basic.GetSettingService](basic.GetSettingParamCtx{}),
+				controllers.SiteConfig,
+			)
+		}
+
+		// User authentication
+		session := v4.Group("session")
+		{
+			token := session.Group("token")
+			// Token based authentication
+			{
+				// 用户登录
+				token.POST("",
+					middleware.CaptchaRequired(func(c *gin.Context) bool {
+						return dep.SettingProvider().LoginCaptchaEnabled(c)
+					}),
+					controllers.FromJSON[usersvc.UserLoginService](usersvc.LoginParameterCtx{}),
+					controllers.UserLoginValidation,
+					controllers.UserIssueToken,
+				)
+				// 2-factor authentication
+				token.POST("2fa",
+					controllers.FromJSON[usersvc.OtpValidationService](usersvc.OtpValidationParameterCtx{}),
+					controllers.UserLogin2FAValidation,
+					controllers.UserIssueToken,
+				)
+				token.POST("refresh",
+					controllers.FromJSON[usersvc.RefreshTokenService](usersvc.RefreshTokenParameterCtx{}),
+					controllers.UserRefreshToken,
+				)
+			}
+
+			// Prepare login
+			session.GET("prepare",
+				controllers.FromQuery[usersvc.PrepareLoginService](usersvc.PrepareLoginParameterCtx{}),
+				controllers.UserPrepareLogin,
+			)
+
+			authn := session.Group("authn")
+			{
+				// WebAuthn login prepare
+				authn.PUT("",
+					middleware.IsFunctionEnabled(func(c *gin.Context) bool {
+						return dep.SettingProvider().AuthnEnabled(c)
+					}),
+					controllers.StartLoginAuthn,
+				)
+				// WebAuthn finish login
+				authn.POST("",
+					middleware.IsFunctionEnabled(func(c *gin.Context) bool {
+						return dep.SettingProvider().AuthnEnabled(c)
+					}),
+					controllers.FromJSON[usersvc.FinishPasskeyLoginService](usersvc.FinishPasskeyLoginParameterCtx{}),
+					controllers.FinishLoginAuthn,
+					controllers.UserIssueToken,
+				)
+			}
 		}
 
 		// 用户相关路由
-		user := v3.Group("user")
+		user := v4.Group("user")
 		{
-			// 用户登录
-			user.POST("session", middleware.CaptchaRequired("login_captcha"), controllers.UserLogin)
-			// 用户注册
+			// 用户注册 Done
 			user.POST("",
-				middleware.IsFunctionEnabled("register_enabled"),
-				middleware.CaptchaRequired("reg_captcha"),
+				middleware.IsFunctionEnabled(func(c *gin.Context) bool {
+					return dep.SettingProvider().RegisterEnabled(c)
+				}),
+				middleware.CaptchaRequired(func(c *gin.Context) bool {
+					return dep.SettingProvider().RegCaptchaEnabled(c)
+				}),
+				controllers.FromJSON[usersvc.UserRegisterService](usersvc.RegisterParameterCtx{}),
 				controllers.UserRegister,
 			)
-			// 用二步验证户登录
-			user.POST("2fa", controllers.User2FALogin)
-			// 发送密码重设邮件
-			user.POST("reset", middleware.CaptchaRequired("forget_captcha"), controllers.UserSendReset)
 			// 通过邮件里的链接重设密码
-			user.PATCH("reset", controllers.UserReset)
-			// 邮件激活
+			user.PATCH("reset/:id",
+				middleware.HashID(hashid.UserID),
+				controllers.FromJSON[usersvc.UserResetService](usersvc.UserResetParameterCtx{}),
+				controllers.UserReset,
+			)
+			// 发送密码重设邮件
+			user.POST("reset",
+				middleware.CaptchaRequired(func(c *gin.Context) bool {
+					return dep.SettingProvider().ForgotPasswordCaptchaEnabled(c)
+				}),
+				controllers.FromJSON[usersvc.UserResetEmailService](usersvc.UserResetEmailParameterCtx{}),
+				controllers.UserSendReset,
+			)
+			// 邮件激活 Done
 			user.GET("activate/:id",
-				middleware.SignRequired(auth.General),
+				middleware.SignRequired(dep.GeneralAuth()),
 				middleware.HashID(hashid.UserID),
 				controllers.UserActivate,
 			)
-			// WebAuthn登陆初始化
-			user.GET("authn/:username",
-				middleware.IsFunctionEnabled("authn_enabled"),
-				controllers.StartLoginAuthn,
-			)
-			// WebAuthn登陆
-			user.POST("authn/finish/:username",
-				middleware.IsFunctionEnabled("authn_enabled"),
-				controllers.FinishLoginAuthn,
-			)
-			// 获取用户主页展示用分享
-			user.GET("profile/:id",
-				middleware.HashID(hashid.UserID),
-				controllers.GetUserShare,
-			)
 			// 获取用户头像
-			user.GET("avatar/:id/:size",
+			user.GET("avatar/:id",
 				middleware.HashID(hashid.UserID),
-				middleware.StaticResourceCache(),
+				controllers.FromQuery[usersvc.GetAvatarService](usersvc.GetAvatarServiceParamsCtx{}),
 				controllers.GetUserAvatar,
+			)
+			// User info
+			user.GET("info/:id", middleware.HashID(hashid.UserID), controllers.UserGet)
+			// List user shares
+			user.GET("shares/:id",
+				middleware.HashID(hashid.UserID),
+				controllers.FromQuery[sharesvc.ListShareService](sharesvc.ListShareParamCtx{}),
+				controllers.ListPublicShare,
 			)
 		}
 
 		// 需要携带签名验证的
-		sign := v3.Group("")
-		sign.Use(middleware.SignRequired(auth.General))
+		sign := v4.Group("")
+		sign.Use(middleware.SignRequired(dep.GeneralAuth()))
 		{
 			file := sign.Group("file")
 			{
-				// 文件外链（直接输出文件数据）
-				file.GET("get/:id/:name",
-					middleware.Sandbox(),
-					middleware.StaticResourceCache(),
-					controllers.AnonymousGetContent,
+				file.GET("archive/:sessionID/archive.zip",
+					controllers.FromUri[explorer.ArchiveService](explorer.ArchiveParamCtx{}),
+					controllers.DownloadArchive,
 				)
-				// 文件外链(301跳转)
-				file.GET("source/:id/:name", controllers.AnonymousPermLinkDeprecated)
-				// 下载文件
-				file.GET("download/:id",
-					middleware.StaticResourceCache(),
-					controllers.Download,
-				)
-				// 打包并下载文件
-				file.GET("archive/:sessionID/archive.zip", controllers.DownloadArchive)
 			}
 
 			// Copy user session
@@ -244,70 +396,70 @@ func InitMasterRouter() *gin.Engine {
 			)
 		}
 
-		// 从机的 RPC 通信
-		slave := v3.Group("slave")
-		slave.Use(middleware.SlaveRPCSignRequired(cluster.Default))
+		// Receive calls from slave node
+		slave := v4.Group("slave")
+		slave.Use(
+			middleware.SlaveRPCSignRequired(),
+		)
 		{
-			// 事件通知
-			slave.PUT("notification/:subject", controllers.SlaveNotificationPush)
-			// 上传
-			upload := slave.Group("upload")
+			initSlaveFileRouter(slave)
+			// Get credential
+			slave.GET("credential/:id",
+				controllers.FromUri[node.OauthCredentialService](node.OauthCredentialParamCtx{}),
+				controllers.SlaveGetCredential)
+			statelessUpload := slave.Group("statelessUpload")
 			{
-				// 上传分片
-				upload.POST(":sessionId", controllers.SlaveUpload)
-				// 创建上传会话上传
-				upload.PUT("", controllers.SlaveGetUploadSession)
-				// 删除上传会话
-				upload.DELETE(":sessionId", controllers.SlaveDeleteUploadSession)
+				// Prepare upload
+				statelessUpload.PUT("prepare",
+					controllers.FromJSON[fs.StatelessPrepareUploadService](node.StatelessPrepareUploadParamCtx{}),
+					controllers.StatelessPrepareUpload)
+				// Complete upload
+				statelessUpload.POST("complete",
+					controllers.FromJSON[fs.StatelessCompleteUploadService](node.StatelessCompleteUploadParamCtx{}),
+					controllers.StatelessCompleteUpload)
+				// On upload failed
+				statelessUpload.POST("failed",
+					controllers.FromJSON[fs.StatelessOnUploadFailedService](node.StatelessOnUploadFailedParamCtx{}),
+					controllers.StatelessOnUploadFailed)
+				// Create file
+				statelessUpload.POST("create",
+					controllers.FromJSON[fs.StatelessCreateFileService](node.StatelessCreateFileParamCtx{}),
+					controllers.StatelessCreateFile)
 			}
-			// Oauth 存储策略凭证
-			slave.GET("credential/:id", controllers.SlaveGetOauthCredential)
 		}
 
 		// 回调接口
-		callback := v3.Group("callback")
+		callback := v4.Group("callback")
 		{
 			// 远程策略上传回调
 			callback.POST(
 				"remote/:sessionID/:key",
-				middleware.UseUploadSession("remote"),
+				middleware.UseUploadSession(types.PolicyTypeRemote),
 				middleware.RemoteCallbackAuth(),
-				controllers.RemoteCallback,
+				controllers.ProcessCallback(http.StatusOK, false),
 			)
-			// 七牛策略上传回调
+			// OSS callback
 			callback.POST(
-				"qiniu/:sessionID",
-				middleware.UseUploadSession("qiniu"),
-				middleware.QiniuCallbackAuth(),
-				controllers.QiniuCallback,
-			)
-			// 阿里云OSS策略上传回调
-			callback.POST(
-				"oss/:sessionID",
-				middleware.UseUploadSession("oss"),
+				"oss/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeOss),
 				middleware.OSSCallbackAuth(),
-				controllers.OSSCallback,
+				controllers.OSSCallbackValidate,
+				controllers.ProcessCallback(http.StatusBadRequest, false),
 			)
 			// 又拍云策略上传回调
 			callback.POST(
-				"upyun/:sessionID",
-				middleware.UseUploadSession("upyun"),
-				middleware.UpyunCallbackAuth(),
-				controllers.UpyunCallback,
+				"upyun/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeUpyun),
+				controllers.UpyunCallbackAuth,
+				controllers.ProcessCallback(http.StatusBadRequest, false),
 			)
 			onedrive := callback.Group("onedrive")
 			{
 				// 文件上传完成
 				onedrive.POST(
-					"finish/:sessionID",
-					middleware.UseUploadSession("onedrive"),
-					middleware.OneDriveCallbackAuth(),
-					controllers.OneDriveCallback,
-				)
-				// OAuth 完成
-				onedrive.GET(
-					"auth",
-					controllers.OneDriveOAuth,
+					":sessionID/:key",
+					middleware.UseUploadSession(types.PolicyTypeOd),
+					controllers.ProcessCallback(http.StatusOK, false),
 				)
 			}
 			// Google Drive related
@@ -321,244 +473,568 @@ func InitMasterRouter() *gin.Engine {
 			}
 			// 腾讯云COS策略上传回调
 			callback.GET(
-				"cos/:sessionID",
-				middleware.UseUploadSession("cos"),
-				controllers.COSCallback,
+				"cos/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeCos),
+				controllers.ProcessCallback(http.StatusBadRequest, false),
 			)
 			// AWS S3策略上传回调
 			callback.GET(
-				"s3/:sessionID",
-				middleware.UseUploadSession("s3"),
-				controllers.S3Callback,
+				"s3/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeS3),
+				controllers.ProcessCallback(http.StatusBadRequest, false),
 			)
+			// Huawei OBS upload callback
+			callback.POST(
+				"obs/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeObs),
+				controllers.ProcessCallback(http.StatusBadRequest, false),
+			)
+			// Qiniu callback
+			callback.POST(
+				"qiniu/:sessionID/:key",
+				middleware.UseUploadSession(types.PolicyTypeQiniu),
+				controllers.QiniuCallbackValidate,
+				controllers.ProcessCallback(http.StatusBadRequest, true),
+			)
+		}
+
+		// Workflows
+		wf := v4.Group("workflow")
+		wf.Use(middleware.LoginRequired())
+		{
+			// List
+			wf.GET("",
+				controllers.FromQuery[explorer.ListTaskService](explorer.ListTaskParamCtx{}),
+				controllers.ListTasks,
+			)
+			// GetTaskProgress
+			wf.GET("progress/:id",
+				middleware.HashID(hashid.TaskID),
+				controllers.GetTaskPhaseProgress,
+			)
+			// Create task to create an archive file
+			wf.POST("archive",
+				controllers.FromJSON[explorer.ArchiveWorkflowService](explorer.CreateArchiveParamCtx{}),
+				controllers.CreateArchive,
+			)
+			// Create task to extract an archive file
+			wf.POST("extract",
+				controllers.FromJSON[explorer.ArchiveWorkflowService](explorer.CreateArchiveParamCtx{}),
+				controllers.ExtractArchive,
+			)
+
+			remoteDownload := wf.Group("download")
+			{
+				// Create task to download a file
+				remoteDownload.POST("",
+					controllers.FromJSON[explorer.DownloadWorkflowService](explorer.CreateDownloadParamCtx{}),
+					controllers.CreateRemoteDownload,
+				)
+				// Set download target
+				remoteDownload.PATCH(":id",
+					middleware.HashID(hashid.TaskID),
+					controllers.FromJSON[explorer.SetDownloadFilesService](explorer.SetDownloadFilesParamCtx{}),
+					controllers.SetDownloadTaskTarget,
+				)
+				remoteDownload.DELETE(":id",
+					middleware.HashID(hashid.TaskID),
+					controllers.CancelDownloadTask,
+				)
+			}
+		}
+
+		// 文件
+		file := v4.Group("file")
+		{
+			// List files
+			file.GET("",
+				controllers.FromQuery[explorer.ListFileService](explorer.ListFileParameterCtx{}),
+				controllers.ListDirectory,
+			)
+			// Create file
+			file.POST("create",
+				controllers.FromJSON[explorer.CreateFileService](explorer.CreateFileParameterCtx{}),
+				controllers.CreateFile,
+			)
+			// Rename file
+			file.POST("rename",
+				controllers.FromJSON[explorer.RenameFileService](explorer.RenameFileParameterCtx{}),
+				controllers.RenameFile,
+			)
+			// Move or copy files
+			file.POST("move",
+				controllers.FromJSON[explorer.MoveFileService](explorer.MoveFileParameterCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.MoveFileParameterCtx{}),
+				controllers.MoveFile)
+			// Get URL of the file for preview/download
+			file.POST("url",
+				middleware.ContextHint(),
+				controllers.FromJSON[explorer.FileURLService](explorer.FileURLParameterCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.FileURLParameterCtx{}),
+				controllers.FileURL,
+			)
+			// Update file content
+			file.PUT("content",
+				controllers.FromQuery[explorer.FileUpdateService](explorer.FileUpdateParameterCtx{}),
+				controllers.PutContent)
+			// Get entity content for preview/download
+			content := file.Group("content")
+			contentCors := cors.New(cors.Config{
+				AllowOrigins: []string{"*"},
+			})
+			content.Use(contentCors)
+			{
+				content.OPTIONS("*option", contentCors)
+				content.GET(":id/:speed/:name",
+					middleware.SignRequired(dep.GeneralAuth()),
+					middleware.HashID(hashid.EntityID),
+					middleware.Sandbox(),
+					controllers.FromUri[explorer.EntityDownloadService](explorer.EntityDownloadParameterCtx{}),
+					controllers.ServeEntity,
+				)
+				content.HEAD(":id/:speed/:name",
+					middleware.SignRequired(dep.GeneralAuth()),
+					middleware.HashID(hashid.EntityID),
+					controllers.FromUri[explorer.EntityDownloadService](explorer.EntityDownloadParameterCtx{}),
+					controllers.ServeEntity,
+				)
+			}
+			// 获取缩略图
+			file.GET("thumb",
+				middleware.ContextHint(),
+				controllers.FromQuery[explorer.FileThumbService](explorer.FileThumbParameterCtx{}),
+				controllers.Thumb,
+			)
+			// Delete files
+			file.DELETE("",
+				controllers.FromJSON[explorer.DeleteFileService](explorer.DeleteFileParameterCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.DeleteFileParameterCtx{}),
+				controllers.Delete,
+			)
+			// Force unlock
+			file.DELETE("lock",
+				controllers.FromJSON[explorer.UnlockFileService](explorer.UnlockFileParameterCtx{}),
+				controllers.Unlock,
+			)
+			// Restore files
+			file.POST("restore",
+				controllers.FromJSON[explorer.DeleteFileService](explorer.DeleteFileParameterCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.DeleteFileParameterCtx{}),
+				controllers.Restore,
+			)
+			// Patch metadata
+			file.PATCH("metadata",
+				controllers.FromJSON[explorer.PatchMetadataService](explorer.PatchMetadataParameterCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.PatchMetadataParameterCtx{}),
+				controllers.PatchMetadata,
+			)
+			// Upload related
+			upload := file.Group("upload")
+			{
+				// Create upload session
+				upload.PUT("",
+					controllers.FromJSON[explorer.CreateUploadSessionService](explorer.CreateUploadSessionParameterCtx{}),
+					controllers.CreateUploadSession,
+				)
+				// Upload file data
+				upload.POST(":sessionId/:index",
+					controllers.FromUri[explorer.UploadService](explorer.UploadParameterCtx{}),
+					controllers.FileUpload,
+				)
+				upload.DELETE("",
+					controllers.FromJSON[explorer.DeleteUploadSessionService](explorer.DeleteUploadSessionParameterCtx{}),
+					controllers.DeleteUploadSession,
+				)
+			}
+			// Pin file
+			pin := file.Group("pin")
+			{
+				// Pin file
+				pin.PUT("",
+					controllers.FromJSON[explorer.PinFileService](explorer.PinFileParameterCtx{}),
+					controllers.Pin,
+				)
+				// Unpin file
+				pin.DELETE("",
+					controllers.FromJSON[explorer.PinFileService](explorer.PinFileParameterCtx{}),
+					controllers.Unpin,
+				)
+			}
+			// Get file info
+			file.GET("info",
+				controllers.FromQuery[explorer.GetFileInfoService](explorer.GetFileInfoParameterCtx{}),
+				controllers.GetFileInfo,
+			)
+			// Version management
+			version := file.Group("version")
+			{
+				// Set current version
+				version.POST("current",
+					controllers.FromJSON[explorer.SetCurrentVersionService](explorer.SetCurrentVersionParamCtx{}),
+					controllers.SetCurrentVersion,
+				)
+				// Delete a version from a file
+				version.DELETE("",
+					controllers.FromJSON[explorer.DeleteVersionService](explorer.DeleteVersionParamCtx{}),
+					controllers.DeleteVersion,
+				)
+			}
+			file.PUT("viewerSession",
+				controllers.FromJSON[explorer.CreateViewerSessionService](explorer.CreateViewerSessionParamCtx{}),
+				controllers.CreateViewerSession,
+			)
+
+			// 取得文件外链
+			file.PUT("source",
+				controllers.FromJSON[explorer.GetDirectLinkService](explorer.GetDirectLinkParamCtx{}),
+				middleware.ValidateBatchFileCount(dep, explorer.GetDirectLinkParamCtx{}),
+				controllers.GetSource)
 		}
 
 		// 分享相关
-		share := v3.Group("share", middleware.ShareAvailable())
+		share := v4.Group("share")
 		{
-			// 获取分享
-			share.GET("info/:id", controllers.GetShare)
-			// 创建文件下载会话
-			share.PUT("download/:id",
-				middleware.CheckShareUnlocked(),
-				middleware.BeforeShareDownload(),
-				controllers.GetShareDownload,
+			// Create share link
+			share.PUT("",
+				middleware.LoginRequired(),
+				controllers.FromJSON[sharesvc.ShareCreateService](sharesvc.ShareCreateParamCtx{}),
+				controllers.CreateShare,
 			)
-			// 预览分享文件
-			share.GET("preview/:id",
-				middleware.CSRFCheck(),
-				middleware.CheckShareUnlocked(),
-				middleware.ShareCanPreview(),
-				middleware.BeforeShareDownload(),
-				controllers.PreviewShare,
+			// Edit existing share link
+			share.POST(":id",
+				middleware.LoginRequired(),
+				middleware.HashID(hashid.ShareID),
+				controllers.FromJSON[sharesvc.ShareCreateService](sharesvc.ShareCreateParamCtx{}),
+				controllers.EditShare,
 			)
-			// 取得Office文档预览地址
-			share.GET("doc/:id",
-				middleware.CheckShareUnlocked(),
-				middleware.ShareCanPreview(),
-				middleware.BeforeShareDownload(),
-				controllers.GetShareDocPreview,
+			// Get share link info
+			share.GET("info/:id",
+				middleware.HashID(hashid.ShareID),
+				controllers.FromQuery[sharesvc.ShareInfoService](sharesvc.ShareInfoParamCtx{}),
+				controllers.GetShare,
 			)
-			// 获取文本文件内容
-			share.GET("content/:id",
-				middleware.CheckShareUnlocked(),
-				middleware.BeforeShareDownload(),
-				controllers.PreviewShareText,
+			// List my shares
+			share.GET("",
+				middleware.LoginRequired(),
+				controllers.FromQuery[sharesvc.ListShareService](sharesvc.ListShareParamCtx{}),
+				controllers.ListShare,
 			)
-			// 分享目录列文件
-			share.GET("list/:id/*path",
-				middleware.CheckShareUnlocked(),
-				controllers.ListSharedFolder,
+			// 删除分享
+			share.DELETE(":id",
+				middleware.LoginRequired(),
+				middleware.HashID(hashid.ShareID),
+				controllers.DeleteShare,
 			)
-			// 分享目录搜索
-			share.GET("search/:id/:type/:keywords",
-				middleware.CheckShareUnlocked(),
-				controllers.SearchSharedFolder,
-			)
-			// 归档打包下载
-			share.POST("archive/:id",
-				middleware.CheckShareUnlocked(),
-				middleware.BeforeShareDownload(),
-				controllers.ArchiveShare,
-			)
-			// 获取README文本文件内容
-			share.GET("readme/:id",
-				middleware.CheckShareUnlocked(),
-				controllers.PreviewShareReadme,
-			)
-			// 获取缩略图
-			share.GET("thumb/:id/:file",
-				middleware.CheckShareUnlocked(),
-				middleware.ShareCanPreview(),
-				controllers.ShareThumb,
-			)
-			// 搜索公共分享
-			v3.Group("share").GET("search", controllers.SearchShare)
-		}
-
-		wopi := v3.Group(
-			"wopi",
-			middleware.HashID(hashid.FileID),
-			middleware.WopiAccessValidation(wopi2.Default, cache.Store),
-		)
-		{
-			// 获取文件信息
-			wopi.GET("files/:id", controllers.CheckFileInfo)
-			// 获取文件内容
-			wopi.GET("files/:id/contents", controllers.GetFile)
-			// 更新文件内容
-			wopi.POST("files/:id/contents", middleware.WopiWriteAccess(), controllers.PutFile)
-			// 通用文件操作
-			wopi.POST("files/:id", middleware.WopiWriteAccess(), controllers.ModifyFile)
+			//// 获取README文本文件内容
+			//share.GET("readme/:id",
+			//	middleware.CheckShareUnlocked(),
+			//	controllers.PreviewShareReadme,
+			//)
+			//// 举报分享
+			//share.POST("report/:id",
+			//	middleware.CheckShareUnlocked(),
+			//	controllers.ReportShare,
+			//)
 		}
 
 		// 需要登录保护的
-		auth := v3.Group("")
-		auth.Use(middleware.AuthRequired())
+		auth := v4.Group("")
+		auth.Use(middleware.LoginRequired())
 		{
 			// 管理
 			admin := auth.Group("admin", middleware.IsAdmin())
 			{
-				// 获取站点概况
-				admin.GET("summary", controllers.AdminSummary)
-				// 获取社区新闻
-				admin.GET("news", controllers.AdminNews)
-				// 更改设置
-				admin.PATCH("setting", controllers.AdminChangeSetting)
-				// 获取设置
-				admin.POST("setting", controllers.AdminGetSetting)
-				// 获取用户组列表
-				admin.GET("groups", controllers.AdminGetGroups)
-				// 重新加载子服务
-				admin.GET("reload/:service", controllers.AdminReloadService)
-				// 测试设置
-				test := admin.Group("test")
-				{
-					// 测试邮件设置
-					test.POST("mail", controllers.AdminSendTestMail)
-					// 测试缩略图生成器调用
-					test.POST("thumb", controllers.AdminTestThumbGenerator)
-				}
+				admin.GET("summary",
+					controllers.FromQuery[adminsvc.SummaryService](adminsvc.SummaryParamCtx{}),
+					controllers.AdminSummary,
+				)
 
-				// 离线下载相关
-				aria2 := admin.Group("aria2")
+				settings := admin.Group("settings")
 				{
-					// 测试连接配置
-					aria2.POST("test", controllers.AdminTestAria2)
-				}
-
-				// 存储策略管理
-				policy := admin.Group("policy")
-				{
-					// 列出存储策略
-					policy.POST("list", controllers.AdminListPolicy)
-					// 测试本地路径可用性
-					policy.POST("test/path", controllers.AdminTestPath)
-					// 测试从机通信
-					policy.POST("test/slave", controllers.AdminTestSlave)
-					// 创建存储策略
-					policy.POST("", controllers.AdminAddPolicy)
-					// 创建跨域策略
-					policy.POST("cors", controllers.AdminAddCORS)
-					// 创建COS回调函数
-					policy.POST("scf", controllers.AdminAddSCF)
-					// 获取 OneDrive OAuth URL
-					oauth := policy.Group(":id/oauth")
-					{
-						// 获取 OneDrive OAuth URL
-						oauth.GET("onedrive", controllers.AdminOAuthURL("onedrive"))
-						// 获取 Google Drive OAuth URL
-						oauth.GET("googledrive", controllers.AdminOAuthURL("googledrive"))
-					}
-
-					// 获取 存储策略
-					policy.GET(":id", controllers.AdminGetPolicy)
-					// 删除 存储策略
-					policy.DELETE(":id", controllers.AdminDeletePolicy)
+					// Get settings
+					settings.POST("",
+						controllers.FromJSON[adminsvc.GetSettingService](adminsvc.GetSettingParamCtx{}),
+						controllers.AdminGetSettings,
+					)
+					// Patch settings
+					settings.PATCH("",
+						controllers.FromJSON[adminsvc.SetSettingService](adminsvc.SetSettingParamCtx{}),
+						controllers.AdminSetSettings,
+					)
 				}
 
 				// 用户组管理
 				group := admin.Group("group")
 				{
 					// 列出用户组
-					group.POST("list", controllers.AdminListGroup)
+					group.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListGroups,
+					)
 					// 获取用户组
-					group.GET(":id", controllers.AdminGetGroup)
-					// 创建/保存用户组
-					group.POST("", controllers.AdminAddGroup)
-					// 删除
-					group.DELETE(":id", controllers.AdminDeleteGroup)
+					group.GET(":id",
+						controllers.FromUri[adminsvc.SingleGroupService](adminsvc.SingleGroupParamCtx{}),
+						controllers.AdminGetGroup,
+					)
+					// 创建用户组
+					group.PUT("",
+						controllers.FromJSON[adminsvc.UpsertGroupService](adminsvc.UpsertGroupParamCtx{}),
+						controllers.AdminCreateGroup,
+					)
+					// 更新用户组
+					group.PUT(":id",
+						controllers.FromJSON[adminsvc.UpsertGroupService](adminsvc.UpsertGroupParamCtx{}),
+						controllers.AdminUpdateGroup,
+					)
+					// 删除用户组
+					group.DELETE(":id",
+						controllers.FromUri[adminsvc.SingleGroupService](adminsvc.SingleGroupParamCtx{}),
+						controllers.AdminDeleteGroup,
+					)
+				}
+
+				tool := admin.Group("tool")
+				{
+					tool.GET("wopi",
+						controllers.FromQuery[adminsvc.FetchWOPIDiscoveryService](adminsvc.FetchWOPIDiscoveryParamCtx{}),
+						controllers.AdminFetchWopi,
+					)
+					tool.POST("thumbExecutable",
+						controllers.FromJSON[adminsvc.ThumbGeneratorTestService](adminsvc.ThumbGeneratorTestParamCtx{}),
+						controllers.AdminTestThumbGenerator)
+					tool.POST("mail",
+						controllers.FromJSON[adminsvc.TestSMTPService](adminsvc.TestSMTPParamCtx{}),
+						controllers.AdminSendTestMail,
+					)
+					tool.DELETE("entityUrlCache",
+						controllers.AdminClearEntityUrlCache,
+					)
+				}
+
+				queue := admin.Group("queue")
+				{
+					queue.GET("metrics", controllers.AdminGetQueueMetrics)
+					// List tasks
+					queue.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListTasks,
+					)
+					// Get task
+					queue.GET(":id",
+						controllers.FromUri[adminsvc.SingleTaskService](adminsvc.SingleTaskParamCtx{}),
+						controllers.AdminGetTask,
+					)
+					// Batch delete task
+					queue.POST("batch/delete",
+						controllers.FromJSON[adminsvc.BatchTaskService](adminsvc.BatchTaskParamCtx{}),
+						controllers.AdminBatchDeleteTask,
+					)
+					// // 列出任务
+					// queue.POST("list", controllers.AdminListTask)
+					// // 新建文件导入任务
+					// queue.POST("import", controllers.AdminCreateImportTask)
+				}
+
+				// 存储策略管理
+				policy := admin.Group("policy")
+				{
+					// 列出存储策略
+					policy.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListPolicies,
+					)
+					// 获取存储策略详情
+					policy.GET(":id",
+						controllers.FromUri[adminsvc.SingleStoragePolicyService](adminsvc.GetStoragePolicyParamCtx{}),
+						controllers.AdminGetPolicy,
+					)
+					// 创建存储策略
+					policy.PUT("",
+						controllers.FromJSON[adminsvc.CreateStoragePolicyService](adminsvc.CreateStoragePolicyParamCtx{}),
+						controllers.AdminCreatePolicy,
+					)
+					// 更新存储策略
+					policy.PUT(":id",
+						controllers.FromJSON[adminsvc.UpdateStoragePolicyService](adminsvc.UpdateStoragePolicyParamCtx{}),
+						controllers.AdminUpdatePolicy,
+					)
+					// 创建跨域策略
+					policy.POST("cors",
+						controllers.FromJSON[adminsvc.CreateStoragePolicyCorsService](adminsvc.CreateStoragePolicyCorsParamCtx{}),
+						controllers.AdminCreateStoragePolicyCors,
+					)
+					// // 获取 OneDrive OAuth URL
+					oauth := policy.Group("oauth")
+					{
+						// 获取 OneDrive OAuth URL
+						oauth.POST("signin",
+							controllers.FromJSON[adminsvc.GetOauthRedirectService](adminsvc.GetOauthRedirectParamCtx{}),
+							controllers.AdminOdOAuthURL,
+						)
+						// 获取 OAuth 回调 URL
+						oauth.GET("redirect", controllers.AdminGetPolicyOAuthCallbackURL)
+						oauth.GET("status/:id",
+							controllers.FromUri[adminsvc.SingleStoragePolicyService](adminsvc.GetStoragePolicyParamCtx{}),
+							controllers.AdminGetPolicyOAuthStatus,
+						)
+						oauth.POST("callback",
+							controllers.FromJSON[adminsvc.FinishOauthCallbackService](adminsvc.FinishOauthCallbackParamCtx{}),
+							controllers.AdminFinishOauthCallback,
+						)
+						oauth.GET("root/:id",
+							controllers.FromUri[adminsvc.SingleStoragePolicyService](adminsvc.GetStoragePolicyParamCtx{}),
+							controllers.AdminGetSharePointDriverRoot,
+						)
+					}
+
+					// // 获取 存储策略
+					// policy.GET(":id", controllers.AdminGetPolicy)
+					// 删除 存储策略
+					policy.DELETE(":id",
+						controllers.FromUri[adminsvc.SingleStoragePolicyService](adminsvc.GetStoragePolicyParamCtx{}),
+						controllers.AdminDeletePolicy,
+					)
+				}
+
+				node := admin.Group("node")
+				{
+					node.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListNodes,
+					)
+					node.GET(":id",
+						controllers.FromUri[adminsvc.SingleNodeService](adminsvc.SingleNodeParamCtx{}),
+						controllers.AdminGetNode,
+					)
+					node.POST("test",
+						controllers.FromJSON[adminsvc.TestNodeService](adminsvc.TestNodeParamCtx{}),
+						controllers.AdminTestSlave,
+					)
+					node.POST("test/downloader",
+						controllers.FromJSON[adminsvc.TestNodeDownloaderService](adminsvc.TestNodeDownloaderParamCtx{}),
+						controllers.AdminTestDownloader,
+					)
+					node.PUT("",
+						controllers.FromJSON[adminsvc.UpsertNodeService](adminsvc.UpsertNodeParamCtx{}),
+						controllers.AdminCreateNode,
+					)
+					node.PUT(":id",
+						controllers.FromJSON[adminsvc.UpsertNodeService](adminsvc.UpsertNodeParamCtx{}),
+						controllers.AdminUpdateNode,
+					)
+					node.DELETE(":id",
+						controllers.FromUri[adminsvc.SingleNodeService](adminsvc.SingleNodeParamCtx{}),
+						controllers.AdminDeleteNode,
+					)
 				}
 
 				user := admin.Group("user")
 				{
 					// 列出用户
-					user.POST("list", controllers.AdminListUser)
+					user.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListUsers,
+					)
 					// 获取用户
-					user.GET(":id", controllers.AdminGetUser)
-					// 创建/保存用户
-					user.POST("", controllers.AdminAddUser)
-					// 删除
-					user.POST("delete", controllers.AdminDeleteUser)
-					// 封禁/解封用户
-					user.PATCH("ban/:id", controllers.AdminBanUser)
+					user.GET(":id",
+						controllers.FromUri[adminsvc.SingleUserService](adminsvc.SingleUserParamCtx{}),
+						controllers.AdminGetUser,
+					)
+					// 更新用户
+					user.PUT(":id",
+						controllers.FromJSON[adminsvc.UpsertUserService](adminsvc.UpsertUserParamCtx{}),
+						controllers.AdminUpdateUser,
+					)
+					// 创建用户
+					user.PUT("",
+						controllers.FromJSON[adminsvc.UpsertUserService](adminsvc.UpsertUserParamCtx{}),
+						controllers.AdminCreateUser,
+					)
+					batch := user.Group("batch")
+					{
+						// 批量删除用户
+						batch.POST("delete",
+							controllers.FromJSON[adminsvc.BatchUserService](adminsvc.BatchUserParamCtx{}),
+							controllers.AdminDeleteUser,
+						)
+					}
+					user.POST(":id/calibrate",
+						controllers.FromUri[adminsvc.SingleUserService](adminsvc.SingleUserParamCtx{}),
+						controllers.AdminCalibrateStorage,
+					)
 				}
 
 				file := admin.Group("file")
 				{
 					// 列出文件
-					file.POST("list", controllers.AdminListFile)
-					// 预览文件
-					file.GET("preview/:id", middleware.Sandbox(), controllers.AdminGetFile)
-					// 删除
-					file.POST("delete", controllers.AdminDeleteFile)
-					// 列出用户或外部文件系统目录
-					file.GET("folders/:type/:id/*path",
-						controllers.AdminListFolders)
+					file.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListFiles,
+					)
+					// 获取文件
+					file.GET(":id",
+						controllers.FromUri[adminsvc.SingleFileService](adminsvc.SingleFileParamCtx{}),
+						controllers.AdminGetFile,
+					)
+					// 更新文件
+					file.PUT(":id",
+						controllers.FromJSON[adminsvc.UpsertFileService](adminsvc.UpsertFileParamCtx{}),
+						controllers.AdminUpdateFile,
+					)
+					// 获取文件 URL
+					file.GET("url/:id",
+						controllers.FromUri[adminsvc.SingleFileService](adminsvc.SingleFileParamCtx{}),
+						controllers.AdminGetFileUrl,
+					)
+					// 批量删除文件
+					file.POST("batch/delete",
+						controllers.FromJSON[adminsvc.BatchFileService](adminsvc.BatchFileParamCtx{}),
+						controllers.AdminBatchDeleteFile,
+					)
+				}
+
+				entity := admin.Group("entity")
+				{
+					// List blobs
+					entity.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListEntities,
+					)
+					// Get entity
+					entity.GET(":id",
+						controllers.FromUri[adminsvc.SingleEntityService](adminsvc.SingleEntityParamCtx{}),
+						controllers.AdminGetEntity,
+					)
+					// Batch delete entity
+					entity.POST("batch/delete",
+						controllers.FromJSON[adminsvc.BatchEntityService](adminsvc.BatchEntityParamCtx{}),
+						controllers.AdminBatchDeleteEntity,
+					)
+					// Get entity url
+					entity.GET("url/:id",
+						controllers.FromUri[adminsvc.SingleEntityService](adminsvc.SingleEntityParamCtx{}),
+						controllers.AdminGetEntityUrl,
+					)
 				}
 
 				share := admin.Group("share")
 				{
-					// 列出分享
-					share.POST("list", controllers.AdminListShare)
-					// 删除
-					share.POST("delete", controllers.AdminDeleteShare)
+					// List shares
+					share.POST("",
+						controllers.FromJSON[adminsvc.AdminListService](adminsvc.AdminListServiceParamsCtx{}),
+						controllers.AdminListShares,
+					)
+					// Get share
+					share.GET(":id",
+						controllers.FromUri[adminsvc.SingleShareService](adminsvc.SingleShareParamCtx{}),
+						controllers.AdminGetShare,
+					)
+					// Batch delete shares
+					share.POST("batch/delete",
+						controllers.FromJSON[adminsvc.BatchShareService](adminsvc.BatchShareParamCtx{}),
+						controllers.AdminBatchDeleteShare,
+					)
 				}
-
-				download := admin.Group("download")
-				{
-					// 列出任务
-					download.POST("list", controllers.AdminListDownload)
-					// 删除
-					download.POST("delete", controllers.AdminDeleteDownload)
-				}
-
-				task := admin.Group("task")
-				{
-					// 列出任务
-					task.POST("list", controllers.AdminListTask)
-					// 删除
-					task.POST("delete", controllers.AdminDeleteTask)
-					// 新建文件导入任务
-					task.POST("import", controllers.AdminCreateImportTask)
-				}
-
-				node := admin.Group("node")
-				{
-					// 列出从机节点
-					node.POST("list", controllers.AdminListNodes)
-					// 列出从机节点
-					node.POST("aria2/test", controllers.AdminTestAria2)
-					// 创建/保存节点
-					node.POST("", controllers.AdminAddNode)
-					// 启用/暂停节点
-					node.PATCH("enable/:id/:desired", controllers.AdminToggleNode)
-					// 删除节点
-					node.DELETE(":id", controllers.AdminDeleteNode)
-					// 获取节点
-					node.GET(":id", controllers.AdminGetNode)
-				}
-
 			}
 
 			// 用户
@@ -567,162 +1043,93 @@ func InitMasterRouter() *gin.Engine {
 				// 当前登录用户信息
 				user.GET("me", controllers.UserMe)
 				// 存储信息
-				user.GET("storage", controllers.UserStorage)
+				user.GET("capacity", controllers.UserStorage)
+				// Search user by keywords
+				user.GET("search",
+					controllers.FromQuery[usersvc.SearchUserService](usersvc.SearchUserParamCtx{}),
+					controllers.UserSearch,
+				)
 				// 退出登录
 				user.DELETE("session", controllers.UserSignOut)
-				// Generate temp URL for copying client-side session, used in adding accounts
-				// for mobile App.
-				user.GET("session", controllers.UserPrepareCopySession)
 
 				// WebAuthn 注册相关
 				authn := user.Group("authn",
-					middleware.IsFunctionEnabled("authn_enabled"))
+					middleware.IsFunctionEnabled(func(c *gin.Context) bool {
+						return dep.SettingProvider().AuthnEnabled(c)
+					}))
 				{
 					authn.PUT("", controllers.StartRegAuthn)
-					authn.PUT("finish", controllers.FinishRegAuthn)
+					authn.POST("",
+						controllers.FromJSON[usersvc.FinishPasskeyRegisterService](usersvc.FinishPasskeyRegisterParameterCtx{}),
+						controllers.FinishRegAuthn,
+					)
+					authn.DELETE("",
+						controllers.FromQuery[usersvc.DeletePasskeyService](usersvc.DeletePasskeyParameterCtx{}),
+						controllers.UserDeletePasskey,
+					)
 				}
 
 				// 用户设置
 				setting := user.Group("setting")
 				{
-					// 任务队列
-					setting.GET("tasks", controllers.UserTasks)
 					// 获取当前用户设定
 					setting.GET("", controllers.UserSetting)
 					// 从文件上传头像
-					setting.POST("avatar", controllers.UploadAvatar)
-					// 设定为Gravatar头像
-					setting.PUT("avatar", controllers.UseGravatar)
+					setting.PUT("avatar", controllers.UploadAvatar)
 					// 更改用户设定
-					setting.PATCH(":option", controllers.UpdateOption)
+					setting.PATCH("",
+						controllers.FromJSON[usersvc.PatchUserSetting](usersvc.PatchUserSettingParamsCtx{}),
+						controllers.UpdateOption,
+					)
 					// 获得二步验证初始化信息
 					setting.GET("2fa", controllers.UserInit2FA)
 				}
 			}
 
-			// 文件
-			file := auth.Group("file", middleware.HashID(hashid.FileID))
+			group := auth.Group("group")
 			{
-				// 上传
-				upload := file.Group("upload")
+				// list all groups for options
+				group.GET("list", controllers.GetGroupList)
+			}
+
+			// WebDAV and devices
+			devices := auth.Group("devices")
+			{
+				dav := devices.Group("dav")
 				{
-					// 文件上传
-					upload.POST(":sessionId/:index", controllers.FileUpload)
-					// 创建上传会话
-					upload.PUT("", controllers.GetUploadSession)
-					// 删除给定上传会话
-					upload.DELETE(":sessionId", controllers.DeleteUploadSession)
-					// 删除全部上传会话
-					upload.DELETE("", controllers.DeleteAllUploadSession)
+					// List WebDAV accounts
+					dav.GET("",
+						controllers.FromQuery[setting.ListDavAccountsService](setting.ListDavAccountParamCtx{}),
+						controllers.ListDavAccounts,
+					)
+					// Create WebDAV account
+					dav.PUT("",
+						controllers.FromJSON[setting.CreateDavAccountService](setting.CreateDavAccountParamCtx{}),
+						controllers.CreateDAVAccounts,
+					)
+					// Create WebDAV account
+					dav.PATCH(":id",
+						middleware.HashID(hashid.DavAccountID),
+						controllers.FromJSON[setting.CreateDavAccountService](setting.CreateDavAccountParamCtx{}),
+						controllers.UpdateDAVAccounts,
+					)
+					// Delete WebDAV account
+					dav.DELETE(":id",
+						middleware.HashID(hashid.DavAccountID),
+						controllers.DeleteDAVAccounts,
+					)
 				}
-				// 更新文件
-				file.PUT("update/:id", controllers.PutContent)
-				// 创建空白文件
-				file.POST("create", controllers.CreateFile)
-				// 创建文件下载会话
-				file.PUT("download/:id", controllers.CreateDownloadSession)
-				// 预览文件
-				file.GET("preview/:id", middleware.Sandbox(), controllers.Preview)
-				// 获取文本文件内容
-				file.GET("content/:id", middleware.Sandbox(), controllers.PreviewText)
-				// 取得Office文档预览地址
-				file.GET("doc/:id", controllers.GetDocPreview)
-				// 获取缩略图
-				file.GET("thumb/:id", controllers.Thumb)
-				// 取得文件外链
-				file.POST("source", controllers.GetSource)
-				// 打包要下载的文件
-				file.POST("archive", controllers.Archive)
-				// 创建文件压缩任务
-				file.POST("compress", controllers.Compress)
-				// 创建文件解压缩任务
-				file.POST("decompress", controllers.Decompress)
-				// 创建文件解压缩任务
-				file.GET("search/:type/:keywords", controllers.SearchFile)
-			}
-
-			// 离线下载任务
-			aria2 := auth.Group("aria2")
-			{
-				// 创建URL下载任务
-				aria2.POST("url", controllers.AddAria2URL)
-				// 创建种子下载任务
-				aria2.POST("torrent/:id", middleware.HashID(hashid.FileID), controllers.AddAria2Torrent)
-				// 重新选择要下载的文件
-				aria2.PUT("select/:gid", controllers.SelectAria2File)
-				// 取消或删除下载任务
-				aria2.DELETE("task/:gid", controllers.CancelAria2Download)
-				// 获取正在下载中的任务
-				aria2.GET("downloading", controllers.ListDownloading)
-				// 获取已完成的任务
-				aria2.GET("finished", controllers.ListFinished)
-			}
-
-			// 目录
-			directory := auth.Group("directory")
-			{
-				// 创建目录
-				directory.PUT("", controllers.CreateDirectory)
-				// 列出目录下内容
-				directory.GET("*path", controllers.ListDirectory)
-			}
-
-			// 对象，文件和目录的抽象
-			object := auth.Group("object")
-			{
-				// 删除对象
-				object.DELETE("", controllers.Delete)
-				// 移动对象
-				object.PATCH("", controllers.Move)
-				// 复制对象
-				object.POST("copy", controllers.Copy)
-				// 重命名对象
-				object.POST("rename", controllers.Rename)
-				// 获取对象属性
-				object.GET("property/:id", controllers.GetProperty)
-			}
-
-			// 分享
-			share := auth.Group("share")
-			{
-				// 创建新分享
-				share.POST("", controllers.CreateShare)
-				// 列出我的分享
-				share.GET("", controllers.ListShare)
-				// 更新分享属性
-				share.PATCH(":id",
-					middleware.ShareAvailable(),
-					middleware.ShareOwner(),
-					controllers.UpdateShare,
-				)
-				// 删除分享
-				share.DELETE(":id",
-					controllers.DeleteShare,
-				)
-			}
-
-			// 用户标签
-			tag := auth.Group("tag")
-			{
-				// 创建文件分类标签
-				tag.POST("filter", controllers.CreateFilterTag)
-				// 创建目录快捷方式标签
-				tag.POST("link", controllers.CreateLinkTag)
-				// 删除标签
-				tag.DELETE(":id", middleware.HashID(hashid.TagID), controllers.DeleteTag)
-			}
-
-			// WebDAV管理相关
-			webdav := auth.Group("webdav")
-			{
-				// 获取账号信息
-				webdav.GET("accounts", controllers.GetWebDAVAccounts)
-				// 新建账号
-				webdav.POST("accounts", controllers.CreateWebDAVAccounts)
-				// 删除账号
-				webdav.DELETE("accounts/:id", controllers.DeleteWebDAVAccounts)
-				// 更新账号可读性和是否使用代理服务
-				webdav.PATCH("accounts", controllers.UpdateWebDAVAccounts)
+				//// 获取账号信息
+				//devices.GET("dav", controllers.GetWebDAVAccounts)
+				//// 删除目录挂载
+				//devices.DELETE("mount/:id",
+				//	middleware.HashID(hashid.FolderID),
+				//	controllers.DeleteWebDAVMounts,
+				//)
+				//// 创建目录挂载
+				//devices.POST("mount", controllers.CreateWebDAVMounts)
+				//// 更新账号可读性
+				//devices.PATCH("accounts", controllers.UpdateWebDAVAccountsReadonly)
 			}
 
 		}
@@ -737,18 +1144,17 @@ func InitMasterRouter() *gin.Engine {
 // initWebDAV 初始化WebDAV相关路由
 func initWebDAV(group *gin.RouterGroup) {
 	{
-		group.Use(middleware.WebDAVAuth())
-
-		group.Any("/*path", controllers.ServeWebDAV)
-		group.Any("", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", "/*path", controllers.ServeWebDAV)
-		group.Handle("PROPFIND", "", controllers.ServeWebDAV)
-		group.Handle("MKCOL", "/*path", controllers.ServeWebDAV)
-		group.Handle("LOCK", "/*path", controllers.ServeWebDAV)
-		group.Handle("UNLOCK", "/*path", controllers.ServeWebDAV)
-		group.Handle("PROPPATCH", "/*path", controllers.ServeWebDAV)
-		group.Handle("COPY", "/*path", controllers.ServeWebDAV)
-		group.Handle("MOVE", "/*path", controllers.ServeWebDAV)
+		group.Use(middleware.CacheControl(), middleware.WebDAVAuth())
+		group.Any("/*path", webdav.ServeHTTP)
+		group.Any("", webdav.ServeHTTP)
+		group.Handle("PROPFIND", "/*path", webdav.ServeHTTP)
+		group.Handle("PROPFIND", "", webdav.ServeHTTP)
+		group.Handle("MKCOL", "/*path", webdav.ServeHTTP)
+		group.Handle("LOCK", "/*path", webdav.ServeHTTP)
+		group.Handle("UNLOCK", "/*path", webdav.ServeHTTP)
+		group.Handle("PROPPATCH", "/*path", webdav.ServeHTTP)
+		group.Handle("COPY", "/*path", webdav.ServeHTTP)
+		group.Handle("MOVE", "/*path", webdav.ServeHTTP)
 
 	}
 }

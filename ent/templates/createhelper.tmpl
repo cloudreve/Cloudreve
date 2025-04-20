@@ -1,0 +1,30 @@
+{{/* The line below tells Intellij/GoLand to enable the autocompletion based *gen.Type type. */}}
+{{/* gotype: entgo.io/ent/entc/gen.Type */}}
+
+{{ define "create/additional/createhelper" }}
+
+{{/* A template that adds the "GoString" method to all generated models on the same file they are defined. */}}
+
+{{ if $.HasOneFieldID }}
+
+func (m *{{ $.Name }}Create) SetRawID(t {{ $.ID.Type }}) *{{ $.Name }}Create {
+	m.mutation.SetRawID(t)
+	return m
+}
+
+{{ end }}
+
+{{ end }}
+
+{{ define "dialect/sql/create/spec/createhelper" }}
+{{ $receiver := $.Scope.Receiver }}
+{{ $mutation := print $receiver ".mutation"  }}
+{{- if not $.HasCompositeID}}
+	if id, ok := {{ $mutation }}.{{ $.ID.MutationGet }}(); ok {
+		_node.ID = id
+		id64 := int64(id)
+		_spec.ID.Value = {{ if and $.ID.Type.ValueScanner (not $.ID.Type.RType.IsPtr) }}&{{ end }}id64
+	}
+{{- end }}
+
+{{ end }}

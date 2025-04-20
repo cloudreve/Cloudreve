@@ -1,129 +1,438 @@
 package wopi
 
 import (
-	"errors"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/mocks/requestmock"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
+	"fmt"
 	"testing"
 )
 
-func TestClient_AvailableExts(t *testing.T) {
-	a := assert.New(t)
-	endpoint, _ := url.Parse("http://localhost:8001/hosting/discovery")
-	client := &client{
-		cache: cache.NewMemoStore(),
-		config: config{
-			discoveryEndpoint: endpoint,
-		},
-	}
-
-	// Discovery failed
-	{
-		expectedErr := errors.New("error")
-		mockHttp := &requestmock.RequestMock{}
-		client.http = mockHttp
-		mockHttp.On(
-			"Request",
-			"GET",
-			endpoint.String(),
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Err: expectedErr,
-		})
-		res := client.AvailableExts()
-		a.Empty(res)
-		mockHttp.AssertExpectations(t)
-	}
-
-	// pass
-	{
-		client.discovery = &WopiDiscovery{}
-		client.actions = map[string]map[string]Action{
-			".doc": {
-				string(ActionPreviewFallback): Action{},
-			},
-			".ppt": {},
-			".xls": {
-				"not_supported": Action{},
-			},
-		}
-		res := client.AvailableExts()
-		a.Len(res, 1)
-		a.Equal("doc", res[0])
-	}
-}
-
-func TestClient_RefreshDiscovery(t *testing.T) {
-	a := assert.New(t)
-	endpoint, _ := url.Parse("http://localhost:8001/hosting/discovery")
-	client := &client{
-		cache: cache.NewMemoStore(),
-		config: config{
-			discoveryEndpoint: endpoint,
-		},
-	}
-
-	// cache hit
-	{
-		client.cache.Set(DiscoverResponseCacheKey, WopiDiscovery{Text: "test"}, 0)
-		a.NoError(client.checkDiscovery())
-		a.Equal("test", client.discovery.Text)
-		client.discovery = &WopiDiscovery{}
-		client.cache.Delete([]string{DiscoverResponseCacheKey}, "")
-	}
-
-	// malformed xml
-	{
-		mockHttp := &requestmock.RequestMock{}
-		client.http = mockHttp
-		mockHttp.On(
-			"Request",
-			"GET",
-			endpoint.String(),
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader(`{"code":203}`)),
-			},
-		})
-		res := client.refreshDiscovery()
-		a.ErrorContains(res, "failed to parse")
-		mockHttp.AssertExpectations(t)
-	}
-
-	// all pass
-	{
-		testResponse := `
-<?xml version="1.0" encoding="utf-8"?><wopi-discovery><net-zone name="external-https"><app name="Excel" favIconUrl="https://test.cloudreve.org/x/_layouts/resources/FavIcon_Excel.ico" bootstrapperUrl="https://document/x/_layouts/app_scripts/excel-boot.min.js" checkLicense="true"><action name="view" ext="csv" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="ods" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="xls" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="xlsb" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="xlsm" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="xlsx" default="true" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="ods" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="xlsb" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="xlsm" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="xlsx" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="editnew" ext="ods" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="editnew" ext="xlsx" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="interactivepreview" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="csv" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="xls" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlembed.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="convert" ext="csv" targetext="xlsx" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/ExcelConvertAndEdit.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="convert" ext="xls" targetext="xlsx" requires="update" urlsrc="https://test.cloudreve.org/x/_layouts/ExcelConvertAndEdit.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formsubmit" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formsubmit" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formsubmit" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlform.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formedit" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formedit" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formedit" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormEdit&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="rest" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="rest" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="rest" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlrestinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="syndicate" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/exceljs.ashx?v=1&amp;dsipb=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="syndicate" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/exceljs.ashx?v=1&amp;dsipb=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="syndicate" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/exceljs.ashx?v=1&amp;dsipb=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="syndicate" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/exceljs.ashx?v=1&amp;dsipb=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="legacywebservice" progid="Excel.LegacyWebService" urlsrc="https://test.cloudreve.org/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="legacywebservice" ext="ods" urlsrc="https://test.cloudreve.org/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="legacywebservice" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="legacywebservice" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="legacywebservice" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_vti_bin/excelserviceinternal.asmx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="rtc" ext="ods" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="xls" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="xlsb" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="xlsm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="xlsx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="preloadedit" ext="ods" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="xlsb" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="xlsm" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="xlsx" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="ods" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="xls" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="xlsb" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="xlsm" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="xlsx" urlsrc="https://test.cloudreve.org/x/StaticLoad.aspx?wx=x&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="collab" ext="xlsb" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=excel" /><action name="collab" ext="xlsm" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=excel" /><action name="collab" ext="xlsx" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=excel" /><action name="formpreview" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormPreview&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formpreview" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormPreview&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="formpreview" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?edit=1&amp;startupDialog=FormPreview&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="documentchat" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/SkypeProxy.ashx" /><action name="documentchat" ext="xls" urlsrc="https://test.cloudreve.org/x/_layouts/SkypeProxy.ashx" /><action name="documentchat" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/SkypeProxy.ashx" /><action name="documentchat" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/SkypeProxy.ashx" /><action name="documentchat" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/SkypeProxy.ashx" /><action name="embedpreview" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedpreview" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedpreview" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedpreview" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedpreview.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedconfigurator" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedconfigurator.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedconfigurator" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedconfigurator.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedconfigurator" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedconfigurator.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedconfigurator" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlembedconfigurator.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="open" ext="csv" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="ods" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?unified=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="xls" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="xlsb" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?unified=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="xlsm" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?unified=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="xlsx" urlsrc="https://test.cloudreve.org/x/_layouts/xlviewerinternal.aspx?unified=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /></app><app name="OneNote" favIconUrl="https://test.cloudreve.org/o/resources/1033/FavIcon_OneNote.ico" checkLicense="true"><action name="view" progid="OneNote.Notebook" requires="cobalt,containers" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="view" ext="one" requires="cobalt,containers" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="view" ext="onetoc2" useParent="true" requires="cobalt,containers" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="edit" progid="OneNote.Notebook" default="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="edit" ext="one" default="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="edit" ext="onetoc2" useParent="true" default="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="editnew" progid="OneNote.Notebook" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="editnew" ext="one" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="editnew" ext="onepkg" requires="cobalt,containers,update" newprogid="OneNote.Notebook" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?edit=1&amp;new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" progid="OneNote.Notebook" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?embed=1&amp;edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="one" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?embed=1&amp;edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="onetoc2" useParent="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?embed=1&amp;edit=0&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embededit" ext="onetoc2" useParent="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?embed=1&amp;edit=1&amp;singlepage=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="rtc" ext="one" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="onetoc2" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="preloadedit" ext="one" urlsrc="https://test.cloudreve.org/o/StaticLoad.aspx?wx=o&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="onetoc2" urlsrc="https://test.cloudreve.org/o/StaticLoad.aspx?wx=o&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="one" urlsrc="https://test.cloudreve.org/o/StaticLoad.aspx?wx=o&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="onetoc2" urlsrc="https://test.cloudreve.org/o/StaticLoad.aspx?wx=o&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="documentchat" ext="one" urlsrc="https://test.cloudreve.org/o/SkypeProxy.ashx" /><action name="documentchat" ext="onetoc2" urlsrc="https://test.cloudreve.org/o/SkypeProxy.ashx" /><action name="open" progid="OneNote.Notebook" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="open" ext="one" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="open" ext="onetoc2" useParent="true" requires="cobalt,containers,update" urlsrc="https://test.cloudreve.org/o/onenoteframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /></app><app name="PowerPoint" favIconUrl="https://test.cloudreve.org/p/resources/1033/FavIcon_Ppt.ico" bootstrapperUrl="https://document/p/PptScripts/powerpoint.boot.js" checkLicense="true"><action name="view" ext="odp" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="pot" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="potm" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="potx" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="pps" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="ppsm" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="ppsx" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="ppt" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="pptm" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="pptx" default="true" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="odp" requires="update" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="ppsx" requires="update" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="pptx" requires="update" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="editnew" ext="odp" requires="update" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;New=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="editnew" ext="pptx" requires="update" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=EditView&amp;New=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="imagepreview" ext="odp" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="pot" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="potm" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="potx" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="pps" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="ppsm" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="ppsx" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="ppt" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="pptm" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="imagepreview" ext="pptx" urlsrc="https://test.cloudreve.org/p/previewhandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="odp" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="pot" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="potm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="potx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="pps" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="ppsm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="ppsx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="ppt" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="pptm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="interactivepreview" ext="pptx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="pot" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="potm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="potx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="pps" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="ppsm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="ppsx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="ppt" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="pptm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="mobileView" ext="pptx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ReadingView&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="odp" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="pot" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="potm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="potx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="pps" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="ppsm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="ppsx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="ppt" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="pptm" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="embedview" ext="pptx" urlsrc="https://test.cloudreve.org/p/PowerPointFrame.aspx?PowerPointView=ChromelessView&amp;Embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="pot" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="potm" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="potx" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="pps" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="ppsm" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="ppsx" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="ppt" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="pptm" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="present" ext="pptx" urlsrc="https://test.cloudreve.org/m/Presenter.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="presentservice" ext="pot" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="potm" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="potx" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="pps" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="ppsm" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="ppsx" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="ppt" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="pptm" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="presentservice" ext="pptx" urlsrc="https://test.cloudreve.org/m/present_2_0.asmx" /><action name="attend" ext="pot" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="potm" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="potx" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="pps" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="ppsm" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="ppsx" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="ppt" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="pptm" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attend" ext="pptx" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=0&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="attendservice" ext="pot" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="potm" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="potx" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="pps" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="ppsm" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="ppsx" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="ppt" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="pptm" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="attendservice" ext="pptx" urlsrc="https://test.cloudreve.org/m/met/participant.svc" /><action name="convert" ext="pps" targetext="pptx" urlsrc="https://test.cloudreve.org/p/PptConvertAndEdit.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="convert" ext="ppt" targetext="pptx" urlsrc="https://test.cloudreve.org/p/PptConvertAndEdit.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;" /><action name="rtc" ext="odp" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="pot" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="potm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="potx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="pps" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="ppsm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="ppsx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="ppt" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="pptm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="pptx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="preloadedit" ext="odp" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="ppsx" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="pptx" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="odp" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="pot" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="potm" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="potx" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="pps" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="ppsm" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="ppsx" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="ppt" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="pptm" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="pptx" urlsrc="https://test.cloudreve.org/p/StaticLoad.aspx?wx=p&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="collab" ext="potx" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=powerpoint" /><action name="collab" ext="ppsx" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=powerpoint" /><action name="collab" ext="pptx" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=powerpoint" /><action name="documentchat" ext="odp" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="pot" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="potm" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="potx" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="pps" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="ppsm" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="ppsx" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="ppt" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="pptm" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="documentchat" ext="pptx" urlsrc="https://test.cloudreve.org/p/SkypeProxy.ashx" /><action name="preloadunifiedapp" ext="pptx" urlsrc="https://test.cloudreve.org/pods/StaticLoad.aspx?wx=p&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /></app><app name="Word" favIconUrl="https://test.cloudreve.org/wv/resources/1033/FavIcon_Word.ico" bootstrapperUrl="https://document/wv/App_Scripts/word.boot.js" checkLicense="true"><action name="view" ext="doc" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="docm" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="docx" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="dot" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="dotm" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="dotx" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="odt" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="view" ext="rtf" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="docm" requires="locks,update" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="docx" requires="locks,update" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="edit" ext="odt" requires="locks,update" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="editnew" ext="docx" requires="locks,update" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="editnew" ext="dotx" requires="locks,update" newext="docx" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="editnew" ext="odt" requires="locks,update" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?new=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;" /><action name="imagepreview" ext="doc" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="docm" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="docx" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="dot" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="dotm" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="dotx" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="odt" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="rtf" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="doc" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="docm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="docx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="dot" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="dotm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="dotx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="odt" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="rtf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="doc" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="docm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="docx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="dot" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="dotm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="mobileView" ext="dotx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="doc" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="docm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="docx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="dot" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="dotm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="dotx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="odt" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="rtf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="doc" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="docm" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="docx" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="dot" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="dotm" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="attend" ext="dotx" urlsrc="https://test.cloudreve.org/m/ParticipantFrame.aspx?a=1&amp;&lt;e=EMBEDDED&amp;&gt;&lt;fs=FULLSCREEN&amp;&gt;&lt;rec=RECORDING&amp;&gt;&lt;thm=THEME_ID&amp;&gt;&lt;na=DISABLE_ASYNC&amp;&gt;&lt;vp=DISABLE_BROADCAST&amp;&gt;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="convert" ext="doc" targetext="docx" urlsrc="https://test.cloudreve.org/we/WordConvertAndEdit.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="rest" ext="docx" urlsrc="https://test.cloudreve.org/ocs/RichApi.ashx?app=word" /><action name="rtc" ext="doc" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="docm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="docx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="dot" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="dotm" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="dotx" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="rtc" ext="odt" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="preloadedit" ext="docm" urlsrc="https://test.cloudreve.org/we/StaticLoad.aspx?wx=w&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="docx" urlsrc="https://test.cloudreve.org/we/StaticLoad.aspx?wx=w&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadedit" ext="odt" urlsrc="https://test.cloudreve.org/we/StaticLoad.aspx?wx=w&amp;wv=e&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="doc" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="docm" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="docx" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="dot" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="dotm" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="dotx" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="odt" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="preloadview" ext="rtf" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="collab" ext="docx" urlsrc="https://test.cloudreve.org/ocs/Join.ashx?app=word" /><action name="documentchat" ext="doc" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="docm" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="docx" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="dot" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="dotm" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="dotx" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="documentchat" ext="odt" urlsrc="https://test.cloudreve.org/we/SkypeProxy.ashx" /><action name="open" ext="doc" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="docm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="docx" requires="cobalt" urlsrc="https://test.cloudreve.org/we/wordeditorframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="dot" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="dotm" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="dotx" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="odt" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /><action name="open" ext="rtf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;&lt;IsLicensedUser=BUSINESS_USER&amp;&gt;&lt;actnavid=ACTIVITY_NAVIGATION_ID&amp;&gt;" /></app><app name="WordPdf" favIconUrl="https://test.cloudreve.org/wv/resources/1033/FavIcon_Word.ico" checkLicense="true"><action name="view" ext="pdf" default="true" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="imagepreview" ext="pdf" urlsrc="https://test.cloudreve.org/wv/WordPreviewHandler.ashx?PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="interactivepreview" ext="pdf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="embedview" ext="pdf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?embed=1&amp;PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /><action name="rtc" ext="pdf" urlsrc="https://test.cloudreve.org/rtc2/" /><action name="preloadview" ext="pdf" urlsrc="https://test.cloudreve.org/wv/StaticLoad.aspx?wx=w&amp;wv=v&amp;usescript=1&amp;&lt;ui=UI_LLCC&gt;" /><action name="open" ext="pdf" urlsrc="https://test.cloudreve.org/wv/wordviewerframe.aspx?PdfMode=1&amp;&lt;ui=UI_LLCC&amp;&gt;&lt;rs=DC_LLCC&amp;&gt;&lt;dchat=DISABLE_CHAT&amp;&gt;&lt;hid=HOST_SESSION_ID&amp;&gt;&lt;showpagestats=PERFSTATS&amp;&gt;" /></app></net-zone><proof-key oldvalue="" oldmodulus="" oldexponent="" value="BgIAAACkAABSU0ExAAgAAAEAAQA9nk9orhtnY4VkunArRLdSjUWc7YA/+3glsfOCT1o5TGcbRDJqLU1rAeap0QVRLPf3D7DUGBHL2pXZ6cEKmsiQ78p+YICETUuNBLTlot2IHMPYXGg5LYFUX4ToN7U78RwQia4ohMe78Dhnnn2gx/So3QAQX8w5NBpS2E7cZYpD4P3/N5GsAQd2caL0zixjyHDdlimdtYJyR1H5upYK4ZB7qTSlHXW" modulus="1nWU0qTuQYYrWOrmRx3JCdZwel8QWEzNxvfuUmJvPTeQBzIh6f/bYLaJlbqOqeI8xfEADdqPTHoH2eZzjwu8eEKK6JEBzxO7U36IRfVIEtOWhc2MMciN2i5bQEjUtNhIBgfsrvkMiaCsHp2ZXayxEY1LAP9/csUQXRqeYBa00tajJEG2dMOVpPgvOxJXj7P4DtnEWNUrdEK3C6ZIVjZxuuaE+ePQ==" exponent="AQAB" /></wopi-discovery>`
-		mockHttp := &requestmock.RequestMock{}
-		client.http = mockHttp
-		mockHttp.On(
-			"Request",
-			"GET",
-			endpoint.String(),
-			testMock.Anything,
-			testMock.Anything,
-		).Return(&request.Response{
-			Response: &http.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader(testResponse)),
-			},
-		})
-		res := client.refreshDiscovery()
-		a.NoError(res, res)
-		a.NotEmpty(client.actions[".docx"])
-		a.NotEmpty(client.actions[".docx"][string(ActionPreview)])
-		a.NotEmpty(client.actions[".docx"][string(ActionEdit)])
-		mockHttp.AssertExpectations(t)
-	}
+func TestDiscoveryXmlToViewerGroup(t *testing.T) {
+	xmlSrc := `<wopi-discovery>
+<net-zone name="external-http">
+<!--  Writer documents  -->
+<app favIconUrl="https://127.0.0.1:9980/browser/80a6f97/images/x-office-document.svg" name="writer">
+<action default="true" ext="sxw" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="odt" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fodt" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Text template documents  -->
+<action default="true" ext="stw" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="ott" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  MS Word  -->
+<action default="true" ext="doc" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="dot" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  OOXML wordprocessing  -->
+<action default="true" ext="docx" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="docm" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="dotx" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="dotm" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Others  -->
+<action default="true" ext="wpd" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="pdb" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="hwp" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="wps" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="wri" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="lrf" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="mw" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="rtf" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="txt" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fb2" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="cwk" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="pages" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="abw" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="602" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="writer-global">
+<!--  Text master documents  -->
+<action default="true" ext="sxg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="odm" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Writer master document templates  -->
+<action default="true" ext="otm" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="writer-web">
+<action default="true" ext="oth" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Calc documents  -->
+<app favIconUrl="https://127.0.0.1:9980/browser/80a6f97/images/x-office-spreadsheet.svg" name="calc">
+<action default="true" ext="sxc" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="ods" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fods" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Spreadsheet template documents  -->
+<action default="true" ext="stc" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="ots" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  MS Excel  -->
+<action default="true" ext="xls" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="xla" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  OOXML spreadsheet  -->
+<action default="true" ext="xltx" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="xltm" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="xlsx" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="xlsb" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="xlsm" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Others  -->
+<action default="true" ext="dif" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="slk" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="csv" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="dbf" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="wk1" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="gnumeric" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="numbers" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Impress documents  -->
+<app favIconUrl="https://127.0.0.1:9980/browser/80a6f97/images/x-office-presentation.svg" name="impress">
+<action default="true" ext="sxi" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="odp" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fodp" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Presentation template documents  -->
+<action default="true" ext="sti" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="otp" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  MS PowerPoint  -->
+<action default="true" ext="ppt" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="pot" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  OOXML presentation  -->
+<action default="true" ext="pptx" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="pptm" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="potx" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="potm" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="ppsx" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Others  -->
+<action default="true" ext="cgm" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="key" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Draw documents  -->
+<app name="draw">
+<action default="true" ext="sxd" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="odg" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fodg" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Drawing template documents  -->
+<action default="true" ext="std" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="otg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<!--  Others  -->
+<action ext="svg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="dxf" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="emf" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="wmf" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="cdr" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="vsd" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="vsdx" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="vss" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="pub" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="p65" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="wpg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action default="true" ext="fh" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="bmp" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="png" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="gif" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="tiff" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="jpg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="jpeg" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+<action ext="pdf" name="view_comment" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Math documents  -->
+<!--  In fact Math documents are not supported at all.
+             See: https://bugs.documentfoundation.org/show_bug.cgi?id=97006
+        <app name="math">
+            <action name="view" default="true" ext="sxm"/>
+            <action name="edit" default="true" ext="odf"/>
+        </app>
+         -->
+<!--  Legacy MIME-type actions (compatibility)  -->
+<app name="image/svg+xml">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-powerpoint">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-excel">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Writer documents  -->
+<app name="application/vnd.sun.xml.writer">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.text">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.text-flat-xml">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Calc documents  -->
+<app name="application/vnd.sun.xml.calc">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.spreadsheet">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.spreadsheet-flat-xml">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Impress documents  -->
+<app name="application/vnd.sun.xml.impress">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.presentation">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.presentation-flat-xml">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Draw documents  -->
+<app name="application/vnd.sun.xml.draw">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.graphics">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.graphics-flat-xml">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Chart documents  -->
+<app name="application/vnd.oasis.opendocument.chart">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Text master documents  -->
+<app name="application/vnd.sun.xml.writer.global">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.text-master">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Math documents  -->
+<!--  In fact Math documents are not supported at all.
+             See: https://bugs.documentfoundation.org/show_bug.cgi?id=97006
+        <app name="application/vnd.sun.xml.math">
+            <action name="view" default="true" ext=""/>
+        </app>
+        <app name="application/vnd.oasis.opendocument.formula">
+            <action name="edit" default="true" ext=""/>
+        </app>
+         -->
+<!--  Text template documents  -->
+<app name="application/vnd.sun.xml.writer.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.text-template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Writer master document templates  -->
+<app name="application/vnd.oasis.opendocument.text-master-template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Spreadsheet template documents  -->
+<app name="application/vnd.sun.xml.calc.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.spreadsheet-template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Presentation template documents  -->
+<app name="application/vnd.sun.xml.impress.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.presentation-template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Drawing template documents  -->
+<app name="application/vnd.sun.xml.draw.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.graphics-template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  MS Word  -->
+<app name="application/msword">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/msword">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  MS Excel  -->
+<app name="application/vnd.ms-excel">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  MS PowerPoint  -->
+<app name="application/vnd.ms-powerpoint">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  OOXML wordprocessing  -->
+<app name="application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-word.document.macroEnabled.12">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.openxmlformats-officedocument.wordprocessingml.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-word.template.macroEnabled.12">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  OOXML spreadsheet  -->
+<app name="application/vnd.openxmlformats-officedocument.spreadsheetml.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-excel.template.macroEnabled.12">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-excel.sheet.binary.macroEnabled.12">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-excel.sheet.macroEnabled.12">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  OOXML presentation  -->
+<app name="application/vnd.openxmlformats-officedocument.presentationml.presentation">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-powerpoint.presentation.macroEnabled.12">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.openxmlformats-officedocument.presentationml.template">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-powerpoint.template.macroEnabled.12">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  Others  -->
+<app name="application/vnd.wordperfect">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-aportisdoc">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-hwp">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-works">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-mswrite">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-dif-document">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="text/spreadsheet">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="text/csv">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-dbase">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.lotus-1-2-3">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/cgm">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/vnd.dxf">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/x-emf">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/x-wmf">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/coreldraw">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.visio2013">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.visio">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.ms-visio.drawing">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-mspublisher">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-sony-bbeb">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-gnumeric">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/macwriteii">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-iwork-numbers-sffnumbers">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.oasis.opendocument.text-web">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-pagemaker">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="text/rtf">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="text/plain">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-fictionbook+xml">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/clarisworks">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/x-wpg">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-iwork-pages-sffpages">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.openxmlformats-officedocument.presentationml.slideshow">
+<action default="true" ext="" name="edit" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-iwork-keynote-sffkey">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-abiword">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/x-freehand">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/vnd.sun.xml.chart">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/x-t602">
+<action default="true" ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/bmp">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/png">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/gif">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/tiff">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/jpg">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="image/jpeg">
+<action ext="" name="view" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<app name="application/pdf">
+<action ext="" name="view_comment" urlsrc="https://127.0.0.1:9980/browser/80a6f97/cool.html?"/>
+</app>
+<!--  End of legacy MIME-type actions  -->
+<app name="Capabilities">
+<action ext="" name="getinfo" urlsrc="https://127.0.0.1:9980/hosting/capabilities"/>
+</app>
+</net-zone>
+</wopi-discovery>`
+	group, _ := DiscoveryXmlToViewerGroup(xmlSrc)
+	fmt.Print(group)
 }

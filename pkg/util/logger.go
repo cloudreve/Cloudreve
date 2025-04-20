@@ -116,7 +116,7 @@ func (ll *Logger) Debug(format string, v ...interface{}) {
 //		return
 //	}
 //	msg := fmt.Sprintf("[SQL] %s", v...)
-//	ll.Println(msg)
+//	ll.println(msg)
 //}
 
 // BuildLogger 构建logger

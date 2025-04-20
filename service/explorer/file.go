@@ -2,24 +2,28 @@ package explorer
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
+	"encoding/gob"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"io/ioutil"
 	"net/http"
-	"net/url"
-	"path"
-	"strconv"
-	"strings"
+	"time"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem/fsctx"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs/dbfs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager/entitysource"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/request"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
+	"github.com/samber/lo"
 )
 
 // SingleFileService 对单文件进行操作的五福，path为文件完整路径
@@ -37,498 +41,633 @@ type FileAnonymousGetService struct {
 	Name string `uri:"name" binding:"required"`
 }
 
-// DownloadService 文件下載服务
-type DownloadService struct {
-	ID string `uri:"id" binding:"required"`
-}
-
-// ArchiveService 文件流式打包下載服务
-type ArchiveService struct {
-	ID string `uri:"sessionID" binding:"required"`
-}
-
-// New 创建新文件
-func (service *SingleFileService) Create(c *gin.Context) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 给文件系统分配钩子
-	fs.Use("BeforeUpload", filesystem.HookValidateFile)
-	fs.Use("AfterUpload", filesystem.GenericAfterUpload)
-
-	// 上传空文件
-	err = fs.Upload(ctx, &fsctx.FileStream{
-		File:        ioutil.NopCloser(strings.NewReader("")),
-		Size:        0,
-		VirtualPath: path.Dir(service.Path),
-		Name:        path.Base(service.Path),
-	})
-	if err != nil {
-		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
-	}
-
-	return serializer.Response{
-		Code: 0,
-	}
+func init() {
+	gob.Register(ArchiveDownloadSession{})
 }
 
 // List 列出从机上的文件
 func (service *SlaveListService) List(c *gin.Context) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewAnonymousFileSystem()
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
+	//// 创建文件系统
+	//fs, err := filesystem.NewAnonymousFileSystem()
+	//if err != nil {
+	//	return serializer.ErrDeprecated(serializer.CodeCreateFSError, "", err)
+	//}
+	//defer fs.Recycle()
+	//
+	//objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
+	//if err != nil {
+	//	return serializer.ErrDeprecated(serializer.CodeIOFailed, "Cannot list files", err)
+	//}
+	//
+	//res, _ := json.Marshal(objects)
+	//return serializer.Response{Data: string(res)}
 
-	objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
-	if err != nil {
-		return serializer.Err(serializer.CodeIOFailed, "Cannot list files", err)
-	}
-
-	res, _ := json.Marshal(objects)
-	return serializer.Response{Data: string(res)}
+	return serializer.Response{}
 }
 
+// ArchiveService 文件流式打包下載服务
+type (
+	ArchiveService struct {
+		ID string `uri:"sessionID" binding:"required"`
+	}
+	ArchiveParamCtx struct{}
+)
+
 // DownloadArchived 通过预签名 URL 打包下载
-func (service *ArchiveService) DownloadArchived(ctx context.Context, c *gin.Context) serializer.Response {
-	userRaw, exist := cache.Get("archive_user_" + service.ID)
-	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "Archive session not exist", nil)
+func (service *ArchiveService) DownloadArchived(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	archiveSessionRaw, found := dep.KV().Get(ArchiveDownloadSessionPrefix + service.ID)
+	if !found {
+		return serializer.NewError(serializer.CodeNotFound, "Archive session not exist", nil)
 	}
-	user := userRaw.(model.User)
 
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystem(&user)
+	// Switch to user context
+	archiveSession := archiveSessionRaw.(ArchiveDownloadSession)
+	requester, err := dep.UserClient().GetLoginUserByID(c, archiveSession.RequesterID)
 	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
+		return serializer.NewError(serializer.CodeNotFound, "Requester not found", err)
 	}
-	defer fs.Recycle()
 
-	// 查找打包的临时文件
-	archiveSession, exist := cache.Get("archive_" + service.ID)
-	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "Archive session not exist", nil)
-	}
+	util.WithValue(c, inventory.UserCtx{}, requester)
+
+	fm := manager.NewFileManager(dep, requester)
+	defer fm.Recycle()
 
 	// 开始打包
 	c.Header("Content-Disposition", "attachment;")
 	c.Header("Content-Type", "application/zip")
-	itemService := archiveSession.(ItemIDService)
-	items := itemService.Raw()
-	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	err = fs.Compress(ctx, c.Writer, items.Dirs, items.Items, true)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, "Failed to compress file", err)
+
+	if _, err := fm.CreateArchive(c, archiveSession.Uris, c.Writer); err != nil {
+		return serializer.NewError(serializer.CodeIOFailed, "Failed to create archive", err)
 	}
 
-	return serializer.Response{
-		Code: 0,
-	}
+	return nil
 }
 
-// Download 签名的匿名文件下载
-func (service *FileAnonymousGetService) Download(ctx context.Context, c *gin.Context) serializer.Response {
-	fs, err := filesystem.NewAnonymousFileSystem()
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
+type (
+	GetDirectLinkParamCtx struct{}
+	GetDirectLinkService  struct {
+		Uris []string `json:"uris" binding:"required,min=1"`
 	}
-	defer fs.Recycle()
+)
 
-	// 查找文件
-	err = fs.SetTargetFileByIDs([]uint{service.ID})
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	// 获取文件流
-	rs, err := fs.GetDownloadContent(ctx, 0)
-	defer rs.Close()
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	// 发送文件
-	http.ServeContent(c.Writer, c.Request, service.Name, fs.FileTarget[0].UpdatedAt, rs)
-
-	return serializer.Response{
-		Code: 0,
-	}
-}
-
-// Source 重定向到文件的有效原始链接
-func (service *FileAnonymousGetService) Source(ctx context.Context, c *gin.Context) serializer.Response {
-	fs, err := filesystem.NewAnonymousFileSystem()
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 查找文件
-	err = fs.SetTargetFileByIDs([]uint{service.ID})
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	// 获取文件流
-	ttl := int64(model.GetIntSetting("preview_timeout", 60))
-	res, err := fs.SignURL(ctx, &fs.FileTarget[0], ttl, false)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	c.Header("Cache-Control", fmt.Sprintf("max-age=%d", ttl))
-	return serializer.Response{
-		Code: -302,
-		Data: res,
-	}
-}
-
-// CreateDocPreviewSession 创建DOC文件预览会话，返回预览地址
-func (service *FileIDService) CreateDocPreviewSession(ctx context.Context, c *gin.Context, editable bool) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err)
-	}
-	defer fs.Recycle()
-
-	// 获取对象id
-	objectID, _ := c.Get("object_id")
-
-	// 如果上下文中已有File对象，则重设目标
-	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
-		fs.SetTargetFile(&[]model.File{*file})
-		objectID = uint(0)
-	}
-
-	// 如果上下文中已有Folder对象，则重设根目录
-	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
-		fs.Root = folder
-		path := ctx.Value(fsctx.PathCtx).(string)
-		err := fs.ResetFileIfNotExist(ctx, path)
-		if err != nil {
-			return serializer.Err(serializer.CodeNotFound, err.Error(), err)
-		}
-		objectID = uint(0)
-	}
-
-	// 获取文件临时下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "doc_preview_timeout")
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	// For newer version of Cloudreve - Local Policy
-	// When do not use a cdn, the downloadURL withouts hosts, like "/api/v3/file/download/xxx"
-	if strings.HasPrefix(downloadURL, "/") {
-		downloadURI, err := url.Parse(downloadURL)
-		if err != nil {
-			return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-		}
-		downloadURL = model.GetSiteURL().ResolveReference(downloadURI).String()
-	}
-
-	var resp serializer.DocPreviewSession
-
-	// Use WOPI preview if available
-	if model.IsTrueVal(model.GetSettingByName("wopi_enabled")) && wopi.Default != nil {
-		maxSize := model.GetIntSetting("maxEditSize", 0)
-		if maxSize > 0 && fs.FileTarget[0].Size > uint64(maxSize) {
-			return serializer.Err(serializer.CodeFileTooLarge, "", nil)
-		}
-
-		action := wopi.ActionPreview
-		if editable {
-			action = wopi.ActionEdit
-		}
-
-		session, err := wopi.Default.NewSession(fs.FileTarget[0].UserID, &fs.FileTarget[0], action)
-		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "Failed to create WOPI session", err)
-		}
-
-		resp.URL = session.ActionURL.String()
-		resp.AccessTokenTTL = session.AccessTokenTTL
-		resp.AccessToken = session.AccessToken
-		return serializer.Response{
-			Code: 0,
-			Data: resp,
-		}
-	}
-
-	// 生成最终的预览器地址
-	srcB64 := base64.StdEncoding.EncodeToString([]byte(downloadURL))
-	srcEncoded := url.QueryEscape(downloadURL)
-	srcB64Encoded := url.QueryEscape(srcB64)
-	resp.URL = util.Replace(map[string]string{
-		"{$src}":    srcEncoded,
-		"{$srcB64}": srcB64Encoded,
-		"{$name}":   url.QueryEscape(fs.FileTarget[0].Name),
-	}, model.GetSettingByName("office_preview_service"))
-
-	return serializer.Response{
-		Code: 0,
-		Data: resp,
-	}
-}
-
-// CreateDownloadSession 创建下载会话，获取下载URL
-func (service *FileIDService) CreateDownloadSession(ctx context.Context, c *gin.Context) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 获取对象id
-	objectID, _ := c.Get("object_id")
-
-	// 获取下载地址
-	downloadURL, err := fs.GetDownloadURL(ctx, objectID.(uint), "download_timeout")
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	return serializer.Response{
-		Code: 0,
-		Data: downloadURL,
-	}
-}
-
-// Download 通过签名URL的文件下载，无需登录
-func (service *DownloadService) Download(ctx context.Context, c *gin.Context) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 查找打包的临时文件
-	file, exist := cache.Get("download_" + service.ID)
-	if !exist {
-		return serializer.Err(serializer.CodeNotFound, "Download session not exist", nil)
-	}
-	fs.FileTarget = []model.File{file.(model.File)}
-
-	// 开始处理下载
-	ctx = context.WithValue(ctx, fsctx.GinCtx, c)
-	rs, err := fs.GetDownloadContent(ctx, 0)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-	defer rs.Close()
-
-	// 设置文件名
-	c.Header("Content-Disposition", "attachment; filename=\""+url.PathEscape(fs.FileTarget[0].Name)+"\"")
-
-	if fs.User.Group.OptionsSerialized.OneTimeDownload {
-		// 清理资源，删除临时文件
-		_ = cache.Deletes([]string{service.ID}, "download_")
-	}
-
-	// 发送文件
-	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, rs)
-
-	return serializer.Response{
-		Code: 0,
-	}
-}
-
-// PreviewContent 预览文件，需要登录会话, isText - 是否为文本文件，文本文件会
-// 强制经由服务端中转
-func (service *FileIDService) PreviewContent(ctx context.Context, c *gin.Context, isText bool) serializer.Response {
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	// 获取对象id
-	objectID, _ := c.Get("object_id")
-
-	// 如果上下文中已有File对象，则重设目标
-	if file, ok := ctx.Value(fsctx.FileModelCtx).(*model.File); ok {
-		fs.SetTargetFile(&[]model.File{*file})
-		objectID = uint(0)
-	}
-
-	// 如果上下文中已有Folder对象，则重设根目录
-	if folder, ok := ctx.Value(fsctx.FolderModelCtx).(*model.Folder); ok {
-		fs.Root = folder
-		path := ctx.Value(fsctx.PathCtx).(string)
-		err := fs.ResetFileIfNotExist(ctx, path)
-		if err != nil {
-			return serializer.Err(serializer.CodeFileNotFound, err.Error(), err)
-		}
-		objectID = uint(0)
-	}
-
-	// 获取文件预览响应
-	resp, err := fs.Preview(ctx, objectID.(uint), isText)
-	if err != nil {
-		return serializer.Err(serializer.CodeNotSet, err.Error(), err)
-	}
-
-	// 重定向到文件源
-	if resp.Redirect {
-		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
-		return serializer.Response{
-			Code: -301,
-			Data: resp.URL,
-		}
-	}
-
-	// 直接返回文件内容
-	defer resp.Content.Close()
-
-	if isText {
-		c.Header("Cache-Control", "no-cache")
-	}
-
-	http.ServeContent(c.Writer, c.Request, fs.FileTarget[0].Name, fs.FileTarget[0].UpdatedAt, resp.Content)
-
-	return serializer.Response{
-		Code: 0,
-	}
-}
-
-// PutContent 更新文件内容
-func (service *FileIDService) PutContent(ctx context.Context, c *gin.Context) serializer.Response {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// 取得文件大小
-	fileSize, err := strconv.ParseUint(c.Request.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-
-		return serializer.ParamErr("Invalid content-length value", err)
-	}
-
-	fileData := fsctx.FileStream{
-		MimeType: c.Request.Header.Get("Content-Type"),
-		File:     c.Request.Body,
-		Size:     fileSize,
-		Mode:     fsctx.Overwrite,
-	}
-
-	// 创建文件系统
-	fs, err := filesystem.NewFileSystemFromContext(c)
-	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
-
-	// 取得现有文件
-	fileID, _ := c.Get("object_id")
-	originFile, _ := model.GetFilesByIDs([]uint{fileID.(uint)}, fs.User.ID)
-	if len(originFile) == 0 {
-		return serializer.Err(serializer.CodeFileNotFound, "", nil)
-	}
-	fileData.Name = originFile[0].Name
-
-	// 检查此文件是否有软链接
-	fileList, err := model.RemoveFilesWithSoftLinks([]model.File{originFile[0]})
-	if err == nil && len(fileList) == 0 {
-		// 如果包含软连接，应重新生成新文件副本，并更新source_name
-		originFile[0].SourceName = fs.GenerateSavePath(uploadCtx, &fileData)
-		fileData.Mode &= ^fsctx.Overwrite
-		fs.Use("AfterUpload", filesystem.HookUpdateSourceName)
-		fs.Use("AfterUploadCanceled", filesystem.HookUpdateSourceName)
-		fs.Use("AfterUploadCanceled", filesystem.HookCleanFileContent)
-		fs.Use("AfterUploadCanceled", filesystem.HookClearFileSize)
-		fs.Use("AfterValidateFailed", filesystem.HookUpdateSourceName)
-		fs.Use("AfterValidateFailed", filesystem.HookCleanFileContent)
-		fs.Use("AfterValidateFailed", filesystem.HookClearFileSize)
-	}
-
-	// 给文件系统分配钩子
-	fs.Use("BeforeUpload", filesystem.HookResetPolicy)
-	fs.Use("BeforeUpload", filesystem.HookValidateFile)
-	fs.Use("BeforeUpload", filesystem.HookValidateCapacityDiff)
-	fs.Use("AfterUpload", filesystem.GenericAfterUpdate)
-
-	// 执行上传
-	uploadCtx = context.WithValue(uploadCtx, fsctx.FileModelCtx, originFile[0])
-	err = fs.Upload(uploadCtx, &fileData)
-	if err != nil {
-		return serializer.Err(serializer.CodeUploadFailed, err.Error(), err)
-	}
-
-	return serializer.Response{
-		Code: 0,
-	}
+func (s *GetDirectLinkService) GetUris() []string {
+	return s.Uris
 }
 
 // Sources 批量获取对象的外链
-func (s *ItemIDService) Sources(ctx context.Context, c *gin.Context) serializer.Response {
-	fs, err := filesystem.NewFileSystemFromContext(c)
+func (s *GetDirectLinkService) Get(c *gin.Context) ([]DirectLinkResponse, error) {
+	dep := dependency.FromContext(c)
+	u := inventory.UserFromContext(c)
+
+	if u.Edges.Group.Settings.SourceBatchSize == 0 {
+		return nil, serializer.NewError(serializer.CodeGroupNotAllowed, "", nil)
+	}
+
+	if len(s.Uris) > u.Edges.Group.Settings.SourceBatchSize {
+		return nil, serializer.NewError(serializer.CodeBatchSourceSize, "", nil)
+	}
+
+	m := manager.NewFileManager(dep, u)
+	defer m.Recycle()
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
 	if err != nil {
-		return serializer.Err(serializer.CodeCreateFSError, "", err)
-	}
-	defer fs.Recycle()
-
-	if len(s.Raw().Items) > fs.User.Group.OptionsSerialized.SourceBatchSize {
-		return serializer.Err(serializer.CodeBatchSourceSize, "", err)
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
 	}
 
-	res := make([]serializer.Sources, 0, len(s.Raw().Items))
-	files, err := model.GetFilesByIDs(s.Raw().Items, fs.User.ID)
-	if err != nil || len(files) == 0 {
-		return serializer.Err(serializer.CodeFileNotFound, "", err)
+	res, err := m.GetDirectLink(c, uris...)
+	return BuildDirectLinkResponse(res), err
+}
+
+const defaultPageSize = 100
+
+type (
+	// ListFileParameterCtx define key fore ListFileService
+	ListFileParameterCtx struct{}
+
+	// ListFileService stores parameters for list file by URI
+	ListFileService struct {
+		Uri            string `uri:"uri" form:"uri" json:"uri" binding:"required"`
+		Page           int    `uri:"page" form:"page" json:"page" binding:"min=0"`
+		PageSize       int    `uri:"page_size" form:"page_size" json:"page_size" binding:"min=10"`
+		OrderBy        string `uri:"order_by" form:"order_by" json:"order_by"`
+		OrderDirection string `uri:"order_direction" form:"order_direction" json:"order_direction"`
+		NextPageToken  string `uri:"next_page_token" form:"next_page_token" json:"next_page_token"`
+	}
+)
+
+// List all files for given path
+func (service *ListFileService) List(c *gin.Context) (*ListResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(service.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
 	}
 
-	getSourceFunc := func(file model.File) (string, error) {
-		fs.FileTarget = []model.File{file}
-		return fs.GetSource(ctx, file.ID)
+	pageSize := service.PageSize
+	if pageSize == 0 {
+		pageSize = defaultPageSize
 	}
 
-	// Create redirected source link if needed
-	if fs.User.Group.OptionsSerialized.RedirectedSource {
-		getSourceFunc = func(file model.File) (string, error) {
-			source, err := file.CreateOrGetSourceLink()
-			if err != nil {
-				return "", err
+	streamed := false
+	hasher := dep.HashIDEncoder()
+	parent, res, err := m.List(c, uri, &manager.ListArgs{
+		Page:           service.Page,
+		PageSize:       pageSize,
+		Order:          service.OrderBy,
+		OrderDirection: service.OrderDirection,
+		PageToken:      service.NextPageToken,
+		StreamResponseCallback: func(parent fs.File, files []fs.File) {
+			if !streamed {
+				WriteEventSourceHeader(c)
+				streamed = true
 			}
 
-			sourceLinkURL, err := source.Link()
-			if err != nil {
-				return "", err
-			}
-
-			return sourceLinkURL, nil
-		}
+			WriteEventSource(c, "file", lo.Map(files, func(file fs.File, index int) *FileResponse {
+				return BuildFileResponse(c, user, file, hasher, nil)
+			}))
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	for _, file := range files {
-		sourceURL, err := getSourceFunc(file)
-		current := serializer.Sources{
-			URL:    sourceURL,
-			Name:   file.Name,
-			Parent: file.FolderID,
-		}
-
-		if err != nil {
-			current.Error = err.Error()
-		}
-
-		res = append(res, current)
+	listResponse := BuildListResponse(c, user, parent, res, hasher)
+	if streamed {
+		WriteEventSource(c, "list", listResponse)
+		return nil, ErrSSETakeOver
 	}
 
-	return serializer.Response{
-		Code: 0,
-		Data: res,
+	return listResponse, nil
+}
+
+type (
+	CreateFileParameterCtx struct{}
+	CreateFileService      struct {
+		Uri           string            `json:"uri" binding:"required"`
+		Type          string            `json:"type" binding:"required,eq=file|eq=folder"`
+		Metadata      map[string]string `json:"metadata"`
+		ErrOnConflict bool              `json:"err_on_conflict"`
 	}
+)
+
+func (service *CreateFileService) Create(c *gin.Context) (*FileResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(service.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	fileType := types.FileTypeFromString(service.Type)
+	opts := []fs.Option{
+		fs.WithMetadata(service.Metadata),
+	}
+	if service.ErrOnConflict {
+		opts = append(opts, dbfs.WithErrorOnConflict())
+	}
+	file, err := m.Create(c, uri, fileType, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildFileResponse(c, user, file, dep.HashIDEncoder(), nil), nil
+}
+
+type (
+	RenameFileParameterCtx struct{}
+	RenameFileService      struct {
+		Uri     string `json:"uri" binding:"required"`
+		NewName string `json:"new_name" binding:"required,min=1,max=255"`
+	}
+)
+
+func (service *RenameFileService) Rename(c *gin.Context) (*FileResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(service.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	file, err := m.Rename(c, uri, service.NewName)
+	if err != nil {
+		return nil, err
+	}
+
+	return BuildFileResponse(c, user, file, dep.HashIDEncoder(), nil), nil
+}
+
+type (
+	MoveFileParameterCtx struct{}
+	MoveFileService      struct {
+		Uris []string `json:"uris" binding:"required,min=1"`
+		Dst  string   `json:"dst" binding:"required"`
+		Copy bool     `json:"copy"`
+	}
+)
+
+func (s *MoveFileService) GetUris() []string {
+	return s.Uris
+}
+
+func (s *MoveFileService) Move(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	dst, err := fs.NewUriFromString(s.Dst)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "unknown destination uri", err)
+	}
+
+	return m.MoveOrCopy(c, uris, dst, s.Copy)
+}
+
+type (
+	FileUpdateParameterCtx struct{}
+	FileUpdateService      struct {
+		Uri      string `form:"uri" binding:"required"`
+		Previous string `form:"previous"`
+	}
+)
+
+func (service *FileUpdateService) PutContent(c *gin.Context, ls fs.LockSession) (*FileResponse, error) {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+	// 取得文件大小
+	rc, fileSize, err := request.SniffContentLength(c.Request)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "invalid content length", err)
+	}
+
+	if fileSize > settings.MaxOnlineEditSize(c) {
+		return nil, fs.ErrFileSizeTooBig
+	}
+
+	uri, err := fs.NewUriFromString(service.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	fileData := &fs.UploadRequest{
+		Props: &fs.UploadProps{
+			Uri:             uri,
+			PreviousVersion: service.Previous,
+			Size:            fileSize,
+		},
+		File: rc,
+		Mode: fs.ModeOverwrite,
+	}
+
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	// Update file
+	var ctx context.Context = c
+	if ls != nil {
+		ctx = fs.LockSessionToContext(c, ls)
+	}
+	res, err := m.Update(ctx, fileData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update file: %w", err)
+	}
+
+	return BuildFileResponse(c, user, res, dep.HashIDEncoder(), nil), nil
+}
+
+type (
+	FileURLParameterCtx struct{}
+	FileURLService      struct {
+		Uris              []string `json:"uris" binding:"required"`
+		Download          bool     `json:"download"`
+		Redirect          bool     `json:"redirect"` // Only works if Uris count is 1.
+		Entity            string   `json:"entity"`   // Only works if Uris count is 1.
+		UsePrimarySiteURL bool     `json:"use_primary_site_url"`
+		SkipError         bool     `json:"skip_error"`
+		Archive           bool     `json:"archive"`
+		NoCache           bool     `json:"no_cache"`
+	}
+	FileURLResponse struct {
+		Urls    []string   `json:"urls"`
+		Expires *time.Time `json:"expires"`
+	}
+	ArchiveDownloadSession struct {
+		Uris        []*fs.URI `json:"uris"`
+		RequesterID int       `json:"requester_id"`
+	}
+)
+
+const (
+	ArchiveDownloadSessionPrefix = "archive_"
+)
+
+func (s *FileURLService) GetUris() []string {
+	return s.Uris
+}
+
+// GetArchiveDownloadSession generates temporary download session for archive download.
+func (s *FileURLService) GetArchiveDownloadSession(c *gin.Context) (*FileURLResponse, error) {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+	user := inventory.UserFromContext(c)
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	if !user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionArchiveDownload)) {
+		return nil, serializer.NewError(serializer.CodeGroupNotAllowed, "", nil)
+	}
+
+	// Create archive download session
+	archiveSession := &ArchiveDownloadSession{
+		Uris:        uris,
+		RequesterID: user.ID,
+	}
+	sessionId := uuid.Must(uuid.NewV4()).String()
+	ttl := settings.ArchiveDownloadSessionTTL(c)
+	expire := time.Now().Add(time.Duration(ttl) * time.Second)
+	if err := dep.KV().Set(ArchiveDownloadSessionPrefix+sessionId, *archiveSession, ttl); err != nil {
+		return nil, serializer.NewError(serializer.CodeInternalSetting, "failed to create archive download session", err)
+	}
+
+	base := settings.SiteURL(c)
+	downloadUrl := routes.MasterArchiveDownloadUrl(base, sessionId)
+	finalUrl, err := auth.SignURI(c, dep.GeneralAuth(), downloadUrl.String(), &expire)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeInternalSetting, "failed to sign archive download url", err)
+	}
+
+	return &FileURLResponse{
+		Urls:    []string{finalUrl.String()},
+		Expires: &expire,
+	}, nil
+}
+
+func (s *FileURLService) Get(c *gin.Context) (*FileURLResponse, error) {
+	if s.Archive {
+		return s.GetArchiveDownloadSession(c)
+	}
+
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	// Request entity URL
+	expire := time.Now().Add(settings.EntityUrlValidDuration(c))
+	urlReq := lo.Map(uris, func(uri *fs.URI, _ int) manager.GetEntityUrlArgs {
+		return manager.GetEntityUrlArgs{
+			URI:               uri,
+			PreferredEntityID: s.Entity,
+		}
+	})
+
+	var ctx context.Context = c
+	if s.UsePrimarySiteURL {
+		ctx = setting.UseFirstSiteUrl(ctx)
+	}
+
+	res, earliestExpire, err := m.GetEntityUrls(ctx, urlReq,
+		fs.WithDownloadSpeed(int64(user.Edges.Group.SpeedLimit)),
+		fs.WithIsDownload(s.Download),
+		fs.WithNoCache(s.NoCache),
+		fs.WithUrlExpire(&expire),
+	)
+	if err != nil && !s.SkipError {
+		return nil, fmt.Errorf("failed to get entity url: %w", err)
+	}
+
+	//if !s.NoCache && earliestExpire != nil {
+	//	// Set cache header
+	//	cacheTTL := int(earliestExpire.Sub(time.Now()).Seconds() - float64(settings.EntityUrlCacheMargin(c)))
+	//	if cacheTTL > 0 {
+	//		c.Header("Cache-Control", fmt.Sprintf("private, max-age=%d", cacheTTL))
+	//	}
+	//}
+
+	if s.Redirect && len(uris) == 1 {
+		c.Redirect(http.StatusFound, res[0])
+		return nil, nil
+	}
+
+	return &FileURLResponse{
+		Urls:    res,
+		Expires: earliestExpire,
+	}, nil
+}
+
+type (
+	FileThumbParameterCtx struct{}
+	FileThumbService      struct {
+		Uri string `form:"uri" binding:"required"`
+	}
+	FileThumbResponse struct {
+		Url     string     `json:"url"`
+		Expires *time.Time `json:"expires"`
+	}
+)
+
+// Get redirect to thumb file.
+func (s *FileThumbService) Get(c *gin.Context) (*FileThumbResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(s.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	// Get thumbnail
+	thumb, err := m.Thumbnail(c, uri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get thumbnail: %w", err)
+	}
+
+	expire := time.Now().Add(dep.SettingProvider().EntityUrlValidDuration(c))
+	thumbUrl, err := thumb.Url(c, entitysource.WithExpire(&expire))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get thumbnail url: %w", err)
+	}
+
+	return &FileThumbResponse{
+		Url:     thumbUrl.Url,
+		Expires: thumbUrl.ExpireAt,
+	}, nil
+}
+
+type (
+	DeleteFileParameterCtx struct{}
+	DeleteFileService      struct {
+		Uris           []string `json:"uris" binding:"required,min=1"`
+		UnlinkOnly     bool     `json:"unlink"`
+		SkipSoftDelete bool     `json:"skip_soft_delete"`
+	}
+)
+
+func (s *DeleteFileService) GetUris() []string {
+	return s.Uris
+}
+
+func (s *DeleteFileService) Delete(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	if s.UnlinkOnly && !user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionAdvanceDelete)) {
+		return serializer.NewError(serializer.CodeNoPermissionErr, "advance delete permission is required", nil)
+	}
+
+	// Delete file
+	if err = m.Delete(c, uris, fs.WithUnlinkOnly(s.UnlinkOnly), fs.WithSkipSoftDelete(s.SkipSoftDelete)); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	return nil
+}
+
+func (s *DeleteFileService) Restore(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uris, err := fs.NewUriFromStrings(s.Uris...)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	// Delete file
+	if err = m.Restore(c, uris...); err != nil {
+		return fmt.Errorf("failed to restore file: %w", err)
+
+	}
+
+	return nil
+}
+
+type (
+	UnlockFileParameterCtx struct{}
+	UnlockFileService      struct {
+		Tokens []string `json:"tokens" binding:"required,max=16384"`
+	}
+)
+
+func (s *UnlockFileService) Unlock(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	// Unlock file
+	if err := m.Unlock(c, s.Tokens...); err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "failed to unlock file", err)
+	}
+
+	return nil
+}
+
+type (
+	GetFileInfoParameterCtx struct{}
+	GetFileInfoService      struct {
+		Uri           string `form:"uri" binding:"required"`
+		ExtendedInfo  bool   `form:"extended"`
+		FolderSummary bool   `form:"folder_summary"`
+	}
+)
+
+func (s *GetFileInfoService) Get(c *gin.Context) (*FileResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(s.Uri)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	opts := []fs.Option{dbfs.WithFilePublicMetadata()}
+	if s.ExtendedInfo {
+		opts = append(opts, dbfs.WithExtendedInfo(), dbfs.WithEntityUser(), dbfs.WithFileShareIfOwned())
+	}
+	if s.FolderSummary {
+		opts = append(opts, dbfs.WithLoadFolderSummary())
+	}
+
+	file, err := m.Get(c, uri, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get file: %w", err)
+	}
+
+	if file == nil {
+		return nil, serializer.NewError(serializer.CodeNotFound, "file not found", nil)
+	}
+
+	return BuildFileResponse(c, user, file, dep.HashIDEncoder(), nil), nil
+}
+
+func RedirectDirectLink(c *gin.Context, name string) error {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
+
+	sourceLinkID := hashid.FromContext(c)
+	ctx := context.WithValue(c, inventory.LoadDirectLinkFile{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadFileEntity{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadFileUser{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadUserGroup{}, true)
+	dl, err := dep.DirectLinkClient().GetByNameID(ctx, sourceLinkID, name)
+	if err != nil {
+		return serializer.NewError(serializer.CodeNotFound, "direct link not found", err)
+	}
+
+	m := manager.NewFileManager(dep, dl.Edges.File.Edges.Owner)
+	defer m.Recycle()
+
+	// Request entity URL
+	expire := time.Now().Add(settings.EntityUrlValidDuration(c))
+	res, earliestExpire, err := m.GetUrlForRedirectedDirectLink(c, dl,
+		fs.WithUrlExpire(&expire),
+	)
+	if err != nil {
+		return err
+	}
+
+	c.Redirect(http.StatusFound, res)
+	c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(earliestExpire.Sub(time.Now()).Seconds())))
+	return nil
 }

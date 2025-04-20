@@ -1,12 +1,11 @@
 package conf
 
 import (
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/stretchr/testify/assert"
 )
 
 // 测试Init日志路径错误
@@ -15,10 +14,10 @@ func TestInitPanic(t *testing.T) {
 
 	// 日志路径不存在时
 	asserts.NotPanics(func() {
-		Init("not/exist/path/conf.ini")
+		Init("not/exist/path")
 	})
 
-	asserts.True(util.Exists("not/exist/path/conf.ini"))
+	asserts.True(util.Exists("conf.ini"))
 
 }
 
@@ -56,11 +55,7 @@ User = root
 Password = root
 Host = 127.0.0.1:3306
 Name = v3
-TablePrefix = v3_
-
-[OptionOverwrite]
-key=value
-`
+TablePrefix = v3_`
 	err := ioutil.WriteFile("testConf.ini", []byte(testCase), 0644)
 	defer func() { err = os.Remove("testConf.ini") }()
 	if err != nil {
@@ -69,7 +64,6 @@ key=value
 	asserts.NotPanics(func() {
 		Init("testConf.ini")
 	})
-	asserts.Equal(OptionOverwrite["key"], "value")
 }
 
 func TestMapSection(t *testing.T) {

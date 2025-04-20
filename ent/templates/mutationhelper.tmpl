@@ -1,0 +1,20 @@
+{{/* The line below tells Intellij/GoLand to enable the autocompletion based on the *gen.Graph type. */}}
+{{/* gotype: entgo.io/ent/entc/gen.Graph */}}
+
+{{ define "mutationhelper" }}
+
+{{ $pkg := base $.Config.Package }}
+{{ template "header" $ }}
+
+{{ range $n := $.Nodes }}
+// SetUpdatedAt sets the "updated_at" field.
+{{ with $n.HasOneFieldID }}
+
+func (m *{{ $n.Name }}Mutation) SetRawID(t {{ $n.ID.Type }}) {
+	m.id = &t
+}
+
+{{ end }}
+{{ end }}
+
+{{ end }}

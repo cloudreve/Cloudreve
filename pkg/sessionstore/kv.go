@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base32"
 	"encoding/gob"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"net/http"
@@ -76,7 +76,7 @@ func (s *kvStore) New(r *http.Request, name string) (*sessions.Session, error) {
 func (s *kvStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
 	if session.Options.MaxAge <= 0 {
-		if err := s.store.Delete([]string{session.ID}, s.prefix); err != nil {
+		if err := s.store.Delete(s.prefix, session.ID); err != nil {
 			return err
 		}
 		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
