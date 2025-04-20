@@ -230,12 +230,13 @@ func (c *userClient) ApplyStorageDiff(ctx context.Context, diffs StorageDiff) er
 
 func (c *userClient) CalculateStorage(ctx context.Context, uid int) (int64, error) {
 	var sum int64
-	batchSize := 5000
+	batchSize := 30000
 	offset := 0
 
 	for {
 		allFiles, err := c.client.File.Query().
 			Where(file.HasOwnerWith(user.ID(uid))).
+			Where(file.Type(int(types.FileTypeFile))).
 			WithEntities().
 			Offset(offset).
 			Limit(batchSize).
