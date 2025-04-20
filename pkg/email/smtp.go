@@ -1,19 +1,27 @@
 package email
 
 import (
+	"context"
 	"fmt"
-	"github.com/google/uuid"
+	"strings"
 	"time"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/go-mail/mail"
+	"github.com/gofrs/uuid"
 )
 
-// SMTP SMTP协议发送邮件
-type SMTP struct {
+// SMTPPool SMTP协议发送邮件
+type SMTPPool struct {
+	// Deprecated
 	Config SMTPConfig
-	ch     chan *mail.Message
+
+	config *setting.SMTP
+	ch     chan *message
 	chOpen bool
+	l      logging.Logger
 }
 
 // SMTPConfig SMTP发送配置
@@ -26,14 +34,34 @@ type SMTPConfig struct {
 	User       string // 用户名
 	Password   string // 密码
 	Encryption bool   // 是否启用加密
-	Keepalive  int    // SMTP 连接保留时长
+	Keepalive  int    // SMTPPool 连接保留时长
+}
+
+type message struct {
+	msg    *mail.Message
+	cid    string
+	userID int
+}
+
+// NewSMTPPool initializes a new SMTP based email sending queue.
+func NewSMTPPool(config setting.Provider, logger logging.Logger) *SMTPPool {
+	client := &SMTPPool{
+		config: config.SMTP(context.Background()),
+		ch:     make(chan *message, 30),
+		chOpen: false,
+		l:      logger,
+	}
+
+	client.Init()
+	return client
 }
 
 // NewSMTPClient 新建SMTP发送队列
-func NewSMTPClient(config SMTPConfig) *SMTP {
-	client := &SMTP{
+// Deprecated
+func NewSMTPClient(config SMTPConfig) *SMTPPool {
+	client := &SMTPPool{
 		Config: config,
-		ch:     make(chan *mail.Message, 30),
+		ch:     make(chan *message, 30),
 		chOpen: false,
 	}
 
@@ -43,46 +71,57 @@ func NewSMTPClient(config SMTPConfig) *SMTP {
 }
 
 // Send 发送邮件
-func (client *SMTP) Send(to, title, body string) error {
+func (client *SMTPPool) Send(ctx context.Context, to, title, body string) error {
 	if !client.chOpen {
-		return ErrChanNotOpen
+		return fmt.Errorf("SMTP pool is closed")
 	}
+
+	// 忽略通过QQ登录的邮箱
+	if strings.HasSuffix(to, "@login.qq.com") {
+		return nil
+	}
+
 	m := mail.NewMessage()
-	m.SetAddressHeader("From", client.Config.Address, client.Config.Name)
-	m.SetAddressHeader("Reply-To", client.Config.ReplyTo, client.Config.Name)
+	m.SetAddressHeader("From", client.config.From, client.config.FromName)
+	m.SetAddressHeader("Reply-To", client.config.ReplyTo, client.config.FromName)
 	m.SetHeader("To", to)
 	m.SetHeader("Subject", title)
-	m.SetHeader("Message-ID", fmt.Sprintf("<%s@%s>", uuid.NewString(), "cloudreve"))
+	m.SetHeader("Message-ID", fmt.Sprintf("<%s@%s>", uuid.Must(uuid.NewV4()).String(), "cloudreve"))
 	m.SetBody("text/html", body)
-	client.ch <- m
+	client.ch <- &message{
+		msg:    m,
+		cid:    logging.CorrelationID(ctx).String(),
+		userID: inventory.UserIDFromContext(ctx),
+	}
 	return nil
 }
 
 // Close 关闭发送队列
-func (client *SMTP) Close() {
+func (client *SMTPPool) Close() {
 	if client.ch != nil {
 		close(client.ch)
 	}
 }
 
 // Init 初始化发送队列
-func (client *SMTP) Init() {
+func (client *SMTPPool) Init() {
 	go func() {
+		client.l.Info("Initializing and starting SMTP email pool...")
 		defer func() {
 			if err := recover(); err != nil {
 				client.chOpen = false
-				util.Log().Error("Exception while sending email: %s, queue will be reset in 10 seconds.", err)
+				client.l.Error("Exception while sending email: %s, queue will be reset in 10 seconds.", err)
 				time.Sleep(time.Duration(10) * time.Second)
 				client.Init()
 			}
 		}()
 
-		d := mail.NewDialer(client.Config.Host, client.Config.Port, client.Config.User, client.Config.Password)
-		d.Timeout = time.Duration(client.Config.Keepalive+5) * time.Second
+		d := mail.NewDialer(client.config.Host, client.config.Port, client.config.User, client.config.Password)
+		d.Timeout = time.Duration(client.config.Keepalive+5) * time.Second
 		client.chOpen = true
 		// 是否启用 SSL
 		d.SSL = false
-		if client.Config.Encryption {
+		if client.config.ForceEncryption {
 			d.SSL = true
 		}
 		d.StartTLSPolicy = mail.OpportunisticStartTLS
@@ -94,26 +133,29 @@ func (client *SMTP) Init() {
 			select {
 			case m, ok := <-client.ch:
 				if !ok {
-					util.Log().Debug("Email queue closing...")
+					client.l.Info("Email queue closing...")
 					client.chOpen = false
 					return
 				}
+
 				if !open {
 					if s, err = d.Dial(); err != nil {
 						panic(err)
 					}
 					open = true
 				}
-				if err := mail.Send(s, m); err != nil {
-					util.Log().Warning("Failed to send email: %s", err)
+
+				l := client.l.CopyWithPrefix(fmt.Sprintf("[Cid: %s]", m.cid))
+				if err := mail.Send(s, m.msg); err != nil {
+					l.Warning("Failed to send email: %s, Cid=%s", err, m.cid)
 				} else {
-					util.Log().Debug("Email sent.")
+					l.Info("Email sent to %q, title: %q.", m.msg.GetHeader("To"), m.msg.GetHeader("Subject"))
 				}
 			// 长时间没有新邮件，则关闭SMTP连接
-			case <-time.After(time.Duration(client.Config.Keepalive) * time.Second):
+			case <-time.After(time.Duration(client.config.Keepalive) * time.Second):
 				if open {
 					if err := s.Close(); err != nil {
-						util.Log().Warning("Failed to close SMTP connection: %s", err)
+						client.l.Warning("Failed to close SMTP connection: %s", err)
 					}
 					open = false
 				}

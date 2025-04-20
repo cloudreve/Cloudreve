@@ -2,7 +2,8 @@ package request
 
 import (
 	"context"
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,18 +16,24 @@ type Option interface {
 }
 
 type options struct {
-	timeout         time.Duration
-	header          http.Header
-	sign            auth.Auth
-	signTTL         int64
-	ctx             context.Context
-	contentLength   int64
-	masterMeta      bool
-	endpoint        *url.URL
-	slaveNodeID     string
-	tpsLimiterToken string
-	tps             float64
-	tpsBurst        int
+	timeout           time.Duration
+	header            http.Header
+	sign              auth.Auth
+	signTTL           int64
+	ctx               context.Context
+	contentLength     int64
+	masterMeta        bool
+	siteID            string
+	siteURL           string
+	endpoint          *url.URL
+	slaveNodeID       int
+	tpsLimiterToken   string
+	tps               float64
+	tpsBurst          int
+	logger            logging.Logger
+	withCorrelationID bool
+	cookieJar         http.CookieJar
+	transport         *http.Transport
 }
 
 type optionFunc func(*options)
@@ -38,7 +45,7 @@ func (f optionFunc) apply(o *options) {
 func newDefaultOption() *options {
 	return &options{
 		header:        http.Header{},
-		timeout:       time.Duration(30) * time.Second,
+		timeout:       0,
 		contentLength: -1,
 		ctx:           context.Background(),
 	}
@@ -48,6 +55,13 @@ func (o *options) clone() options {
 	newOptions := *o
 	newOptions.header = o.header.Clone()
 	return newOptions
+}
+
+// WithTransport 设置请求Transport
+func WithTransport(transport *http.Transport) Option {
+	return optionFunc(func(o *options) {
+		o.transport = transport
+	})
 }
 
 // WithTimeout 设置请求超时
@@ -68,7 +82,9 @@ func WithContext(c context.Context) Option {
 func WithCredential(instance auth.Auth, ttl int64) Option {
 	return optionFunc(func(o *options) {
 		o.sign = instance
-		o.signTTL = ttl
+		if ttl > 0 {
+			o.signTTL = ttl
+		}
 	})
 }
 
@@ -99,14 +115,16 @@ func WithContentLength(s int64) Option {
 }
 
 // WithMasterMeta 请求时携带主机信息
-func WithMasterMeta() Option {
+func WithMasterMeta(siteID string, siteURL string) Option {
 	return optionFunc(func(o *options) {
 		o.masterMeta = true
+		o.siteID = siteID
+		o.siteURL = siteURL
 	})
 }
 
-// WithSlaveMeta 请求时携带从机信息
-func WithSlaveMeta(s string) Option {
+// WithSlaveMeta set slave node ID in master's request header
+func WithSlaveMeta(s int) Option {
 	return optionFunc(func(o *options) {
 		o.slaveNodeID = s
 	})
@@ -133,5 +151,26 @@ func WithTPSLimit(token string, tps float64, burst int) Option {
 			burst = 1
 		}
 		o.tpsBurst = burst
+	})
+}
+
+// WithLogger set logger for logging requests
+func WithLogger(logger logging.Logger) Option {
+	return optionFunc(func(o *options) {
+		o.logger = logger
+	})
+}
+
+// WithCorrelationID set correlation ID for logging requests
+func WithCorrelationID() Option {
+	return optionFunc(func(o *options) {
+		o.withCorrelationID = true
+	})
+}
+
+// WithCookieJar set cookie jar for request
+func WithCookieJar(jar http.CookieJar) Option {
+	return optionFunc(func(o *options) {
+		o.cookieJar = jar
 	})
 }

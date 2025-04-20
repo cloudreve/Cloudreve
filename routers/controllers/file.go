@@ -1,421 +1,373 @@
 package controllers
 
 import (
-	"context"
-	"fmt"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"net/http"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/service/explorer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/request"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/service/explorer"
 	"github.com/gin-gonic/gin"
 )
 
 func DownloadArchive(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.ArchiveService
-	if err := c.ShouldBindUri(&service); err == nil {
-		service.DownloadArchived(ctx, c)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.ArchiveService](c, explorer.ArchiveParamCtx{})
+	err := service.DownloadArchived(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
 }
 
-func Archive(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// CreateArchive 创建文件压缩任务
+func CreateArchive(c *gin.Context) {
+	service := ParametersFromContext[*explorer.ArchiveWorkflowService](c, explorer.CreateArchiveParamCtx{})
+	resp, err := service.CreateCompressTask(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
 
-	var service explorer.ItemIDService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Archive(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }
 
-// Compress 创建文件压缩任务
-func Compress(c *gin.Context) {
-	var service explorer.ItemCompressService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.CreateCompressTask(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// CreateRemoteDownload creates remote download task
+func CreateRemoteDownload(c *gin.Context) {
+	service := ParametersFromContext[*explorer.DownloadWorkflowService](c, explorer.CreateDownloadParamCtx{})
+	resp, err := service.CreateDownloadTask(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }
 
-// Decompress 创建文件解压缩任务
-func Decompress(c *gin.Context) {
-	var service explorer.ItemDecompressService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.CreateDecompressTask(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// ExtractArchive creates extract archive task
+func ExtractArchive(c *gin.Context) {
+	service := ParametersFromContext[*explorer.ArchiveWorkflowService](c, explorer.CreateArchiveParamCtx{})
+	resp, err := service.CreateExtractTask(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
-}
 
-// AnonymousGetContent 匿名获取文件资源
-func AnonymousGetContent(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileAnonymousGetService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Download(ctx, c)
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AnonymousPermLink Deprecated 文件签名后的永久链接
-func AnonymousPermLinkDeprecated(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileAnonymousGetService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Source(ctx, c)
-		// 是否需要重定向
-		if res.Code == -302 {
-			c.Redirect(302, res.Data.(string))
-			return
-		}
-		// 是否有错误发生
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }
 
 // AnonymousPermLink 文件中转后的永久直链接
 func AnonymousPermLink(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	sourceLinkRaw, ok := c.Get("source_link")
-	if !ok {
-		c.JSON(200, serializer.Err(serializer.CodeFileNotFound, "", nil))
+	name := c.Param("name")
+	if err := explorer.RedirectDirectLink(c, name); err != nil {
+		c.JSON(404, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
-
-	sourceLink := sourceLinkRaw.(*model.SourceLink)
-
-	service := &explorer.FileAnonymousGetService{
-		ID:   sourceLink.FileID,
-		Name: sourceLink.File.Name,
-	}
-
-	res := service.Source(ctx, c)
-	// 是否需要重定向
-	if res.Code == -302 {
-		c.Redirect(302, res.Data.(string))
-		return
-	}
-
-	// 是否有错误发生
-	if res.Code != 0 {
-		c.JSON(200, res)
-	}
-
 }
 
+// GetSource 获取文件的外链地址
 func GetSource(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.ItemIDService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Sources(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.GetDirectLinkService](c, explorer.GetDirectLinkParamCtx{})
+	res, err := service.Get(c)
+	if err != nil && len(res) == 0 {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	if err != nil {
+		// Not fully completed
+		errResp := serializer.Err(c, err)
+		errResp.Data = res
+		c.JSON(200, errResp)
+		return
+	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
 // Thumb 获取文件缩略图
 func Thumb(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	fs, err := filesystem.NewFileSystemFromContext(c)
+	service := ParametersFromContext[*explorer.FileThumbService](c, explorer.FileThumbParameterCtx{})
+	res, err := service.Get(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-		return
-	}
-	defer fs.Recycle()
-
-	// 获取文件ID
-	fileID, ok := c.Get("object_id")
-	if !ok {
-		c.JSON(200, serializer.Err(serializer.CodeFileNotFound, "", err))
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	// 获取缩略图
-	resp, err := fs.GetThumb(ctx, fileID.(uint))
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+// FileURL get temporary file url for preview or download
+func FileURL(c *gin.Context) {
+	service := ParametersFromContext[*explorer.FileURLService](c, explorer.FileURLParameterCtx{})
+	resp, err := service.Get(c)
 	if err != nil {
-		c.JSON(200, serializer.Err(serializer.CodeNotSet, "Failed to get thumbnail", err))
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	if resp.Redirect {
-		c.Header("Cache-Control", fmt.Sprintf("max-age=%d", resp.MaxAge))
-		c.Redirect(http.StatusMovedPermanently, resp.URL)
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
+	}
+}
+
+// ServeEntity download entity content
+func ServeEntity(c *gin.Context) {
+	service := ParametersFromContext[*explorer.EntityDownloadService](c, explorer.EntityDownloadParameterCtx{})
+	err := service.Serve(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+}
+
+// CreateViewerSession creates a viewer session
+func CreateViewerSession(c *gin.Context) {
+	service := ParametersFromContext[*explorer.CreateViewerSessionService](c, explorer.CreateViewerSessionParamCtx{})
+	resp, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	defer resp.Content.Close()
-	http.ServeContent(c.Writer, c.Request, "thumb."+model.GetSettingByNameWithDefault("thumb_encode_method", "jpg"), fs.FileTarget[0].UpdatedAt, resp.Content)
-
-}
-
-// Preview 预览文件
-func Preview(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.PreviewContent(ctx, c, false)
-		// 是否需要重定向
-		if res.Code == -301 {
-			c.Redirect(302, res.Data.(string))
-			return
-		}
-		// 是否有错误发生
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// PreviewText 预览文本文件
-func PreviewText(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.PreviewContent(ctx, c, true)
-		// 是否有错误发生
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// GetDocPreview 获取DOC文件预览地址
-func GetDocPreview(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.CreateDocPreviewSession(ctx, c, true)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// CreateDownloadSession 创建文件下载会话
-func CreateDownloadSession(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.CreateDownloadSession(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// Download 文件下载
-func Download(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.DownloadService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Download(ctx, c)
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	if resp != nil {
+		c.JSON(200, serializer.Response{
+			Data: resp,
+		})
 	}
 }
 
 // PutContent 更新文件内容
 func PutContent(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.FileIDService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.PutContent(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.FileUpdateService](c, explorer.FileUpdateParameterCtx{})
+	res, err := service.PutContent(c, nil)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		request.BlackHole(c.Request.Body)
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
 // FileUpload 本地策略文件上传
 func FileUpload(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.UploadService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.LocalUpload(ctx, c)
-		c.JSON(200, res)
+	service := ParametersFromContext[*explorer.UploadService](c, explorer.UploadParameterCtx{})
+	err := service.LocalUpload(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
 		request.BlackHole(c.Request.Body)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+		c.Abort()
+		return
 	}
 
-	//fileData := fsctx.FileStream{
-	//	MIMEType:    c.Request.Header.Get("Content-Type"),
-	//	File:        c.Request.Body,
-	//	Size:        fileSize,
-	//	Name:        fileName,
-	//	VirtualPath: filePath,
-	//	Mode:        fsctx.Create,
-	//}
-	//
-	//// 创建文件系统
-	//fs, err := filesystem.NewFileSystemFromContext(c)
-	//if err != nil {
-	//	c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, err.Error(), err))
-	//	return
-	//}
-	//
-	//// 非可用策略时拒绝上传
-	//if !fs.Policy.IsTransitUpload(fileSize) {
-	//	request.BlackHole(c.Request.Body)
-	//	c.JSON(200, serializer.Err(serializer.CodePolicyNotAllowed, "当前存储策略无法使用", nil))
-	//	return
-	//}
-	//
-	//// 给文件系统分配钩子
-	//fs.Use("BeforeUpload", filesystem.HookValidateFile)
-	//fs.Use("BeforeUpload", filesystem.HookValidateCapacity)
-	//fs.Use("AfterUploadCanceled", filesystem.HookDeleteTempFile)
-	//fs.Use("AfterUploadCanceled", filesystem.HookGiveBackCapacity)
-	//fs.Use("AfterUpload", filesystem.GenericAfterUpload)
-	//fs.Use("AfterValidateFailed", filesystem.HookDeleteTempFile)
-	//fs.Use("AfterValidateFailed", filesystem.HookGiveBackCapacity)
-	//fs.Use("AfterUploadFailed", filesystem.HookGiveBackCapacity)
-	//
-	//// 执行上传
-	//ctx = context.WithValue(ctx, fsctx.ValidateCapacityOnceCtx, &sync.Once{})
-	//uploadCtx := context.WithValue(ctx, fsctx.GinCtx, c)
-	//err = fs.Upload(uploadCtx, &fileData)
-	//if err != nil {
-	//	c.JSON(200, serializer.Err(serializer.CodeUploadFailed, err.Error(), err))
-	//	return
-	//}
-	//
-	//c.JSON(200, serializer.Response{
-	//	Code: 0,
-	//})
+	c.JSON(200, serializer.Response{})
 }
 
 // DeleteUploadSession 删除上传会话
 func DeleteUploadSession(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.UploadSessionService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Delete(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// DeleteAllUploadSession 删除全部上传会话
-func DeleteAllUploadSession(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	res := explorer.DeleteAllUploadSession(ctx, c)
-	c.JSON(200, res)
-}
-
-// GetUploadSession 创建上传会话
-func GetUploadSession(c *gin.Context) {
-	// 创建上下文
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var service explorer.CreateUploadSessionService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Create(ctx, c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// SearchFile 搜索文件
-func SearchFile(c *gin.Context) {
-	var service explorer.ItemSearchService
-	if err := c.ShouldBindUri(&service); err != nil {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.DeleteUploadSessionService](c, explorer.DeleteUploadSessionParameterCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	if err := c.ShouldBindQuery(&service); err != nil {
-		c.JSON(200, ErrorResponse(err))
+	c.JSON(200, serializer.Response{})
+}
+
+// CreateUploadSession 创建上传会话
+func CreateUploadSession(c *gin.Context) {
+	service := ParametersFromContext[*explorer.CreateUploadSessionService](c, explorer.CreateUploadSessionParameterCtx{})
+	resp, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
 		return
 	}
 
-	res := service.Search(c)
-	c.JSON(200, res)
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
 }
 
 // CreateFile 创建空白文件
 func CreateFile(c *gin.Context) {
-	var service explorer.SingleFileService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Create(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.CreateFileService](c, explorer.CreateFileParameterCtx{})
+	resp, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
+}
+
+// RenameFile Renames a file.
+func RenameFile(c *gin.Context) {
+	service := ParametersFromContext[*explorer.RenameFileService](c, explorer.RenameFileParameterCtx{})
+	resp, err := service.Rename(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
+}
+
+// MoveFile Moves or Copy files.
+func MoveFile(c *gin.Context) {
+	service := ParametersFromContext[*explorer.MoveFileService](c, explorer.MoveFileParameterCtx{})
+	if err := service.Move(c); err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// Delete 删除文件或目录
+func Delete(c *gin.Context) {
+	service := ParametersFromContext[*explorer.DeleteFileService](c, explorer.DeleteFileParameterCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// Restore restore file or directory
+func Restore(c *gin.Context) {
+	service := ParametersFromContext[*explorer.DeleteFileService](c, explorer.DeleteFileParameterCtx{})
+	err := service.Restore(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// Unlock unlocks files by given tokens
+func Unlock(c *gin.Context) {
+	service := ParametersFromContext[*explorer.UnlockFileService](c, explorer.UnlockFileParameterCtx{})
+	err := service.Unlock(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// Pin pins files by given uri
+func Pin(c *gin.Context) {
+	service := ParametersFromContext[*explorer.PinFileService](c, explorer.PinFileParameterCtx{})
+	err := service.PinFile(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// Unpin unpins files by given uri
+func Unpin(c *gin.Context) {
+	service := ParametersFromContext[*explorer.PinFileService](c, explorer.PinFileParameterCtx{})
+	err := service.UnpinFile(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// PatchMetadata patch metadata
+func PatchMetadata(c *gin.Context) {
+	service := ParametersFromContext[*explorer.PatchMetadataService](c, explorer.PatchMetadataParameterCtx{})
+	err := service.Patch(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// GetFileInfo gets file info
+func GetFileInfo(c *gin.Context) {
+	service := ParametersFromContext[*explorer.GetFileInfoService](c, explorer.GetFileInfoParameterCtx{})
+	resp, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Data: resp,
+	})
+}
+
+// SetCurrentVersion sets current version
+func SetCurrentVersion(c *gin.Context) {
+	service := ParametersFromContext[*explorer.SetCurrentVersionService](c, explorer.SetCurrentVersionParamCtx{})
+	err := service.Set(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+// DeleteVersion deletes a version
+func DeleteVersion(c *gin.Context) {
+	service := ParametersFromContext[*explorer.DeleteVersionService](c, explorer.DeleteVersionParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
 }

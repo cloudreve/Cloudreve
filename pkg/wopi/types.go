@@ -63,6 +63,10 @@ type SessionCache struct {
 	Action      ActonType
 }
 
+const (
+	WopiSessionCtx = "wopi_session"
+)
+
 func init() {
 	gob.Register(WopiDiscovery{})
 	gob.Register(Action{})

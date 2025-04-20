@@ -19,13 +19,13 @@ func SetSession(c *gin.Context, list map[string]interface{}) {
 }
 
 // GetSession 获取session
-func GetSession(c *gin.Context, key string) interface{} {
+func GetSession(c *gin.Context, key any) interface{} {
 	s := sessions.Default(c)
 	return s.Get(key)
 }
 
 // DeleteSession 删除session
-func DeleteSession(c *gin.Context, key string) {
+func DeleteSession(c *gin.Context, key any) {
 	s := sessions.Default(c)
 	s.Delete(key)
 	s.Save()

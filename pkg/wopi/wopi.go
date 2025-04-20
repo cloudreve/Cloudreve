@@ -1,33 +1,21 @@
 package wopi
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
-	"github.com/cloudreve/Cloudreve/v3/pkg/hashid"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gofrs/uuid"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"net/url"
-	"path"
 	"strings"
-	"sync"
 	"time"
 )
 
-type Client interface {
-	// NewSession creates a new document session with access token.
-	NewSession(uid uint, file *model.File, action ActonType) (*Session, error)
-	// AvailableExts returns a list of file extensions that are supported by WOPI.
-	AvailableExts() []string
-}
-
 var (
 	ErrActionNotSupported = errors.New("action not supported by current wopi endpoint")
-
-	Default   Client
-	DefaultMu sync.Mutex
 
 	queryPlaceholders = map[string]string{
 		"BUSINESS_USER":           "",
@@ -48,136 +36,55 @@ var (
 const (
 	SessionCachePrefix  = "wopi_session_"
 	AccessTokenQuery    = "access_token"
-	OverwriteHeader     = wopiHeaderPrefix + "Override"
-	ServerErrorHeader   = wopiHeaderPrefix + "ServerError"
-	RenameRequestHeader = wopiHeaderPrefix + "RequestedName"
+	OverwriteHeader     = WopiHeaderPrefix + "Override"
+	ServerErrorHeader   = WopiHeaderPrefix + "ServerError"
+	RenameRequestHeader = WopiHeaderPrefix + "RequestedName"
+	LockTokenHeader     = WopiHeaderPrefix + "Lock"
+	ItemVersionHeader   = WopiHeaderPrefix + "ItemVersion"
 
 	MethodLock        = "LOCK"
 	MethodUnlock      = "UNLOCK"
 	MethodRefreshLock = "REFRESH_LOCK"
-	MethodRename      = "RENAME_FILE"
 
-	wopiSrcPlaceholder    = "WOPI_SOURCE"
-	wopiSrcParamDefault   = "WOPISrc"
-	languageParamDefault  = "lang"
-	sessionExpiresPadding = 10
-	wopiHeaderPrefix      = "X-WOPI-"
+	wopiSrcPlaceholder   = "WOPI_SOURCE"
+	wopiSrcParamDefault  = "WOPISrc"
+	languageParamDefault = "lang"
+	WopiHeaderPrefix     = "X-WOPI-"
+
+	LockDuration = time.Duration(30) * time.Minute
 )
 
-// Init initializes a new global WOPI client.
-func Init() {
-	settings := model.GetSettingByNames("wopi_endpoint", "wopi_enabled")
-	if !model.IsTrueVal(settings["wopi_enabled"]) {
-		DefaultMu.Lock()
-		Default = nil
-		DefaultMu.Unlock()
-		return
-	}
+func GenerateWopiSrc(ctx context.Context, action setting.ViewerAction, viewer *setting.Viewer, viewerSession *manager.ViewerSession) (*url.URL, error) {
+	dep := dependency.FromContext(ctx)
+	base := dep.SettingProvider().SiteURL(setting.UseFirstSiteUrl(ctx))
+	hasher := dep.HashIDEncoder()
 
-	cache.Deletes([]string{DiscoverResponseCacheKey}, "")
-	wopiClient, err := NewClient(settings["wopi_endpoint"], cache.Store, request.NewClient())
-	if err != nil {
-		util.Log().Error("Failed to initialize WOPI client: %s", err)
-		return
-	}
-
-	DefaultMu.Lock()
-	Default = wopiClient
-	DefaultMu.Unlock()
-}
-
-type client struct {
-	cache cache.Driver
-	http  request.Client
-	mu    sync.RWMutex
-
-	discovery *WopiDiscovery
-	actions   map[string]map[string]Action
-
-	config
-}
-
-type config struct {
-	discoveryEndpoint *url.URL
-}
-
-func NewClient(endpoint string, cache cache.Driver, http request.Client) (Client, error) {
-	endpointUrl, err := url.Parse(endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse WOPI endpoint: %s", err)
-	}
-
-	return &client{
-		cache: cache,
-		http:  http,
-		config: config{
-			discoveryEndpoint: endpointUrl,
-		},
-	}, nil
-}
-
-func (c *client) NewSession(uid uint, file *model.File, action ActonType) (*Session, error) {
-	if err := c.checkDiscovery(); err != nil {
-		return nil, err
-	}
-
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	ext := path.Ext(file.Name)
-	availableActions, ok := c.actions[ext]
+	availableActions, ok := viewer.WopiActions[viewerSession.File.Ext()]
 	if !ok {
 		return nil, ErrActionNotSupported
 	}
 
 	var (
-		actionConfig Action
+		src string
 	)
-	fallbackOrder := []ActonType{action, ActionPreview, ActionPreviewFallback, ActionEdit}
+	fallbackOrder := []setting.ViewerAction{action, setting.ViewerActionView, setting.ViewerActionEdit}
 	for _, a := range fallbackOrder {
-		if actionConfig, ok = availableActions[string(a)]; ok {
+		if src, ok = availableActions[a]; ok {
 			break
 		}
 	}
 
-	if actionConfig.Urlsrc == "" {
+	if src == "" {
 		return nil, ErrActionNotSupported
 	}
 
-	// Generate WOPI REST endpoint for given file
-	baseURL := model.GetSiteURL()
-	linkPath, err := url.Parse(fmt.Sprintf("/api/v3/wopi/files/%s", hashid.HashID(file.ID, hashid.FileID)))
+	actionUrl, err := generateActionUrl(src,
+		routes.MasterWopiSrc(base, hashid.EncodeFileID(hasher, viewerSession.File.ID())).String())
 	if err != nil {
 		return nil, err
 	}
 
-	actionUrl, err := generateActionUrl(actionConfig.Urlsrc, baseURL.ResolveReference(linkPath).String())
-	if err != nil {
-		return nil, err
-	}
-
-	// Create document session
-	sessionID := uuid.Must(uuid.NewV4())
-	token := util.RandStringRunes(64)
-	ttl := model.GetIntSetting("wopi_session_timeout", 36000)
-	session := &SessionCache{
-		AccessToken: fmt.Sprintf("%s.%s", sessionID, token),
-		FileID:      file.ID,
-		UserID:      uid,
-		Action:      action,
-	}
-	err = c.cache.Set(SessionCachePrefix+sessionID.String(), *session, ttl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create document session: %w", err)
-	}
-
-	sessionRes := &Session{
-		AccessToken:    session.AccessToken,
-		ActionURL:      actionUrl,
-		AccessTokenTTL: time.Now().Add(time.Duration(ttl-sessionExpiresPadding) * time.Second).UnixMilli(),
-	}
-
-	return sessionRes, nil
+	return actionUrl, nil
 }
 
 // Replace query parameters in action URL template. Some placeholders need to be replaced

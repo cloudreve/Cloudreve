@@ -1,5 +1,4 @@
 # Binaries for programs and plugins
-cloudreve
 *.exe
 *.exe~
 *.dll
@@ -8,7 +7,7 @@ cloudreve
 *.db
 *.bin
 /release/
-assets.zip
+application/statics/assets.zip
 
 # Test binary, build with `go test -c`
 *.test
@@ -31,3 +30,5 @@ conf/conf.ini
 .vscode/
 
 dist/
+data/
+tmp/

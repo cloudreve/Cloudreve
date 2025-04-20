@@ -1,190 +1,203 @@
 package cluster
 
 import (
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/balancer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"context"
+	"fmt"
 	"sync"
+
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/node"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/conf"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/samber/lo"
 )
 
-var Default *NodePool
-
-// 需要分类的节点组
-var featureGroup = []string{"aria2"}
-
-// Pool 节点池
-type Pool interface {
-	// Returns active node selected by given feature and load balancer
-	BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node)
-
-	// Returns node by ID
-	GetNodeByID(id uint) Node
-
-	// Add given node into pool. If node existed, refresh node.
-	Add(node *model.Node)
-
-	// Delete and kill node from pool by given node id
-	Delete(id uint)
+type NodePool interface {
+	// Upsert updates or inserts a node into the pool.
+	Upsert(ctx context.Context, node *ent.Node)
+	// Get returns a node with the given capability and preferred node id. `allowed` is a list of allowed node ids.
+	// If `allowed` is empty, all nodes with the capability are considered.
+	Get(ctx context.Context, capability types.NodeCapability, preferred int) (Node, error)
 }
 
-// NodePool 通用节点池
-type NodePool struct {
-	active   map[uint]Node
-	inactive map[uint]Node
+type (
+	weightedNodePool struct {
+		lock sync.RWMutex
 
-	featureMap map[string][]Node
+		conf     conf.ConfigProvider
+		settings setting.Provider
 
-	lock sync.RWMutex
-}
-
-// Init 初始化从机节点池
-func Init() {
-	Default = &NodePool{}
-	Default.Init()
-	if err := Default.initFromDB(); err != nil {
-		util.Log().Warning("Failed to initialize node pool: %s", err)
-	}
-}
-
-func (pool *NodePool) Init() {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-
-	pool.featureMap = make(map[string][]Node)
-	pool.active = make(map[uint]Node)
-	pool.inactive = make(map[uint]Node)
-}
-
-func (pool *NodePool) buildIndexMap() {
-	pool.lock.Lock()
-	for _, feature := range featureGroup {
-		pool.featureMap[feature] = make([]Node, 0)
+		nodes map[types.NodeCapability][]*nodeItem
 	}
 
-	for _, v := range pool.active {
-		for _, feature := range featureGroup {
-			if v.IsFeatureEnabled(feature) {
-				pool.featureMap[feature] = append(pool.featureMap[feature], v)
+	nodeItem struct {
+		node    Node
+		weight  int
+		current int
+	}
+)
+
+var (
+	ErrNoAvailableNode = fmt.Errorf("no available node found")
+
+	supportedCapabilities = []types.NodeCapability{
+		types.NodeCapabilityNone,
+		types.NodeCapabilityCreateArchive,
+		types.NodeCapabilityExtractArchive,
+		types.NodeCapabilityRemoteDownload,
+	}
+)
+
+func NewNodePool(ctx context.Context, l logging.Logger, config conf.ConfigProvider, settings setting.Provider,
+	client inventory.NodeClient) (NodePool, error) {
+	nodes, err := client.ListActiveNodes(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list active nodes: %w", err)
+	}
+
+	pool := &weightedNodePool{
+		nodes:    make(map[types.NodeCapability][]*nodeItem),
+		conf:     config,
+		settings: settings,
+	}
+	for _, node := range nodes {
+		for _, capability := range supportedCapabilities {
+			// If current capability is enabled, add it to pool slot.
+			if capability == types.NodeCapabilityNone ||
+				(node.Capabilities != nil && node.Capabilities.Enabled(int(capability))) {
+				if _, ok := pool.nodes[capability]; !ok {
+					pool.nodes[capability] = make([]*nodeItem, 0)
+				}
+
+				l.Debug("Add node %q to capability slot %d with weight %d", node.Name, capability, node.Weight)
+				pool.nodes[capability] = append(pool.nodes[capability], &nodeItem{
+					node:    newNode(ctx, node, config, settings),
+					weight:  node.Weight,
+					current: 0,
+				})
 			}
 		}
 	}
-	pool.lock.Unlock()
+
+	return pool, nil
 }
 
-func (pool *NodePool) GetNodeByID(id uint) Node {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
+func (p *weightedNodePool) Get(ctx context.Context, capability types.NodeCapability, preferred int) (Node, error) {
+	l := logging.FromContext(ctx)
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 
-	if node, ok := pool.active[id]; ok {
-		return node
+	nodes, ok := p.nodes[capability]
+	if !ok || len(nodes) == 0 {
+		return nil, fmt.Errorf("no node found with capability %d: %w", capability, ErrNoAvailableNode)
 	}
 
-	return pool.inactive[id]
-}
+	var selected *nodeItem
 
-func (pool *NodePool) nodeStatusChange(isActive bool, id uint) {
-	util.Log().Debug("Slave node [ID=%d] status changed to [Active=%t].", id, isActive)
-	var node Node
-	pool.lock.Lock()
-	if n, ok := pool.inactive[id]; ok {
-		node = n
-		delete(pool.inactive, id)
-	} else {
-		node = pool.active[id]
-		delete(pool.active, id)
-	}
-
-	if isActive {
-		pool.active[id] = node
-	} else {
-		pool.inactive[id] = node
-	}
-	pool.lock.Unlock()
-
-	pool.buildIndexMap()
-}
-
-func (pool *NodePool) initFromDB() error {
-	nodes, err := model.GetNodesByStatus(model.NodeActive)
-	if err != nil {
-		return err
-	}
-
-	pool.lock.Lock()
-	for i := 0; i < len(nodes); i++ {
-		pool.add(&nodes[i])
-	}
-	pool.lock.Unlock()
-
-	pool.buildIndexMap()
-	return nil
-}
-
-func (pool *NodePool) add(node *model.Node) {
-	newNode := NewNodeFromDBModel(node)
-	if newNode.IsActive() {
-		pool.active[node.ID] = newNode
-	} else {
-		pool.inactive[node.ID] = newNode
-	}
-
-	// 订阅节点状态变更
-	newNode.SubscribeStatusChange(func(isActive bool, id uint) {
-		pool.nodeStatusChange(isActive, id)
-	})
-}
-
-func (pool *NodePool) Add(node *model.Node) {
-	pool.lock.Lock()
-	defer pool.buildIndexMap()
-	defer pool.lock.Unlock()
-
-	var (
-		old Node
-		ok  bool
-	)
-	if old, ok = pool.active[node.ID]; !ok {
-		old, ok = pool.inactive[node.ID]
-	}
-	if old != nil {
-		go old.Init(node)
-		return
-	}
-
-	pool.add(node)
-}
-
-func (pool *NodePool) Delete(id uint) {
-	pool.lock.Lock()
-	defer pool.buildIndexMap()
-	defer pool.lock.Unlock()
-
-	if node, ok := pool.active[id]; ok {
-		node.Kill()
-		delete(pool.active, id)
-		return
-	}
-
-	if node, ok := pool.inactive[id]; ok {
-		node.Kill()
-		delete(pool.inactive, id)
-		return
-	}
-
-}
-
-// BalanceNodeByFeature 根据 feature 和 LoadBalancer 取出节点
-func (pool *NodePool) BalanceNodeByFeature(feature string, lb balancer.Balancer) (error, Node) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	if nodes, ok := pool.featureMap[feature]; ok {
-		err, res := lb.NextPeer(nodes)
-		if err == nil {
-			return nil, res.(Node)
+	if preferred > 0 {
+		// First try to find the preferred node.
+		for _, n := range nodes {
+			if n.node.ID() == preferred {
+				selected = n
+				break
+			}
 		}
 
-		return err, nil
+		if selected == nil {
+			l.Debug("Preferred node %d not found, fallback to select a node with the least current weight", preferred)
+		}
 	}
 
-	return ErrFeatureNotExist, nil
+	if selected == nil {
+		// If no preferred one, or the preferred one is not available, select a node with the least current weight.
+
+		// Total weight of all items.
+		var total int
+
+		// Loop through the list of items and add the item's weight to the current weight.
+		// Also increment the total weight counter.
+		var maxNode *nodeItem
+		for _, item := range nodes {
+			item.current += max(1, item.weight)
+			total += max(1, item.weight)
+
+			// Select the item with max weight.
+			if maxNode == nil || item.current > maxNode.current {
+				maxNode = item
+			}
+		}
+
+		// Select the item with the max weight.
+		selected = maxNode
+		if selected == nil {
+			return nil, fmt.Errorf("no node found with capability %d: %w", capability, ErrNoAvailableNode)
+		}
+
+		l.Debug("Selected node %q with weight=%d, current=%d, total=%d", selected.node.Name(), selected.weight, maxNode.current, total)
+
+		// Reduce the current weight of the selected item by the total weight.
+		maxNode.current -= total
+	}
+
+	return selected.node, nil
+}
+
+func (p *weightedNodePool) Upsert(ctx context.Context, n *ent.Node) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for _, capability := range supportedCapabilities {
+		_, index, found := lo.FindIndexOf(p.nodes[capability], func(i *nodeItem) bool {
+			return i.node.ID() == n.ID
+		})
+		if capability == types.NodeCapabilityNone ||
+			(n.Capabilities != nil && n.Capabilities.Enabled(int(capability))) {
+			if n.Status != node.StatusActive && found {
+				// Remove inactive node
+				p.nodes[capability] = append(p.nodes[capability][:index], p.nodes[capability][index+1:]...)
+				continue
+			}
+
+			if found {
+				p.nodes[capability][index].node = newNode(ctx, n, p.conf, p.settings)
+			} else {
+				p.nodes[capability] = append(p.nodes[capability], &nodeItem{
+					node:    newNode(ctx, n, p.conf, p.settings),
+					weight:  n.Weight,
+					current: 0,
+				})
+			}
+		} else if found {
+			// Capability changed, remove the old node.
+			p.nodes[capability] = append(p.nodes[capability][:index], p.nodes[capability][index+1:]...)
+		}
+	}
+}
+
+type slaveDummyNodePool struct {
+	conf       conf.ConfigProvider
+	settings   setting.Provider
+	masterNode Node
+}
+
+func NewSlaveDummyNodePool(ctx context.Context, config conf.ConfigProvider, settings setting.Provider) NodePool {
+	return &slaveDummyNodePool{
+		conf:     config,
+		settings: settings,
+		masterNode: newNode(ctx, &ent.Node{
+			ID:   0,
+			Name: "Master",
+			Type: node.TypeMaster,
+		}, config, settings),
+	}
+}
+
+func (s *slaveDummyNodePool) Upsert(ctx context.Context, node *ent.Node) {
+}
+
+func (s *slaveDummyNodePool) Get(ctx context.Context, capability types.NodeCapability, preferred int) (Node, error) {
+	return s.masterNode, nil
 }

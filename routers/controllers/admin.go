@@ -1,511 +1,588 @@
 package controllers
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/pkg/cluster"
-	"github.com/cloudreve/Cloudreve/v3/pkg/mq"
-	"io"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/aria2"
-	"github.com/cloudreve/Cloudreve/v3/pkg/email"
-	"github.com/cloudreve/Cloudreve/v3/pkg/request"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
-	"github.com/cloudreve/Cloudreve/v3/service/admin"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/service/admin"
 	"github.com/gin-gonic/gin"
 )
 
 // AdminSummary 获取管理站点概况
 func AdminSummary(c *gin.Context) {
-	var service admin.NoParamService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Summary()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*admin.SummaryService](c, admin.SummaryParamCtx{})
+	res, err := service.Summary(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminNews 获取社区新闻
-func AdminNews(c *gin.Context) {
-	tag := "announcements"
-	if c.Query("tag") != "" {
-		tag = c.Query("tag")
+// AdminGetSettings 获取站点设定项
+func AdminGetSettings(c *gin.Context) {
+	service := ParametersFromContext[*admin.GetSettingService](c, admin.GetSettingParamCtx{})
+	res, err := service.GetSetting(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
-	r := request.NewClient()
-	res := r.Request("GET", "https://forum.cloudreve.org/api/discussions?include=startUser%2ClastUser%2CstartPost%2Ctags&filter%5Bq%5D=%20tag%3A"+tag+"&sort=-startTime&page%5Blimit%5D=10", nil)
-	if res.Err == nil {
-		io.Copy(c.Writer, res.Response.Body)
-	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminChangeSetting 获取站点设定项
-func AdminChangeSetting(c *gin.Context) {
-	var service admin.BatchSettingChangeService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Change()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminSetSettings(c *gin.Context) {
+	service := ParametersFromContext[*admin.SetSettingService](c, admin.SetSettingParamCtx{})
+	res, err := service.SetSetting(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminGetSetting 获取站点设置
-func AdminGetSetting(c *gin.Context) {
-	var service admin.BatchSettingGet
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Get()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// AdminListGroups 获取用户组列表
+func AdminListGroups(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.List(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminGetGroups 获取用户组列表
-func AdminGetGroups(c *gin.Context) {
-	var service admin.NoParamService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.GroupList()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminFetchWopi(c *gin.Context) {
+	service := ParametersFromContext[*admin.FetchWOPIDiscoveryService](c, admin.FetchWOPIDiscoveryParamCtx{})
+	res, err := service.Fetch(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminReloadService 重新加载子服务
-func AdminReloadService(c *gin.Context) {
-	service := c.Param("service")
-	switch service {
-	case "email":
-		email.Init()
-	case "aria2":
-		aria2.Init(true, cluster.Default, mq.GlobalMQ)
-	case "wopi":
-		wopi.Init()
+// AdminTestThumbGenerator Tests thumb generator
+func AdminTestThumbGenerator(c *gin.Context) {
+	service := ParametersFromContext[*admin.ThumbGeneratorTestService](c, admin.ThumbGeneratorTestParamCtx{})
+	res, err := service.Test(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetQueueMetrics(c *gin.Context) {
+	res, err := admin.GetQueueMetrics(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminListPolicies(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Policies(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetPolicy(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleStoragePolicyService](c, admin.GetStoragePolicyParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+// AdminSendTestMail 发送测试邮件
+func AdminSendTestMail(c *gin.Context) {
+	service := ParametersFromContext[*admin.TestSMTPService](c, admin.TestSMTPParamCtx{})
+	err := service.Test(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{})
+}
+
+func AdminCreatePolicy(c *gin.Context) {
+	service := ParametersFromContext[*admin.CreateStoragePolicyService](c, admin.CreateStoragePolicyParamCtx{})
+	res, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminUpdatePolicy(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpdateStoragePolicyService](c, admin.UpdateStoragePolicyParamCtx{})
+	res, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminListNodes(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Nodes(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetNode(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleNodeService](c, admin.SingleNodeParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminClearEntityUrlCache(c *gin.Context) {
+	admin.ClearEntityUrlCache(c)
+	c.JSON(200, serializer.Response{})
+}
+
+func AdminCreateStoragePolicyCors(c *gin.Context) {
+	service := ParametersFromContext[*admin.CreateStoragePolicyCorsService](c, admin.CreateStoragePolicyCorsParamCtx{})
+	err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
 
 	c.JSON(200, serializer.Response{})
 }
 
-// AdminSendTestMail 发送测试邮件
-func AdminSendTestMail(c *gin.Context) {
-	var service admin.MailTestService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Send()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminOdOAuthURL(c *gin.Context) {
+	service := ParametersFromContext[*admin.GetOauthRedirectService](c, admin.GetOauthRedirectParamCtx{})
+	res, err := service.GetOAuth(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminTestThumbGenerator Tests thumb generator
-func AdminTestThumbGenerator(c *gin.Context) {
-	var service admin.ThumbGeneratorTestService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Test(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
+func AdminGetPolicyOAuthCallbackURL(c *gin.Context) {
+	res := admin.GetPolicyOAuthURL(c)
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminTestAria2 测试aria2连接
-func AdminTestAria2(c *gin.Context) {
-	var service admin.Aria2TestService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		var res serializer.Response
-		if service.Type == model.MasterNodeType {
-			res = service.TestMaster()
-		} else {
-			res = service.TestSlave()
-		}
-
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminGetPolicyOAuthStatus(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleStoragePolicyService](c, admin.GetStoragePolicyParamCtx{})
+	res, err := service.GetOauthCredentialStatus(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminListPolicy 列出存储策略
-func AdminListPolicy(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Policies()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminFinishOauthCallback(c *gin.Context) {
+	service := ParametersFromContext[*admin.FinishOauthCallbackService](c, admin.FinishOauthCallbackParamCtx{})
+	err := service.Finish(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{})
 }
 
-// AdminTestPath 测试本地路径可用性
-func AdminTestPath(c *gin.Context) {
-	var service admin.PathTestService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Test()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminGetSharePointDriverRoot(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleStoragePolicyService](c, admin.GetStoragePolicyParamCtx{})
+	res, err := service.GetSharePointDriverRoot(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminDeletePolicy(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleStoragePolicyService](c, admin.GetStoragePolicyParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{})
+}
+
+func AdminGetGroup(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleGroupService](c, admin.SingleGroupParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminCreateGroup(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertGroupService](c, admin.UpsertGroupParamCtx{})
+	res, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminUpdateGroup(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertGroupService](c, admin.UpsertGroupParamCtx{})
+	res, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminListUsers(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Users(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetUser(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleUserService](c, admin.SingleUserParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminUpdateUser(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertUserService](c, admin.UpsertUserParamCtx{})
+	res, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminCreateUser(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertUserService](c, admin.UpsertUserParamCtx{})
+	res, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+//	func AdminHashIDEncode(c *gin.Context) {
+//		service := ParametersFromContext[*admin.HashIDService](c, admin.HashIDParamCtx{})
+//		resp, err := service.Encode(c)
+//		if err != nil {
+//			c.JSON(200, serializer.Err(c, err))
+//			c.Abort()
+//			return
+//		}
+//
+//		c.JSON(200, serializer.Response{
+//			Data: resp,
+//		})
+//	}
+//
+//	func AdminHashIDDecode(c *gin.Context) {
+//		service := ParametersFromContext[*admin.HashIDService](c, admin.HashIDParamCtx{})
+//		resp, err := service.Decode(c)
+//		if err != nil {
+//			c.JSON(200, serializer.Err(c, err))
+//			c.Abort()
+//			return
+//		}
+//
+//		c.JSON(200, serializer.Response{
+//			Data: resp,
+//		})
+//	}
+//
+//	func AdminBsEncode(c *gin.Context) {
+//		service := ParametersFromContext[*admin.BsEncodeService](c, admin.BsEncodeParamCtx{})
+//		resp, err := service.Encode(c)
+//		if err != nil {
+//			c.JSON(200, serializer.Err(c, err))
+//			c.Abort()
+//			return
+//		}
+//
+//		c.JSON(200, serializer.Response{
+//			Data: resp,
+//		})
+//	}
+//
+//	func AdminBsDecode(c *gin.Context) {
+//		service := ParametersFromContext[*admin.BsDecodeService](c, admin.BsDecodeParamCtx{})
+//		resp, err := service.Decode(c)
+//		if err != nil {
+//			c.JSON(200, serializer.Err(c, err))
+//			c.Abort()
+//			return
+//		}
+//
+//		c.JSON(200, serializer.Response{
+//			Data: resp,
+//		})
+//	}
+//
+
+func AdminDeleteGroup(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleGroupService](c, admin.SingleGroupParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{})
 }
 
 // AdminTestSlave 测试从机可用性
 func AdminTestSlave(c *gin.Context) {
-	var service admin.SlaveTestService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Test()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*admin.TestNodeService](c, admin.TestNodeParamCtx{})
+	err := service.Test(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{})
 }
 
-// AdminAddPolicy 新建存储策略
-func AdminAddPolicy(c *gin.Context) {
-	var service admin.AddPolicyService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Add()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+// AdminTestDownloader 测试下载器连接
+func AdminTestDownloader(c *gin.Context) {
+	service := ParametersFromContext[*admin.TestNodeDownloaderService](c, admin.TestNodeDownloaderParamCtx{})
+	res, err := service.Test(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminAddCORS 创建跨域策略
-func AdminAddCORS(c *gin.Context) {
-	var service admin.PolicyService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.AddCORS()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminCreateNode(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertNodeService](c, admin.UpsertNodeParamCtx{})
+	res, err := service.Create(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminAddSCF 创建回调函数
-func AdminAddSCF(c *gin.Context) {
-	var service admin.PolicyService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.AddSCF()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminUpdateNode(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertNodeService](c, admin.UpsertNodeParamCtx{})
+	res, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminOAuthURL 获取 OneDrive OAuth URL
-func AdminOAuthURL(policyType string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var service admin.PolicyService
-		if err := c.ShouldBindUri(&service); err == nil {
-			res := service.GetOAuth(c, policyType)
-			c.JSON(200, res)
-		} else {
-			c.JSON(200, ErrorResponse(err))
-		}
+func AdminDeleteNode(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleNodeService](c, admin.SingleNodeParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
-}
-
-// AdminGetPolicy 获取存储策略详情
-func AdminGetPolicy(c *gin.Context) {
-	var service admin.PolicyService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeletePolicy 删除存储策略
-func AdminDeletePolicy(c *gin.Context) {
-	var service admin.PolicyService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Delete()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListGroup 列出用户组
-func AdminListGroup(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Groups()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminAddGroup 新建用户组
-func AdminAddGroup(c *gin.Context) {
-	var service admin.AddGroupService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Add()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteGroup 删除用户组
-func AdminDeleteGroup(c *gin.Context) {
-	var service admin.GroupService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Delete()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminGetGroup 获取用户组详情
-func AdminGetGroup(c *gin.Context) {
-	var service admin.GroupService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListUser 列出用户
-func AdminListUser(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Users()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminAddUser 新建用户组
-func AdminAddUser(c *gin.Context) {
-	var service admin.AddUserService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Add()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminGetUser 获取用户详情
-func AdminGetUser(c *gin.Context) {
-	var service admin.UserService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
+	c.JSON(200, serializer.Response{})
 }
 
 // AdminDeleteUser 批量删除用户
 func AdminDeleteUser(c *gin.Context) {
-	var service admin.UserBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Delete()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*admin.BatchUserService](c, admin.BatchUserParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{})
 }
 
-// AdminBanUser 封禁/解封用户
-func AdminBanUser(c *gin.Context) {
-	var service admin.UserService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Ban()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminListFiles(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Files(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
+	c.JSON(200, serializer.Response{Data: res})
 }
 
-// AdminListFile 列出文件
-func AdminListFile(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Files()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminGetFile 获取文件
 func AdminGetFile(c *gin.Context) {
-	var service admin.FileService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get(c)
-		// 是否需要重定向
-		if res.Code == -301 {
-			c.Redirect(302, res.Data.(string))
-			return
-		}
-		// 是否有错误发生
-		if res.Code != 0 {
-			c.JSON(200, res)
-		}
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*admin.SingleFileService](c, admin.SingleFileParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminUpdateFile(c *gin.Context) {
+	service := ParametersFromContext[*admin.UpsertFileService](c, admin.UpsertFileParamCtx{})
+	res, err := service.Update(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetFileUrl(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleFileService](c, admin.SingleFileParamCtx{})
+	res, err := service.Url(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminBatchDeleteFile(c *gin.Context) {
+	service := ParametersFromContext[*admin.BatchFileService](c, admin.BatchFileParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}
+
+func AdminListEntities(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Entities(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetEntity(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleEntityService](c, admin.SingleEntityParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetEntityUrl(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleEntityService](c, admin.SingleEntityParamCtx{})
+	res, err := service.Url(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminBatchDeleteEntity(c *gin.Context) {
+	service := ParametersFromContext[*admin.BatchEntityService](c, admin.BatchEntityParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
 }
 
-// AdminDeleteFile 批量删除文件
-func AdminDeleteFile(c *gin.Context) {
-	var service admin.FileBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Delete(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminListTasks(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Tasks(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetTask(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleTaskService](c, admin.SingleTaskParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminBatchDeleteTask(c *gin.Context) {
+	service := ParametersFromContext[*admin.BatchTaskService](c, admin.BatchTaskParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{})
+}
+
+func AdminListShares(c *gin.Context) {
+	service := ParametersFromContext[*admin.AdminListService](c, admin.AdminListServiceParamsCtx{})
+	res, err := service.Shares(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminGetShare(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleShareService](c, admin.SingleShareParamCtx{})
+	res, err := service.Get(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
+	}
+	c.JSON(200, serializer.Response{Data: res})
+}
+
+func AdminBatchDeleteShare(c *gin.Context) {
+	service := ParametersFromContext[*admin.BatchShareService](c, admin.BatchShareParamCtx{})
+	err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
 }
 
-// AdminListShare 列出分享
-func AdminListShare(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Shares()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+func AdminCalibrateStorage(c *gin.Context) {
+	service := ParametersFromContext[*admin.SingleUserService](c, admin.SingleUserParamCtx{})
+	res, err := service.CalibrateStorage(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		return
 	}
-}
-
-// AdminDeleteShare 批量删除分享
-func AdminDeleteShare(c *gin.Context) {
-	var service admin.ShareBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Delete(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListDownload 列出离线下载任务
-func AdminListDownload(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Downloads()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteDownload 批量删除任务
-func AdminDeleteDownload(c *gin.Context) {
-	var service admin.TaskBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Delete(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListTask 列出任务
-func AdminListTask(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Tasks()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteTask 批量删除任务
-func AdminDeleteTask(c *gin.Context) {
-	var service admin.TaskBatchService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.DeleteGeneral(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminCreateImportTask 新建文件导入任务
-func AdminCreateImportTask(c *gin.Context) {
-	var service admin.ImportTaskService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Create(c, CurrentUser(c))
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListFolders 列出用户或外部文件系统目录
-func AdminListFolders(c *gin.Context) {
-	var service admin.ListFolderService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.List(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminListNodes 列出从机节点
-func AdminListNodes(c *gin.Context) {
-	var service admin.AdminListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Nodes()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminAddNode 新建节点
-func AdminAddNode(c *gin.Context) {
-	var service admin.AddNodeService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.Add()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminToggleNode 启用/暂停节点
-func AdminToggleNode(c *gin.Context) {
-	var service admin.ToggleNodeService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Toggle()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminDeleteGroup 删除用户组
-func AdminDeleteNode(c *gin.Context) {
-	var service admin.NodeService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Delete()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
-}
-
-// AdminGetNode 获取节点详情
-func AdminGetNode(c *gin.Context) {
-	var service admin.NodeService
-	if err := c.ShouldBindUri(&service); err == nil {
-		res := service.Get()
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
-	}
+	c.JSON(200, serializer.Response{Data: res})
 }

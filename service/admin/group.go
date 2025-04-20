@@ -1,14 +1,20 @@
 package admin
 
 import (
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"context"
 	"strconv"
+
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/gin-gonic/gin"
 )
 
 // AddGroupService 用户组添加服务
 type AddGroupService struct {
-	Group model.Group `json:"group" binding:"required"`
+	//Group model.Group `json:"group" binding:"required"`
 }
 
 // GroupService 用户组ID服务
@@ -18,100 +24,169 @@ type GroupService struct {
 
 // Get 获取用户组详情
 func (service *GroupService) Get() serializer.Response {
-	group, err := model.GetGroupByID(service.ID)
-	if err != nil {
-		return serializer.Err(serializer.CodeGroupNotFound, "", err)
-	}
-
-	return serializer.Response{Data: group}
-}
-
-// Delete 删除用户组
-func (service *GroupService) Delete() serializer.Response {
-	// 查找用户组
-	group, err := model.GetGroupByID(service.ID)
-	if err != nil {
-		return serializer.Err(serializer.CodeGroupNotFound, "", err)
-	}
-
-	// 是否为系统用户组
-	if group.ID <= 3 {
-		return serializer.Err(serializer.CodeInvalidActionOnSystemGroup, "", err)
-	}
-
-	// 检查是否有用户使用
-	total := 0
-	row := model.DB.Model(&model.User{}).Where("group_id = ?", service.ID).
-		Select("count(id)").Row()
-	row.Scan(&total)
-	if total > 0 {
-		return serializer.Err(serializer.CodeGroupUsedByUser, strconv.Itoa(total), nil)
-	}
-
-	model.DB.Delete(&group)
+	//group, err := model.GetGroupByID(service.ID)
+	//if err != nil {
+	//	return serializer.ErrDeprecated(serializer.CodeGroupNotFound, "", err)
+	//}
+	//
+	//return serializer.Response{Data: group}
 
 	return serializer.Response{}
 }
 
-// Add 添加用户组
-func (service *AddGroupService) Add() serializer.Response {
-	if service.Group.ID > 0 {
-		if err := model.DB.Save(&service.Group).Error; err != nil {
-			return serializer.DBErr("Failed to save group record", err)
-		}
-	} else {
-		if err := model.DB.Create(&service.Group).Error; err != nil {
-			return serializer.DBErr("Failed to create group record", err)
-		}
-	}
+// Delete 删除用户组
+func (service *GroupService) Delete() serializer.Response {
+	//// 查找用户组
+	//group, err := model.GetGroupByID(service.ID)
+	//if err != nil {
+	//	return serializer.ErrDeprecated(serializer.CodeGroupNotFound, "", err)
+	//}
+	//
+	//// 是否为系统用户组
+	//if group.ID <= 3 {
+	//	return serializer.ErrDeprecated(serializer.CodeInvalidActionOnSystemGroup, "", err)
+	//}
+	//
+	//// 检查是否有用户使用
+	//total := 0
+	//row := model.DB.Model(&model.User{}).Where("group_id = ?", service.ID).
+	//	Select("count(id)").Row()
+	//row.Scan(&total)
+	//if total > 0 {
+	//	return serializer.ErrDeprecated(serializer.CodeGroupUsedByUser, strconv.Itoa(total), nil)
+	//}
+	//
+	//model.DB.Delete(&group)
 
-	return serializer.Response{Data: service.Group.ID}
+	return serializer.Response{}
 }
 
-// Groups 列出用户组
-func (service *AdminListService) Groups() serializer.Response {
-	var res []model.Group
-	total := 0
-
-	tx := model.DB.Model(&model.Group{})
-	if service.OrderBy != "" {
-		tx = tx.Order(service.OrderBy)
+func (service *SingleGroupService) Delete(c *gin.Context) error {
+	if service.ID <= 3 {
+		return serializer.NewError(serializer.CodeInvalidActionOnSystemGroup, "", nil)
 	}
 
-	for k, v := range service.Conditions {
-		tx = tx.Where(k+" = ?", v)
+	dep := dependency.FromContext(c)
+	groupClient := dep.GroupClient()
+
+	// Any user still under this group?
+	users, err := groupClient.CountUsers(c, int(service.ID))
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "Failed to count users", err)
 	}
 
-	// 计算总数用于分页
-	tx.Count(&total)
-
-	// 查询记录
-	tx.Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
-
-	// 统计每个用户组的用户总数
-	statics := make(map[uint]int, len(res))
-	for i := 0; i < len(res); i++ {
-		total := 0
-		row := model.DB.Model(&model.User{}).Where("group_id = ?", res[i].ID).
-			Select("count(id)").Row()
-		row.Scan(&total)
-		statics[res[i].ID] = total
+	if users > 0 {
+		return serializer.NewError(serializer.CodeGroupUsedByUser, strconv.Itoa(users), nil)
 	}
 
-	// 汇总用户组存储策略
-	policies := make(map[uint]model.Policy)
-	for i := 0; i < len(res); i++ {
-		for _, p := range res[i].PolicyList {
-			if _, ok := policies[p]; !ok {
-				policies[p], _ = model.GetPolicyByID(p)
-			}
+	err = groupClient.Delete(c, service.ID)
+	if err != nil {
+		return serializer.NewError(serializer.CodeDBError, "Failed to delete group", err)
+	}
+
+	return nil
+}
+
+func (s *AdminListService) List(c *gin.Context) (*ListGroupResponse, error) {
+	dep := dependency.FromContext(c)
+	groupClient := dep.GroupClient()
+
+	ctx := context.WithValue(c, inventory.LoadGroupPolicy{}, true)
+	res, err := groupClient.ListGroups(ctx, &inventory.ListGroupParameters{
+		PaginationArgs: &inventory.PaginationArgs{
+			Page:     s.Page - 1,
+			PageSize: s.PageSize,
+			OrderBy:  s.OrderBy,
+			Order:    inventory.OrderDirection(s.OrderDirection),
+		},
+	})
+
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list groups", err)
+	}
+
+	return &ListGroupResponse{
+		Pagination: res.PaginationResults,
+		Groups:     res.Groups,
+	}, nil
+}
+
+type (
+	SingleGroupService struct {
+		ID int `uri:"id" json:"id" binding:"required"`
+	}
+	SingleGroupParamCtx struct{}
+)
+
+const (
+	countUserQuery = "countUser"
+)
+
+func (s *SingleGroupService) Get(c *gin.Context) (*GetGroupResponse, error) {
+	dep := dependency.FromContext(c)
+	groupClient := dep.GroupClient()
+
+	ctx := context.WithValue(c, inventory.LoadGroupPolicy{}, true)
+	group, err := groupClient.GetByID(ctx, s.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get group", err)
+	}
+
+	res := &GetGroupResponse{Group: group}
+
+	if c.Query(countUserQuery) != "" {
+		totalUsers, err := groupClient.CountUsers(ctx, int(s.ID))
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeDBError, "Failed to count users", err)
 		}
+		res.TotalUsers = totalUsers
 	}
 
-	return serializer.Response{Data: map[string]interface{}{
-		"total":    total,
-		"items":    res,
-		"statics":  statics,
-		"policies": policies,
-	}}
+	return res, nil
+}
+
+type (
+	UpsertGroupService struct {
+		Group *ent.Group `json:"group" binding:"required"`
+	}
+	UpsertGroupParamCtx struct{}
+)
+
+func (s *UpsertGroupService) Update(c *gin.Context) (*GetGroupResponse, error) {
+	dep := dependency.FromContext(c)
+	groupClient := dep.GroupClient()
+
+	if s.Group.ID == 0 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "ID is required", nil)
+	}
+
+	// Initial admin group have to be admin
+	if s.Group.ID == 1 && !s.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
+		return nil, serializer.NewError(serializer.CodeParamErr, "Initial admin group have to be admin", nil)
+	}
+
+	group, err := groupClient.Upsert(c, s.Group)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to update group", err)
+	}
+
+	service := &SingleGroupService{ID: group.ID}
+	return service.Get(c)
+}
+
+func (s *UpsertGroupService) Create(c *gin.Context) (*GetGroupResponse, error) {
+	dep := dependency.FromContext(c)
+	groupClient := dep.GroupClient()
+
+	if s.Group.ID > 0 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "ID must be 0", nil)
+	}
+
+	group, err := groupClient.Upsert(c, s.Group)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to create group", err)
+	}
+
+	service := &SingleGroupService{ID: group.ID}
+	return service.Get(c)
 }

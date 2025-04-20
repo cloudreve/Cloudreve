@@ -3,24 +3,21 @@ package thumb
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager/entitysource"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/gofrs/uuid"
 	"image"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
 	"path/filepath"
-	"strings"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gofrs/uuid"
 	//"github.com/nfnt/resize"
 	"golang.org/x/image/draw"
 )
 
-func init() {
-	RegisterGenerator(&Builtin{})
-}
+const thumbTempFolder = "thumb"
 
 // Thumb 缩略图
 type Thumb struct {
@@ -30,16 +27,15 @@ type Thumb struct {
 
 // NewThumbFromFile 从文件数据获取新的Thumb对象，
 // 尝试通过文件名name解码图像
-func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
-	ext := strings.ToLower(filepath.Ext(name))
+func NewThumbFromFile(file io.Reader, ext string) (*Thumb, error) {
 	// 无扩展名时
-	if len(ext) == 0 {
+	if ext == "" {
 		return nil, fmt.Errorf("unknown image format: %w", ErrPassThrough)
 	}
 
 	var err error
 	var img image.Image
-	switch ext[1:] {
+	switch ext {
 	case "jpg", "jpeg":
 		img, err = jpeg.Decode(file)
 	case "gif":
@@ -47,7 +43,7 @@ func NewThumbFromFile(file io.Reader, name string) (*Thumb, error) {
 	case "png":
 		img, err = png.Decode(file)
 	default:
-		return nil, fmt.Errorf("unknown image format: %w", ErrPassThrough)
+		return nil, fmt.Errorf("unknown image format %q: %w", ext, ErrPassThrough)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image: %w (%w)", err, ErrPassThrough)
@@ -72,12 +68,12 @@ func (image *Thumb) GetSize() (int, int) {
 }
 
 // Save 保存图像到给定路径
-func (image *Thumb) Save(w io.Writer) (err error) {
-	switch model.GetSettingByNameWithDefault("thumb_encode_method", "jpg") {
+func (image *Thumb) Save(w io.Writer, encodeSetting *setting.ThumbEncode) (err error) {
+	switch encodeSetting.Format {
 	case "png":
 		err = png.Encode(w, image.src)
 	default:
-		err = jpeg.Encode(w, image.src, &jpeg.Options{Quality: model.GetIntSetting("thumb_encode_quality", 85)})
+		err = jpeg.Encode(w, image.src, &jpeg.Options{Quality: encodeSetting.Quality})
 	}
 
 	return err
@@ -127,46 +123,35 @@ func Resize(newWidth, newHeight uint, img image.Image) image.Image {
 }
 
 // CreateAvatar 创建头像
-func (image *Thumb) CreateAvatar(uid uint) error {
-	// 读取头像相关设定
-	savePath := util.RelativePath(model.GetSettingByName("avatar_path"))
-	s := model.GetIntSetting("avatar_size_s", 50)
-	m := model.GetIntSetting("avatar_size_m", 130)
-	l := model.GetIntSetting("avatar_size_l", 200)
-
-	// 生成头像缩略图
-	src := image.src
-	for k, size := range []int{s, m, l} {
-		out, err := util.CreatNestedFile(filepath.Join(savePath, fmt.Sprintf("avatar_%d_%d.png", uid, k)))
-
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-
-		image.src = Resize(uint(size), uint(size), src)
-		err = image.Save(out)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-
+func (image *Thumb) CreateAvatar(width int) {
+	image.src = Resize(uint(width), uint(width), image.src)
 }
 
-type Builtin struct{}
+type Builtin struct {
+	settings setting.Provider
+}
 
-func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string, options map[string]string) (*Result, error) {
-	img, err := NewThumbFromFile(file, name)
+func NewBuiltinGenerator(settings setting.Provider) *Builtin {
+	return &Builtin{
+		settings: settings,
+	}
+}
+
+func (b Builtin) Generate(ctx context.Context, es entitysource.EntitySource, ext string, previous *Result) (*Result, error) {
+	if es.Entity().Size() > b.settings.BuiltinThumbMaxSize(ctx) {
+		return nil, fmt.Errorf("file is too big: %w", ErrPassThrough)
+	}
+
+	img, err := NewThumbFromFile(es, ext)
 	if err != nil {
 		return nil, err
 	}
 
-	img.GetThumb(thumbSize(options))
+	w, h := b.settings.ThumbSize(ctx)
+	img.GetThumb(uint(w), uint(h))
 	tempPath := filepath.Join(
-		util.RelativePath(model.GetSettingByName("temp_path")),
-		"thumb",
+		util.DataPath(b.settings.TempPath(ctx)),
+		thumbTempFolder,
 		fmt.Sprintf("thumb_%s", uuid.Must(uuid.NewV4()).String()),
 	)
 
@@ -176,8 +161,8 @@ func (b Builtin) Generate(ctx context.Context, file io.Reader, src, name string,
 	}
 
 	defer thumbFile.Close()
-	if err := img.Save(thumbFile); err != nil {
-		return nil, err
+	if err := img.Save(thumbFile, b.settings.ThumbEncode(ctx)); err != nil {
+		return &Result{Path: tempPath}, err
 	}
 
 	return &Result{Path: tempPath}, nil
@@ -187,6 +172,6 @@ func (b Builtin) Priority() int {
 	return 300
 }
 
-func (b Builtin) EnableFlag() string {
-	return "thumb_builtin_enabled"
+func (b Builtin) Enabled(ctx context.Context) bool {
+	return b.settings.BuiltinThumbGeneratorEnabled(ctx)
 }

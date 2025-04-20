@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 )
 
 // HMACAuth HMAC算法鉴权
@@ -39,7 +41,7 @@ func (auth HMACAuth) Check(body string, sign string) error {
 	// 验证是否过期
 	expires, err := strconv.ParseInt(signSlice[len(signSlice)-1], 10, 64)
 	if err != nil {
-		return ErrAuthFailed.WithError(err)
+		return serializer.NewError(serializer.CodeInvalidSign, "sign expired", nil)
 	}
 	// 如果签名过期
 	if expires < time.Now().Unix() && expires != 0 {
@@ -48,7 +50,7 @@ func (auth HMACAuth) Check(body string, sign string) error {
 
 	// 验证签名
 	if auth.Sign(body, expires) != sign {
-		return ErrAuthFailed
+		return serializer.NewError(serializer.CodeInvalidSign, "invalid sign", nil)
 	}
 	return nil
 }

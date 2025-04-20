@@ -2,17 +2,24 @@ package admin
 
 import (
 	"context"
-	"strings"
+	"strconv"
 
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/user"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // AddUserService 用户添加服务
 type AddUserService struct {
-	User     model.User `json:"User" binding:"required"`
-	Password string     `json:"password"`
+	//User     model.User `json:"User" binding:"required"`
+	Password string `json:"password"`
 }
 
 // UserService 用户ID服务
@@ -25,148 +32,219 @@ type UserBatchService struct {
 	ID []uint `json:"id" binding:"min=1"`
 }
 
-// Ban 封禁/解封用户
-func (service *UserService) Ban() serializer.Response {
-	user, err := model.GetUserByID(service.ID)
-	if err != nil {
-		return serializer.Err(serializer.CodeUserNotFound, "", err)
-	}
+const (
+	userStatusCondition = "user_status"
+	userGroupCondition  = "user_group"
+	userNickCondition   = "user_nick"
+	userEmailCondition  = "user_email"
+)
 
-	if user.ID == 1 {
-		return serializer.Err(serializer.CodeInvalidActionOnDefaultUser, "", err)
-	}
+func (service *AdminListService) Users(c *gin.Context) (*ListUserResponse, error) {
+	dep := dependency.FromContext(c)
+	hasher := dep.HashIDEncoder()
+	userClient := dep.UserClient()
 
-	if user.Status == model.Active {
-		user.SetStatus(model.Baned)
-	} else {
-		user.SetStatus(model.Active)
-	}
+	ctx := context.WithValue(c, inventory.LoadUserGroup{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadUserPasskey{}, true)
 
-	return serializer.Response{Data: user.Status}
-}
-
-// Delete 删除用户
-func (service *UserBatchService) Delete() serializer.Response {
-	for _, uid := range service.ID {
-		user, err := model.GetUserByID(uid)
+	var (
+		err     error
+		groupID int
+	)
+	if service.Conditions[userGroupCondition] != "" {
+		groupID, err = strconv.Atoi(service.Conditions[userGroupCondition])
 		if err != nil {
-			return serializer.Err(serializer.CodeUserNotFound, "", err)
+			return nil, serializer.NewError(serializer.CodeParamErr, "Invalid group ID", err)
 		}
-
-		// 不能删除初始用户
-		if uid == 1 {
-			return serializer.Err(serializer.CodeInvalidActionOnDefaultUser, "", err)
-		}
-
-		// 删除与此用户相关的所有资源
-
-		fs, err := filesystem.NewFileSystem(&user)
-		// 删除所有文件
-		root, err := fs.User.Root()
-		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "User's root folder not exist", err)
-		}
-		fs.Delete(context.Background(), []uint{root.ID}, []uint{}, false, false)
-
-		// 删除相关任务
-		model.DB.Where("user_id = ?", uid).Delete(&model.Download{})
-		model.DB.Where("user_id = ?", uid).Delete(&model.Task{})
-
-		// 删除标签
-		model.DB.Where("user_id = ?", uid).Delete(&model.Tag{})
-
-		// 删除WebDAV账号
-		model.DB.Where("user_id = ?", uid).Delete(&model.Webdav{})
-
-		// 删除此用户
-		model.DB.Unscoped().Delete(user)
-
 	}
-	return serializer.Response{}
-}
 
-// Get 获取用户详情
-func (service *UserService) Get() serializer.Response {
-	group, err := model.GetUserByID(service.ID)
+	res, err := userClient.ListUsers(ctx, &inventory.ListUserParameters{
+		PaginationArgs: &inventory.PaginationArgs{
+			Page:     service.Page - 1,
+			PageSize: service.PageSize,
+			OrderBy:  service.OrderBy,
+			Order:    inventory.OrderDirection(service.OrderDirection),
+		},
+		Status:  user.Status(service.Conditions[userStatusCondition]),
+		GroupID: groupID,
+		Nick:    service.Conditions[userNickCondition],
+		Email:   service.Conditions[userEmailCondition],
+	})
+
 	if err != nil {
-		return serializer.Err(serializer.CodeUserNotFound, "", err)
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list users", err)
 	}
 
-	return serializer.Response{Data: group}
+	return &ListUserResponse{
+		Pagination: res.PaginationResults,
+		Users: lo.Map(res.Users, func(user *ent.User, _ int) GetUserResponse {
+			return GetUserResponse{
+				User:         user,
+				HashID:       hashid.EncodeUserID(hasher, user.ID),
+				TwoFAEnabled: user.TwoFactorSecret != "",
+			}
+		}),
+	}, nil
 }
 
-// Add 添加用户
-func (service *AddUserService) Add() serializer.Response {
-	if service.User.ID > 0 {
+type (
+	SingleUserService struct {
+		ID int `uri:"id" json:"id" binding:"required"`
+	}
+	SingleUserParamCtx struct{}
+)
 
-		user, _ := model.GetUserByID(service.User.ID)
-		if service.Password != "" {
-			user.SetPassword(service.Password)
-		}
+func (service *SingleUserService) Get(c *gin.Context) (*GetUserResponse, error) {
+	dep := dependency.FromContext(c)
+	hasher := dep.HashIDEncoder()
+	userClient := dep.UserClient()
 
-		// 只更新必要字段
-		user.Nick = service.User.Nick
-		user.Email = service.User.Email
-		user.GroupID = service.User.GroupID
-		user.Status = service.User.Status
-		user.TwoFactor = service.User.TwoFactor
+	ctx := context.WithValue(c, inventory.LoadUserGroup{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadUserPasskey{}, true)
 
-		// 检查愚蠢操作
-		if user.ID == 1 {
-			if user.GroupID != 1 {
-				return serializer.Err(serializer.CodeChangeGroupForDefaultUser, "", nil)
-			}
-			if user.Status != model.Active {
-				return serializer.Err(serializer.CodeInvalidActionOnDefaultUser, "", nil)
-			}
-		}
-
-		if err := model.DB.Save(&user).Error; err != nil {
-			return serializer.DBErr("Failed to save user record", err)
-		}
-	} else {
-		service.User.SetPassword(service.Password)
-		if err := model.DB.Create(&service.User).Error; err != nil {
-			return serializer.DBErr("Failed to create user record", err)
-		}
+	user, err := userClient.GetByID(ctx, service.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get user", err)
 	}
 
-	return serializer.Response{Data: service.User.ID}
+	m := manager.NewFileManager(dep, user)
+	capacity, err := m.Capacity(ctx)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeInternalSetting, "Failed to get user capacity", err)
+	}
+
+	return &GetUserResponse{
+		User:         user,
+		HashID:       hashid.EncodeUserID(hasher, user.ID),
+		TwoFAEnabled: user.TwoFactorSecret != "",
+		Capacity:     capacity,
+	}, nil
 }
 
-// Users 列出用户
-func (service *AdminListService) Users() serializer.Response {
-	var res []model.User
-	total := 0
+func (service *SingleUserService) CalibrateStorage(c *gin.Context) (*GetUserResponse, error) {
+	dep := dependency.FromContext(c)
+	userClient := dep.UserClient()
 
-	tx := model.DB.Model(&model.User{})
-	if service.OrderBy != "" {
-		tx = tx.Order(service.OrderBy)
+	ctx := context.WithValue(c, inventory.LoadUserGroup{}, true)
+	_, err := userClient.CalculateStorage(ctx, service.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to calculate storage", err)
 	}
 
-	for k, v := range service.Conditions {
-		tx = tx.Where(k+" = ?", v)
+	subService := &SingleUserService{ID: service.ID}
+	return subService.Get(c)
+}
+
+type (
+	UpsertUserService struct {
+		User     *ent.User `json:"user" binding:"required"`
+		Password string    `json:"password"`
+		TwoFA    string    `json:"two_fa"`
+	}
+	UpsertUserParamCtx struct{}
+)
+
+func (s *UpsertUserService) Update(c *gin.Context) (*GetUserResponse, error) {
+	dep := dependency.FromContext(c)
+	userClient := dep.UserClient()
+
+	ctx := context.WithValue(c, inventory.LoadUserGroup{}, true)
+	existing, err := userClient.GetByID(ctx, s.User.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get user", err)
 	}
 
-	if len(service.Searches) > 0 {
-		search := ""
-		for k, v := range service.Searches {
-			search += (k + " like '%" + v + "%' OR ")
+	if s.User.ID == 1 && existing.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
+		if s.User.GroupUsers != existing.GroupUsers {
+			return nil, serializer.NewError(serializer.CodeInvalidActionOnDefaultUser, "Cannot change default user's group", nil)
 		}
-		search = strings.TrimSuffix(search, " OR ")
-		tx = tx.Where(search)
+
+		if s.User.Status != user.StatusActive {
+			return nil, serializer.NewError(serializer.CodeInvalidActionOnDefaultUser, "Cannot change default user's status", nil)
+		}
+
 	}
 
-	// 计算总数用于分页
-	tx.Count(&total)
+	newUser, err := userClient.Upsert(ctx, s.User, s.Password, s.TwoFA)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to update user", err)
+	}
 
-	// 查询记录
-	tx.Set("gorm:auto_preload", true).Limit(service.PageSize).Offset((service.Page - 1) * service.PageSize).Find(&res)
+	service := &SingleUserService{ID: newUser.ID}
+	return service.Get(c)
+}
 
-	// 补齐缺失用户组
+func (s *UpsertUserService) Create(c *gin.Context) (*GetUserResponse, error) {
+	dep := dependency.FromContext(c)
+	userClient := dep.UserClient()
 
-	return serializer.Response{Data: map[string]interface{}{
-		"total": total,
-		"items": res,
-	}}
+	if s.Password == "" {
+		return nil, serializer.NewError(serializer.CodeParamErr, "Password is required", nil)
+	}
+
+	if s.User.ID != 0 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "ID must be 0", nil)
+	}
+
+	user, err := userClient.Upsert(c, s.User, s.Password, s.TwoFA)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to create user", err)
+	}
+
+	service := &SingleUserService{ID: user.ID}
+	return service.Get(c)
+
+}
+
+type (
+	BatchUserService struct {
+		IDs []int `json:"ids" binding:"min=1"`
+	}
+	BatchUserParamCtx struct{}
+)
+
+func (s *BatchUserService) Delete(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	userClient := dep.UserClient()
+	fileClient := dep.FileClient()
+
+	current := inventory.UserFromContext(c)
+	ae := serializer.NewAggregateError()
+	for _, id := range s.IDs {
+		if current.ID == id || id == 1 {
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeInvalidActionOnDefaultUser, "Cannot delete current user", nil))
+			continue
+		}
+
+		fc, tx, ctx, err := inventory.WithTx(c, fileClient)
+		if err != nil {
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeDBError, "Failed to start transaction", err))
+			continue
+		}
+
+		uc, _, ctx, err := inventory.WithTx(ctx, userClient)
+		if err != nil {
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeDBError, "Failed to start transaction", err))
+			continue
+		}
+
+		if err := fc.DeleteByUser(ctx, id); err != nil {
+			_ = inventory.Rollback(tx)
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeDBError, "Failed to delete user files", err))
+			continue
+		}
+
+		if err := uc.Delete(ctx, id); err != nil {
+			_ = inventory.Rollback(tx)
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeDBError, "Failed to delete user", err))
+			continue
+		}
+
+		if err := inventory.Commit(tx); err != nil {
+			ae.Add(strconv.Itoa(id), serializer.NewError(serializer.CodeDBError, "Failed to commit transaction", err))
+			continue
+		}
+	}
+
+	return ae.Aggregate()
 }

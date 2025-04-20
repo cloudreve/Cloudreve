@@ -1,10 +1,9 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -44,7 +43,7 @@ func ErrorResponse(err error) serializer.Response {
 	// 处理 Validator 产生的错误
 	if ve, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range ve {
-			return serializer.ParamErr(
+			return serializer.ParamErrDeprecated(
 				ParamErrorMsg(e.Field(), e.Tag()),
 				err,
 			)
@@ -52,18 +51,55 @@ func ErrorResponse(err error) serializer.Response {
 	}
 
 	if _, ok := err.(*json.UnmarshalTypeError); ok {
-		return serializer.ParamErr("JSON marshall error", err)
+		return serializer.ParamErrDeprecated("JSON marshall error", err)
 	}
 
-	return serializer.ParamErr("Parameter error", err)
+	return serializer.ParamErrDeprecated("Parameter error", err)
 }
 
-// CurrentUser 获取当前用户
-func CurrentUser(c *gin.Context) *model.User {
-	if user, _ := c.Get("user"); user != nil {
-		if u, ok := user.(*model.User); ok {
-			return u
+// FromJSON Parse and validate JSON from request body
+func FromJSON[T any](ctxKey any) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var service T
+		if err := c.ShouldBindJSON(&service); err == nil {
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), ctxKey, &service))
+			c.Next()
+		} else {
+			c.JSON(200, ErrorResponse(err))
+			c.Abort()
 		}
 	}
-	return nil
+}
+
+// FromQuery Parse and validate form from request query
+func FromQuery[T any](ctxKey any) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var service T
+		if err := c.ShouldBindQuery(&service); err == nil {
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), ctxKey, &service))
+			c.Next()
+		} else {
+			c.JSON(200, ErrorResponse(err))
+			c.Abort()
+		}
+	}
+}
+
+// FromUri Parse and validate form from request uri
+func FromUri[T any](ctxKey any) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var service T
+		if err := c.ShouldBindUri(&service); err == nil {
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), ctxKey, &service))
+			c.Next()
+		} else {
+			c.JSON(200, ErrorResponse(err))
+			c.Abort()
+		}
+	}
+}
+
+// ParametersFromContext retrieves request parameters from context
+func ParametersFromContext[T any](c *gin.Context, ctxKey any) T {
+	return c.Request.Context().Value(ctxKey).(T)
 }

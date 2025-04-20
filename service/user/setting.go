@@ -1,256 +1,308 @@
 package user
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/cloudreve/Cloudreve/v4/pkg/request"
+	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
+	"github.com/cloudreve/Cloudreve/v4/pkg/thumb"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/gin-gonic/gin"
+	"github.com/pquerna/otp/totp"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
-	"github.com/gin-gonic/gin"
-	"github.com/pquerna/otp/totp"
 )
 
-// SettingService 通用设置服务
-type SettingService struct {
-}
-
-// SettingListService 通用设置列表服务
-type SettingListService struct {
-	Page int `form:"page" binding:"required,min=1"`
-}
-
-// AvatarService 头像服务
-type AvatarService struct {
-	Size string `uri:"size" binding:"required,eq=l|eq=m|eq=s"`
-}
-
-// SettingUpdateService 设定更改服务
-type SettingUpdateService struct {
-	Option string `uri:"option" binding:"required,eq=nick|eq=theme|eq=homepage|eq=vip|eq=qq|eq=policy|eq=password|eq=2fa|eq=authn"`
-}
-
-// OptionsChangeHandler 属性更改接口
-type OptionsChangeHandler interface {
-	Update(*gin.Context, *model.User) serializer.Response
-}
-
-// ChangerNick 昵称更改服务
-type ChangerNick struct {
-	Nick string `json:"nick" binding:"required,min=1,max=255"`
-}
-
-// PolicyChange 更改存储策略
-type PolicyChange struct {
-	ID string `json:"id" binding:"required"`
-}
-
-// HomePage 更改个人主页开关
-type HomePage struct {
-	Enabled bool `json:"status"`
-}
-
-// PasswordChange 更改密码
-type PasswordChange struct {
-	Old string `json:"old" binding:"required,min=4,max=64"`
-	New string `json:"new" binding:"required,min=4,max=64"`
-}
-
-// Enable2FA 开启二步验证
-type Enable2FA struct {
-	Code string `json:"code" binding:"required"`
-}
-
-// DeleteWebAuthn 删除WebAuthn凭证
-type DeleteWebAuthn struct {
-	ID string `json:"id" binding:"required"`
-}
-
-// ThemeChose 主题选择
-type ThemeChose struct {
-	Theme string `json:"theme" binding:"required,hexcolor|rgb|rgba|hsl"`
-}
-
-// Update 更新主题设定
-func (service *ThemeChose) Update(c *gin.Context, user *model.User) serializer.Response {
-	user.OptionsSerialized.PreferredTheme = service.Theme
-	if err := user.UpdateOptions(); err != nil {
-		return serializer.DBErr("Failed to update user preferences", err)
-	}
-
-	return serializer.Response{}
-}
-
-// Update 删除凭证
-func (service *DeleteWebAuthn) Update(c *gin.Context, user *model.User) serializer.Response {
-	user.RemoveAuthn(service.ID)
-	return serializer.Response{}
-}
-
-// Update 更改二步验证设定
-func (service *Enable2FA) Update(c *gin.Context, user *model.User) serializer.Response {
-	if user.TwoFactor == "" {
-		// 开启2FA
-		secret, ok := util.GetSession(c, "2fa_init").(string)
-		if !ok {
-			return serializer.Err(serializer.CodeInternalSetting, "You have not initiated 2FA session", nil)
-		}
-
-		if !totp.Validate(service.Code, secret) {
-			return serializer.ParamErr("Incorrect 2FA code", nil)
-		}
-
-		if err := user.Update(map[string]interface{}{"two_factor": secret}); err != nil {
-			return serializer.DBErr("Failed to update user preferences", err)
-		}
-
-	} else {
-		// 关闭2FA
-		if !totp.Validate(service.Code, user.TwoFactor) {
-			return serializer.ParamErr("Incorrect 2FA code", nil)
-		}
-
-		if err := user.Update(map[string]interface{}{"two_factor": ""}); err != nil {
-			return serializer.DBErr("Failed to update user preferences", err)
-		}
-	}
-
-	return serializer.Response{}
-}
+const (
+	twoFaEnableSessionKey = "2fa_init_"
+)
 
 // Init2FA 初始化二步验证
-func (service *SettingService) Init2FA(c *gin.Context, user *model.User) serializer.Response {
+func Init2FA(c *gin.Context) (string, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "Cloudreve",
 		AccountName: user.Email,
 	})
 	if err != nil {
-		return serializer.Err(serializer.CodeInternalSetting, "Failed to generate TOTP secret", err)
+		return "", serializer.NewError(serializer.CodeInternalSetting, "Failed to generate TOTP secret", err)
 	}
 
-	util.SetSession(c, map[string]interface{}{"2fa_init": key.Secret()})
-	return serializer.Response{Data: key.Secret()}
+	if err := dep.KV().Set(fmt.Sprintf("%s%d", twoFaEnableSessionKey, user.ID), key.Secret(), 600); err != nil {
+		return "", serializer.NewError(serializer.CodeInternalSetting, "Failed to store TOTP session", err)
+	}
+
+	return key.Secret(), nil
 }
 
-// Update 更改密码
-func (service *PasswordChange) Update(c *gin.Context, user *model.User) serializer.Response {
-	// 验证老密码
-	if ok, _ := user.CheckPassword(service.Old); !ok {
-		return serializer.Err(serializer.CodeIncorrectPassword, "", nil)
+type (
+	// AvatarService Service to get avatar
+	GetAvatarService struct {
+		NoCache bool `form:"nocache"`
 	}
+	GetAvatarServiceParamsCtx struct{}
+)
 
-	// 更改为新密码
-	user.SetPassword(service.New)
-	if err := user.Update(map[string]interface{}{"password": user.Password}); err != nil {
-		return serializer.DBErr("Failed to update password", err)
-	}
-
-	return serializer.Response{}
-}
-
-// Update 切换个人主页开关
-func (service *HomePage) Update(c *gin.Context, user *model.User) serializer.Response {
-	user.OptionsSerialized.ProfileOff = !service.Enabled
-	if err := user.UpdateOptions(); err != nil {
-		return serializer.DBErr("Failed to update user preferences", err)
-	}
-
-	return serializer.Response{}
-}
-
-// Update 更改昵称
-func (service *ChangerNick) Update(c *gin.Context, user *model.User) serializer.Response {
-	if err := user.Update(map[string]interface{}{"nick": service.Nick}); err != nil {
-		return serializer.DBErr("Failed to update user", err)
-	}
-
-	return serializer.Response{}
-}
+const (
+	GravatarAvatar = "gravatar"
+	FileAvatar     = "file"
+)
 
 // Get 获取用户头像
-func (service *AvatarService) Get(c *gin.Context) serializer.Response {
+func (service *GetAvatarService) Get(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	settings := dep.SettingProvider()
 	// 查找目标用户
-	uid, _ := c.Get("object_id")
-	user, err := model.GetActiveUserByID(uid.(uint))
+	uid := hashid.FromContext(c)
+	userClient := dep.UserClient()
+	user, err := userClient.GetByID(c, uid)
+
 	if err != nil {
-		return serializer.Err(serializer.CodeUserNotFound, "", err)
+		return serializer.NewError(serializer.CodeUserNotFound, "", err)
+	}
+
+	if !service.NoCache {
+		c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", settings.PublicResourceMaxAge(c)))
 	}
 
 	// 未设定头像时，返回404错误
 	if user.Avatar == "" {
 		c.Status(404)
-		return serializer.Response{}
+		return nil
 	}
 
-	// 获取头像设置
-	sizes := map[string]string{
-		"s": model.GetSettingByName("avatar_size_s"),
-		"m": model.GetSettingByName("avatar_size_m"),
-		"l": model.GetSettingByName("avatar_size_l"),
-	}
+	avatarSettings := settings.Avatar(c)
 
 	// Gravatar 头像重定向
-	if user.Avatar == "gravatar" {
-		server := model.GetSettingByName("gravatar_server")
-		gravatarRoot, err := url.Parse(server)
+	if user.Avatar == GravatarAvatar {
+		gravatarRoot, err := url.Parse(avatarSettings.Gravatar)
 		if err != nil {
-			return serializer.Err(serializer.CodeInternalSetting, "Failed to parse Gravatar server", err)
+			return serializer.NewError(serializer.CodeInternalSetting, "Failed to parse Gravatar server", err)
 		}
 		email_lowered := strings.ToLower(user.Email)
 		has := md5.Sum([]byte(email_lowered))
-		avatar, _ := url.Parse(fmt.Sprintf("/avatar/%x?d=mm&s=%s", has, sizes[service.Size]))
+		avatar, _ := url.Parse(fmt.Sprintf("/avatar/%x?d=mm&s=200", has))
 
-		return serializer.Response{
-			Code: -301,
-			Data: gravatarRoot.ResolveReference(avatar).String(),
-		}
+		c.Redirect(http.StatusFound, gravatarRoot.ResolveReference(avatar).String())
+		return nil
 	}
 
 	// 本地文件头像
-	if user.Avatar == "file" {
-		avatarRoot := util.RelativePath(model.GetSettingByName("avatar_path"))
-		sizeToInt := map[string]string{
-			"s": "0",
-			"m": "1",
-			"l": "2",
-		}
+	if user.Avatar == FileAvatar {
+		avatarRoot := util.DataPath(avatarSettings.Path)
 
-		avatar, err := os.Open(filepath.Join(avatarRoot, fmt.Sprintf("avatar_%d_%s.png", user.ID, sizeToInt[service.Size])))
+		avatar, err := os.Open(filepath.Join(avatarRoot, fmt.Sprintf("avatar_%d.png", user.ID)))
 		if err != nil {
+			dep.Logger().Warning("Failed to open avatar file", err)
 			c.Status(404)
-			return serializer.Response{}
 		}
 		defer avatar.Close()
 
 		http.ServeContent(c.Writer, c.Request, "avatar.png", user.UpdatedAt, avatar)
-		return serializer.Response{}
+		return nil
 	}
 
 	c.Status(404)
-	return serializer.Response{}
-}
-
-// ListTasks 列出任务
-func (service *SettingListService) ListTasks(c *gin.Context, user *model.User) serializer.Response {
-	tasks, total := model.ListTasks(user.ID, service.Page, 10, "updated_at desc")
-	return serializer.BuildTaskList(tasks, total)
+	return nil
 }
 
 // Settings 获取用户设定
-func (service *SettingService) Settings(c *gin.Context, user *model.User) serializer.Response {
-	return serializer.Response{
-		Data: map[string]interface{}{
-			"uid":          user.ID,
-			"homepage":     !user.OptionsSerialized.ProfileOff,
-			"two_factor":   user.TwoFactor != "",
-			"prefer_theme": user.OptionsSerialized.PreferredTheme,
-			"themes":       model.GetSettingByName("themes"),
-			"authn":        serializer.BuildWebAuthnList(user.WebAuthnCredentials()),
-		},
+func GetUserSettings(c *gin.Context) (*UserSettings, error) {
+	dep := dependency.FromContext(c)
+	u := inventory.UserFromContext(c)
+	userClient := dep.UserClient()
+	passkeys, err := userClient.ListPasskeys(c, u.ID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get user passkey", err)
 	}
+
+	return BuildUserSettings(u, passkeys, dep.UAParser()), nil
+
+	// 用户组有效期
+
+	//return serializer.Response{
+	//	Data: map[string]interface{}{
+	//		"uid":           user.ID,
+	//		"qq":            user.OpenID != "",
+	//		"homepage":      !user.OptionsSerialized.ProfileOff,
+	//		"two_factor":    user.TwoFactor != "",
+	//		"prefer_theme":  user.OptionsSerialized.PreferredTheme,
+	//		"themes":        model.GetSettingByName("themes"),
+	//		"group_expires": groupExpires,
+	//		"authn":         serializer.BuildWebAuthnList(user.WebAuthnCredentials()),
+	//	},
+	//}
+}
+
+func UpdateUserAvatar(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	u := inventory.UserFromContext(c)
+	settings := dep.SettingProvider()
+
+	avatarSettings := settings.AvatarProcess(c)
+	if c.Request.ContentLength == -1 || c.Request.ContentLength > avatarSettings.MaxFileSize {
+		request.BlackHole(c.Request.Body)
+		return serializer.NewError(serializer.CodeFileTooLarge, "", nil)
+	}
+
+	if c.Request.ContentLength == 0 {
+		// Use Gravatar for empty body
+		if _, err := dep.UserClient().UpdateAvatar(c, u, GravatarAvatar); err != nil {
+			return serializer.NewError(serializer.CodeDBError, "Failed to update user avatar", err)
+		}
+
+		return nil
+	}
+
+	return updateAvatarFile(c, u, c.GetHeader("Content-Type"), c.Request.Body, avatarSettings)
+}
+
+func updateAvatarFile(ctx context.Context, u *ent.User, contentType string, file io.Reader, avatarSettings *setting.AvatarProcess) error {
+	dep := dependency.FromContext(ctx)
+	// Detect ext from content type
+	ext := "png"
+	switch contentType {
+	case "image/jpeg", "image/jpg":
+		ext = "jpg"
+	case "image/gif":
+		ext = "gif"
+	}
+	avatar, err := thumb.NewThumbFromFile(file, ext)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "Invalid image", err)
+	}
+
+	// Resize and save avatar
+	avatar.CreateAvatar(avatarSettings.MaxWidth)
+	avatarRoot := util.DataPath(avatarSettings.Path)
+	f, err := util.CreatNestedFile(filepath.Join(avatarRoot, fmt.Sprintf("avatar_%d.png", u.ID)))
+	if err != nil {
+		return serializer.NewError(serializer.CodeIOFailed, "Failed to create avatar file", err)
+	}
+
+	defer f.Close()
+	if err := avatar.Save(f, &setting.ThumbEncode{
+		Quality: 100,
+		Format:  "png",
+	}); err != nil {
+		return serializer.NewError(serializer.CodeIOFailed, "Failed to save avatar file", err)
+	}
+
+	if _, err := dep.UserClient().UpdateAvatar(ctx, u, FileAvatar); err != nil {
+		return serializer.NewError(serializer.CodeDBError, "Failed to update user avatar", err)
+	}
+
+	return nil
+}
+
+type (
+	PatchUserSetting struct {
+		Nick                    *string   `json:"nick" binding:"omitempty,min=1,max=255"`
+		Language                *string   `json:"language" binding:"omitempty,min=1,max=255"`
+		PreferredTheme          *string   `json:"preferred_theme" binding:"omitempty,hexcolor|rgb|rgba|hsl"`
+		VersionRetentionEnabled *bool     `json:"version_retention_enabled" binding:"omitempty"`
+		VersionRetentionExt     *[]string `json:"version_retention_ext" binding:"omitempty"`
+		VersionRetentionMax     *int      `json:"version_retention_max" binding:"omitempty,min=0"`
+		CurrentPassword         *string   `json:"current_password" binding:"omitempty,min=4,max=64"`
+		NewPassword             *string   `json:"new_password" binding:"omitempty,min=6,max=64"`
+		TwoFAEnabled            *bool     `json:"two_fa_enabled" binding:"omitempty"`
+		TwoFACode               *string   `json:"two_fa_code" binding:"omitempty"`
+	}
+	PatchUserSettingParamsCtx struct{}
+)
+
+func (s *PatchUserSetting) Patch(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	u := inventory.UserFromContext(c)
+	userClient := dep.UserClient()
+	saveSetting := false
+
+	if s.Nick != nil {
+		if _, err := userClient.UpdateNickname(c, u, *s.Nick); err != nil {
+			return serializer.NewError(serializer.CodeDBError, "Failed to update user nick", err)
+		}
+	}
+
+	if s.Language != nil {
+		u.Settings.Language = *s.Language
+		saveSetting = true
+	}
+
+	if s.PreferredTheme != nil {
+		u.Settings.PreferredTheme = *s.PreferredTheme
+		saveSetting = true
+	}
+
+	if s.VersionRetentionEnabled != nil {
+		u.Settings.VersionRetention = *s.VersionRetentionEnabled
+		saveSetting = true
+	}
+
+	if s.VersionRetentionExt != nil {
+		u.Settings.VersionRetentionExt = *s.VersionRetentionExt
+		saveSetting = true
+	}
+
+	if s.VersionRetentionMax != nil {
+		u.Settings.VersionRetentionMax = *s.VersionRetentionMax
+		saveSetting = true
+	}
+
+	if s.CurrentPassword != nil && s.NewPassword != nil {
+		if err := inventory.CheckPassword(u, *s.CurrentPassword); err != nil {
+			return serializer.NewError(serializer.CodeIncorrectPassword, "Incorrect password", err)
+		}
+
+		if _, err := userClient.UpdatePassword(c, u, *s.NewPassword); err != nil {
+			return serializer.NewError(serializer.CodeDBError, "Failed to update user password", err)
+		}
+	}
+
+	if s.TwoFAEnabled != nil {
+		if *s.TwoFAEnabled {
+			kv := dep.KV()
+			secret, ok := kv.Get(fmt.Sprintf("%s%d", twoFaEnableSessionKey, u.ID))
+			if !ok {
+				return serializer.NewError(serializer.CodeInternalSetting, "You have not initiated 2FA session", nil)
+			}
+
+			if !totp.Validate(*s.TwoFACode, secret.(string)) {
+				return serializer.NewError(serializer.Code2FACodeErr, "Incorrect 2FA code", nil)
+			}
+
+			if _, err := userClient.UpdateTwoFASecret(c, u, secret.(string)); err != nil {
+				return serializer.NewError(serializer.CodeDBError, "Failed to update user 2FA", err)
+			}
+
+		} else {
+			if !totp.Validate(*s.TwoFACode, u.TwoFactorSecret) {
+				return serializer.NewError(serializer.Code2FACodeErr, "Incorrect 2FA code", nil)
+			}
+
+			if _, err := userClient.UpdateTwoFASecret(c, u, ""); err != nil {
+				return serializer.NewError(serializer.CodeDBError, "Failed to update user 2FA", err)
+			}
+
+		}
+	}
+
+	if saveSetting {
+		if err := userClient.SaveSettings(c, u); err != nil {
+			return serializer.NewError(serializer.CodeDBError, "Failed to update user settings", err)
+		}
+	}
+
+	return nil
 }

@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"context"
-	"github.com/cloudreve/Cloudreve/v3/pkg/serializer"
-	"github.com/cloudreve/Cloudreve/v3/pkg/wopi"
-	"github.com/cloudreve/Cloudreve/v3/service/explorer"
+	"github.com/cloudreve/Cloudreve/v4/pkg/wopi"
+	"github.com/cloudreve/Cloudreve/v4/service/explorer"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -35,43 +33,46 @@ func GetFile(c *gin.Context) {
 
 // PutFile Puts file content
 func PutFile(c *gin.Context) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	service := &explorer.FileIDService{}
-	res := service.PutContent(ctx, c)
-	switch res.Code {
-	case serializer.CodeFileTooLarge:
-		c.Status(http.StatusRequestEntityTooLarge)
-		c.Header(wopi.ServerErrorHeader, res.Error)
-	case serializer.CodeNotFound:
-		c.Status(http.StatusNotFound)
-		c.Header(wopi.ServerErrorHeader, res.Error)
-	case 0:
-		c.Status(http.StatusOK)
-	default:
+	service := &explorer.WopiService{}
+	err := service.PutContent(c)
+	if err != nil {
 		c.Status(http.StatusInternalServerError)
-		c.Header(wopi.ServerErrorHeader, res.Error)
+		c.Header(wopi.ServerErrorHeader, err.Error())
 	}
 }
 
 // ModifyFile Modify file properties
 func ModifyFile(c *gin.Context) {
 	action := c.GetHeader(wopi.OverwriteHeader)
+	var (
+		service explorer.WopiService
+		err     error
+	)
+
 	switch action {
-	case wopi.MethodLock, wopi.MethodRefreshLock, wopi.MethodUnlock:
-		c.Status(http.StatusOK)
-		return
-	case wopi.MethodRename:
-		var service explorer.WopiService
-		err := service.Rename(c)
-		if err != nil {
-			c.Status(http.StatusInternalServerError)
-			c.Header(wopi.ServerErrorHeader, err.Error())
+	case wopi.MethodLock:
+		err = service.Lock(c)
+		if err == nil {
+			return
+		}
+	case wopi.MethodRefreshLock:
+		err = service.RefreshLock(c)
+		if err == nil {
+			return
+		}
+	case wopi.MethodUnlock:
+		err = service.Unlock(c)
+		if err == nil {
 			return
 		}
 	default:
 		c.Status(http.StatusNotImplemented)
+		return
+	}
+
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		c.Header(wopi.ServerErrorHeader, err.Error())
 		return
 	}
 }

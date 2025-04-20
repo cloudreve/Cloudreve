@@ -1,73 +1,82 @@
 package middleware
 
 import (
-	"github.com/cloudreve/Cloudreve/v3/bootstrap"
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
 
 // FrontendFileHandler 前端静态文件处理
-func FrontendFileHandler() gin.HandlerFunc {
+func FrontendFileHandler(dep dependency.Dep) gin.HandlerFunc {
+	fs := dep.ServerStaticFS()
+	l := dep.Logger()
+
 	ignoreFunc := func(c *gin.Context) {
 		c.Next()
 	}
 
-	if bootstrap.StaticFS == nil {
+	if fs == nil {
 		return ignoreFunc
 	}
 
 	// 读取index.html
-	file, err := bootstrap.StaticFS.Open("/index.html")
+	file, err := fs.Open("/index.html")
 	if err != nil {
-		util.Log().Warning("Static file \"index.html\" does not exist, it might affect the display of the homepage.")
+		l.Warning("Static file \"index.html\" does not exist, it might affect the display of the homepage.")
 		return ignoreFunc
 	}
 
-	fileContentBytes, err := ioutil.ReadAll(file)
+	fileContentBytes, err := io.ReadAll(file)
 	if err != nil {
-		util.Log().Warning("Cannot read static file \"index.html\", it might affect the display of the homepage.")
+		l.Warning("Cannot read static file \"index.html\", it might affect the display of the homepage.")
 		return ignoreFunc
 	}
 	fileContent := string(fileContentBytes)
 
-	fileServer := http.FileServer(bootstrap.StaticFS)
+	fileServer := http.FileServer(fs)
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		// API 跳过
+		// Skipping routers handled by backend
 		if strings.HasPrefix(path, "/api") ||
-			strings.HasPrefix(path, "/custom") ||
 			strings.HasPrefix(path, "/dav") ||
-			strings.HasPrefix(path, "/f") ||
+			strings.HasPrefix(path, "/f/") ||
+			strings.HasPrefix(path, "/s/") ||
 			path == "/manifest.json" {
 			c.Next()
 			return
 		}
 
 		// 不存在的路径和index.html均返回index.html
-		if (path == "/index.html") || (path == "/") || !bootstrap.StaticFS.Exists("/", path) {
+		if (path == "/index.html") || (path == "/") || !fs.Exists("/", path) {
 			// 读取、替换站点设置
-			options := model.GetSettingByNames("siteName", "siteKeywords", "siteScript",
-				"pwa_small_icon")
+			settingClient := dep.SettingProvider()
+			siteBasic := settingClient.SiteBasic(c)
+			pwaOpts := settingClient.PWA(c)
+			theme := settingClient.Theme(c)
 			finalHTML := util.Replace(map[string]string{
-				"{siteName}":       options["siteName"],
-				"{siteDes}":        options["siteDes"],
-				"{siteScript}":     options["siteScript"],
-				"{pwa_small_icon}": options["pwa_small_icon"],
+				"{siteName}":               siteBasic.Name,
+				"{siteDes}":                siteBasic.Description,
+				"{siteScript}":             siteBasic.Script,
+				"{pwa_small_icon}":         pwaOpts.SmallIcon,
+				"{pwa_medium_icon}":        pwaOpts.MediumIcon,
+				"var(--defaultThemeColor)": theme.DefaultTheme,
 			}, fileContent)
 
 			c.Header("Content-Type", "text/html")
+			c.Header("Cache-Control", "public, no-cache")
 			c.String(200, finalHTML)
 			c.Abort()
 			return
 		}
 
-		if path == "/service-worker.js" {
+		if path == "/sw.js" || strings.HasPrefix(path, "/locales/") {
 			c.Header("Cache-Control", "public, no-cache")
+		} else if strings.HasPrefix(path, "/assets/") {
+			c.Header("Cache-Control", "public, max-age=31536000")
 		}
 
 		// 存在的静态文件

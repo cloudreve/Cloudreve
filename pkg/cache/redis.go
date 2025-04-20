@@ -3,10 +3,10 @@ package cache
 import (
 	"bytes"
 	"encoding/gob"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"strconv"
 	"time"
 
-	"github.com/cloudreve/Cloudreve/v3/pkg/util"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -19,7 +19,7 @@ type item struct {
 	Value interface{}
 }
 
-func serializer(value interface{}) ([]byte, error) {
+func serializer(value any) ([]byte, error) {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
 	storeValue := item{
@@ -32,7 +32,7 @@ func serializer(value interface{}) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func deserializer(value []byte) (interface{}, error) {
+func deserializer(value []byte) (any, error) {
 	var res item
 	buffer := bytes.NewReader(value)
 	dec := gob.NewDecoder(buffer)
@@ -44,7 +44,7 @@ func deserializer(value []byte) (interface{}, error) {
 }
 
 // NewRedisStore 创建新的redis存储
-func NewRedisStore(size int, network, address, user, password, database string) *RedisStore {
+func NewRedisStore(l logging.Logger, size int, network, address, user, password, database string) *RedisStore {
 	return &RedisStore{
 		pool: &redis.Pool{
 			MaxIdle:     size,
@@ -63,11 +63,11 @@ func NewRedisStore(size int, network, address, user, password, database string) 
 					network,
 					address,
 					redis.DialDatabase(db),
-					redis.DialUsername(user),
 					redis.DialPassword(password),
+					redis.DialUsername(user),
 				)
 				if err != nil {
-					util.Log().Panic("Failed to create Redis connection: %s", err)
+					l.Panic("Failed to create Redis connection: %s", err)
 				}
 				return c, nil
 			},
@@ -76,7 +76,7 @@ func NewRedisStore(size int, network, address, user, password, database string) 
 }
 
 // Set 存储值
-func (store *RedisStore) Set(key string, value interface{}, ttl int) error {
+func (store *RedisStore) Set(key string, value any, ttl int) error {
 	rc := store.pool.Get()
 	defer rc.Close()
 
@@ -103,7 +103,7 @@ func (store *RedisStore) Set(key string, value interface{}, ttl int) error {
 }
 
 // Get 取值
-func (store *RedisStore) Get(key string) (interface{}, bool) {
+func (store *RedisStore) Get(key string) (any, bool) {
 	rc := store.pool.Get()
 	defer rc.Close()
 	if rc.Err() != nil {
@@ -125,7 +125,7 @@ func (store *RedisStore) Get(key string) (interface{}, bool) {
 }
 
 // Gets 批量取值
-func (store *RedisStore) Gets(keys []string, prefix string) (map[string]interface{}, []string) {
+func (store *RedisStore) Gets(keys []string, prefix string) (map[string]any, []string) {
 	rc := store.pool.Get()
 	defer rc.Close()
 	if rc.Err() != nil {
@@ -142,7 +142,7 @@ func (store *RedisStore) Gets(keys []string, prefix string) (map[string]interfac
 		return nil, keys
 	}
 
-	var res = make(map[string]interface{})
+	var res = make(map[string]any)
 	var missed = make([]string, 0, len(keys))
 
 	for key, value := range v {
@@ -158,13 +158,13 @@ func (store *RedisStore) Gets(keys []string, prefix string) (map[string]interfac
 }
 
 // Sets 批量设置值
-func (store *RedisStore) Sets(values map[string]interface{}, prefix string) error {
+func (store *RedisStore) Sets(values map[string]any, prefix string) error {
 	rc := store.pool.Get()
 	defer rc.Close()
 	if rc.Err() != nil {
 		return rc.Err()
 	}
-	var setValues = make(map[string]interface{})
+	var setValues = make(map[string]any)
 
 	// 编码待设置值
 	for key, value := range values {
@@ -184,7 +184,7 @@ func (store *RedisStore) Sets(values map[string]interface{}, prefix string) erro
 }
 
 // Delete 批量删除给定的键
-func (store *RedisStore) Delete(keys []string, prefix string) error {
+func (store *RedisStore) Delete(prefix string, keys ...string) error {
 	rc := store.pool.Get()
 	defer rc.Close()
 	if rc.Err() != nil {
@@ -196,10 +196,24 @@ func (store *RedisStore) Delete(keys []string, prefix string) error {
 		keys[i] = prefix + keys[i]
 	}
 
-	_, err := rc.Do("DEL", redis.Args{}.AddFlat(keys)...)
-	if err != nil {
-		return err
+	// No key is presented, delete all keys with given prefix
+	if len(keys) == 0 {
+		// Fetch all key with given prefix
+		allPrefixKeys, err := redis.Strings(rc.Do("KEYS", prefix+"*"))
+		if err != nil {
+			return err
+		}
+
+		keys = allPrefixKeys
 	}
+
+	if len(keys) > 0 {
+		_, err := rc.Do("DEL", redis.Args{}.AddFlat(keys)...)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

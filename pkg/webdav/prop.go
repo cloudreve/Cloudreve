@@ -7,83 +7,168 @@ package webdav
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"mime"
+	"github.com/cloudreve/Cloudreve/v4/application/dependency"
+	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
+	"github.com/gin-gonic/gin"
 	"net/http"
-	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
-
-	model "github.com/cloudreve/Cloudreve/v3/models"
-	"github.com/cloudreve/Cloudreve/v3/pkg/filesystem"
 )
 
-type FileDeadProps struct {
-	*model.File
-}
+//// 实现 webdav.DeadPropsHolder 接口，不能在models.file里面定义
+//func (file *FileDeadProps) DeadProps() (map[xml.Name]Property, error) {
+//	return map[xml.Name]Property{
+//		xml.Name{Space: "http://owncloud.org/ns", Local: "checksums"}: {
+//			XMLName: xml.Name{
+//				Space: "http://owncloud.org/ns", Local: "checksums",
+//			},
+//			InnerXML: []byte("<checksum>" + file.MetadataSerialized[model.ChecksumMetadataKey] + "</checksum>"),
+//		},
+//	}, nil
+//}
+//
+//func (file *FileDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
+//	var (
+//		stat Propstat
+//		err  error
+//	)
+//	stat.Status = http.StatusOK
+//	for _, patch := range proppatches {
+//		for _, prop := range patch.Props {
+//			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
+//			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
+//				var modtimeUnix int64
+//				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
+//				if err == nil {
+//					err = model.DB.Model(file).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+//				}
+//			}
+//		}
+//	}
+//	return []Propstat{stat}, err
+//}
+//
+//type FolderDeadProps struct {
+//	*model.Folder
+//}
+//
+//func (folder *FolderDeadProps) DeadProps() (map[xml.Name]Property, error) {
+//	return nil, nil
+//}
+//
+//func (folder *FolderDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
+//	var (
+//		stat Propstat
+//		err  error
+//	)
+//	stat.Status = http.StatusOK
+//	for _, patch := range proppatches {
+//		for _, prop := range patch.Props {
+//			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
+//			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
+//				var modtimeUnix int64
+//				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
+//				if err == nil {
+//					err = model.DB.Model(folder).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
+//				}
+//			}
+//		}
+//	}
+//	return []Propstat{stat}, err
+//}
 
-// 实现 webdav.DeadPropsHolder 接口，不能在models.file里面定义
-func (file *FileDeadProps) DeadProps() (map[xml.Name]Property, error) {
-	return map[xml.Name]Property{
-		xml.Name{Space: "http://owncloud.org/ns", Local: "checksums"}: {
-			XMLName: xml.Name{
-				Space: "http://owncloud.org/ns", Local: "checksums",
-			},
-			InnerXML: []byte("<checksum>" + file.MetadataSerialized[model.ChecksumMetadataKey] + "</checksum>"),
-		},
-	}, nil
-}
+const (
+	DeadPropsMetadataPrefix = "dav:"
+	SpaceNameSeparator      = "|"
+)
 
-func (file *FileDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
-	var (
-		stat Propstat
-		err  error
-	)
-	stat.Status = http.StatusOK
-	for _, patch := range proppatches {
-		for _, prop := range patch.Props {
-			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
-			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
-				var modtimeUnix int64
-				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
-				if err == nil {
-					err = model.DB.Model(file.File).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
-				}
-			}
+type (
+	// DeadPropsStore implements  DeadPropsHolder interface with metadata based store.
+	metadataDeadProps struct {
+		f  fs.File
+		fm manager.FileManager
+	}
+
+	DeadPropsStore struct {
+		Lang     string `json:"l,omitempty"`
+		InnerXML []byte `json:"i,omitempty"`
+	}
+)
+
+func (m *metadataDeadProps) DeadProps() (map[xml.Name]Property, error) {
+	meta := m.f.Metadata()
+	res := make(map[xml.Name]Property)
+	for k, v := range meta {
+		if !strings.HasPrefix(k, DeadPropsMetadataPrefix) {
+			continue
+		}
+
+		spaceLocal := strings.SplitN(strings.TrimPrefix(k, DeadPropsMetadataPrefix), SpaceNameSeparator, 2)
+		name := xml.Name{spaceLocal[0], spaceLocal[1]}
+		propsStore := &DeadPropsStore{}
+		if err := json.Unmarshal([]byte(v), propsStore); err != nil {
+			return nil, err
+		}
+
+		res[name] = Property{
+			XMLName:  name,
+			InnerXML: propsStore.InnerXML,
+			Lang:     propsStore.Lang,
 		}
 	}
-	return []Propstat{stat}, err
+
+	return res, nil
 }
 
-type FolderDeadProps struct {
-	*model.Folder
-}
-
-func (folder *FolderDeadProps) DeadProps() (map[xml.Name]Property, error) {
-	return nil, nil
-}
-
-func (folder *FolderDeadProps) Patch(proppatches []Proppatch) ([]Propstat, error) {
-	var (
-		stat Propstat
-		err  error
-	)
-	stat.Status = http.StatusOK
+func (m *metadataDeadProps) Patch(ctx context.Context, proppatches []Proppatch) ([]Propstat, error) {
+	metadataArgs := make([]fs.MetadataPatch, 0, len(proppatches))
+	pstat := Propstat{Status: http.StatusOK}
 	for _, patch := range proppatches {
-		for _, prop := range patch.Props {
-			stat.Props = append(stat.Props, Property{XMLName: prop.XMLName})
-			if prop.XMLName.Space == "DAV:" && prop.XMLName.Local == "lastmodified" {
-				var modtimeUnix int64
-				modtimeUnix, err = strconv.ParseInt(string(prop.InnerXML), 10, 64)
-				if err == nil {
-					err = model.DB.Model(folder.Folder).UpdateColumn("updated_at", time.Unix(modtimeUnix, 0)).Error
-				}
+		translateFn := func(p Property) (*fs.MetadataPatch, error) {
+			val, err := json.Marshal(&DeadPropsStore{
+				Lang:     p.Lang,
+				InnerXML: p.InnerXML,
+			})
+			if err != nil {
+				return nil, err
+			}
+			return &fs.MetadataPatch{
+				Key:   DeadPropsMetadataPrefix + p.XMLName.Space + SpaceNameSeparator + p.XMLName.Local,
+				Value: string(val),
+			}, nil
+		}
+		if patch.Remove {
+			translateFn = func(p Property) (*fs.MetadataPatch, error) {
+				return &fs.MetadataPatch{
+					Key:    DeadPropsMetadataPrefix + p.XMLName.Space + SpaceNameSeparator + p.XMLName.Local,
+					Remove: true,
+				}, nil
 			}
 		}
+		for _, prop := range patch.Props {
+			pstat.Props = append(pstat.Props, Property{XMLName: prop.XMLName})
+			patch, err := translateFn(prop)
+			if err != nil {
+				return nil, err
+			}
+			metadataArgs = append(metadataArgs, *patch)
+		}
 	}
-	return []Propstat{stat}, err
+
+	if err := m.fm.PatchMedata(ctx, []*fs.URI{m.f.Uri(false)}, metadataArgs...); err != nil {
+		return nil, err
+	}
+
+	return []Propstat{pstat}, nil
 }
 
 type FileInfo interface {
@@ -172,14 +257,14 @@ type DeadPropsHolder interface {
 	//
 	// For more details on when various HTTP status codes apply, see
 	// http://www.webdav.org/specs/rfc4918.html#PROPPATCH-status
-	Patch([]Proppatch) ([]Propstat, error)
+	Patch(context.Context, []Proppatch) ([]Propstat, error)
 }
 
 // liveProps contains all supported, protected DAV: properties.
 var liveProps = map[xml.Name]struct {
 	// findFn implements the propfind function of this property. If nil,
 	// it indicates a hidden property.
-	findFn func(context.Context, *filesystem.FileSystem, LockSystem, string, FileInfo) (string, error)
+	findFn func(context.Context, manager.FileManager, fs.File) (string, error)
 	// dir is true if the property applies to directories.
 	dir bool
 }{
@@ -207,8 +292,8 @@ var liveProps = map[xml.Name]struct {
 		dir: true,
 	},
 	{Space: "DAV:", Local: "creationdate"}: {
-		findFn: nil,
-		dir:    false,
+		findFn: findCreationDate,
+		dir:    true,
 	},
 	{Space: "DAV:", Local: "getcontentlanguage"}: {
 		findFn: nil,
@@ -234,6 +319,14 @@ var liveProps = map[xml.Name]struct {
 		findFn: findSupportedLock,
 		dir:    true,
 	},
+	{Space: "DAV:", Local: "quota-used-bytes"}: {
+		findFn: findQuotaUsedBytes,
+		dir:    true,
+	},
+	{Space: "DAV:", Local: "quota-available-bytes"}: {
+		findFn: findQuotaAvailableBytes,
+		dir:    true,
+	},
 }
 
 // TODO(nigeltao) merge props and allprop?
@@ -242,19 +335,20 @@ var liveProps = map[xml.Name]struct {
 //
 // Each Propstat has a unique status and each property name will only be part
 // of one Propstat element.
-func props(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi FileInfo, pnames []xml.Name) ([]Propstat, error) {
-	isDir := fi.IsDir()
-	if !isDir {
-		fi = &FileDeadProps{fi.(*model.File)}
+func props(c *gin.Context, file fs.File, fm manager.FileManager, pnames []xml.Name) ([]Propstat, error) {
+	isDir := file.Type() == types.FileTypeFolder
+	dph := &metadataDeadProps{
+		f:  file,
+		fm: fm,
 	}
 
-	var deadProps map[xml.Name]Property
-	if dph, ok := fi.(DeadPropsHolder); ok {
-		var err error
-		deadProps, err = dph.DeadProps()
-		if err != nil {
-			return nil, err
-		}
+	var (
+		deadProps map[xml.Name]Property
+		err       error
+	)
+	deadProps, err = dph.DeadProps()
+	if err != nil {
+		return nil, err
 	}
 
 	pstatOK := Propstat{Status: http.StatusOK}
@@ -267,8 +361,14 @@ func props(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi Fil
 		}
 		// Otherwise, it must either be a live property or we don't know it.
 		if prop := liveProps[pn]; prop.findFn != nil && (prop.dir || !isDir) {
-			innerXML, err := prop.findFn(ctx, fs, ls, fi.GetName(), fi)
+			innerXML, err := prop.findFn(c, fm, file)
 			if err != nil {
+				if errors.Is(err, ErrNotImplemented) {
+					pstatNotFound.Props = append(pstatNotFound.Props, Property{
+						XMLName: pn,
+					})
+					continue
+				}
 				return nil, err
 			}
 			pstatOK.Props = append(pstatOK.Props, Property{
@@ -285,21 +385,18 @@ func props(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi Fil
 }
 
 // Propnames returns the property names defined for resource name.
-func propnames(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi FileInfo) ([]xml.Name, error) {
-	isDir := fi.IsDir()
-	if !isDir {
-		fi = &FileDeadProps{fi.(*model.File)}
-	}
-
+func propnames(c *gin.Context, file fs.File, fm manager.FileManager) ([]xml.Name, error) {
 	var deadProps map[xml.Name]Property
-	if dph, ok := fi.(DeadPropsHolder); ok {
-		var err error
-		deadProps, err = dph.DeadProps()
-		if err != nil {
-			return nil, err
-		}
+	dph := &metadataDeadProps{
+		f:  file,
+		fm: fm,
+	}
+	deadProps, err := dph.DeadProps()
+	if err != nil {
+		return nil, err
 	}
 
+	isDir := file.Type() == types.FileTypeFolder
 	pnames := make([]xml.Name, 0, len(liveProps)+len(deadProps))
 	for pn, prop := range liveProps {
 		if prop.findFn != nil && (prop.dir || !isDir) {
@@ -320,8 +417,8 @@ func propnames(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, fi
 // returned if they are named in 'include'.
 //
 // See http://www.webdav.org/specs/rfc4918.html#METHOD_PROPFIND
-func allprop(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, info FileInfo, include []xml.Name) ([]Propstat, error) {
-	pnames, err := propnames(ctx, fs, ls, info)
+func allprop(c *gin.Context, file fs.File, fm manager.FileManager, include []xml.Name) ([]Propstat, error) {
+	pnames, err := propnames(c, file, fm)
 	if err != nil {
 		return nil, err
 	}
@@ -335,12 +432,12 @@ func allprop(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, info
 			pnames = append(pnames, pn)
 		}
 	}
-	return props(ctx, fs, ls, info, pnames)
+	return props(c, file, fm, pnames)
 }
 
 // Patch patches the properties of resource name. The return values are
 // constrained in the same manner as DeadPropsHolder.Patch.
-func patch(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, patches []Proppatch) ([]Propstat, error) {
+func patch(c context.Context, file fs.File, fm manager.FileManager, patches []Proppatch) ([]Propstat, error) {
 	conflict := false
 loop:
 	for _, patch := range patches {
@@ -372,37 +469,24 @@ loop:
 	}
 
 	// very unlikely to be false
-	exist, info := isPathExist(ctx, fs, name)
-	if exist {
-		var dph DeadPropsHolder
-		if info.IsDir() {
-			dph = &FolderDeadProps{info.(*model.Folder)}
-		} else {
-			dph = &FileDeadProps{info.(*model.File)}
-		}
-		ret, err := dph.Patch(patches)
-		if err != nil {
-			return nil, err
-		}
-		// http://www.webdav.org/specs/rfc4918.html#ELEMENT_propstat says that
-		// "The contents of the prop XML element must only list the names of
-		// properties to which the result in the status element applies."
-		for _, pstat := range ret {
-			for i, p := range pstat.Props {
-				pstat.Props[i] = Property{XMLName: p.XMLName}
-			}
-		}
-		return ret, nil
+	dph := &metadataDeadProps{
+		f:  file,
+		fm: fm,
 	}
-	// The file doesn't implement the optional DeadPropsHolder interface, so
-	// all patches are forbidden.
-	pstat := Propstat{Status: http.StatusOK}
-	for _, patch := range patches {
-		for _, p := range patch.Props {
-			pstat.Props = append(pstat.Props, Property{XMLName: p.XMLName})
+
+	ret, err := dph.Patch(c, patches)
+	if err != nil {
+		return nil, err
+	}
+	// http://www.webdav.org/specs/rfc4918.html#ELEMENT_propstat says that
+	// "The contents of the prop XML element must only list the names of
+	// properties to which the result in the status element applies."
+	for _, pstat := range ret {
+		for i, p := range pstat.Props {
+			pstat.Props[i] = Property{XMLName: p.XMLName}
 		}
 	}
-	return []Propstat{pstat}, nil
+	return ret, nil
 }
 
 func escapeXML(s string) string {
@@ -425,103 +509,68 @@ func escapeXML(s string) string {
 	return s
 }
 
-func findResourceType(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
-	if fi.IsDir() {
+// ErrNotImplemented should be returned by optional interfaces if they
+// want the original implementation to be used.
+var ErrNotImplemented = errors.New("not implemented")
+
+func findResourceType(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	if file.Type() == types.FileTypeFolder {
 		return `<D:collection xmlns:D="DAV:"/>`, nil
 	}
 	return "", nil
 }
 
-func findDisplayName(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
-	if slashClean(name) == "/" {
-		// Hide the real name of a possibly prefixed root directory.
-		return "", nil
+func findDisplayName(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	return escapeXML(file.DisplayName()), nil
+}
+
+func findContentLength(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	return strconv.FormatInt(file.Size(), 10), nil
+}
+
+func findLastModified(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	return file.UpdatedAt().UTC().Format(http.TimeFormat), nil
+}
+
+func findCreationDate(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	return file.CreatedAt().UTC().Format(http.TimeFormat), nil
+}
+
+func findContentType(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	d := dependency.FromContext(ctx)
+	return d.MimeDetector(ctx).TypeByName(file.DisplayName()), nil
+}
+
+func findETag(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	hasher := dependency.FromContext(ctx).HashIDEncoder()
+	return fmt.Sprintf(`"%s"`, hashid.EncodeEntityID(hasher, file.PrimaryEntityID())), nil
+}
+
+func findQuotaUsedBytes(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	requester := inventory.UserFromContext(ctx)
+	if file.Owner().ID != requester.ID {
+		return "", ErrNotImplemented
 	}
-	return escapeXML(fi.GetName()), nil
+	capacity, err := fm.Capacity(ctx)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatInt(capacity.Used, 10), nil
 }
 
-func findContentLength(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
-	return strconv.FormatUint(fi.GetSize(), 10), nil
+func findQuotaAvailableBytes(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
+	requester := inventory.UserFromContext(ctx)
+	if file.Owner().ID != requester.ID {
+		return "", ErrNotImplemented
+	}
+	capacity, err := fm.Capacity(ctx)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatInt(capacity.Total-capacity.Used, 10), nil
 }
 
-func findLastModified(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
-	return fi.ModTime().UTC().Format(http.TimeFormat), nil
-}
-
-// ErrNotImplemented should be returned by optional interfaces if they
-// want the original implementation to be used.
-var ErrNotImplemented = errors.New("not implemented")
-
-// ContentTyper is an optional interface for the os.FileInfo
-// objects returned by the FileSystem.
-//
-// If this interface is defined then it will be used to read the
-// content type from the object.
-//
-// If this interface is not defined the file will be opened and the
-// content type will be guessed from the initial contents of the file.
-type ContentTyper interface {
-	// ContentType returns the content type for the file.
-	//
-	// If this returns error ErrNotImplemented then the error will
-	// be ignored and the base implementation will be used
-	// instead.
-	ContentType(ctx context.Context) (string, error)
-}
-
-func findContentType(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
-	//if do, ok := fi.(ContentTyper); ok {
-	//	ctype, err := do.ContentType(ctx)
-	//	if err != ErrNotImplemented {
-	//		return ctype, err
-	//	}
-	//}
-	//f, err := fs.OpenFile(ctx, name, os.O_RDONLY, 0)
-	//if err != nil {
-	//	return "", err
-	//}
-	//defer f.Close()
-	//// This implementation is based on serveContent's code in the standard net/http package.
-	//ctype := mime.TypeByExtension(filepath.Ext(name))
-	//if ctype != "" {
-	//	return ctype, nil
-	//}
-	//// Read a chunk to decide between utf-8 text and binary.
-	//var buf [512]byte
-	//n, err := io.ReadFull(f, buf[:])
-	//if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-	//	return "", err
-	//}
-	//ctype = http.DetectContentType(buf[:n])
-	//// Rewind file.
-	//_, err = f.Seek(0, os.SEEK_SET)
-	//return ctype, err
-	return mime.TypeByExtension(filepath.Ext(name)), nil
-}
-
-// ETager is an optional interface for the os.FileInfo objects
-// returned by the FileSystem.
-//
-// If this interface is defined then it will be used to read the ETag
-// for the object.
-//
-// If this interface is not defined an ETag will be computed using the
-// ModTime() and the Size() methods of the os.FileInfo object.
-type ETager interface {
-	// ETag returns an ETag for the file.  This should be of the
-	// form "value" or W/"value"
-	//
-	// If this returns error ErrNotImplemented then the error will
-	// be ignored and the base implementation will be used
-	// instead.
-	ETag(ctx context.Context) (string, error)
-}
-
-func findETag(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, reqPath string, fi FileInfo) (string, error) {
-	return fmt.Sprintf(`"%x%x"`, fi.ModTime().UnixNano(), fi.GetSize()), nil
-}
-
-func findSupportedLock(ctx context.Context, fs *filesystem.FileSystem, ls LockSystem, name string, fi FileInfo) (string, error) {
+func findSupportedLock(ctx context.Context, fm manager.FileManager, file fs.File) (string, error) {
 	return `` +
 		`<D:lockentry xmlns:D="DAV:">` +
 		`<D:lockscope><D:exclusive/></D:lockscope>` +

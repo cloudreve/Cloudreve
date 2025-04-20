@@ -3,17 +3,16 @@ package request
 import (
 	"context"
 	"errors"
-	"github.com/cloudreve/Cloudreve/v3/pkg/cache"
+	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
+	"github.com/stretchr/testify/assert"
+	testMock "github.com/stretchr/testify/mock"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/cloudreve/Cloudreve/v3/pkg/auth"
-	"github.com/stretchr/testify/assert"
-	testMock "github.com/stretchr/testify/mock"
 )
 
 type ClientMock struct {
@@ -55,7 +54,7 @@ func TestWithContext(t *testing.T) {
 
 func TestHTTPClient_Request(t *testing.T) {
 	asserts := assert.New(t)
-	client := NewClient(WithSlaveMeta("test"))
+	client := NewClientDeprecated(WithSlaveMeta("test"))
 
 	// 正常
 	{
@@ -63,8 +62,6 @@ func TestHTTPClient_Request(t *testing.T) {
 			"POST",
 			"/test",
 			strings.NewReader(""),
-			WithContentLength(0),
-			WithEndpoint("http://cloudreveisnotexist.com"),
 			WithTimeout(time.Duration(1)*time.Microsecond),
 			WithCredential(auth.HMACAuth{SecretKey: []byte("123")}, 10),
 			WithoutHeader([]string{"origin", "origin"}),
@@ -79,11 +76,11 @@ func TestHTTPClient_Request(t *testing.T) {
 			"GET",
 			"http://cloudreveisnotexist.com",
 			strings.NewReader(""),
+			WithContentLength(0),
+			WithEndpoint("http://cloudreveisnotexist.com"),
 			WithTimeout(time.Duration(1)*time.Microsecond),
 			WithCredential(auth.HMACAuth{SecretKey: []byte("123")}, 10),
 			WithContext(context.Background()),
-			WithoutHeader([]string{"s s", "s s"}),
-			WithMasterMeta(),
 		)
 		asserts.Error(resp.Err)
 		asserts.Nil(resp.Response)
@@ -241,7 +238,7 @@ func TestBlackHole(t *testing.T) {
 
 func TestHTTPClient_TPSLimit(t *testing.T) {
 	a := assert.New(t)
-	client := NewClient()
+	client := NewClientDeprecated()
 
 	finished := make(chan struct{})
 	go func() {
