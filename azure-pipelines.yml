@@ -26,7 +26,7 @@ jobs:
         displayName: Install Go
       - task: Docker@2
         inputs:
-          containerRegistry: "PRO ACR"
+          containerRegistry: "CR DockerHub"
           command: "login"
           addPipelineData: false
           addBaseImageData: false
