@@ -158,6 +158,7 @@ type (
 		ExtendedInfo() *FileExtendedInfo
 		FolderSummary() *FolderSummary
 		Capabilities() *boolset.BooleanSet
+		IsRootFolder() bool
 	}
 
 	Entities []Entity

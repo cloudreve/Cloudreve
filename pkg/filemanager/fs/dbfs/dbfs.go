@@ -448,6 +448,10 @@ func (f *DBFS) Get(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.Fil
 		return nil, fmt.Errorf("failed to get target file: %w", err)
 	}
 
+	if o.notRoot && target.IsRootFolder() {
+		return nil, fs.ErrNotSupportedAction.WithError(fmt.Errorf("cannot operate root file"))
+	}
+
 	if o.extendedInfo && target != nil {
 		extendedInfo := &fs.FileExtendedInfo{
 			StorageUsed:           target.SizeUsed(),

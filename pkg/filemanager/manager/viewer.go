@@ -45,7 +45,7 @@ func init() {
 }
 
 func (m *manager) CreateViewerSession(ctx context.Context, uri *fs.URI, version string, viewer *setting.Viewer) (*ViewerSession, error) {
-	file, err := m.fs.Get(ctx, uri, dbfs.WithFileEntities())
+	file, err := m.fs.Get(ctx, uri, dbfs.WithFileEntities(), dbfs.WithNotRoot())
 	if err != nil {
 		return nil, err
 	}

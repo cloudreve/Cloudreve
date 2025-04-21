@@ -621,7 +621,7 @@ func (s *GetFileInfoService) Get(c *gin.Context) (*FileResponse, error) {
 		return nil, serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
 	}
 
-	opts := []fs.Option{dbfs.WithFilePublicMetadata()}
+	opts := []fs.Option{dbfs.WithFilePublicMetadata(), dbfs.WithNotRoot()}
 	if s.ExtendedInfo {
 		opts = append(opts, dbfs.WithExtendedInfo(), dbfs.WithEntityUser(), dbfs.WithFileShareIfOwned())
 	}

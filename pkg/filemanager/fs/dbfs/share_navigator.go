@@ -183,7 +183,7 @@ func (n *shareNavigator) To(ctx context.Context, path *fs.URI) (*File, error) {
 	elements := path.Elements()
 
 	// If target is root of single file share, the root itself is the target.
-	if len(elements) <= 1 && n.singleFileShare {
+	if len(elements) == 1 && n.singleFileShare {
 		file, err := n.latestSharedSingleFile(ctx)
 		if err != nil {
 			return nil, err

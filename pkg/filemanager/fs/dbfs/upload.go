@@ -176,7 +176,7 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 
 func (f *DBFS) CompleteUpload(ctx context.Context, session *fs.UploadSession) (fs.File, error) {
 	// Get placeholder file
-	file, err := f.Get(ctx, session.Props.Uri, WithFileEntities())
+	file, err := f.Get(ctx, session.Props.Uri, WithFileEntities(), WithNotRoot())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get placeholder file: %w", err)
 	}
@@ -270,7 +270,7 @@ func (f *DBFS) CompleteUpload(ctx context.Context, session *fs.UploadSession) (f
 		}
 	}
 
-	file, err = f.Get(ctx, session.Props.Uri, WithFileEntities())
+	file, err = f.Get(ctx, session.Props.Uri, WithFileEntities(), WithNotRoot())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get updated file: %w", err)
 	}
@@ -284,7 +284,7 @@ func (f *DBFS) CompleteUpload(ctx context.Context, session *fs.UploadSession) (f
 // - File unlocked, upload session not valid
 func (f *DBFS) CancelUploadSession(ctx context.Context, path *fs.URI, sessionID string, session *fs.UploadSession) ([]fs.Entity, error) {
 	// Get placeholder file
-	file, err := f.Get(ctx, path, WithFileEntities())
+	file, err := f.Get(ctx, path, WithFileEntities(), WithNotRoot())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get placeholder file: %w", err)
 	}

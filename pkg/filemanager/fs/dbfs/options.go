@@ -25,6 +25,7 @@ type dbfsOption struct {
 	noChainedCreation          bool
 	streamListResponseCallback func(parent fs.File, file []fs.File)
 	ancestor                   *File
+	notRoot                    bool
 }
 
 func newDbfsOption() *dbfsOption {
@@ -53,6 +54,13 @@ func (f optionFunc) Apply(o any) {
 func WithFilePublicMetadata() fs.Option {
 	return optionFunc(func(o *dbfsOption) {
 		o.loadFilePublicMetadata = true
+	})
+}
+
+// WithNotRoot force the get result cannot be a root folder
+func WithNotRoot() fs.Option {
+	return optionFunc(func(o *dbfsOption) {
+		o.notRoot = true
 	})
 }
 

@@ -27,7 +27,7 @@ func (m *manager) CreateArchive(ctx context.Context, uris []*fs.URI, writer io.W
 	// List all top level files
 	files := make([]fs.File, 0, len(uris))
 	for _, uri := range uris {
-		file, err := m.Get(ctx, uri, dbfs.WithFileEntities(), dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile))
+		file, err := m.Get(ctx, uri, dbfs.WithFileEntities(), dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile), dbfs.WithNotRoot())
 		if err != nil {
 			return 0, fmt.Errorf("failed to get file %s: %w", uri, err)
 		}

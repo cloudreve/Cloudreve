@@ -3,6 +3,9 @@ package explorer
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
@@ -18,8 +21,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/cloudreve/Cloudreve/v4/pkg/wopi"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type WopiService struct {
@@ -68,7 +69,7 @@ func (service *WopiService) RefreshLock(c *gin.Context) error {
 	l := dep.Logger()
 
 	// Make sure file exists and readable
-	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityLockFile))
+	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityLockFile), dbfs.WithNotRoot())
 	if err != nil {
 		return fmt.Errorf("failed to get file: %w", err)
 	}
@@ -105,7 +106,7 @@ func (service *WopiService) Lock(c *gin.Context) error {
 	l := dep.Logger()
 
 	// Make sure file exists and readable
-	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityLockFile))
+	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityLockFile), dbfs.WithNotRoot())
 	if err != nil {
 		return fmt.Errorf("failed to get file: %w", err)
 	}
@@ -159,7 +160,7 @@ func (service *WopiService) PutContent(c *gin.Context) error {
 	}
 
 	// Make sure file exists and readable
-	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityUploadFile))
+	file, err := m.Get(c, uri, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityUploadFile), dbfs.WithNotRoot())
 	if err != nil {
 		return fmt.Errorf("failed to get file: %w", err)
 	}
@@ -244,7 +245,7 @@ func (service *WopiService) GetFile(c *gin.Context) error {
 	}
 
 	// Make sure file exists and readable
-	file, err := m.Get(c, uri, dbfs.WithExtendedInfo(), dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile))
+	file, err := m.Get(c, uri, dbfs.WithExtendedInfo(), dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile), dbfs.WithNotRoot())
 	if err != nil {
 		return fmt.Errorf("failed to get file: %w", err)
 	}
@@ -285,6 +286,7 @@ func (service *WopiService) FileInfo(c *gin.Context) (*WopiFileInfo, error) {
 	opts := []fs.Option{
 		dbfs.WithFilePublicMetadata(),
 		dbfs.WithExtendedInfo(),
+		dbfs.WithNotRoot(),
 		dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile, dbfs.NavigatorCapabilityInfo, dbfs.NavigatorCapabilityUploadFile),
 	}
 	file, err := m.Get(c, uri, opts...)

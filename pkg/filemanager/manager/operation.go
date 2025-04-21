@@ -227,7 +227,7 @@ func (l *manager) Restore(ctx context.Context, path ...*fs.URI) error {
 }
 
 func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *CreateShareArgs) (*ent.Share, error) {
-	file, err := l.fs.Get(ctx, path, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityShare))
+	file, err := l.fs.Get(ctx, path, dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityShare), dbfs.WithNotRoot())
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeNotFound, "src file not found", err)
 	}
