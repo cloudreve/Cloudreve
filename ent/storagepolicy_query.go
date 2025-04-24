@@ -17,7 +17,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/node"
 	"github.com/cloudreve/Cloudreve/v4/ent/predicate"
 	"github.com/cloudreve/Cloudreve/v4/ent/storagepolicy"
-	"github.com/cloudreve/Cloudreve/v4/ent/user"
 )
 
 // StoragePolicyQuery is the builder for querying StoragePolicy entities.
@@ -27,7 +26,6 @@ type StoragePolicyQuery struct {
 	order        []storagepolicy.OrderOption
 	inters       []Interceptor
 	predicates   []predicate.StoragePolicy
-	withUsers    *UserQuery
 	withGroups   *GroupQuery
 	withFiles    *FileQuery
 	withEntities *EntityQuery
@@ -66,28 +64,6 @@ func (spq *StoragePolicyQuery) Unique(unique bool) *StoragePolicyQuery {
 func (spq *StoragePolicyQuery) Order(o ...storagepolicy.OrderOption) *StoragePolicyQuery {
 	spq.order = append(spq.order, o...)
 	return spq
-}
-
-// QueryUsers chains the current query on the "users" edge.
-func (spq *StoragePolicyQuery) QueryUsers() *UserQuery {
-	query := (&UserClient{config: spq.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := spq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := spq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(storagepolicy.Table, storagepolicy.FieldID, selector),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, storagepolicy.UsersTable, storagepolicy.UsersColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(spq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
 }
 
 // QueryGroups chains the current query on the "groups" edge.
@@ -370,7 +346,6 @@ func (spq *StoragePolicyQuery) Clone() *StoragePolicyQuery {
 		order:        append([]storagepolicy.OrderOption{}, spq.order...),
 		inters:       append([]Interceptor{}, spq.inters...),
 		predicates:   append([]predicate.StoragePolicy{}, spq.predicates...),
-		withUsers:    spq.withUsers.Clone(),
 		withGroups:   spq.withGroups.Clone(),
 		withFiles:    spq.withFiles.Clone(),
 		withEntities: spq.withEntities.Clone(),
@@ -379,17 +354,6 @@ func (spq *StoragePolicyQuery) Clone() *StoragePolicyQuery {
 		sql:  spq.sql.Clone(),
 		path: spq.path,
 	}
-}
-
-// WithUsers tells the query-builder to eager-load the nodes that are connected to
-// the "users" edge. The optional arguments are used to configure the query builder of the edge.
-func (spq *StoragePolicyQuery) WithUsers(opts ...func(*UserQuery)) *StoragePolicyQuery {
-	query := (&UserClient{config: spq.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	spq.withUsers = query
-	return spq
 }
 
 // WithGroups tells the query-builder to eager-load the nodes that are connected to
@@ -514,8 +478,7 @@ func (spq *StoragePolicyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	var (
 		nodes       = []*StoragePolicy{}
 		_spec       = spq.querySpec()
-		loadedTypes = [5]bool{
-			spq.withUsers != nil,
+		loadedTypes = [4]bool{
 			spq.withGroups != nil,
 			spq.withFiles != nil,
 			spq.withEntities != nil,
@@ -539,13 +502,6 @@ func (spq *StoragePolicyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	}
 	if len(nodes) == 0 {
 		return nodes, nil
-	}
-	if query := spq.withUsers; query != nil {
-		if err := spq.loadUsers(ctx, query, nodes,
-			func(n *StoragePolicy) { n.Edges.Users = []*User{} },
-			func(n *StoragePolicy, e *User) { n.Edges.Users = append(n.Edges.Users, e) }); err != nil {
-			return nil, err
-		}
 	}
 	if query := spq.withGroups; query != nil {
 		if err := spq.loadGroups(ctx, query, nodes,
@@ -577,37 +533,6 @@ func (spq *StoragePolicyQuery) sqlAll(ctx context.Context, hooks ...queryHook) (
 	return nodes, nil
 }
 
-func (spq *StoragePolicyQuery) loadUsers(ctx context.Context, query *UserQuery, nodes []*StoragePolicy, init func(*StoragePolicy), assign func(*StoragePolicy, *User)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*StoragePolicy)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.User(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(storagepolicy.UsersColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.storage_policy_users
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "storage_policy_users" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "storage_policy_users" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
 func (spq *StoragePolicyQuery) loadGroups(ctx context.Context, query *GroupQuery, nodes []*StoragePolicy, init func(*StoragePolicy), assign func(*StoragePolicy, *Group)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[int]*StoragePolicy)

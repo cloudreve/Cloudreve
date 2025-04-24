@@ -2083,22 +2083,6 @@ func (c *StoragePolicyClient) GetX(ctx context.Context, id int) *StoragePolicy {
 	return obj
 }
 
-// QueryUsers queries the users edge of a StoragePolicy.
-func (c *StoragePolicyClient) QueryUsers(sp *StoragePolicy) *UserQuery {
-	query := (&UserClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := sp.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(storagepolicy.Table, storagepolicy.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, storagepolicy.UsersTable, storagepolicy.UsersColumn),
-		)
-		fromV = sqlgraph.Neighbors(sp.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
 // QueryGroups queries the groups edge of a StoragePolicy.
 func (c *StoragePolicyClient) QueryGroups(sp *StoragePolicy) *GroupQuery {
 	query := (&GroupClient{config: c.config}).Query()

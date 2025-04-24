@@ -17,7 +17,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/node"
 	"github.com/cloudreve/Cloudreve/v4/ent/predicate"
 	"github.com/cloudreve/Cloudreve/v4/ent/storagepolicy"
-	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
@@ -287,21 +286,6 @@ func (spu *StoragePolicyUpdate) ClearNodeID() *StoragePolicyUpdate {
 	return spu
 }
 
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (spu *StoragePolicyUpdate) AddUserIDs(ids ...int) *StoragePolicyUpdate {
-	spu.mutation.AddUserIDs(ids...)
-	return spu
-}
-
-// AddUsers adds the "users" edges to the User entity.
-func (spu *StoragePolicyUpdate) AddUsers(u ...*User) *StoragePolicyUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return spu.AddUserIDs(ids...)
-}
-
 // AddGroupIDs adds the "groups" edge to the Group entity by IDs.
 func (spu *StoragePolicyUpdate) AddGroupIDs(ids ...int) *StoragePolicyUpdate {
 	spu.mutation.AddGroupIDs(ids...)
@@ -355,27 +339,6 @@ func (spu *StoragePolicyUpdate) SetNode(n *Node) *StoragePolicyUpdate {
 // Mutation returns the StoragePolicyMutation object of the builder.
 func (spu *StoragePolicyUpdate) Mutation() *StoragePolicyMutation {
 	return spu.mutation
-}
-
-// ClearUsers clears all "users" edges to the User entity.
-func (spu *StoragePolicyUpdate) ClearUsers() *StoragePolicyUpdate {
-	spu.mutation.ClearUsers()
-	return spu
-}
-
-// RemoveUserIDs removes the "users" edge to User entities by IDs.
-func (spu *StoragePolicyUpdate) RemoveUserIDs(ids ...int) *StoragePolicyUpdate {
-	spu.mutation.RemoveUserIDs(ids...)
-	return spu
-}
-
-// RemoveUsers removes "users" edges to User entities.
-func (spu *StoragePolicyUpdate) RemoveUsers(u ...*User) *StoragePolicyUpdate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return spu.RemoveUserIDs(ids...)
 }
 
 // ClearGroups clears all "groups" edges to the Group entity.
@@ -569,51 +532,6 @@ func (spu *StoragePolicyUpdate) sqlSave(ctx context.Context) (n int, err error) 
 	}
 	if spu.mutation.SettingsCleared() {
 		_spec.ClearField(storagepolicy.FieldSettings, field.TypeJSON)
-	}
-	if spu.mutation.UsersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := spu.mutation.RemovedUsersIDs(); len(nodes) > 0 && !spu.mutation.UsersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := spu.mutation.UsersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if spu.mutation.GroupsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1052,21 +970,6 @@ func (spuo *StoragePolicyUpdateOne) ClearNodeID() *StoragePolicyUpdateOne {
 	return spuo
 }
 
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (spuo *StoragePolicyUpdateOne) AddUserIDs(ids ...int) *StoragePolicyUpdateOne {
-	spuo.mutation.AddUserIDs(ids...)
-	return spuo
-}
-
-// AddUsers adds the "users" edges to the User entity.
-func (spuo *StoragePolicyUpdateOne) AddUsers(u ...*User) *StoragePolicyUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return spuo.AddUserIDs(ids...)
-}
-
 // AddGroupIDs adds the "groups" edge to the Group entity by IDs.
 func (spuo *StoragePolicyUpdateOne) AddGroupIDs(ids ...int) *StoragePolicyUpdateOne {
 	spuo.mutation.AddGroupIDs(ids...)
@@ -1120,27 +1023,6 @@ func (spuo *StoragePolicyUpdateOne) SetNode(n *Node) *StoragePolicyUpdateOne {
 // Mutation returns the StoragePolicyMutation object of the builder.
 func (spuo *StoragePolicyUpdateOne) Mutation() *StoragePolicyMutation {
 	return spuo.mutation
-}
-
-// ClearUsers clears all "users" edges to the User entity.
-func (spuo *StoragePolicyUpdateOne) ClearUsers() *StoragePolicyUpdateOne {
-	spuo.mutation.ClearUsers()
-	return spuo
-}
-
-// RemoveUserIDs removes the "users" edge to User entities by IDs.
-func (spuo *StoragePolicyUpdateOne) RemoveUserIDs(ids ...int) *StoragePolicyUpdateOne {
-	spuo.mutation.RemoveUserIDs(ids...)
-	return spuo
-}
-
-// RemoveUsers removes "users" edges to User entities.
-func (spuo *StoragePolicyUpdateOne) RemoveUsers(u ...*User) *StoragePolicyUpdateOne {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return spuo.RemoveUserIDs(ids...)
 }
 
 // ClearGroups clears all "groups" edges to the Group entity.
@@ -1364,51 +1246,6 @@ func (spuo *StoragePolicyUpdateOne) sqlSave(ctx context.Context) (_node *Storage
 	}
 	if spuo.mutation.SettingsCleared() {
 		_spec.ClearField(storagepolicy.FieldSettings, field.TypeJSON)
-	}
-	if spuo.mutation.UsersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := spuo.mutation.RemovedUsersIDs(); len(nodes) > 0 && !spuo.mutation.UsersCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := spuo.mutation.UsersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if spuo.mutation.GroupsCleared() {
 		edge := &sqlgraph.EdgeSpec{

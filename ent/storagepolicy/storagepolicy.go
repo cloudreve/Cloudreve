@@ -46,8 +46,6 @@ const (
 	FieldSettings = "settings"
 	// FieldNodeID holds the string denoting the node_id field in the database.
 	FieldNodeID = "node_id"
-	// EdgeUsers holds the string denoting the users edge name in mutations.
-	EdgeUsers = "users"
 	// EdgeGroups holds the string denoting the groups edge name in mutations.
 	EdgeGroups = "groups"
 	// EdgeFiles holds the string denoting the files edge name in mutations.
@@ -58,13 +56,6 @@ const (
 	EdgeNode = "node"
 	// Table holds the table name of the storagepolicy in the database.
 	Table = "storage_policies"
-	// UsersTable is the table that holds the users relation/edge.
-	UsersTable = "users"
-	// UsersInverseTable is the table name for the User entity.
-	// It exists in this package in order to avoid circular dependency with the "user" package.
-	UsersInverseTable = "users"
-	// UsersColumn is the table column denoting the users relation/edge.
-	UsersColumn = "storage_policy_users"
 	// GroupsTable is the table that holds the groups relation/edge.
 	GroupsTable = "groups"
 	// GroupsInverseTable is the table name for the Group entity.
@@ -221,20 +212,6 @@ func ByNodeID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNodeID, opts...).ToFunc()
 }
 
-// ByUsersCount orders the results by users count.
-func ByUsersCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newUsersStep(), opts...)
-	}
-}
-
-// ByUsers orders the results by users terms.
-func ByUsers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUsersStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
 // ByGroupsCount orders the results by groups count.
 func ByGroupsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -282,13 +259,6 @@ func ByNodeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newNodeStep(), sql.OrderByField(field, opts...))
 	}
-}
-func newUsersStep() *sqlgraph.Step {
-	return sqlgraph.NewStep(
-		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(UsersInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, UsersTable, UsersColumn),
-	)
 }
 func newGroupsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(

@@ -1,7 +1,7 @@
 services:
   pro:
     image: cloudreve/cloudreve:latest
-    container_name: cloudreve-pro-backend
+    container_name: cloudreve-backend
     depends_on:
       - postgresql
       - redis

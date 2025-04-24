@@ -9975,9 +9975,6 @@ type StoragePolicyMutation struct {
 	file_name_rule  *string
 	settings        **types.PolicySetting
 	clearedFields   map[string]struct{}
-	users           map[int]struct{}
-	removedusers    map[int]struct{}
-	clearedusers    bool
 	groups          map[int]struct{}
 	removedgroups   map[int]struct{}
 	clearedgroups   bool
@@ -10796,60 +10793,6 @@ func (m *StoragePolicyMutation) ResetNodeID() {
 	delete(m.clearedFields, storagepolicy.FieldNodeID)
 }
 
-// AddUserIDs adds the "users" edge to the User entity by ids.
-func (m *StoragePolicyMutation) AddUserIDs(ids ...int) {
-	if m.users == nil {
-		m.users = make(map[int]struct{})
-	}
-	for i := range ids {
-		m.users[ids[i]] = struct{}{}
-	}
-}
-
-// ClearUsers clears the "users" edge to the User entity.
-func (m *StoragePolicyMutation) ClearUsers() {
-	m.clearedusers = true
-}
-
-// UsersCleared reports if the "users" edge to the User entity was cleared.
-func (m *StoragePolicyMutation) UsersCleared() bool {
-	return m.clearedusers
-}
-
-// RemoveUserIDs removes the "users" edge to the User entity by IDs.
-func (m *StoragePolicyMutation) RemoveUserIDs(ids ...int) {
-	if m.removedusers == nil {
-		m.removedusers = make(map[int]struct{})
-	}
-	for i := range ids {
-		delete(m.users, ids[i])
-		m.removedusers[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedUsers returns the removed IDs of the "users" edge to the User entity.
-func (m *StoragePolicyMutation) RemovedUsersIDs() (ids []int) {
-	for id := range m.removedusers {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// UsersIDs returns the "users" edge IDs in the mutation.
-func (m *StoragePolicyMutation) UsersIDs() (ids []int) {
-	for id := range m.users {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetUsers resets all changes to the "users" edge.
-func (m *StoragePolicyMutation) ResetUsers() {
-	m.users = nil
-	m.clearedusers = false
-	m.removedusers = nil
-}
-
 // AddGroupIDs adds the "groups" edge to the Group entity by ids.
 func (m *StoragePolicyMutation) AddGroupIDs(ids ...int) {
 	if m.groups == nil {
@@ -11494,10 +11437,7 @@ func (m *StoragePolicyMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *StoragePolicyMutation) AddedEdges() []string {
-	edges := make([]string, 0, 5)
-	if m.users != nil {
-		edges = append(edges, storagepolicy.EdgeUsers)
-	}
+	edges := make([]string, 0, 4)
 	if m.groups != nil {
 		edges = append(edges, storagepolicy.EdgeGroups)
 	}
@@ -11517,12 +11457,6 @@ func (m *StoragePolicyMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *StoragePolicyMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case storagepolicy.EdgeUsers:
-		ids := make([]ent.Value, 0, len(m.users))
-		for id := range m.users {
-			ids = append(ids, id)
-		}
-		return ids
 	case storagepolicy.EdgeGroups:
 		ids := make([]ent.Value, 0, len(m.groups))
 		for id := range m.groups {
@@ -11551,10 +11485,7 @@ func (m *StoragePolicyMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *StoragePolicyMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 5)
-	if m.removedusers != nil {
-		edges = append(edges, storagepolicy.EdgeUsers)
-	}
+	edges := make([]string, 0, 4)
 	if m.removedgroups != nil {
 		edges = append(edges, storagepolicy.EdgeGroups)
 	}
@@ -11571,12 +11502,6 @@ func (m *StoragePolicyMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *StoragePolicyMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case storagepolicy.EdgeUsers:
-		ids := make([]ent.Value, 0, len(m.removedusers))
-		for id := range m.removedusers {
-			ids = append(ids, id)
-		}
-		return ids
 	case storagepolicy.EdgeGroups:
 		ids := make([]ent.Value, 0, len(m.removedgroups))
 		for id := range m.removedgroups {
@@ -11601,10 +11526,7 @@ func (m *StoragePolicyMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *StoragePolicyMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 5)
-	if m.clearedusers {
-		edges = append(edges, storagepolicy.EdgeUsers)
-	}
+	edges := make([]string, 0, 4)
 	if m.clearedgroups {
 		edges = append(edges, storagepolicy.EdgeGroups)
 	}
@@ -11624,8 +11546,6 @@ func (m *StoragePolicyMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *StoragePolicyMutation) EdgeCleared(name string) bool {
 	switch name {
-	case storagepolicy.EdgeUsers:
-		return m.clearedusers
 	case storagepolicy.EdgeGroups:
 		return m.clearedgroups
 	case storagepolicy.EdgeFiles:
@@ -11653,9 +11573,6 @@ func (m *StoragePolicyMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *StoragePolicyMutation) ResetEdge(name string) error {
 	switch name {
-	case storagepolicy.EdgeUsers:
-		m.ResetUsers()
-		return nil
 	case storagepolicy.EdgeGroups:
 		m.ResetGroups()
 		return nil

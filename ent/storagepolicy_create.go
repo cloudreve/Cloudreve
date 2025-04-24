@@ -16,7 +16,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/group"
 	"github.com/cloudreve/Cloudreve/v4/ent/node"
 	"github.com/cloudreve/Cloudreve/v4/ent/storagepolicy"
-	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
@@ -212,21 +211,6 @@ func (spc *StoragePolicyCreate) SetNillableNodeID(i *int) *StoragePolicyCreate {
 		spc.SetNodeID(*i)
 	}
 	return spc
-}
-
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (spc *StoragePolicyCreate) AddUserIDs(ids ...int) *StoragePolicyCreate {
-	spc.mutation.AddUserIDs(ids...)
-	return spc
-}
-
-// AddUsers adds the "users" edges to the User entity.
-func (spc *StoragePolicyCreate) AddUsers(u ...*User) *StoragePolicyCreate {
-	ids := make([]int, len(u))
-	for i := range u {
-		ids[i] = u[i].ID
-	}
-	return spc.AddUserIDs(ids...)
 }
 
 // AddGroupIDs adds the "groups" edge to the Group entity by IDs.
@@ -440,22 +424,6 @@ func (spc *StoragePolicyCreate) createSpec() (*StoragePolicy, *sqlgraph.CreateSp
 	if value, ok := spc.mutation.Settings(); ok {
 		_spec.SetField(storagepolicy.FieldSettings, field.TypeJSON, value)
 		_node.Settings = value
-	}
-	if nodes := spc.mutation.UsersIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
-			Table:   storagepolicy.UsersTable,
-			Columns: []string{storagepolicy.UsersColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := spc.mutation.GroupsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

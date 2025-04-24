@@ -46,9 +46,8 @@ type User struct {
 	GroupUsers int `json:"group_users,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
-	Edges                UserEdges `json:"edges"`
-	storage_policy_users *int
-	selectValues         sql.SelectValues
+	Edges        UserEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // UserEdges holds the relations/edges for other nodes in the graph.
@@ -152,8 +151,6 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
-		case user.ForeignKeys[0]: // storage_policy_users
-			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -249,13 +246,6 @@ func (u *User) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field group_users", values[i])
 			} else if value.Valid {
 				u.GroupUsers = int(value.Int64)
-			}
-		case user.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field storage_policy_users", value)
-			} else if value.Valid {
-				u.storage_policy_users = new(int)
-				*u.storage_policy_users = int(value.Int64)
 			}
 		default:
 			u.selectValues.Set(columns[i], values[i])

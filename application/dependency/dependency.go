@@ -305,7 +305,12 @@ func (d *dependency) DBClient() *ent.Client {
 		d.rawEntClient = client
 	}
 
-	client, err := inventory.InitializeDBClient(d.Logger(), d.rawEntClient, d.KV(), d.requiredDbVersion)
+	proSuffix := ""
+	if d.isPro {
+		proSuffix = "-pro"
+	}
+
+	client, err := inventory.InitializeDBClient(d.Logger(), d.rawEntClient, d.KV(), d.requiredDbVersion+proSuffix)
 	if err != nil {
 		d.panicError(err)
 	}

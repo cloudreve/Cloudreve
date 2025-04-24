@@ -398,7 +398,6 @@ var (
 		{Name: "avatar", Type: field.TypeString, Nullable: true},
 		{Name: "settings", Type: field.TypeJSON, Nullable: true},
 		{Name: "group_users", Type: field.TypeInt},
-		{Name: "storage_policy_users", Type: field.TypeInt, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -411,12 +410,6 @@ var (
 				Columns:    []*schema.Column{UsersColumns[12]},
 				RefColumns: []*schema.Column{GroupsColumns[0]},
 				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "users_storage_policies_users",
-				Columns:    []*schema.Column{UsersColumns[13]},
-				RefColumns: []*schema.Column{StoragePoliciesColumns[0]},
-				OnDelete:   schema.SetNull,
 			},
 		},
 	}
@@ -480,7 +473,6 @@ func init() {
 	StoragePoliciesTable.ForeignKeys[0].RefTable = NodesTable
 	TasksTable.ForeignKeys[0].RefTable = UsersTable
 	UsersTable.ForeignKeys[0].RefTable = GroupsTable
-	UsersTable.ForeignKeys[1].RefTable = StoragePoliciesTable
 	FileEntitiesTable.ForeignKeys[0].RefTable = FilesTable
 	FileEntitiesTable.ForeignKeys[1].RefTable = EntitiesTable
 }
