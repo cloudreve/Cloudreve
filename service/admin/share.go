@@ -113,7 +113,7 @@ func (s *SingleShareService) Get(c *gin.Context) (*GetShareResponse, error) {
 	)
 
 	if share.Edges.User != nil {
-		uid = hashid.EncodeShareID(hasher, share.Edges.User.ID)
+		uid = hashid.EncodeUserID(hasher, share.Edges.User.ID)
 	}
 
 	siteUrl := dep.SettingProvider().SiteURL(c)
