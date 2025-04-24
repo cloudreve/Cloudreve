@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"path"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
@@ -14,6 +15,59 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 )
+
+func (f *DBFS) PreValidateUpload(ctx context.Context, dst *fs.URI, files ...fs.PreValidateFile) error {
+	// Get navigator
+	navigator, err := f.getNavigator(ctx, dst, NavigatorCapabilityUploadFile, NavigatorCapabilityLockFile)
+	if err != nil {
+		return err
+	}
+
+	dstFile, err := f.getFileByPath(ctx, navigator, dst)
+	if err != nil {
+		return fmt.Errorf("failed to get destination folder: %w", err)
+	}
+
+	if dstFile.Type() != types.FileTypeFolder {
+		return fmt.Errorf("destination is not a folder")
+	}
+
+	// check permission
+	if err := f.EvaluatePermission(ctx, dstFile, types.FilePermissionCreate, false); err != nil {
+		return fmt.Errorf("failed to evaluate permission: %w", err)
+	}
+
+	total := int64(0)
+	for _, file := range files {
+		total += file.Size
+	}
+
+	// Get parent folder storage policy and performs validation
+	policy, err := f.getPreferredPolicy(ctx, dstFile, 0)
+	if err != nil {
+		return err
+	}
+
+	// validate upload request
+	for _, file := range files {
+		if file.OmitName {
+			if err := validateFileSize(file.Size, policy); err != nil {
+				return err
+			}
+		} else {
+			if err := validateNewFile(path.Base(file.Name), file.Size, policy); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Validate available capacity
+	if err := f.validateUserCapacity(ctx, total, dstFile.Owner()); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ...fs.Option) (*fs.UploadSession, error) {
 	// Get navigator

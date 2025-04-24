@@ -38,8 +38,14 @@ type (
 		OnUploadFailed(ctx context.Context, session *fs.UploadSession)
 		// Similar to CompleteUpload, but does not create actual uplaod session in storage.
 		PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ...fs.Option) (*fs.UploadSession, error)
+		// PreValidateUpload pre-validates an upload request.
+		PreValidateUpload(ctx context.Context, dst *fs.URI, files ...fs.PreValidateFile) error
 	}
 )
+
+func (m *manager) PreValidateUpload(ctx context.Context, dst *fs.URI, files ...fs.PreValidateFile) error {
+	return m.fs.PreValidateUpload(ctx, dst, files...)
+}
 
 func (m *manager) CreateUploadSession(ctx context.Context, req *fs.UploadRequest, opts ...fs.Option) (*fs.UploadCredential, error) {
 	o := newOption()

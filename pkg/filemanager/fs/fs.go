@@ -103,6 +103,8 @@ type (
 		CompleteUpload(ctx context.Context, session *UploadSession) (File, error)
 		// CancelUploadSession cancels an upload session. Delete the placeholder file if no other entity is created.
 		CancelUploadSession(ctx context.Context, path *URI, sessionID string, session *UploadSession) ([]Entity, error)
+		// PreValidateUpload pre-validates an upload request.
+		PreValidateUpload(ctx context.Context, dst *URI, files ...PreValidateFile) error
 	}
 
 	LockSystem interface {
@@ -368,6 +370,12 @@ type (
 		NewSavePath              string      `json:"new_save_path"`
 		ParentFiles              []int       `json:"parent_files"`
 		PrimaryEntityParentFiles []int       `json:"primary_entity_parent_files"`
+	}
+
+	PreValidateFile struct {
+		Name     string
+		Size     int64
+		OmitName bool // if true, file name will not be validated
 	}
 )
 

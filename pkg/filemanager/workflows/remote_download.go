@@ -25,7 +25,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/queue"
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
-	"github.com/gofrs/uuid"
 	"github.com/samber/lo"
 )
 
@@ -537,35 +536,18 @@ func (m *RemoteDownloadTask) validateFiles(ctx context.Context, dep dependency.D
 		return fmt.Errorf("no selected file found in download task")
 	}
 
-	// find the first valid file
-	var placeholderFileName string
-	for _, f := range selectedFiles {
-		if f.Name != "" {
-			placeholderFileName = f.Name
-			break
+	validateArgs := lo.Map(selectedFiles, func(f downloader.TaskFile, _ int) fs.PreValidateFile {
+		return fs.PreValidateFile{
+			Name:     f.Name,
+			Size:     f.Size,
+			OmitName: f.Name == "",
 		}
-	}
-
-	if placeholderFileName == "" {
-		// File name not available yet, generate one
-		m.l.Debug("File name not available yet, generate one to validate the destination")
-		placeholderFileName = uuid.Must(uuid.NewV4()).String()
-	}
-
-	// Create a placeholder file then delete it to validate the destination
-	session, err := fm.PrepareUpload(ctx, &fs.UploadRequest{
-		Props: &fs.UploadProps{
-			Uri:             dstUri.Join(path.Base(placeholderFileName)),
-			Size:            status.Total,
-			UploadSessionID: uuid.Must(uuid.NewV4()).String(),
-			ExpireAt:        time.Now().Add(time.Second * 3600),
-		},
 	})
-	if err != nil {
-		return err
+
+	if err := fm.PreValidateUpload(ctx, dstUri, validateArgs...); err != nil {
+		return fmt.Errorf("failed to pre-validate files: %w", err)
 	}
 
-	fm.OnUploadFailed(ctx, session)
 	return nil
 }
 
