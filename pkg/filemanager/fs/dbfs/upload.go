@@ -32,8 +32,8 @@ func (f *DBFS) PreValidateUpload(ctx context.Context, dst *fs.URI, files ...fs.P
 		return fmt.Errorf("destination is not a folder")
 	}
 
-	// check permission
-	if err := f.EvaluatePermission(ctx, dstFile, types.FilePermissionCreate, false); err != nil {
+	// check ownership
+	if f.user.ID != dstFile.OwnerID() {
 		return fmt.Errorf("failed to evaluate permission: %w", err)
 	}
 
@@ -43,7 +43,7 @@ func (f *DBFS) PreValidateUpload(ctx context.Context, dst *fs.URI, files ...fs.P
 	}
 
 	// Get parent folder storage policy and performs validation
-	policy, err := f.getPreferredPolicy(ctx, dstFile, 0)
+	policy, err := f.getPreferredPolicy(ctx, dstFile)
 	if err != nil {
 		return err
 	}
