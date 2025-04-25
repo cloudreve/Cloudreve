@@ -4,15 +4,18 @@ import (
 	"archive/zip"
 	"bufio"
 	"crypto/sha256"
+	"debug/buildinfo"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
@@ -106,6 +109,7 @@ func NewStaticFS(l logging.Logger) fs.FS {
 	}
 
 	var files []file
+	modTime := getBuildTime()
 	err = fs.WalkDir(zipReader, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("cannot walk into %q: %w", path, err)
@@ -115,7 +119,7 @@ func NewStaticFS(l logging.Logger) fs.FS {
 			return nil
 		}
 
-		var f file
+		f := file{modTime: modTime}
 		if d.IsDir() {
 			f.name = path + "/"
 		} else {
@@ -203,4 +207,25 @@ func Eject(l logging.Logger, statics fs.FS) error {
 
 	l.Info("Finish ejecting static resources.")
 	return nil
+}
+
+func getBuildTime() (buildTime time.Time) {
+	buildTime = time.Now()
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	info, err := buildinfo.ReadFile(exe)
+	if err != nil {
+		return
+	}
+	for _, s := range info.Settings {
+		if s.Key == "vcs.time" && s.Value != "" {
+			if t, err := time.Parse(time.RFC3339, s.Value); err == nil {
+				buildTime = t
+			}
+			break
+		}
+	}
+	return
 }
