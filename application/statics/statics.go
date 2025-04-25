@@ -4,16 +4,20 @@ import (
 	"archive/zip"
 	"bufio"
 	"crypto/sha256"
+	"debug/buildinfo"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
+	embedfs "github.com/alimy/tryst/embed"
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
@@ -159,7 +163,9 @@ func NewStaticFS(l logging.Logger) fs.FS {
 
 	var embedFS FS
 	embedFS.files = &files
-	return embedFS
+	// add custom mod time for embed fs
+	timefs := embedfs.NewFS(embedFS, getBuildTime())
+	return timefs
 }
 
 // Eject 抽离内置静态资源
@@ -203,4 +209,25 @@ func Eject(l logging.Logger, statics fs.FS) error {
 
 	l.Info("Finish ejecting static resources.")
 	return nil
+}
+
+func getBuildTime() (buildTime time.Time) {
+	buildTime = time.Now()
+	exe, err := os.Executable()
+	if err != nil {
+		return
+	}
+	info, err := buildinfo.ReadFile(exe)
+	if err != nil {
+		return
+	}
+	for _, s := range info.Settings {
+		if s.Key == "vcs.time" && s.Value != "" {
+			if t, err := time.Parse(time.RFC3339, s.Value); err == nil {
+				buildTime = t
+			}
+			break
+		}
+	}
+	return
 }
