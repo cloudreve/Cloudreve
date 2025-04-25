@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	embedfs "github.com/alimy/tryst/embed"
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
@@ -110,6 +109,7 @@ func NewStaticFS(l logging.Logger) fs.FS {
 	}
 
 	var files []file
+	modTime := getBuildTime()
 	err = fs.WalkDir(zipReader, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("cannot walk into %q: %w", path, err)
@@ -119,7 +119,7 @@ func NewStaticFS(l logging.Logger) fs.FS {
 			return nil
 		}
 
-		var f file
+		f := file{modTime: modTime}
 		if d.IsDir() {
 			f.name = path + "/"
 		} else {
@@ -163,9 +163,7 @@ func NewStaticFS(l logging.Logger) fs.FS {
 
 	var embedFS FS
 	embedFS.files = &files
-	// add custom mod time for embed fs
-	timefs := embedfs.NewFS(embedFS, getBuildTime())
-	return timefs
+	return embedFS
 }
 
 // Eject 抽离内置静态资源

@@ -218,9 +218,10 @@ var (
 type file struct {
 	// The compiler knows the layout of this struct.
 	// See cmd/compile/internal/staticdata's WriteEmbed.
-	name string
-	data string
-	hash [16]byte // truncated SHA256 hash
+	name    string
+	data    string
+	hash    [16]byte // truncated SHA256 hash
+	modTime time.Time
 }
 
 var (
@@ -230,7 +231,7 @@ var (
 
 func (f *file) Name() string               { _, elem, _ := split(f.name); return elem }
 func (f *file) Size() int64                { return int64(len(f.data)) }
-func (f *file) ModTime() time.Time         { return time.Time{} }
+func (f *file) ModTime() time.Time         { return f.modTime }
 func (f *file) IsDir() bool                { _, _, isDir := split(f.name); return isDir }
 func (f *file) Sys() any                   { return nil }
 func (f *file) Type() fs.FileMode          { return f.Mode().Type() }
