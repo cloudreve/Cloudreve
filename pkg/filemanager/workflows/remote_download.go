@@ -281,7 +281,7 @@ func (m *RemoteDownloadTask) monitor(ctx context.Context, dep dependency.Dep) (t
 		m.ResumeAfter(resumeAfter)
 		return task.StatusSuspending, nil
 	case downloader.StatusUnknown, downloader.StatusError:
-		return task.StatusError, fmt.Errorf("download task failed with state %q (%w)", status.State, queue.CriticalErr)
+		return task.StatusError, fmt.Errorf("download task failed with state %q (%w), errorMsg: %s", status.State, queue.CriticalErr, status.ErrorMessage)
 	}
 
 	m.ResumeAfter(resumeAfter)

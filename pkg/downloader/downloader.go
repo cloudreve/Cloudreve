@@ -44,6 +44,7 @@ type (
 		Files         []TaskFile  `json:"files,omitempty"`
 		Pieces        []byte      `json:"pieces,omitempty"` // Hexadecimal representation of the download progress of the peer. The highest bit corresponds to the piece at index 0.
 		NumPieces     int         `json:"num_pieces,omitempty"`
+		ErrorMessage  string      `json:"error_message,omitempty"`
 	}
 
 	TaskFile struct {

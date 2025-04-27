@@ -139,6 +139,7 @@ func (a *aria2Client) Info(ctx context.Context, handle *downloader.TaskHandle) (
 		UploadSpeed:   uploadSpeed,
 		SavePath:      savePath,
 		NumPieces:     numPieces,
+		ErrorMessage:  status.ErrorMessage,
 		Hash:          status.InfoHash,
 		Files: lo.Map(status.Files, func(item rpc.FileInfo, index int) downloader.TaskFile {
 			index, _ = strconv.Atoi(item.Index)
