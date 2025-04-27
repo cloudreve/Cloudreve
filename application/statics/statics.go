@@ -8,6 +8,10 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
+	"github.com/gin-contrib/static"
 	"io"
 	"io/fs"
 	"net/http"
@@ -16,11 +20,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/cloudreve/Cloudreve/v4/application/constants"
-	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
-	"github.com/cloudreve/Cloudreve/v4/pkg/util"
-	"github.com/gin-contrib/static"
 )
 
 const StaticFolder = "statics"

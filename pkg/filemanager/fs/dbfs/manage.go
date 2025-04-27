@@ -651,7 +651,8 @@ func (f *DBFS) setCurrentVersion(ctx context.Context, target *File, versionId in
 		return serializer.NewError(serializer.CodeDBError, "Failed to start transaction", err)
 	}
 
-	if err := f.fileClient.SetPrimaryEntity(ctx, target.Model, targetVersion.ID()); err != nil {
+	if err := fc.SetPrimaryEntity(ctx, target.Model, targetVersion.ID()); err != nil {
+		_ = inventory.Rollback(tx)
 		return serializer.NewError(serializer.CodeDBError, "Failed to set primary entity", err)
 	}
 
