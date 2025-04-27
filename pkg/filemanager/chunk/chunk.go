@@ -3,13 +3,14 @@ package chunk
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/chunk/backoff"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
-	"io"
-	"os"
 )
 
 const bufferTempPattern = "cdChunk.*.tmp"
@@ -74,8 +75,15 @@ func (c *ChunkGroup) Process(processor ChunkProcessFunc) error {
 
 	// If useBuffer is enabled, tee the reader to a temp file
 	if c.enableRetryBuffer && c.bufferTemp == nil && !c.file.Seekable() {
-		c.bufferTemp, _ = os.CreateTemp(util.DataPath(c.tempPath), bufferTempPattern)
-		reader = io.TeeReader(reader, c.bufferTemp)
+		var err error
+		c.bufferTemp, err = os.CreateTemp(util.DataPath(c.tempPath), bufferTempPattern)
+		if err != nil {
+			c.l.Warning("Failed to create temp chunk buffer file: %s", err)
+		}
+		reader = &omitErrorTeeReader{
+			r: reader,
+			w: c.bufferTemp,
+		}
 	}
 
 	if c.bufferTemp != nil {
@@ -167,4 +175,17 @@ func (c *ChunkGroup) Length() int64 {
 // IsLast returns if current chunk is the last one
 func (c *ChunkGroup) IsLast() bool {
 	return c.Index() == int(c.chunkNum-1)
+}
+
+type omitErrorTeeReader struct {
+	r io.Reader
+	w io.Writer
+}
+
+func (t *omitErrorTeeReader) Read(p []byte) (n int, err error) {
+	n, err = t.r.Read(p)
+	if n > 0 {
+		_, _ = t.w.Write(p[:n])
+	}
+	return
 }
