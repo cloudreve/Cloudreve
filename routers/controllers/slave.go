@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cloudreve/Cloudreve/v4/pkg/cluster"
@@ -146,6 +147,12 @@ func SlaveDownloadTaskStatus(c *gin.Context) {
 	d := c.MustGet(downloader.DownloaderCtxKey).(downloader.Downloader)
 	info, err := d.Info(c, service.Handle)
 	if err != nil {
+		if errors.Is(err, downloader.ErrTaskNotFount) {
+			c.JSON(200, serializer.NewError(serializer.CodeNotFound, "task not found", err))
+			c.Abort()
+			return
+		}
+
 		c.JSON(200, serializer.Err(c, err))
 		c.Abort()
 		return

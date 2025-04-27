@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/cloudflare/cfssl/scan/crypto/sha1"
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
@@ -95,7 +94,7 @@ func (s *slaveDownloader) Info(ctx context.Context, handle *downloader.TaskHandl
 	// 处理列取结果
 	if resp.Code != 0 {
 		err = serializer.NewErrorFromResponse(resp)
-		if strings.Contains(err.Error(), downloader.ErrTaskNotFount.Error()) {
+		if resp.Code == serializer.CodeNotFound {
 			return nil, fmt.Errorf("%s (%w)", err.Error(), downloader.ErrTaskNotFount)
 		}
 		return nil, err
