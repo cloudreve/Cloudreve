@@ -234,9 +234,14 @@ func (a *aria2Client) SetFilesToDownload(ctx context.Context, handle *downloader
 		return fmt.Errorf("cannot get task: %w", err)
 	}
 
-	selected := lo.SliceToMap(status.Files, func(item downloader.TaskFile) (int, bool) {
-		return item.Index, true
-	})
+	selected := lo.SliceToMap(
+		lo.Filter(status.Files, func(item downloader.TaskFile, _ int) bool {
+			return item.Selected
+		}),
+		func(item downloader.TaskFile) (int, bool) {
+			return item.Index, true
+		},
+	)
 	for _, arg := range args {
 		if !arg.Download {
 			delete(selected, arg.Index)
