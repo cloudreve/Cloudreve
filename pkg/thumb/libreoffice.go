@@ -71,7 +71,7 @@ func (l *LibreOfficeGenerator) Generate(ctx context.Context, es entitysource.Ent
 	// Convert the document to an image
 	encode := l.settings.ThumbEncode(ctx)
 	cmd := exec.CommandContext(ctx, l.settings.LibreOfficePath(ctx), "--headless",
-		"-nologo", "--nofirststartwizard", "--invisible", "--norestore", "--convert-to",
+		"--nologo", "--nofirststartwizard", "--invisible", "--norestore", "--convert-to",
 		encode.Format, "--outdir", tempOutputPath, tempInputPath)
 
 	// Redirect IO
