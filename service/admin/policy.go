@@ -464,7 +464,7 @@ func (service *FinishOauthCallbackService) Finish(c *gin.Context) error {
 	client := onedrive.NewClient(policy, dep.RequestClient(), dep.CredManager(), dep.Logger(), dep.SettingProvider(), 0)
 	credential, err := client.ObtainToken(c, onedrive.WithCode(service.Code))
 	if err != nil {
-		return serializer.NewError(serializer.CodeIncorrectPassword, "Failed to obtain token", err)
+		return serializer.NewError(serializer.CodeParamErr, "Failed to obtain token: "+err.Error(), err)
 	}
 
 	credManager := dep.CredManager()
