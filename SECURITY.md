@@ -8,3 +8,5 @@
 ## Reporting a Vulnerability
 
 Please send the details about the security issue to `support@cloudreve.org`. Once the vulnerability is comfirmed or fixed, you will get updates from the email thread.
+
+We will reward you with bounty/swag for success submission of securty issues.
