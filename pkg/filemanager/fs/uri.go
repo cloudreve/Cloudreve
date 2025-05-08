@@ -344,11 +344,10 @@ func NewShareUri(id, password string) string {
 	return fmt.Sprintf("%s://%s@%s", constants.CloudreveScheme, id, constants.FileSystemShare)
 }
 
-// PathEscape is same as url.PathEscape, with modifications to incoporate with JS encodeURI:
+// PathEscape is same as url.PathEscape, with modifications to incoporate with JS encodeURIComponent:
 // encodeURI() escapes all characters except:
 //
 //	A–Z a–z 0–9 - _ . ! ~ * ' ( )
-//	; / ? : @ & = + $ , #
 func PathEscape(s string) string {
 	hexCount := 0
 	for i := 0; i < len(s); i++ {
@@ -412,7 +411,7 @@ func shouldEscape(c byte) bool {
 	}
 
 	switch c {
-	case '-', '_', '.', '~', '!', '*', '\'', '(', ')', ';', '/', '?', ':', '@', '&', '=', '+', '$', ',', '#': // §2.3 Unreserved characters (mark)
+	case '-', '_', '.', '~', '!', '*', '\'', '(', ')': // §2.3 Unreserved characters (mark)
 		return false
 	}
 
