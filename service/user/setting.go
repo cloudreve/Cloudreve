@@ -215,8 +215,8 @@ type (
 		VersionRetentionEnabled *bool     `json:"version_retention_enabled" binding:"omitempty"`
 		VersionRetentionExt     *[]string `json:"version_retention_ext" binding:"omitempty"`
 		VersionRetentionMax     *int      `json:"version_retention_max" binding:"omitempty,min=0"`
-		CurrentPassword         *string   `json:"current_password" binding:"omitempty,min=4,max=64"`
-		NewPassword             *string   `json:"new_password" binding:"omitempty,min=6,max=64"`
+		CurrentPassword         *string   `json:"current_password" binding:"omitempty,min=4,max=128"`
+		NewPassword             *string   `json:"new_password" binding:"omitempty,min=6,max=128"`
 		TwoFAEnabled            *bool     `json:"two_fa_enabled" binding:"omitempty"`
 		TwoFACode               *string   `json:"two_fa_code" binding:"omitempty"`
 	}

@@ -165,6 +165,10 @@ func (s *UpsertUserService) Update(c *gin.Context) (*GetUserResponse, error) {
 
 	}
 
+	if s.Password != "" && len(s.Password) > 128 {
+		return nil, serializer.NewError(serializer.CodeParamErr, "Password too long", nil)
+	}
+
 	newUser, err := userClient.Upsert(ctx, s.User, s.Password, s.TwoFA)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeDBError, "Failed to update user", err)

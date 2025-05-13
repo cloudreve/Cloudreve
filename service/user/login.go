@@ -25,13 +25,13 @@ type LoginParameterCtx struct{}
 // UserLoginService 管理用户登录的服务
 type UserLoginService struct {
 	UserName string `form:"email" json:"email" binding:"required,email"`
-	Password string `form:"password" json:"password" binding:"required,min=4,max=64"`
+	Password string `form:"password" json:"password" binding:"required,min=4,max=128"`
 }
 
 type (
 	// UserResetService 密码重设服务
 	UserResetService struct {
-		Password string `form:"password" json:"password" binding:"required,min=6,max=64"`
+		Password string `form:"password" json:"password" binding:"required,min=6,max=128"`
 		Secret   string `json:"secret" binding:"required"`
 	}
 	UserResetParameterCtx struct{}

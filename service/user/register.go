@@ -25,7 +25,7 @@ type RegisterParameterCtx struct{}
 // UserRegisterService 管理用户注册的服务
 type UserRegisterService struct {
 	UserName string `form:"email" json:"email" binding:"required,email"`
-	Password string `form:"password" json:"password" binding:"required,min=6,max=64"`
+	Password string `form:"password" json:"password" binding:"required,min=6,max=128"`
 	Language string `form:"language" json:"language"`
 }
 
