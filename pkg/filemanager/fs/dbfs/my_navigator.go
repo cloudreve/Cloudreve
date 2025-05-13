@@ -3,6 +3,7 @@ package dbfs
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/ent/user"
