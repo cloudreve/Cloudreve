@@ -274,7 +274,7 @@ type Share struct {
 }
 
 func BuildShare(s *ent.Share, base *url.URL, hasher hashid.Encoder, requester *ent.User, owner *ent.User,
-	name string, t types.FileType, unlocked bool) *Share {
+	name string, t types.FileType, unlocked bool, expired bool) *Share {
 	redactLevel := user.RedactLevelAnonymous
 	if !inventory.IsAnonymousUser(requester) {
 		redactLevel = user.RedactLevelUser
@@ -284,7 +284,7 @@ func BuildShare(s *ent.Share, base *url.URL, hasher hashid.Encoder, requester *e
 		ID:         hashid.EncodeShareID(hasher, s.ID),
 		Unlocked:   unlocked,
 		Owner:      user.BuildUserRedacted(owner, redactLevel, hasher),
-		Expired:    inventory.IsShareExpired(s) != nil,
+		Expired:    inventory.IsShareExpired(s) != nil || expired,
 		Url:        BuildShareLink(s, hasher, base),
 		CreatedAt:  s.CreatedAt,
 		Visited:    s.Views,
@@ -374,7 +374,7 @@ func BuildExtendedInfo(ctx context.Context, u *ent.User, f fs.File, hasher hashi
 	if u.ID == f.OwnerID() {
 		// Only owner can see the shares settings.
 		ext.Shares = lo.Map(extendedInfo.Shares, func(s *ent.Share, index int) Share {
-			return *BuildShare(s, base, hasher, u, u, f.DisplayName(), f.Type(), true)
+			return *BuildShare(s, base, hasher, u, u, f.DisplayName(), f.Type(), true, false)
 		})
 
 	}

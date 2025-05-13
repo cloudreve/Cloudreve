@@ -68,7 +68,7 @@ func (s *ShareInfoService) Get(c *gin.Context) (*explorer.Share, error) {
 
 	base := dep.SettingProvider().SiteURL(c)
 	res := explorer.BuildShare(share, base, dep.HashIDEncoder(), u, share.Edges.User, share.Edges.File.Name,
-		types.FileType(share.Edges.File.Type), unlocked)
+		types.FileType(share.Edges.File.Type), unlocked, false)
 
 	if s.OwnerExtended && share.Edges.User.ID == u.ID {
 		// Add more information about the shared file
@@ -121,6 +121,7 @@ func (s *ListShareService) List(c *gin.Context) (*ListShareResponse, error) {
 
 	ctx := context.WithValue(c, inventory.LoadShareUser{}, true)
 	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadFileMetadata{}, true)
 	res, err := shareClient.List(ctx, args)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list shares", err)
@@ -150,6 +151,7 @@ func (s *ListShareService) ListInUserProfile(c *gin.Context, uid int) (*ListShar
 
 	ctx := context.WithValue(c, inventory.LoadShareUser{}, true)
 	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadFileMetadata{}, true)
 	res, err := shareClient.List(ctx, args)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeDBError, "Failed to list shares", err)
