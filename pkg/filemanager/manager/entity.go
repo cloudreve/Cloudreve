@@ -65,7 +65,7 @@ func (m *manager) GetDirectLink(ctx context.Context, urls ...*fs.URI) ([]DirectL
 			continue
 		}
 
-		if file.OwnerID() != m.user.ID {
+		if file.OwnerID() != m.user.ID && !m.user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
 			ae.Add(url.String(), fs.ErrOwnerOnly)
 			continue
 		}
