@@ -3,7 +3,9 @@ package dbfs
 import (
 	"context"
 	"fmt"
+
 	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
@@ -83,9 +85,14 @@ func (n *myNavigator) To(ctx context.Context, path *fs.URI) (*File, error) {
 			return nil, ErrPermissionDenied
 		}
 
-		targetUser, err := n.userClient.GetLoginUserByID(ctx, fsUid)
+		ctx = context.WithValue(ctx, inventory.LoadUserGroup{}, true)
+		targetUser, err := n.userClient.GetByID(ctx, fsUid)
 		if err != nil {
 			return nil, fs.ErrPathNotExist.WithError(fmt.Errorf("user not found: %w", err))
+		}
+
+		if targetUser.Status != user.StatusActive && !n.user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
+			return nil, fs.ErrPathNotExist.WithError(fmt.Errorf("inactive user"))
 		}
 
 		rootFile, err := n.fileClient.Root(ctx, targetUser)
