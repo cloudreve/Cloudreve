@@ -3,6 +3,7 @@ package explorer
 import (
 	"errors"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"net/http"
 	"time"
 
@@ -287,7 +288,7 @@ func (service *WopiService) FileInfo(c *gin.Context) (*WopiFileInfo, error) {
 		dbfs.WithFilePublicMetadata(),
 		dbfs.WithExtendedInfo(),
 		dbfs.WithNotRoot(),
-		dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile, dbfs.NavigatorCapabilityInfo, dbfs.NavigatorCapabilityUploadFile),
+		dbfs.WithRequiredCapabilities(dbfs.NavigatorCapabilityDownloadFile, dbfs.NavigatorCapabilityInfo),
 	}
 	file, err := m.Get(c, uri, opts...)
 	if err != nil {
@@ -304,7 +305,7 @@ func (service *WopiService) FileInfo(c *gin.Context) (*WopiFileInfo, error) {
 		return nil, serializer.NewError(serializer.CodeNotFound, "version not found", nil)
 	}
 
-	canEdit := file.PrimaryEntityID() == targetEntity.ID() && file.OwnerID() == user.ID
+	canEdit := file.PrimaryEntityID() == targetEntity.ID() && file.OwnerID() == user.ID && uri.FileSystem() == constants.FileSystemMy
 	siteUrl := settings.SiteURL(c)
 	info := &WopiFileInfo{
 		BaseFileName:           file.DisplayName(),
