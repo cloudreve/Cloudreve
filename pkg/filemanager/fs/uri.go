@@ -22,7 +22,7 @@ const (
 
 const (
 	QuerySearchName           = "name"
-	QuerySearchNameOpOr       = "use_or"
+	QuerySearchNameOpOr       = "name_op_or"
 	QuerySearchMetadataPrefix = "meta_"
 	QuerySearchCaseFolding    = "case_folding"
 	QuerySearchType           = "type"

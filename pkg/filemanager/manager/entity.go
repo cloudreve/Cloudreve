@@ -19,33 +19,39 @@ import (
 	"github.com/samber/lo"
 )
 
-type EntityManagement interface {
-	// GetEntityUrls gets download urls of given entities, return URLs and the earliest expiry time
-	GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, opts ...fs.Option) ([]string, *time.Time, error)
-	// GetUrlForRedirectedDirectLink gets redirected direct download link of given direct link
-	GetUrlForRedirectedDirectLink(ctx context.Context, dl *ent.DirectLink, opts ...fs.Option) (string, *time.Time, error)
-	// GetDirectLink gets permanent direct download link of given files
-	GetDirectLink(ctx context.Context, urls ...*fs.URI) ([]DirectLink, error)
-	// GetEntitySource gets source of given entity
-	GetEntitySource(ctx context.Context, entityID int, opts ...fs.Option) (entitysource.EntitySource, error)
-	// Thumbnail gets thumbnail entity of given file
-	Thumbnail(ctx context.Context, uri *fs.URI) (entitysource.EntitySource, error)
-	// SubmitAndAwaitThumbnailTask submits a thumbnail task and waits for result
-	SubmitAndAwaitThumbnailTask(ctx context.Context, uri *fs.URI, ext string, entity fs.Entity) (fs.Entity, error)
-	// SetCurrentVersion sets current version of given file
-	SetCurrentVersion(ctx context.Context, path *fs.URI, version int) error
-	// DeleteVersion deletes a version of given file
-	DeleteVersion(ctx context.Context, path *fs.URI, version int) error
-	// ExtractAndSaveMediaMeta extracts and saves media meta into file metadata of given file.
-	ExtractAndSaveMediaMeta(ctx context.Context, uri *fs.URI, entityID int) error
-	// RecycleEntities recycles a group of entities
-	RecycleEntities(ctx context.Context, force bool, entityIDs ...int) error
-}
+type (
+	EntityManagement interface {
+		// GetEntityUrls gets download urls of given entities, return URLs and the earliest expiry time
+		GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, opts ...fs.Option) ([]EntityUrl, *time.Time, error)
+		// GetUrlForRedirectedDirectLink gets redirected direct download link of given direct link
+		GetUrlForRedirectedDirectLink(ctx context.Context, dl *ent.DirectLink, opts ...fs.Option) (string, *time.Time, error)
+		// GetDirectLink gets permanent direct download link of given files
+		GetDirectLink(ctx context.Context, urls ...*fs.URI) ([]DirectLink, error)
+		// GetEntitySource gets source of given entity
+		GetEntitySource(ctx context.Context, entityID int, opts ...fs.Option) (entitysource.EntitySource, error)
+		// Thumbnail gets thumbnail entity of given file
+		Thumbnail(ctx context.Context, uri *fs.URI) (entitysource.EntitySource, error)
+		// SubmitAndAwaitThumbnailTask submits a thumbnail task and waits for result
+		SubmitAndAwaitThumbnailTask(ctx context.Context, uri *fs.URI, ext string, entity fs.Entity) (fs.Entity, error)
+		// SetCurrentVersion sets current version of given file
+		SetCurrentVersion(ctx context.Context, path *fs.URI, version int) error
+		// DeleteVersion deletes a version of given file
+		DeleteVersion(ctx context.Context, path *fs.URI, version int) error
+		// ExtractAndSaveMediaMeta extracts and saves media meta into file metadata of given file.
+		ExtractAndSaveMediaMeta(ctx context.Context, uri *fs.URI, entityID int) error
+		// RecycleEntities recycles a group of entities
+		RecycleEntities(ctx context.Context, force bool, entityIDs ...int) error
+	}
+	DirectLink struct {
+		File fs.File
+		Url  string
+	}
 
-type DirectLink struct {
-	File fs.File
-	Url  string
-}
+	EntityUrl struct {
+		Url                        string `json:"url"`
+		BrowserDownloadDisplayName string `json:"stream_saver_display_name,omitempty"`
+	}
+)
 
 func (m *manager) GetDirectLink(ctx context.Context, urls ...*fs.URI) ([]DirectLink, error) {
 	ae := serializer.NewAggregateError()
@@ -212,14 +218,14 @@ func (m *manager) GetUrlForRedirectedDirectLink(ctx context.Context, dl *ent.Dir
 	return res, expire, nil
 }
 
-func (m *manager) GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, opts ...fs.Option) ([]string, *time.Time, error) {
+func (m *manager) GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, opts ...fs.Option) ([]EntityUrl, *time.Time, error) {
 	o := newOption()
 	for _, opt := range opts {
 		opt.Apply(o)
 	}
 
 	var earliestExpireAt *time.Time
-	res := make([]string, len(args))
+	res := make([]EntityUrl, len(args))
 	ae := serializer.NewAggregateError()
 	for i, arg := range args {
 		file, err := m.fs.Get(
@@ -261,6 +267,12 @@ func (m *manager) GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, op
 			m.l.Warning("Failed to execute navigator hooks: %s", err)
 		}
 
+		policy, d, err := m.getEntityPolicyDriver(ctx, target, nil)
+		if err != nil {
+			ae.Add(arg.URI.String(), err)
+			continue
+		}
+
 		// Try to read from cache.
 		cacheKey := entityUrlCacheKey(target.ID(), o.DownloadSpeed, getEntityDisplayName(file, target), o.IsDownload,
 			m.settings.SiteURL(ctx).String())
@@ -270,17 +282,14 @@ func (m *manager) GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, op
 			if cachedItem.ExpireAt != nil && (earliestExpireAt == nil || cachedItem.ExpireAt.Before(*earliestExpireAt)) {
 				earliestExpireAt = cachedItem.ExpireAt
 			}
-			res[i] = cachedItem.Url
+			res[i] = EntityUrl{
+				Url:                        cachedItem.Url,
+				BrowserDownloadDisplayName: cachedItem.BrowserDownloadDisplayName,
+			}
 			continue
 		}
 
 		// Cache miss, Generate new url
-		policy, d, err := m.getEntityPolicyDriver(ctx, target, nil)
-		if err != nil {
-			ae.Add(arg.URI.String(), err)
-			continue
-		}
-
 		source := entitysource.NewEntitySource(target, d, policy, m.auth, m.settings, m.hasher, m.dep.RequestClient(),
 			m.l, m.config, m.dep.MimeDetector(ctx))
 		downloadUrl, err := source.Url(ctx,
@@ -308,7 +317,12 @@ func (m *manager) GetEntityUrls(ctx context.Context, args []GetEntityUrlArgs, op
 			}, cacheValidDuration)
 		}
 
-		res[i] = downloadUrl.Url
+		res[i] = EntityUrl{
+			Url: downloadUrl.Url,
+		}
+		if d.Capabilities().BrowserRelayedDownload {
+			res[i].BrowserDownloadDisplayName = getEntityDisplayName(file, target)
+		}
 	}
 
 	return res, earliestExpireAt, ae.Aggregate()

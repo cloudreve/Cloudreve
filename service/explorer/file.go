@@ -367,8 +367,8 @@ type (
 		NoCache           bool     `json:"no_cache"`
 	}
 	FileURLResponse struct {
-		Urls    []string   `json:"urls"`
-		Expires *time.Time `json:"expires"`
+		Urls    []manager.EntityUrl `json:"urls"`
+		Expires *time.Time          `json:"expires"`
 	}
 	ArchiveDownloadSession struct {
 		Uris        []*fs.URI `json:"uris"`
@@ -419,7 +419,7 @@ func (s *FileURLService) GetArchiveDownloadSession(c *gin.Context) (*FileURLResp
 	}
 
 	return &FileURLResponse{
-		Urls:    []string{finalUrl.String()},
+		Urls:    []manager.EntityUrl{{Url: finalUrl.String()}},
 		Expires: &expire,
 	}, nil
 }
@@ -473,7 +473,7 @@ func (s *FileURLService) Get(c *gin.Context) (*FileURLResponse, error) {
 	//}
 
 	if s.Redirect && len(uris) == 1 {
-		c.Redirect(http.StatusFound, res[0])
+		c.Redirect(http.StatusFound, res[0].Url)
 		return nil, nil
 	}
 

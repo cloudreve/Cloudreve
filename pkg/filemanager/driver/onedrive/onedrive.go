@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
@@ -16,10 +20,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 // Driver OneDrive 适配器
@@ -150,11 +150,6 @@ func (handler *Driver) Source(ctx context.Context, e fs.Entity, args *driver.Get
 		return "", err
 	}
 
-	if args.IsDownload && handler.policy.Settings.StreamSaver {
-		downloadUrl := res.DownloadURL + "&" + streamSaverParam + "=" + url.QueryEscape(args.DisplayName)
-		return downloadUrl, nil
-	}
-
 	return res.DownloadURL, nil
 }
 
@@ -229,12 +224,13 @@ func (handler *Driver) CompleteUpload(ctx context.Context, session *fs.UploadSes
 
 func (handler *Driver) Capabilities() *driver.Capabilities {
 	return &driver.Capabilities{
-		StaticFeatures:      features,
-		ThumbSupportedExts:  handler.policy.Settings.ThumbExts,
-		ThumbSupportAllExts: handler.policy.Settings.ThumbSupportAllExts,
-		ThumbMaxSize:        handler.policy.Settings.ThumbMaxSize,
-		ThumbProxy:          handler.policy.Settings.ThumbGeneratorProxy,
-		MediaMetaProxy:      handler.policy.Settings.MediaMetaGeneratorProxy,
+		StaticFeatures:         features,
+		ThumbSupportedExts:     handler.policy.Settings.ThumbExts,
+		ThumbSupportAllExts:    handler.policy.Settings.ThumbSupportAllExts,
+		ThumbMaxSize:           handler.policy.Settings.ThumbMaxSize,
+		ThumbProxy:             handler.policy.Settings.ThumbGeneratorProxy,
+		MediaMetaProxy:         handler.policy.Settings.MediaMetaGeneratorProxy,
+		BrowserRelayedDownload: handler.policy.Settings.StreamSaver,
 	}
 }
 

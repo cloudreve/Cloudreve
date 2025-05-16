@@ -36,8 +36,9 @@ type (
 	}
 
 	EntityUrlCache struct {
-		Url      string
-		ExpireAt *time.Time
+		Url                        string
+		BrowserDownloadDisplayName string
+		ExpireAt                   *time.Time
 	}
 )
 

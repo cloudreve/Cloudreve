@@ -105,6 +105,8 @@ type (
 		ThumbMaxSize int64
 		// ThumbProxy indicates whether to generate thumbnails using local generators.
 		ThumbProxy bool
+		// BrowserRelayedDownload indicates whether to relay download via stream-saver.
+		BrowserRelayedDownload bool
 	}
 )
 

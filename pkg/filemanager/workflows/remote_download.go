@@ -194,7 +194,7 @@ func (m *RemoteDownloadTask) createDownloadTask(ctx context.Context, dep depende
 			return task.StatusError, fmt.Errorf("no torrent urls found")
 		}
 
-		torrentUrl = torrentUrls[0]
+		torrentUrl = torrentUrls[0].Url
 	}
 
 	// Create download task

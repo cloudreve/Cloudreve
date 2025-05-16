@@ -71,6 +71,7 @@ type (
 	// UserResetEmailService 发送密码重设邮件服务
 	UserResetEmailService struct {
 		UserName string `form:"email" json:"email" binding:"required,email"`
+		Language string `form:"language" json:"language"`
 	}
 	UserResetEmailParameterCtx struct{}
 )
