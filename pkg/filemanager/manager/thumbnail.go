@@ -260,21 +260,20 @@ func newGenerateThumbTask(ctx context.Context, m *manager, uri *fs.URI, ext stri
 }
 
 func (m *GenerateThumbTask) Do(ctx context.Context) (task.Status, error) {
-	var (
-		res fs.Entity
-		err error
-	)
-	defer func() { m.sig <- &generateRes{res, err} }()
-
 	// Make sure user does not cancel request before we start generating thumb.
 	select {
 	case <-ctx.Done():
-		err = ctx.Err()
+		err := ctx.Err()
 		return task.StatusError, err
 	default:
 	}
 
-	res, err = m.m.generateThumb(ctx, m.uri, m.ext, m.es)
+	res, err := m.m.generateThumb(ctx, m.uri, m.ext, m.es)
+	if err != nil {
+		return task.StatusError, err
+	}
+
+	m.sig <- &generateRes{res, nil}
 	return task.StatusCompleted, nil
 }
 
