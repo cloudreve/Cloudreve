@@ -248,8 +248,8 @@ func (service *SlaveDeleteFileService) Delete(c *gin.Context) ([]string, error) 
 type (
 	SlaveListParamCtx struct{}
 	SlaveListService  struct {
-		Path      string `uri:"path" binding:"required"`
-		Recursive bool   `uri:"recursive"`
+		Path      string `form:"path" binding:"required"`
+		Recursive bool   `form:"recursive"`
 	}
 )
 

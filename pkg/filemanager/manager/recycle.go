@@ -225,10 +225,12 @@ func (m *manager) RecycleEntities(ctx context.Context, force bool, entityIDs ...
 			}), func(entity fs.Entity, index int) string {
 				return entity.Source()
 			})
-			res, err := d.Delete(ctx, toBeDeletedSrc...)
-			if err != nil {
-				for _, src := range res {
-					ae.Add(strconv.Itoa(mapSrcToId[src]), err)
+			if len(toBeDeletedSrc) > 0 {
+				res, err := d.Delete(ctx, toBeDeletedSrc...)
+				if err != nil {
+					for _, src := range res {
+						ae.Add(strconv.Itoa(mapSrcToId[src]), err)
+					}
 				}
 			}
 

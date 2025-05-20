@@ -190,8 +190,7 @@ func SlaveFileListRoute(srcPath string, recursive bool) string {
 	query := url.Values{}
 	query.Set("recursive", strconv.FormatBool(recursive))
 	query.Set("path", srcPath)
-	route, _ := url.Parse(constants.APIPrefixSlave + fmt.Sprintf("%s?%s", base, query.Encode()))
-	return route.String()
+	return fmt.Sprintf("%s?%s", base, query.Encode())
 }
 
 func SlaveThumbUrl(base *url.URL, srcPath, ext string) *url.URL {

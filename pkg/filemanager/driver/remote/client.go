@@ -245,7 +245,7 @@ func (c *remoteClient) List(ctx context.Context, path string, recursive bool) ([
 	}
 
 	if resp.Code != 0 {
-		return nil, fmt.Errorf(resp.Error)
+		return nil, serializer.NewErrorFromResponse(resp)
 	}
 
 	var objects []fs.PhysicalObject

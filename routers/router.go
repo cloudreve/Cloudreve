@@ -129,9 +129,6 @@ func initSlaveRouter(dep dependency.Dep) *gin.Engine {
 		// v4.POST("ping/aria2", controllers.AdminTestAria2)
 		initSlaveFileRouter(v4)
 
-		// 列出文件
-		v4.POST("list", controllers.SlaveList)
-
 		// 离线下载
 		download := v4.Group("download")
 		{
