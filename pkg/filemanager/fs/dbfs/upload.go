@@ -226,6 +226,7 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 			UploadSessionID: req.Props.UploadSessionID,
 			ExpireAt:        req.Props.ExpireAt,
 			EntityType:      req.Props.EntityType,
+			Metadata:        req.Props.Metadata,
 		},
 		FileID:         fileId,
 		NewFileCreated: !fileExisted,
