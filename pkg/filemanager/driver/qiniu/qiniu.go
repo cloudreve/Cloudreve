@@ -5,6 +5,15 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
@@ -22,11 +31,6 @@ import (
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
 	"github.com/samber/lo"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"time"
 )
 
 const (
@@ -81,73 +85,75 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	return driver, nil
 }
 
-//
-//// List 列出给定路径下的文件
-//func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	base = strings.TrimPrefix(base, "/")
-//	if base != "" {
-//		base += "/"
-//	}
-//
-//	var (
-//		delimiter string
-//		marker    string
-//		objects   []storage.ListItem
-//		commons   []string
-//	)
-//	if !recursive {
-//		delimiter = "/"
-//	}
-//
-//	for {
-//		entries, folders, nextMarker, hashNext, err := handler.bucket.ListFiles(
-//			handler.policy.BucketName,
-//			base, delimiter, marker, 1000)
-//		if err != nil {
-//			return nil, err
-//		}
-//		objects = append(objects, entries...)
-//		commons = append(commons, folders...)
-//		if !hashNext {
-//			break
-//		}
-//		marker = nextMarker
-//	}
-//
-//	// 处理列取结果
-//	res := make([]response.Object, 0, len(objects)+len(commons))
-//	// 处理目录
-//	for _, object := range commons {
-//		rel, err := filepath.Rel(base, object)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object),
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         0,
-//			IsDir:        true,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//	// 处理文件
-//	for _, object := range objects {
-//		rel, err := filepath.Rel(base, object.Key)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object.Key),
-//			Source:       object.Key,
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         uint64(object.Fsize),
-//			IsDir:        false,
-//			LastModify:   time.Unix(object.PutTime/10000000, 0),
-//		})
-//	}
-//
-//	return res, nil
-//}
+// List 列出给定路径下的文件
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	base = strings.TrimPrefix(base, "/")
+	if base != "" {
+		base += "/"
+	}
+
+	var (
+		delimiter string
+		marker    string
+		objects   []storage.ListItem
+		commons   []string
+	)
+	if !recursive {
+		delimiter = "/"
+	}
+
+	for {
+		entries, folders, nextMarker, hashNext, err := handler.bucket.ListFiles(
+			handler.policy.BucketName,
+			base, delimiter, marker, 1000)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, entries...)
+		commons = append(commons, folders...)
+		if !hashNext {
+			break
+		}
+		marker = nextMarker
+	}
+
+	// 处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects)+len(commons))
+	// 处理目录
+	for _, object := range commons {
+		rel, err := filepath.Rel(base, object)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(commons))
+
+	// 处理文件
+	for _, object := range objects {
+		rel, err := filepath.Rel(base, object.Key)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         int64(object.Fsize),
+			IsDir:        false,
+			LastModify:   time.Unix(object.PutTime/10000000, 0),
+		})
+	}
+	onProgress(len(objects))
+
+	return res, nil
+}
 
 // Put 将文件流保存到指定目录
 func (handler *Driver) Put(ctx context.Context, file *fs.UploadRequest) error {

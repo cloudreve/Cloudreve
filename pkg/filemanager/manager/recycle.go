@@ -219,9 +219,13 @@ func (m *manager) RecycleEntities(ctx context.Context, force bool, entityIDs ...
 				mapSrcToId[entity.Source()] = entity.ID()
 			}
 
-			res, err := d.Delete(ctx, lo.Map(chunk, func(entity fs.Entity, index int) string {
+			toBeDeletedSrc := lo.Map(lo.Filter(chunk, func(item fs.Entity, index int) bool {
+				// Only delete entities that are not marked as "unlink only"
+				return item.Model().RecycleOptions == nil || !item.Model().RecycleOptions.UnlinkOnly
+			}), func(entity fs.Entity, index int) string {
 				return entity.Source()
-			})...)
+			})
+			res, err := d.Delete(ctx, toBeDeletedSrc...)
 			if err != nil {
 				for _, src := range res {
 					ae.Add(strconv.Itoa(mapSrcToId[src]), err)

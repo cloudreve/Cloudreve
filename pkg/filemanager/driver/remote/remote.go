@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"os"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
@@ -15,10 +19,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
-	"net/url"
-	"os"
-	"path"
-	"time"
 )
 
 var (
@@ -54,108 +54,19 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	}, nil
 }
 
-//// List 列取文件
-//func (handler *Driver) List(ctx context.Context, path string, recursive bool) ([]response.Object, error) {
-//	var res []response.Object
-//
-//	reqBody := serializer.ListRequest{
-//		Path:      path,
-//		Recursive: recursive,
-//	}
-//	reqBodyEncoded, err := json.Marshal(reqBody)
-//	if err != nil {
-//		return res, err
-//	}
-//
-//	// 发送列表请求
-//	bodyReader := strings.NewReader(string(reqBodyEncoded))
-//	signTTL := model.GetIntSetting("slave_api_timeout", 60)
-//	resp, err := handler.Client.Request(
-//		"POST",
-//		handler.getAPIUrl("list"),
-//		bodyReader,
-//		request.WithCredential(handler.AuthInstance, int64(signTTL)),
-//		request.WithMasterMeta(handler.settings.SiteBasic(ctx).ID, handler.settings.SiteURL(setting.UseFirstSiteUrl(ctx)).String()),
-//	).CheckHTTPResponse(200).DecodeResponse()
-//	if err != nil {
-//		return res, err
-//	}
-//
-//	// 处理列取结果
-//	if resp.Code != 0 {
-//		return res, errors.New(resp.Error)
-//	}
-//
-//	if resStr, ok := resp.Data.(string); ok {
-//		err = json.Unmarshal([]byte(resStr), &res)
-//		if err != nil {
-//			return res, err
-//		}
-//	}
-//
-//	return res, nil
-//}
-
-// getAPIUrl 获取接口请求地址
-func (handler *Driver) getAPIUrl(scope string, routes ...string) string {
-	serverURL, err := url.Parse(handler.Policy.Edges.Node.Server)
+// List 列取文件
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	res, err := handler.uploadClient.List(ctx, base, recursive)
 	if err != nil {
-		return ""
-	}
-	var controller *url.URL
-
-	switch scope {
-	case "delete":
-		controller, _ = url.Parse("/api/v3/slave/delete")
-	case "thumb":
-		controller, _ = url.Parse("/api/v3/slave/thumb")
-	case "list":
-		controller, _ = url.Parse("/api/v3/slave/list")
-	default:
-		controller = serverURL
+		return nil, err
 	}
 
-	for _, r := range routes {
-		controller.Path = path.Join(controller.Path, r)
-	}
-
-	return serverURL.ResolveReference(controller).String()
+	onProgress(len(res))
+	return res, nil
 }
 
 // Open 获取文件内容
 func (handler *Driver) Open(ctx context.Context, path string) (*os.File, error) {
-	//// 尝试获取速度限制
-	//speedLimit := 0
-	//if user, ok := ctx.Value(fsctx.UserCtx).(model.User); ok {
-	//	speedLimit = user.Group.SpeedLimit
-	//}
-	//
-	//// 获取文件源地址
-	//downloadURL, err := handler.Source(ctx, path, nil, true, int64(speedLimit))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// 获取文件数据流
-	//resp, err := handler.Client.Request(
-	//	"GET",
-	//	downloadURL,
-	//	nil,
-	//	request.WithContext(ctx),
-	//	request.WithTimeout(time.Duration(0)),
-	//	request.WithMasterMeta(handler.settings.SiteBasic(ctx).ID, handler.settings.SiteURL(ctx).String()),
-	//).CheckHTTPResponse(200).GetRSCloser()
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//resp.SetFirstFakeChunk()
-	//
-	//// 尝试获取文件大小
-	//if file, ok := ctx.Value(fsctx.FileModelCtx).(model.File); ok {
-	//	resp.SetContentLength(int64(file.Size))
-	//}
-
 	return nil, errors.New("not implemented")
 }
 

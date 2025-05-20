@@ -2,6 +2,7 @@ package driver
 
 import (
 	"context"
+	"encoding/gob"
 	"os"
 	"time"
 
@@ -76,7 +77,7 @@ type (
 		// List 递归列取远程端path路径下文件、目录，不包含path本身，
 		// 返回的对象路径以path作为起始根目录.
 		// recursive - 是否递归列出
-		// List(ctx context.Context, path string, recursive bool) ([]response.Object, error)
+		List(ctx context.Context, base string, onProgress ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error)
 
 		// Capabilities returns the capabilities of this handler
 		Capabilities() *Capabilities
@@ -108,6 +109,8 @@ type (
 		// BrowserRelayedDownload indicates whether to relay download via stream-saver.
 		BrowserRelayedDownload bool
 	}
+
+	ListProgressFunc func(int)
 )
 
 const (
@@ -121,4 +124,8 @@ type ForceUsePublicEndpointCtx struct{}
 // WithForcePublicEndpoint sets the context to force using public endpoint for supported storage policies.
 func WithForcePublicEndpoint(ctx context.Context, value bool) context.Context {
 	return context.WithValue(ctx, ForceUsePublicEndpointCtx{}, value)
+}
+
+func init() {
+	gob.Register(fs.PhysicalObject{})
 }

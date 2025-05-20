@@ -344,6 +344,13 @@ func NewShareUri(id, password string) string {
 	return fmt.Sprintf("%s://%s@%s", constants.CloudreveScheme, id, constants.FileSystemShare)
 }
 
+func NewMyUri(id string) string {
+	if id == "" {
+		return fmt.Sprintf("%s://%s", constants.CloudreveScheme, constants.FileSystemMy)
+	}
+	return fmt.Sprintf("%s://%s@%s", constants.CloudreveScheme, id, constants.FileSystemMy)
+}
+
 // PathEscape is same as url.PathEscape, with modifications to incoporate with JS encodeURIComponent:
 // encodeURI() escapes all characters except:
 //

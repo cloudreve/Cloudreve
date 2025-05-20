@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
@@ -126,80 +129,88 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	return driver, nil
 }
 
-//
-//// List 列出COS文件
-//func (handler Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	// 初始化列目录参数
-//	opt := &cossdk.BucketGetOptions{
-//		Prefix:       strings.TrimPrefix(base, "/"),
-//		EncodingType: "",
-//		MaxKeys:      1000,
-//	}
-//	// 是否为递归列出
-//	if !recursive {
-//		opt.Delimiter = "/"
-//	}
-//	// 手动补齐结尾的slash
-//	if opt.Prefix != "" {
-//		opt.Prefix += "/"
-//	}
-//
-//	var (
-//		marker  string
-//		objects []cossdk.Object
-//		commons []string
-//	)
-//
-//	for {
-//		res, _, err := handler.client.Bucket.Get(ctx, opt)
-//		if err != nil {
-//			return nil, err
-//		}
-//		objects = append(objects, res.Contents...)
-//		commons = append(commons, res.CommonPrefixes...)
-//		// 如果本次未列取完，则继续使用marker获取结果
-//		marker = res.NextMarker
-//		// marker 为空时结果列取完毕，跳出
-//		if marker == "" {
-//			break
-//		}
-//	}
-//
-//	// 处理列取结果
-//	res := make([]response.Object, 0, len(objects)+len(commons))
-//	// 处理目录
-//	for _, object := range commons {
-//		rel, err := filepath.Rel(opt.Prefix, object)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object),
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         0,
-//			IsDir:        true,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//	// 处理文件
-//	for _, object := range objects {
-//		rel, err := filepath.Rel(opt.Prefix, object.Key)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object.Key),
-//			Source:       object.Key,
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         uint64(object.Size),
-//			IsDir:        false,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//
-//	return res, nil
-//
-//}
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	// 初始化列目录参数
+	opt := &cossdk.BucketGetOptions{
+		Prefix:       strings.TrimPrefix(base, "/"),
+		EncodingType: "",
+		MaxKeys:      1000,
+	}
+
+	// 是否为递归列出
+
+	if !recursive {
+		opt.Delimiter = "/"
+	}
+
+	// 手动补齐结尾的slash
+	if opt.Prefix != "" {
+		opt.Prefix += "/"
+	}
+
+	var (
+		marker  string
+		objects []cossdk.Object
+		commons []string
+	)
+
+	for {
+		res, _, err := handler.client.Bucket.Get(ctx, opt)
+		if err != nil {
+			handler.l.Warning("Failed to list objects: %s", err)
+			return nil, err
+		}
+		objects = append(objects, res.Contents...)
+		commons = append(commons, res.CommonPrefixes...)
+		// 如果本次未列取完，则继续使用marker获取结果
+		marker = res.NextMarker
+		// marker 为空时结果列取完毕，跳出
+		if marker == "" {
+			break
+		}
+	}
+
+	// 处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects)+len(commons))
+	// 处理目录
+
+	for _, object := range commons {
+		rel, err := filepath.Rel(opt.Prefix, object)
+		if err != nil {
+			handler.l.Warning("Failed to get relative path: %s", err)
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(commons))
+
+	// 处理文件
+
+	for _, object := range objects {
+		rel, err := filepath.Rel(opt.Prefix, object.Key)
+		if err != nil {
+			handler.l.Warning("Failed to get relative path: %s", err)
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         object.Size,
+			IsDir:        false,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(res))
+
+	return res, nil
+}
 
 // CORS 创建跨域策略
 func (handler Driver) CORS() error {

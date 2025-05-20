@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -154,72 +156,75 @@ func (handler *Driver) InitOSSClient(forceUsePublicEndpoint bool) error {
 	return nil
 }
 
-//// List 列出OSS上的文件
-//func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	// 列取文件
-//	base = strings.TrimPrefix(base, "/")
-//	if base != "" {
-//		base += "/"
-//	}
-//
-//	var (
-//		delimiter string
-//		marker    string
-//		objects   []oss.ObjectProperties
-//		commons   []string
-//	)
-//	if !recursive {
-//		delimiter = "/"
-//	}
-//
-//	for {
-//		subRes, err := handler.bucket.ListObjects(oss.Marker(marker), oss.Prefix(base),
-//			oss.MaxKeys(1000), oss.Delimiter(delimiter))
-//		if err != nil {
-//			return nil, err
-//		}
-//		objects = append(objects, subRes.Objects...)
-//		commons = append(commons, subRes.CommonPrefixes...)
-//		marker = subRes.NextMarker
-//		if marker == "" {
-//			break
-//		}
-//	}
-//
-//	// 处理列取结果
-//	res := make([]response.Object, 0, len(objects)+len(commons))
-//	// 处理目录
-//	for _, object := range commons {
-//		rel, err := filepath.Rel(base, object)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object),
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         0,
-//			IsDir:        true,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//	// 处理文件
-//	for _, object := range objects {
-//		rel, err := filepath.Rel(base, object.Key)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(object.Key),
-//			Source:       object.Key,
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         uint64(object.Size),
-//			IsDir:        false,
-//			LastModify:   object.LastModified,
-//		})
-//	}
-//
-//	return res, nil
-//}
+// List 列出OSS上的文件
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	// 列取文件
+	base = strings.TrimPrefix(base, "/")
+	if base != "" {
+		base += "/"
+	}
+
+	var (
+		delimiter string
+		marker    string
+		objects   []oss.ObjectProperties
+		commons   []string
+	)
+	if !recursive {
+		delimiter = "/"
+	}
+
+	for {
+		subRes, err := handler.bucket.ListObjects(oss.Marker(marker), oss.Prefix(base),
+			oss.MaxKeys(1000), oss.Delimiter(delimiter))
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, subRes.Objects...)
+		commons = append(commons, subRes.CommonPrefixes...)
+		marker = subRes.NextMarker
+		if marker == "" {
+			break
+		}
+	}
+
+	// 处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects)+len(commons))
+	// 处理目录
+	for _, object := range commons {
+		rel, err := filepath.Rel(base, object)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(commons))
+
+	// 处理文件
+	for _, object := range objects {
+		rel, err := filepath.Rel(base, object.Key)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         object.Size,
+			IsDir:        false,
+			LastModify:   object.LastModified,
+		})
+	}
+	onProgress(len(res))
+
+	return res, nil
+}
 
 // Get 获取文件
 func (handler *Driver) Open(ctx context.Context, path string) (*os.File, error) {

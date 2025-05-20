@@ -3,6 +3,8 @@ package explorer
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
+
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
@@ -14,7 +16,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
-	"strings"
 )
 
 // SlaveDownloadService 从机文件下載服务
@@ -33,12 +34,6 @@ type SlaveFileService struct {
 // SlaveFilesService 从机多文件相关服务
 type SlaveFilesService struct {
 	Files []string `json:"files" binding:"required,gt=0"`
-}
-
-// SlaveListService 从机列表服务
-type SlaveListService struct {
-	Path      string `json:"path" binding:"required,min=1,max=65535"`
-	Recursive bool   `json:"recursive"`
 }
 
 // SlaveServe serves file content
@@ -248,4 +243,26 @@ func (service *SlaveDeleteFileService) Delete(c *gin.Context) ([]string, error) 
 	}
 
 	return nil, nil
+}
+
+type (
+	SlaveListParamCtx struct{}
+	SlaveListService  struct {
+		Path      string `uri:"path" binding:"required"`
+		Recursive bool   `uri:"recursive"`
+	}
+)
+
+func (s *SlaveListService) List(c *gin.Context) ([]fs.PhysicalObject, error) {
+	dep := dependency.FromContext(c)
+	m := manager.NewFileManager(dep, nil)
+	defer m.Recycle()
+	d := m.LocalDriver(nil)
+
+	objects, err := d.List(c, s.Path, func(i int) {}, s.Recursive)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list files: %w", err)
+	}
+
+	return objects, nil
 }

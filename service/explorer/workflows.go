@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"encoding/gob"
+	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
@@ -259,6 +260,57 @@ func (service *ArchiveWorkflowService) CreateCompressTask(c *gin.Context) (*Task
 }
 
 type (
+	ImportWorkflowService struct {
+		Src              string `json:"src" binding:"required"`
+		Dst              string `json:"dst" binding:"required"`
+		ExtractMediaMeta bool   `json:"extract_media_meta"`
+		UserID           string `json:"user_id" binding:"required"`
+		Recursive        bool   `json:"recursive"`
+		PolicyID         int    `json:"policy_id" binding:"required"`
+	}
+	CreateImportParamCtx struct{}
+)
+
+func (service *ImportWorkflowService) CreateImportTask(c *gin.Context) (*TaskResponse, error) {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	hasher := dep.HashIDEncoder()
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	if !user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
+		return nil, serializer.NewError(serializer.CodeGroupNotAllowed, "Only admin can import files", nil)
+	}
+
+	userId, err := hasher.Decode(service.UserID, hashid.UserID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "Invalid user id", err)
+	}
+
+	owner, err := dep.UserClient().GetLoginUserByID(c, userId)
+	if err != nil || owner.ID == 0 {
+		return nil, serializer.NewError(serializer.CodeDBError, "Failed to get user", err)
+	}
+
+	dst, err := fs.NewUriFromString(fs.NewMyUri(service.UserID))
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeParamErr, "Invalid destination", err)
+	}
+
+	// Create task
+	t, err := workflows.NewImportTask(c, owner, service.Src, service.Recursive, dst.Join(service.Dst).String(), service.PolicyID)
+	if err != nil {
+		return nil, serializer.NewError(serializer.CodeCreateTaskError, "Failed to create task", err)
+	}
+
+	if err := dep.IoIntenseQueue(c).QueueTask(c, t); err != nil {
+		return nil, serializer.NewError(serializer.CodeCreateTaskError, "Failed to queue task", err)
+	}
+
+	return BuildTaskResponse(t, nil, hasher), nil
+}
+
+type (
 	ListTaskService struct {
 		PageSize      int    `form:"page_size" binding:"required,min=10,max=100"`
 		Category      string `form:"category" binding:"required,eq=general|eq=downloading|eq=downloaded"`
@@ -279,7 +331,7 @@ func (service *ListTaskService) ListTasks(c *gin.Context) (*TaskListResponse, er
 			PageToken:           service.NextPageToken,
 			PageSize:            service.PageSize,
 		},
-		Types:  []string{queue.CreateArchiveTaskType, queue.ExtractArchiveTaskType, queue.RelocateTaskType},
+		Types:  []string{queue.CreateArchiveTaskType, queue.ExtractArchiveTaskType, queue.RelocateTaskType, queue.ImportTaskType},
 		UserID: user.ID,
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/pkg/thumb"
 	"os"
 	"runtime"
 	"time"
@@ -270,6 +271,11 @@ func (m *GenerateThumbTask) Do(ctx context.Context) (task.Status, error) {
 
 	res, err := m.m.generateThumb(ctx, m.uri, m.ext, m.es)
 	if err != nil {
+		if errors.Is(err, thumb.ErrNotAvailable) {
+			m.sig <- &generateRes{nil, err}
+			return task.StatusCompleted, nil
+		}
+
 		return task.StatusError, err
 	}
 

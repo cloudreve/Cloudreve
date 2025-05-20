@@ -45,26 +45,6 @@ func init() {
 	gob.Register(ArchiveDownloadSession{})
 }
 
-// List 列出从机上的文件
-func (service *SlaveListService) List(c *gin.Context) serializer.Response {
-	//// 创建文件系统
-	//fs, err := filesystem.NewAnonymousFileSystem()
-	//if err != nil {
-	//	return serializer.ErrDeprecated(serializer.CodeCreateFSError, "", err)
-	//}
-	//defer fs.Recycle()
-	//
-	//objects, err := fs.Handler.List(context.Background(), service.Path, service.Recursive)
-	//if err != nil {
-	//	return serializer.ErrDeprecated(serializer.CodeIOFailed, "Cannot list files", err)
-	//}
-	//
-	//res, _ := json.Marshal(objects)
-	//return serializer.Response{Data: string(res)}
-
-	return serializer.Response{}
-}
-
 // ArchiveService 文件流式打包下載服务
 type (
 	ArchiveService struct {

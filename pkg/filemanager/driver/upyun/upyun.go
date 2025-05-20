@@ -10,6 +10,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/url"
+	"os"
+	"path"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
@@ -23,12 +32,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/gin-gonic/gin"
 	"github.com/upyun/go-sdk/upyun"
-	"io"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type (
@@ -78,66 +81,67 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	return driver, nil
 }
 
-//func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	base = strings.TrimPrefix(base, "/")
-//
-//	// 用于接受SDK返回对象的chan
-//	objChan := make(chan *upyun.FileInfo)
-//	objects := []*upyun.FileInfo{}
-//
-//	// 列取配置
-//	listConf := &upyun.GetObjectsConfig{
-//		Path:         "/" + base,
-//		ObjectsChan:  objChan,
-//		MaxListTries: 1,
-//	}
-//	// 递归列取时不限制递归次数
-//	if recursive {
-//		listConf.MaxListLevel = -1
-//	}
-//
-//	// 启动一个goroutine收集列取的对象信
-//	wg := &sync.WaitGroup{}
-//	wg.Add(1)
-//	go func(input chan *upyun.FileInfo, output *[]*upyun.FileInfo, wg *sync.WaitGroup) {
-//		defer wg.Done()
-//		for {
-//			file, ok := <-input
-//			if !ok {
-//				return
-//			}
-//			*output = append(*output, file)
-//		}
-//	}(objChan, &objects, wg)
-//
-//	up := upyun.NewUpYun(&upyun.UpYunConfig{
-//		Bucket:   handler.policy.BucketName,
-//		Operator: handler.policy.AccessKey,
-//		Password: handler.policy.SecretKey,
-//	})
-//
-//	err := up.List(listConf)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	wg.Wait()
-//
-//	// 汇总处理列取结果
-//	res := make([]response.Object, 0, len(objects))
-//	for _, object := range objects {
-//		res = append(res, response.Object{
-//			Name:         path.Base(object.Name),
-//			RelativePath: object.Name,
-//			Source:       path.Join(base, object.Name),
-//			Size:         uint64(object.Size),
-//			IsDir:        object.IsDir,
-//			LastModify:   object.Time,
-//		})
-//	}
-//
-//	return res, nil
-//}
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	base = strings.TrimPrefix(base, "/")
+
+	// 用于接受SDK返回对象的chan
+	objChan := make(chan *upyun.FileInfo)
+	objects := []*upyun.FileInfo{}
+
+	// 列取配置
+	listConf := &upyun.GetObjectsConfig{
+		Path:         "/" + base,
+		ObjectsChan:  objChan,
+		MaxListTries: 1,
+	}
+	// 递归列取时不限制递归次数
+	if recursive {
+		listConf.MaxListLevel = -1
+	}
+
+	// 启动一个goroutine收集列取的对象信
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func(input chan *upyun.FileInfo, output *[]*upyun.FileInfo, wg *sync.WaitGroup) {
+		defer wg.Done()
+		for {
+			file, ok := <-input
+			if !ok {
+				return
+			}
+			*output = append(*output, file)
+			onProgress(1)
+		}
+	}(objChan, &objects, wg)
+
+	up := upyun.NewUpYun(&upyun.UpYunConfig{
+		Bucket:   handler.policy.BucketName,
+		Operator: handler.policy.AccessKey,
+		Password: handler.policy.SecretKey,
+	})
+
+	err := up.List(listConf)
+	if err != nil {
+		return nil, err
+	}
+
+	wg.Wait()
+
+	// 汇总处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects))
+	for _, object := range objects {
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object.Name),
+			RelativePath: object.Name,
+			Source:       path.Join(base, object.Name),
+			Size:         int64(object.Size),
+			IsDir:        object.IsDir,
+			LastModify:   object.Time,
+		})
+	}
+
+	return res, nil
+}
 
 func (handler *Driver) Open(ctx context.Context, path string) (*os.File, error) {
 	return nil, errors.New("not implemented")

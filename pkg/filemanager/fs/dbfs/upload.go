@@ -117,7 +117,14 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 	}
 
 	// Get parent folder storage policy and performs validation
-	policy, err := f.getPreferredPolicy(ctx, ancestor)
+	var (
+		policy *ent.StoragePolicy
+	)
+	if req.ImportFrom == nil {
+		policy, err = f.getPreferredPolicy(ctx, ancestor)
+	} else {
+		policy, err = f.storagePolicyClient.GetPolicyByID(ctx, req.Props.PreferredStoragePolicy)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +140,9 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 	}
 
 	// Generate save path by storage policy
-	isThumbnailAndPolicyNotAvailable := policy.ID != ancestor.Model.StoragePolicyFiles && (req.Props.EntityType != nil && *req.Props.EntityType == types.EntityTypeThumbnail)
+	isThumbnailAndPolicyNotAvailable := policy.ID != ancestor.Model.StoragePolicyFiles &&
+		(req.Props.EntityType != nil && *req.Props.EntityType == types.EntityTypeThumbnail) &&
+		req.ImportFrom == nil
 	if req.Props.SavePath == "" || isThumbnailAndPolicyNotAvailable {
 		req.Props.SavePath = generateSavePath(policy, req, f.user)
 		if isThumbnailAndPolicyNotAvailable {
@@ -174,7 +183,6 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 		fileId = ancestor.ID()
 		entityId = entity.ID()
 		targetFile = ancestor.Model
-		lockToken = ls.Exclude(lr, f.user, f.hasher)
 	} else {
 		uploadPlaceholder, err := f.Create(ctx, req.Props.Uri, types.FileTypeFile,
 			fs.WithUploadRequest(req),
@@ -190,15 +198,19 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 		fileId = uploadPlaceholder.ID()
 		entityId = uploadPlaceholder.Entities()[0].ID()
 		targetFile = uploadPlaceholder.(*File).Model
-		lockToken = ls.Exclude(lr, f.user, f.hasher)
 	}
 
-	// create metadata to record uploading entity id
-	if err := fc.UpsertMetadata(ctx, targetFile, map[string]string{
-		MetadataUploadSessionID: req.Props.UploadSessionID,
-	}, nil); err != nil {
-		_ = inventory.Rollback(dbTx)
-		return nil, serializer.NewError(serializer.CodeDBError, "Failed to update upload session metadata", err)
+	if req.ImportFrom == nil {
+		// If not importing, we can keep the lock
+		lockToken = ls.Exclude(lr, f.user, f.hasher)
+
+		// create metadata to record uploading entity id
+		if err := fc.UpsertMetadata(ctx, targetFile, map[string]string{
+			MetadataUploadSessionID: req.Props.UploadSessionID,
+		}, nil); err != nil {
+			_ = inventory.Rollback(dbTx)
+			return nil, serializer.NewError(serializer.CodeDBError, "Failed to update upload session metadata", err)
+		}
 	}
 
 	if err := inventory.CommitWithStorageDiff(ctx, dbTx, f.l, f.userClient); err != nil {
@@ -217,6 +229,7 @@ func (f *DBFS) PrepareUpload(ctx context.Context, req *fs.UploadRequest, opts ..
 		},
 		FileID:         fileId,
 		NewFileCreated: !fileExisted,
+		Importing:      req.ImportFrom != nil,
 		EntityID:       entityId,
 		UID:            f.user.ID,
 		Policy:         policy,

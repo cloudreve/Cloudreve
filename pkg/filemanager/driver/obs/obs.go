@@ -9,7 +9,10 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
@@ -102,6 +105,89 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 
 	driver.obs = obsClient
 	return driver, nil
+}
+
+func (d *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	opt := &obs.ListObjectsInput{
+		ListObjsInput: obs.ListObjsInput{
+			Prefix:       strings.TrimPrefix(base, "/"),
+			EncodingType: "",
+			MaxKeys:      1000,
+		},
+		Bucket: d.policy.BucketName,
+	}
+
+	if !recursive {
+		opt.Delimiter = "/"
+	}
+
+	if opt.Prefix != "" {
+		opt.Prefix += "/"
+	}
+
+	var (
+		marker  string
+		objects []obs.Content
+		commons []string
+	)
+
+	for {
+		res, err := d.obs.ListObjects(opt, obs.WithRequestContext(ctx))
+		if err != nil {
+			d.l.Warning("Failed to list objects: %s", err)
+			return nil, err
+		}
+		objects = append(objects, res.Contents...)
+		commons = append(commons, res.CommonPrefixes...)
+		// 如果本次未列取完，则继续使用marker获取结果
+		marker = res.NextMarker
+		// marker 为空时结果列取完毕，跳出
+		if marker == "" {
+			break
+		}
+	}
+
+	// 处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects)+len(commons))
+	// 处理目录
+
+	for _, object := range commons {
+		rel, err := filepath.Rel(opt.Prefix, object)
+		if err != nil {
+			d.l.Warning("Failed to get relative path: %s", err)
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(commons))
+
+	// 处理文件
+
+	for _, object := range objects {
+		rel, err := filepath.Rel(opt.Prefix, object.Key)
+		if err != nil {
+			d.l.Warning("Failed to get relative path: %s", err)
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(object.Key),
+			Source:       object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         object.Size,
+			IsDir:        false,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(res))
+
+	return res, nil
+
 }
 
 func (d *Driver) Put(ctx context.Context, file *fs.UploadRequest) error {

@@ -7,6 +7,9 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -100,82 +103,85 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	return driver, nil
 }
 
-//// List 列出给定路径下的文件
-//func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	// 初始化列目录参数
-//	base = strings.TrimPrefix(base, "/")
-//	if base != "" {
-//		base += "/"
-//	}
-//
-//	opt := &s3.ListObjectsInput{
-//		Bucket:  &handler.policy.BucketName,
-//		Prefix:  &base,
-//		MaxKeys: aws.Int64(1000),
-//	}
-//
-//	// 是否为递归列出
-//	if !recursive {
-//		opt.Delimiter = aws.String("/")
-//	}
-//
-//	var (
-//		objects []*s3.Object
-//		commons []*s3.CommonPrefix
-//	)
-//
-//	for {
-//		res, err := handler.svc.ListObjectsWithContext(ctx, opt)
-//		if err != nil {
-//			return nil, err
-//		}
-//		objects = append(objects, res.Contents...)
-//		commons = append(commons, res.CommonPrefixes...)
-//
-//		// 如果本次未列取完，则继续使用marker获取结果
-//		if *res.IsTruncated {
-//			opt.Marker = res.NextMarker
-//		} else {
-//			break
-//		}
-//	}
-//
-//	// 处理列取结果
-//	res := make([]response.Object, 0, len(objects)+len(commons))
-//
-//	// 处理目录
-//	for _, object := range commons {
-//		rel, err := filepath.Rel(*opt.Prefix, *object.Prefix)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(*object.Prefix),
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         0,
-//			IsDir:        true,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//	// 处理文件
-//	for _, object := range objects {
-//		rel, err := filepath.Rel(*opt.Prefix, *object.Key)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         path.Base(*object.Key),
-//			Source:       *object.Key,
-//			RelativePath: filepath.ToSlash(rel),
-//			Size:         uint64(*object.Size),
-//			IsDir:        false,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//
-//	return res, nil
-//
-//}
+// List 列出给定路径下的文件
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	// 初始化列目录参数
+	base = strings.TrimPrefix(base, "/")
+	if base != "" {
+		base += "/"
+	}
+
+	opt := &s3.ListObjectsInput{
+		Bucket:  &handler.policy.BucketName,
+		Prefix:  &base,
+		MaxKeys: aws.Int64(1000),
+	}
+
+	// 是否为递归列出
+	if !recursive {
+		opt.Delimiter = aws.String("/")
+	}
+
+	var (
+		objects []*s3.Object
+		commons []*s3.CommonPrefix
+	)
+
+	for {
+		res, err := handler.svc.ListObjectsWithContext(ctx, opt)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, res.Contents...)
+		commons = append(commons, res.CommonPrefixes...)
+
+		// 如果本次未列取完，则继续使用marker获取结果
+		if *res.IsTruncated {
+			opt.Marker = res.NextMarker
+		} else {
+			break
+		}
+	}
+
+	// 处理列取结果
+	res := make([]fs.PhysicalObject, 0, len(objects)+len(commons))
+
+	// 处理目录
+	for _, object := range commons {
+		rel, err := filepath.Rel(*opt.Prefix, *object.Prefix)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(*object.Prefix),
+			RelativePath: filepath.ToSlash(rel),
+			Size:         0,
+			IsDir:        true,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(commons))
+
+	// 处理文件
+	for _, object := range objects {
+		rel, err := filepath.Rel(*opt.Prefix, *object.Key)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         path.Base(*object.Key),
+			Source:       *object.Key,
+			RelativePath: filepath.ToSlash(rel),
+			Size:         int64(*object.Size),
+			IsDir:        false,
+			LastModify:   time.Now(),
+		})
+	}
+	onProgress(len(objects))
+
+	return res, nil
+
+}
 
 // Open 打开文件
 func (handler *Driver) Open(ctx context.Context, path string) (*os.File, error) {

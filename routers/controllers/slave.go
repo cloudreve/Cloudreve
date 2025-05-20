@@ -118,13 +118,15 @@ func SlavePing(c *gin.Context) {
 
 // SlaveList 从机列出文件
 func SlaveList(c *gin.Context) {
-	var service explorer.SlaveListService
-	if err := c.ShouldBindJSON(&service); err == nil {
-		res := service.List(c)
-		c.JSON(200, res)
-	} else {
-		c.JSON(200, ErrorResponse(err))
+	service := ParametersFromContext[*explorer.SlaveListService](c, explorer.SlaveListParamCtx{})
+	objects, err := service.List(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
 	}
+
+	c.JSON(200, serializer.NewResponseWithGobData(c, objects))
 }
 
 // SlaveDownloadTaskCreate creates a download task on slave

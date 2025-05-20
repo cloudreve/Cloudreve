@@ -258,6 +258,7 @@ type (
 		ChunkSize      int64
 		SentinelTaskID int
 		NewFileCreated bool // If new file is created for this session
+		Importing      bool // If the upload is importing from another file
 
 		LockToken string // Token of the locked placeholder file
 		Props     *UploadProps
@@ -376,6 +377,15 @@ type (
 		Name     string
 		Size     int64
 		OmitName bool // if true, file name will not be validated
+	}
+
+	PhysicalObject struct {
+		Name         string    `json:"name"`
+		Source       string    `json:"source"`
+		RelativePath string    `json:"relative_path"`
+		Size         int64     `json:"size"`
+		IsDir        bool      `json:"is_dir"`
+		LastModify   time.Time `json:"last_modify"`
 	}
 )
 
@@ -599,7 +609,8 @@ type (
 		Offset       int64
 		ProgressFunc `json:"-"`
 
-		read int64
+		ImportFrom *PhysicalObject `json:"-"`
+		read       int64
 	}
 )
 

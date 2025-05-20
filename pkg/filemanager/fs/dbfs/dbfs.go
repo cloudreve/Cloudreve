@@ -653,6 +653,7 @@ func (f *DBFS) createFile(ctx context.Context, parent *File, name string, fileTy
 			Size:            o.UploadRequest.Props.Size,
 			ModifiedAt:      o.UploadRequest.Props.LastModified,
 			UploadSessionID: uuid.FromStringOrNil(o.UploadRequest.Props.UploadSessionID),
+			Importing:       o.UploadRequest.ImportFrom != nil,
 		}
 	}
 

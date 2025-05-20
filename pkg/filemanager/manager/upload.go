@@ -339,7 +339,7 @@ func (m *manager) OnUploadFailed(ctx context.Context, session *fs.UploadSession)
 			if err := m.Delete(ctx, []*fs.URI{session.Props.Uri}, fs.WithSysSkipSoftDelete(true)); err != nil {
 				m.l.Warning("OnUploadFailed hook failed to delete file: %s", err)
 			}
-		} else {
+		} else if !session.Importing {
 			if err := m.fs.VersionControl(ctx, session.Props.Uri, session.EntityID, true); err != nil {
 				m.l.Warning("OnUploadFailed hook failed to version control: %s", err)
 			}

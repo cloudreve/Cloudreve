@@ -5,6 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/pkg/auth"
@@ -19,11 +25,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/gofrs/uuid"
-	"io"
-	"net/http"
-	"net/url"
-	"strings"
-	"time"
 )
 
 const (
@@ -45,6 +46,8 @@ type Client interface {
 	MediaMeta(ctx context.Context, src, ext string) ([]driver.MediaMeta, error)
 	// DeleteFiles deletes files from remote server
 	DeleteFiles(ctx context.Context, files ...string) ([]string, error)
+	// List lists files from remote server
+	List(ctx context.Context, path string, recursive bool) ([]fs.PhysicalObject, error)
 }
 
 type DeleteFileRequest struct {
@@ -227,6 +230,28 @@ func (c *remoteClient) CreateUploadSession(ctx context.Context, session *fs.Uplo
 	}
 
 	return nil
+}
+
+func (c *remoteClient) List(ctx context.Context, path string, recursive bool) ([]fs.PhysicalObject, error) {
+	resp, err := c.httpClient.Request(
+		http.MethodGet,
+		routes.SlaveFileListRoute(path, recursive),
+		nil,
+		request.WithContext(ctx),
+		request.WithLogger(c.l),
+	).CheckHTTPResponse(200).DecodeResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Code != 0 {
+		return nil, fmt.Errorf(resp.Error)
+	}
+
+	var objects []fs.PhysicalObject
+	resp.GobDecode(&objects)
+	return objects, nil
+
 }
 
 func (c *remoteClient) GetUploadURL(ctx context.Context, expires time.Time, sessionID string) (string, string, error) {

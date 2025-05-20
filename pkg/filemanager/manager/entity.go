@@ -11,11 +11,13 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/driver"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs/dbfs"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager/entitysource"
 	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
+	"github.com/gofrs/uuid"
 	"github.com/samber/lo"
 )
 
@@ -41,6 +43,10 @@ type (
 		ExtractAndSaveMediaMeta(ctx context.Context, uri *fs.URI, entityID int) error
 		// RecycleEntities recycles a group of entities
 		RecycleEntities(ctx context.Context, force bool, entityIDs ...int) error
+		// ListPhysical lists physical files in a path
+		ListPhysical(ctx context.Context, path string, policyID int, recursive bool, progress driver.ListProgressFunc) ([]fs.PhysicalObject, error)
+		// ImportPhysical imports a physical file to a Cloudreve file
+		ImportPhysical(ctx context.Context, dst *fs.URI, policyId int, src fs.PhysicalObject, completeHook bool) error
 	}
 	DirectLink struct {
 		File fs.File
@@ -367,6 +373,51 @@ func (l *manager) SetCurrentVersion(ctx context.Context, path *fs.URI, version i
 
 func (l *manager) DeleteVersion(ctx context.Context, path *fs.URI, version int) error {
 	return l.fs.VersionControl(ctx, path, version, true)
+}
+
+func (l *manager) ListPhysical(ctx context.Context, path string, policyID int, recursive bool, progress driver.ListProgressFunc) ([]fs.PhysicalObject, error) {
+	policy, err := l.dep.StoragePolicyClient().GetPolicyByID(ctx, policyID)
+	if err != nil {
+		return nil, err
+	}
+
+	driver, err := l.GetStorageDriver(ctx, policy)
+	if err != nil {
+		return nil, err
+	}
+
+	return driver.List(ctx, path, progress, recursive)
+}
+
+func (l *manager) ImportPhysical(ctx context.Context, dst *fs.URI, policyId int, src fs.PhysicalObject, completeHook bool) error {
+	targetUri := dst.Join(src.RelativePath)
+	req := &fs.UploadRequest{
+		Props: &fs.UploadProps{
+			Uri:                    targetUri,
+			UploadSessionID:        uuid.Must(uuid.NewV4()).String(),
+			Size:                   src.Size,
+			PreferredStoragePolicy: policyId,
+			SavePath:               src.Source,
+			LastModified:           &src.LastModify,
+		},
+		ImportFrom: &src,
+	}
+
+	// Prepare for upload
+	uploadSession, err := l.fs.PrepareUpload(ctx, req)
+	if err != nil {
+		return fmt.Errorf("faield to prepare uplaod: %w", err)
+	}
+	if completeHook {
+		d, err := l.GetStorageDriver(ctx, l.CastStoragePolicyOnSlave(ctx, uploadSession.Policy))
+		if err != nil {
+			return err
+		}
+
+		l.onNewEntityUploaded(ctx, uploadSession, d)
+	}
+
+	return nil
 }
 
 func entityUrlCacheKey(id int, speed int64, displayName string, download bool, siteUrl string) string {

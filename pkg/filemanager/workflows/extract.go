@@ -61,8 +61,9 @@ const (
 	ProgressTypeExtractSize  = "extract_size"
 	ProgressTypeDownload     = "download"
 
-	SummaryKeySrc = "src"
-	SummaryKeyDst = "dst"
+	SummaryKeySrc         = "src"
+	SummaryKeySrcPhysical = "src_physical"
+	SummaryKeyDst         = "dst"
 )
 
 func init() {

@@ -120,6 +120,7 @@ type (
 		Source          string
 		Size            int64
 		UploadSessionID uuid.UUID
+		Importing       bool
 	}
 
 	RelocateEntityParameter struct {
@@ -716,6 +717,11 @@ func (f *fileClient) CreateFile(ctx context.Context, root *ent.File, args *Creat
 		SetParent(root).
 		SetIsSymbolic(args.IsSymbolic).
 		SetStoragePoliciesID(args.StoragePolicyID)
+
+	if args.EntityParameters != nil && args.EntityParameters.Importing {
+		stm.SetSize(args.EntityParameters.Size)
+	}
+
 	newFile, err := stm.Save(ctx)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to create file: %v", err)
@@ -729,6 +735,12 @@ func (f *fileClient) CreateFile(ctx context.Context, root *ent.File, args *Creat
 		defaultEntity, storageDiff, err = f.CreateEntity(ctx, newFile, args.EntityParameters)
 		if err != nil {
 			return nil, nil, storageDiff, fmt.Errorf("failed to create default entity: %v", err)
+		}
+
+		if args.EntityParameters.Importing {
+			if err := f.client.File.UpdateOne(newFile).SetPrimaryEntity(defaultEntity.ID).Exec(ctx); err != nil {
+				return nil, nil, storageDiff, fmt.Errorf("failed to set primary entity: %v", err)
+			}
 		}
 	}
 
@@ -848,7 +860,7 @@ func (f *fileClient) CreateEntity(ctx context.Context, file *ent.File, args *Ent
 		stm.SetUpdatedAt(*args.ModifiedAt)
 	}
 
-	if args.UploadSessionID != uuid.Nil {
+	if args.UploadSessionID != uuid.Nil && !args.Importing {
 		stm.SetUploadSessionID(args.UploadSessionID)
 	}
 

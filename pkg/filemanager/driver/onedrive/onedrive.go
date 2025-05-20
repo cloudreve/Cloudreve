@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,14 +25,17 @@ import (
 )
 
 // Driver OneDrive 适配器
-type Driver struct {
-	policy    *ent.StoragePolicy
-	client    Client
-	settings  setting.Provider
-	config    conf.ConfigProvider
-	l         logging.Logger
-	chunkSize int64
-}
+type (
+	Driver struct {
+		policy    *ent.StoragePolicy
+		client    Client
+		settings  setting.Provider
+		config    conf.ConfigProvider
+		l         logging.Logger
+		chunkSize int64
+	}
+	ListPathRealRootCtx struct{}
+)
 
 var (
 	features = &boolset.BooleanSet{}
@@ -66,50 +71,52 @@ func New(ctx context.Context, policy *ent.StoragePolicy, settings setting.Provid
 	}, nil
 }
 
-//// List 列取项目
-//func (handler *Driver) List(ctx context.Context, base string, recursive bool) ([]response.Object, error) {
-//	base = strings.TrimPrefix(base, "/")
-//	// 列取子项目
-//	objects, _ := handler.client.ListChildren(ctx, base)
-//
-//	// 获取真实的列取起始根目录
-//	rootPath := base
-//	if realBase, ok := ctx.Value(fsctx.PathCtx).(string); ok {
-//		rootPath = realBase
-//	} else {
-//		ctx = context.WithValue(ctx, fsctx.PathCtx, base)
-//	}
-//
-//	// 整理结果
-//	res := make([]response.Object, 0, len(objects))
-//	for _, object := range objects {
-//		source := path.Join(base, object.Name)
-//		rel, err := filepath.Rel(rootPath, source)
-//		if err != nil {
-//			continue
-//		}
-//		res = append(res, response.Object{
-//			Name:         object.Name,
-//			RelativePath: filepath.ToSlash(rel),
-//			Source:       source,
-//			Size:         uint64(object.Size),
-//			IsDir:        object.Folder != nil,
-//			LastModify:   time.Now(),
-//		})
-//	}
-//
-//	// 递归列取子目录
-//	if recursive {
-//		for _, object := range objects {
-//			if object.Folder != nil {
-//				sub, _ := handler.List(ctx, path.Join(base, object.Name), recursive)
-//				res = append(res, sub...)
-//			}
-//		}
-//	}
-//
-//	return res, nil
-//}
+// List 列取项目
+func (handler *Driver) List(ctx context.Context, base string, onProgress driver.ListProgressFunc, recursive bool) ([]fs.PhysicalObject, error) {
+	base = strings.TrimPrefix(base, "/")
+	// 列取子项目
+	objects, _ := handler.client.ListChildren(ctx, base)
+
+	// 获取真实的列取起始根目录
+	rootPath := base
+	if realBase, ok := ctx.Value(ListPathRealRootCtx{}).(string); ok {
+		rootPath = realBase
+	} else {
+		ctx = context.WithValue(ctx, ListPathRealRootCtx{}, base)
+	}
+
+	// 整理结果
+	res := make([]fs.PhysicalObject, 0, len(objects))
+	for _, object := range objects {
+		source := path.Join(base, object.Name)
+		rel, err := filepath.Rel(rootPath, source)
+		if err != nil {
+			continue
+		}
+		res = append(res, fs.PhysicalObject{
+			Name:         object.Name,
+			RelativePath: filepath.ToSlash(rel),
+			Source:       source,
+			Size:         object.Size,
+			IsDir:        object.Folder != nil,
+			LastModify:   time.Now(),
+		})
+	}
+
+	onProgress(len(objects))
+
+	// 递归列取子目录
+	if recursive {
+		for _, object := range objects {
+			if object.Folder != nil {
+				sub, _ := handler.List(ctx, path.Join(base, object.Name), onProgress, recursive)
+				res = append(res, sub...)
+			}
+		}
+	}
+
+	return res, nil
+}
 
 func (handler *Driver) Open(ctx context.Context, path string) (*os.File, error) {
 	return nil, errors.New("not implemented")
