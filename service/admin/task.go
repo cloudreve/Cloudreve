@@ -178,6 +178,7 @@ func (s *AdminListService) Tasks(c *gin.Context) (*ListTaskResponse, error) {
 
 			return GetTaskResponse{
 				Task:       task,
+				TaskHashID: hashid.EncodeTaskID(hasher, task.ID),
 				UserHashID: uid,
 				Node:       node,
 				Summary:    summary,
@@ -228,6 +229,7 @@ func (s *SingleTaskService) Get(c *gin.Context) (*GetTaskResponse, error) {
 		Summary:    summary,
 		Node:       node,
 		UserHashID: userHashID,
+		TaskHashID: hashid.EncodeTaskID(hasher, task.ID),
 	}, nil
 }
 

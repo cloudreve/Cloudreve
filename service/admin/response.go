@@ -30,6 +30,7 @@ type ListTaskResponse struct {
 type GetTaskResponse struct {
 	*ent.Task
 	UserHashID string         `json:"user_hash_id,omitempty"`
+	TaskHashID string         `json:"task_hash_id,omitempty"`
 	Summary    *queue.Summary `json:"summary,omitempty"`
 	Node       *ent.Node      `json:"node,omitempty"`
 }

@@ -386,7 +386,7 @@ func TaskPhaseProgress(c *gin.Context, taskID int) (queue.Progresses, error) {
 	u := inventory.UserFromContext(c)
 	r := dep.TaskRegistry()
 	t, found := r.Get(taskID)
-	if !found || t.Owner().ID != u.ID {
+	if !found || (t.Owner().ID != u.ID && !u.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin))) {
 		return queue.Progresses{}, nil
 	}
 
