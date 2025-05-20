@@ -23,6 +23,7 @@ const (
 const (
 	QuerySearchName           = "name"
 	QuerySearchNameOpOr       = "name_op_or"
+	QuerySearchUseOr          = "use_or"
 	QuerySearchMetadataPrefix = "meta_"
 	QuerySearchCaseFolding    = "case_folding"
 	QuerySearchType           = "type"
@@ -227,6 +228,10 @@ func (u *URI) SearchParameters() *inventory.SearchFileParameters {
 	}
 
 	if _, ok := q[QuerySearchNameOpOr]; ok {
+		res.NameOperatorOr = true
+	}
+
+	if _, ok := q[QuerySearchUseOr]; ok {
 		res.NameOperatorOr = true
 	}
 
