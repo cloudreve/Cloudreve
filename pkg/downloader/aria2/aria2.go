@@ -245,6 +245,8 @@ func (a *aria2Client) SetFilesToDownload(ctx context.Context, handle *downloader
 	for _, arg := range args {
 		if !arg.Download {
 			delete(selected, arg.Index)
+		} else {
+			selected[arg.Index] = true
 		}
 	}
 

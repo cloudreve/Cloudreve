@@ -593,7 +593,7 @@ func (d *dependency) RemoteDownloadQueue(ctx context.Context) queue.Queue {
 		queue.WithName("RemoteDownloadQueue"),
 		queue.WithMaxTaskExecution(queueSetting.MaxExecution),
 		queue.WithResumeTaskType(queue.RemoteDownloadTaskType),
-		queue.WithTaskPullInterval(20*time.Second),
+		queue.WithTaskPullInterval(10*time.Second),
 	)
 	return d.remoteDownloadQueue
 }
