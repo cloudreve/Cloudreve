@@ -719,13 +719,65 @@ func (f *DBFS) getFileByPath(ctx context.Context, navigator Navigator, path *fs.
 // initFs initializes the file system for the user.
 func (f *DBFS) initFs(ctx context.Context, uid int) error {
 	f.l.Info("Initialize database file system for user %q", f.user.Email)
-	_, err := f.fileClient.CreateFolder(ctx, nil,
+	parent, err := f.fileClient.CreateFolder(ctx, nil,
 		&inventory.CreateFolderParameters{
 			Owner: uid,
 			Name:  inventory.RootFolderName,
 		})
 	if err != nil {
 		return fmt.Errorf("failed to create root folder: %w", err)
+	}
+
+	// Create default symbolics
+	symbolics := f.settingClient.DefaultSymbolics(ctx)
+	if len(symbolics) == 0 {
+		return nil
+	}
+
+	user, err := f.userClient.GetLoginUserByID(ctx, uid)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	parent.SetOwner(user)
+
+	ctx = context.WithValue(ctx, inventory.LoadShareFile{}, true)
+	ctx = context.WithValue(ctx, inventory.LoadShareUser{}, true)
+	shares, err := f.shareClient.GetByIDs(ctx, symbolics)
+	if err != nil {
+		return fmt.Errorf("failed to get shares: %w", err)
+	}
+
+	for _, share := range shares {
+		if share.Edges.File == nil || share.Edges.User == nil {
+			continue
+		}
+
+		shareOwner := hashid.EncodeUserID(f.hasher, share.Edges.User.ID)
+		shareUri := fs.NewShareUri(hashid.EncodeShareID(f.hasher, share.ID), share.Password)
+		shareUriParsed, err := fs.NewUriFromString(shareUri)
+		if err != nil {
+			continue
+		}
+
+		if share.Edges.File.Type == int(types.FileTypeFile) {
+			shareUriParsed.Join(share.Edges.File.Name)
+		}
+
+		parentFile := newFile(nil, parent)
+		parentFile.OwnerModel = user
+		if _, err := f.createFile(ctx, parentFile, share.Edges.File.Name, types.FileType(share.Edges.File.Type), &dbfsOption{
+			FsOption: &fs.FsOption{
+				Metadata: map[string]string{
+					MetadataSharedRedirect: shareUriParsed.String(),
+					MetadataSharedOwner:    shareOwner,
+				},
+			},
+			errOnConflict:  true,
+			isSymbolicLink: true,
+		}); err != nil {
+			f.l.Warning("Failed to create default symbolic link %q for user %q: %s", shareUriParsed, uid, err)
+		}
 	}
 
 	return nil

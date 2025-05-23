@@ -53,6 +53,7 @@ const (
 	MetadataSharedRedirect      = MetadataSysPrefix + "shared_redirect"
 	MetadataRestoreUri          = MetadataSysPrefix + "restore_uri"
 	MetadataExpectedCollectTime = MetadataSysPrefix + "expected_collect_time"
+	MetadataSharedOwner         = MetadataSysPrefix + "shared_owner"
 
 	ThumbMetadataPrefix = "thumb:"
 	ThumbDisabledKey    = ThumbMetadataPrefix + "disabled"

@@ -31,6 +31,8 @@ var (
 type (
 	ShareClient interface {
 		TxOperator
+		// GetByIDs returns the shares with given ids.
+		GetByIDs(ctx context.Context, ids []int) ([]*ent.Share, error)
 		// GetByID returns the share with given id.
 		GetByID(ctx context.Context, id int) (*ent.Share, error)
 		// GetByIDUser returns the share with given id and user id.
@@ -67,6 +69,7 @@ type (
 		UserID     int
 		FileID     int
 		PublicOnly bool
+		ShareIDs   []int
 	}
 	ListShareResult struct {
 		*PaginationResults
@@ -163,6 +166,15 @@ func (c *shareClient) GetByIDUser(ctx context.Context, id, uid int) (*ent.Share,
 		Where(share.HasUserWith(user.ID(uid))).First(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query share %d: %w", id, err)
+	}
+
+	return s, nil
+}
+
+func (c *shareClient) GetByIDs(ctx context.Context, ids []int) ([]*ent.Share, error) {
+	s, err := withShareEagerLoading(ctx, c.client.Share.Query().Where(share.IDIn(ids...))).All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query shares %v: %w", ids, err)
 	}
 
 	return s, nil
@@ -330,6 +342,10 @@ func (c *shareClient) listQuery(args *ListShareArgs) *ent.ShareQuery {
 
 	if args.FileID > 0 {
 		query.Where(share.HasFileWith(file.ID(args.FileID)))
+	}
+
+	if len(args.ShareIDs) > 0 {
+		query.Where(share.IDIn(args.ShareIDs...))
 	}
 
 	return query

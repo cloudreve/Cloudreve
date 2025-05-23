@@ -246,4 +246,5 @@ var DefaultSettings = map[string]string{
 	"qq_login":                                   `0`,
 	"qq_login_config":                            `{"direct_sign_in":false}`,
 	"license":                                    "",
+	"default_symbolics":                          "[]",
 }

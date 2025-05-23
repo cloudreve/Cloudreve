@@ -184,6 +184,8 @@ type (
 		AvatarProcess(ctx context.Context) *AvatarProcess
 		// UseFirstSiteUrl returns the first site URL.
 		AllSiteURLs(ctx context.Context) []*url.URL
+		// DefaultSymbolics returns the default symbolics for new users.
+		DefaultSymbolics(ctx context.Context) []int
 	}
 	UseFirstSiteUrlCtxKey = struct{}
 )
@@ -210,6 +212,16 @@ type (
 		adapterChain SettingStoreAdapter
 	}
 )
+
+func (s *settingProvider) DefaultSymbolics(ctx context.Context) []int {
+	raw := s.getString(ctx, "default_symbolics", "[]")
+	var symbolics []int
+	if err := json.Unmarshal([]byte(raw), &symbolics); err != nil {
+		return []int{}
+	}
+
+	return symbolics
+}
 
 func (s *settingProvider) License(ctx context.Context) string {
 	return s.getString(ctx, "license", "")

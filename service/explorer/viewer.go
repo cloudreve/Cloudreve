@@ -261,7 +261,6 @@ func (service *WopiService) PutContent(c *gin.Context, isPutRelative bool) error
 	if isPutRelative {
 		c.JSON(http.StatusOK, PutRelativeResponse{
 			Name: res.Name,
-			Url:  "http://docker.host.internal:5212/explorer/viewer?uri=",
 		})
 	}
 	return nil

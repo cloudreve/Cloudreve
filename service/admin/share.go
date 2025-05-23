@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
 	"github.com/cloudreve/Cloudreve/v4/ent"
@@ -17,6 +18,7 @@ import (
 const (
 	shareUserIDCondition = "share_user_id"
 	shareFileIDCondition = "share_file_id"
+	shareIDCondition     = "share_id"
 )
 
 func (s *AdminListService) Shares(c *gin.Context) (*ListShareResponse, error) {
@@ -25,9 +27,10 @@ func (s *AdminListService) Shares(c *gin.Context) (*ListShareResponse, error) {
 	hasher := dep.HashIDEncoder()
 
 	var (
-		err    error
-		userID int
-		fileID int
+		err      error
+		userID   int
+		fileID   int
+		shareIDs []int
 	)
 
 	if s.Conditions[shareUserIDCondition] != "" {
@@ -44,6 +47,18 @@ func (s *AdminListService) Shares(c *gin.Context) (*ListShareResponse, error) {
 		}
 	}
 
+	if s.Conditions[shareIDCondition] != "" {
+		shareIdStrs := strings.Split(s.Conditions[shareIDCondition], ",")
+		for _, shareIdStr := range shareIdStrs {
+			shareID, err := strconv.Atoi(shareIdStr)
+			if err != nil {
+				return nil, serializer.NewError(serializer.CodeParamErr, "Invalid share ID", err)
+			}
+
+			shareIDs = append(shareIDs, shareID)
+		}
+	}
+
 	ctx := context.WithValue(c, inventory.LoadShareFile{}, true)
 	ctx = context.WithValue(ctx, inventory.LoadShareUser{}, true)
 
@@ -54,8 +69,9 @@ func (s *AdminListService) Shares(c *gin.Context) (*ListShareResponse, error) {
 			OrderBy:  s.OrderBy,
 			Order:    inventory.OrderDirection(s.OrderDirection),
 		},
-		UserID: userID,
-		FileID: fileID,
+		UserID:   userID,
+		FileID:   fileID,
+		ShareIDs: shareIDs,
 	})
 
 	if err != nil {
