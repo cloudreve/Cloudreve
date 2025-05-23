@@ -19,7 +19,7 @@ COPY .build/aria2.supervisor.conf .build/entrypoint.sh ./
 COPY cloudreve ./cloudreve
 
 RUN chmod +x ./cloudreve \
-    && chmod +x ./entrypoint.sh \
+    && chmod +x ./entrypoint.sh
 
 EXPOSE 5212 443
 
