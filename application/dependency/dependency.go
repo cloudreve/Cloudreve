@@ -751,7 +751,7 @@ func (d *dependency) TokenAuth() auth.TokenAuth {
 	}
 
 	d.tokenAuth = auth.NewTokenAuth(d.HashIDEncoder(), d.SettingProvider(),
-		[]byte(d.SettingProvider().SecretKey(context.Background())), d.UserClient(), d.Logger())
+		[]byte(d.SettingProvider().SecretKey(context.Background())), d.UserClient(), d.Logger(), d.KV())
 	return d.tokenAuth
 }
 

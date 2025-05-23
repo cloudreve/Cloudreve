@@ -71,13 +71,15 @@ type Claims struct {
 }
 
 // NewTokenAuth creates a new token based auth provider.
-func NewTokenAuth(idEncoder hashid.Encoder, s setting.Provider, secret []byte, userClient inventory.UserClient, l logging.Logger) TokenAuth {
+func NewTokenAuth(idEncoder hashid.Encoder, s setting.Provider, secret []byte, userClient inventory.UserClient,
+	l logging.Logger, kv cache.Driver) TokenAuth {
 	return &tokenAuth{
 		idEncoder:  idEncoder,
 		s:          s,
 		secret:     secret,
 		userClient: userClient,
 		l:          l,
+		kv:         kv,
 	}
 }
 
