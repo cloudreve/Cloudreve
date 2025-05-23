@@ -70,7 +70,7 @@ func PreparePasskeyLogin(c *gin.Context) (*PreparePasskeyLoginResponse, error) {
 	}
 
 	sessionID := uuid.Must(uuid.NewV4()).String()
-	if err := dep.KV().Set(fmt.Sprint("%s%s", authnSessionKey, sessionID), *sessionData, 300); err != nil {
+	if err := dep.KV().Set(fmt.Sprintf("%s%s", authnSessionKey, sessionID), *sessionData, 300); err != nil {
 		return nil, serializer.NewError(serializer.CodeInternalSetting, "Failed to store session data", err)
 	}
 
@@ -93,7 +93,7 @@ func (s *FinishPasskeyLoginService) FinishPasskeyLogin(c *gin.Context) (*ent.Use
 	kv := dep.KV()
 	userClient := dep.UserClient()
 
-	sessionDataRaw, ok := kv.Get(fmt.Sprint("%s%s", authnSessionKey, s.SessionID))
+	sessionDataRaw, ok := kv.Get(fmt.Sprintf("%s%s", authnSessionKey, s.SessionID))
 	if !ok {
 		return nil, serializer.NewError(serializer.CodeNotFound, "Session not found", nil)
 	}
@@ -192,7 +192,7 @@ func PreparePasskeyRegister(c *gin.Context) (*protocol.CredentialCreation, error
 		return nil, serializer.NewError(serializer.CodeInitializeAuthn, "Failed to begin registration", err)
 	}
 
-	if err := dep.KV().Set(fmt.Sprint("%s%d", authnSessionKey, u.ID), *sessionData, 300); err != nil {
+	if err := dep.KV().Set(fmt.Sprintf("%s%d", authnSessionKey, u.ID), *sessionData, 300); err != nil {
 		return nil, serializer.NewError(serializer.CodeInternalSetting, "Failed to store session data", err)
 	}
 
@@ -213,7 +213,7 @@ func (s *FinishPasskeyRegisterService) FinishPasskeyRegister(c *gin.Context) (*P
 	kv := dep.KV()
 	u := inventory.UserFromContext(c)
 
-	sessionDataRaw, ok := kv.Get(fmt.Sprint("%s%d", authnSessionKey, u.ID))
+	sessionDataRaw, ok := kv.Get(fmt.Sprintf("%s%d", authnSessionKey, u.ID))
 	if !ok {
 		return nil, serializer.NewError(serializer.CodeNotFound, "Session not found", nil)
 	}

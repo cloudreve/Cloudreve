@@ -159,7 +159,7 @@ type (
 func IssueToken(c *gin.Context) (*BuiltinLoginResponse, error) {
 	dep := dependency.FromContext(c)
 	u := inventory.UserFromContext(c)
-	token, err := dep.TokenAuth().Issue(c, u)
+	token, err := dep.TokenAuth().Issue(c, u, nil)
 	if err != nil {
 		return nil, serializer.NewError(serializer.CodeEncryptError, "Failed to issue token pair", err)
 	}
@@ -186,6 +186,22 @@ func (s *RefreshTokenService) Refresh(c *gin.Context) (*auth.Token, error) {
 	}
 
 	return token, nil
+}
+
+func (s *RefreshTokenService) Delete(c *gin.Context) (string, error) {
+	dep := dependency.FromContext(c)
+	claims, err := dep.TokenAuth().Claims(c, s.RefreshToken)
+	if err != nil {
+		return "", serializer.NewError(serializer.CodeCredentialInvalid, "Failed to parse token", err)
+	}
+
+	// Block root token
+	if claims.RootTokenID != nil {
+		tokenSettings := dep.SettingProvider().TokenAuth(c)
+		dep.KV().Set(fmt.Sprintf("%s%s", auth.RevokeTokenPrefix, claims.RootTokenID.String()), true, int(tokenSettings.AccessTokenTTL.Seconds()+10))
+	}
+
+	return "", nil
 }
 
 type (

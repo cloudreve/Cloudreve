@@ -172,8 +172,17 @@ func UserActivate(c *gin.Context) {
 
 // UserSignOut 用户退出登录
 func UserSignOut(c *gin.Context) {
-	util.DeleteSession(c, "user_id")
-	c.JSON(200, serializer.Response{})
+	service := ParametersFromContext[*user.RefreshTokenService](c, user.RefreshTokenParameterCtx{})
+	res, err := service.Delete(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{
+		Data: res,
+	})
 }
 
 // UserMe 获取当前登录的用户

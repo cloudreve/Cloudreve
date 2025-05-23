@@ -299,6 +299,10 @@ func initMasterRouter(dep dependency.Dep) *gin.Engine {
 					controllers.FromJSON[usersvc.RefreshTokenService](usersvc.RefreshTokenParameterCtx{}),
 					controllers.UserRefreshToken,
 				)
+				token.DELETE("",
+					controllers.FromJSON[usersvc.RefreshTokenService](usersvc.RefreshTokenParameterCtx{}),
+					controllers.UserSignOut,
+				)
 			}
 
 			// Prepare login
@@ -1057,8 +1061,6 @@ func initMasterRouter(dep dependency.Dep) *gin.Engine {
 					controllers.FromQuery[usersvc.SearchUserService](usersvc.SearchUserParamCtx{}),
 					controllers.UserSearch,
 				)
-				// 退出登录
-				user.DELETE("session", controllers.UserSignOut)
 
 				// WebAuthn 注册相关
 				authn := user.Group("authn",

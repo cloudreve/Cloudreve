@@ -11,23 +11,27 @@ import (
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
 	"github.com/cloudreve/Cloudreve/v4/pkg/serializer"
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type TokenAuth interface {
 	// Issue issues a new pair of credentials for the given user.
-	Issue(ctx context.Context, u *ent.User) (*Token, error)
+	Issue(ctx context.Context, u *ent.User, rootTokenID *uuid.UUID) (*Token, error)
 	// VerifyAndRetrieveUser verifies the given token and inject the user into current context.
 	// Returns if upper caller should continue process other session provider.
 	VerifyAndRetrieveUser(c *gin.Context) (bool, error)
 	// Refresh refreshes the given refresh token and returns a new pair of credentials.
 	Refresh(ctx context.Context, refreshToken string) (*Token, error)
+	// Claims parses the given token string and returns the claims.
+	Claims(ctx context.Context, tokenStr string) (*Claims, error)
 }
 
 // Token stores token pair for authentication
@@ -56,12 +60,14 @@ var (
 const (
 	AuthorizationHeader = "Authorization"
 	TokenHeaderPrefix   = "Bearer "
+	RevokeTokenPrefix   = "jwt_revoke_"
 )
 
 type Claims struct {
 	TokenType TokenType `json:"token_type"`
 	jwt.RegisteredClaims
-	StateHash []byte `json:"state_hash,omitempty"`
+	StateHash   []byte     `json:"state_hash,omitempty"`
+	RootTokenID *uuid.UUID `json:"root_token_id,omitempty"`
 }
 
 // NewTokenAuth creates a new token based auth provider.
@@ -81,6 +87,24 @@ type tokenAuth struct {
 	s          setting.Provider
 	secret     []byte
 	userClient inventory.UserClient
+	kv         cache.Driver
+}
+
+func (t *tokenAuth) Claims(ctx context.Context, tokenStr string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return t.secret, nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	return claims, nil
 }
 
 func (t *tokenAuth) Refresh(ctx context.Context, refreshToken string) (*Token, error) {
@@ -113,7 +137,17 @@ func (t *tokenAuth) Refresh(ctx context.Context, refreshToken string) (*Token, e
 		return nil, ErrInvalidRefreshToken
 	}
 
-	return t.Issue(ctx, expectedUser)
+	// Check if root token is revoked
+	if claims.RootTokenID == nil {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	_, ok = t.kv.Get(fmt.Sprintf("%s%s", RevokeTokenPrefix, claims.RootTokenID.String()))
+	if ok {
+		return nil, ErrInvalidRefreshToken
+	}
+
+	return t.Issue(ctx, expectedUser, claims.RootTokenID)
 }
 
 func (t *tokenAuth) VerifyAndRetrieveUser(c *gin.Context) (bool, error) {
@@ -151,12 +185,16 @@ func (t *tokenAuth) VerifyAndRetrieveUser(c *gin.Context) (bool, error) {
 	return false, nil
 }
 
-func (t *tokenAuth) Issue(ctx context.Context, u *ent.User) (*Token, error) {
+func (t *tokenAuth) Issue(ctx context.Context, u *ent.User, rootTokenID *uuid.UUID) (*Token, error) {
 	uidEncoded := hashid.EncodeUserID(t.idEncoder, u.ID)
 	tokenSettings := t.s.TokenAuth(ctx)
 	issueDate := time.Now()
 	accessTokenExpired := time.Now().Add(tokenSettings.AccessTokenTTL)
 	refreshTokenExpired := time.Now().Add(tokenSettings.RefreshTokenTTL)
+	if rootTokenID == nil {
+		newRootTokenID := uuid.Must(uuid.NewV4())
+		rootTokenID = &newRootTokenID
+	}
 
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		TokenType: TokenTypeAccess,
@@ -172,7 +210,8 @@ func (t *tokenAuth) Issue(ctx context.Context, u *ent.User) (*Token, error) {
 
 	userHash := t.hashUserState(ctx, u)
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
-		TokenType: TokenTypeRefresh,
+		TokenType:   TokenTypeRefresh,
+		RootTokenID: rootTokenID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   uidEncoded,
 			NotBefore: jwt.NewNumericDate(issueDate),
