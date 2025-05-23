@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/manager"
 	"github.com/cloudreve/Cloudreve/v4/pkg/hashid"
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
-	"net/url"
-	"strings"
-	"time"
 )
 
 var (
@@ -34,18 +35,19 @@ var (
 )
 
 const (
-	SessionCachePrefix  = "wopi_session_"
-	AccessTokenQuery    = "access_token"
-	OverwriteHeader     = WopiHeaderPrefix + "Override"
-	ServerErrorHeader   = WopiHeaderPrefix + "ServerError"
-	RenameRequestHeader = WopiHeaderPrefix + "RequestedName"
-	LockTokenHeader     = WopiHeaderPrefix + "Lock"
-	ItemVersionHeader   = WopiHeaderPrefix + "ItemVersion"
+	SessionCachePrefix    = "wopi_session_"
+	AccessTokenQuery      = "access_token"
+	OverwriteHeader       = WopiHeaderPrefix + "Override"
+	ServerErrorHeader     = WopiHeaderPrefix + "ServerError"
+	RenameRequestHeader   = WopiHeaderPrefix + "RequestedName"
+	LockTokenHeader       = WopiHeaderPrefix + "Lock"
+	ItemVersionHeader     = WopiHeaderPrefix + "ItemVersion"
+	SuggestedTargetHeader = WopiHeaderPrefix + "SuggestedTarget"
 
-	MethodLock        = "LOCK"
-	MethodUnlock      = "UNLOCK"
-	MethodRefreshLock = "REFRESH_LOCK"
-
+	MethodLock           = "LOCK"
+	MethodUnlock         = "UNLOCK"
+	MethodRefreshLock    = "REFRESH_LOCK"
+	MethodPutRelative    = "PUT_RELATIVE"
 	wopiSrcPlaceholder   = "WOPI_SOURCE"
 	wopiSrcParamDefault  = "WOPISrc"
 	languageParamDefault = "lang"

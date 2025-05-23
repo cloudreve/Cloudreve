@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
@@ -154,7 +156,7 @@ func (service *WopiService) Lock(c *gin.Context) error {
 	return nil
 }
 
-func (service *WopiService) PutContent(c *gin.Context) error {
+func (service *WopiService) PutContent(c *gin.Context, isPutRelative bool) error {
 	uri, m, user, viewerSession, _, err := prepareFs(c)
 	if err != nil {
 		return err
@@ -208,8 +210,28 @@ func (service *WopiService) PutContent(c *gin.Context) error {
 		lockSession = ls
 	}
 
+	fileUri := viewerSession.Uri
+	if isPutRelative {
+		// If the header contains only a file extension (starts with a period), then the resulting file name will consist of this extension and the initial file name without extension.
+		// If the header contains a full file name, then it will be a name for the resulting file.
+		fileName, err := wopi.UTF7Decode(c.GetHeader(wopi.SuggestedTargetHeader))
+		if err != nil {
+			return fmt.Errorf("failed to decode X-WOPI-SuggestedTarget header (UTF-7): %w", err)
+		}
+
+		fileUriParsed, err := fs.NewUriFromString(fileUri)
+		if err != nil {
+			return fmt.Errorf("failed to parse file uri: %w", err)
+		}
+
+		if strings.HasPrefix(fileName, ".") {
+			fileName = strings.TrimSuffix(fileUriParsed.Name(), filepath.Ext(fileUriParsed.Name())) + fileName
+		}
+		fileUri = fileUriParsed.DirUri().JoinRaw(fileName).String()
+	}
+
 	subService := FileUpdateService{
-		Uri: viewerSession.Uri,
+		Uri: fileUri,
 	}
 
 	res, err := subService.PutContent(c, lockSession)
@@ -236,6 +258,12 @@ func (service *WopiService) PutContent(c *gin.Context) error {
 	}
 
 	c.Header(wopi.ItemVersionHeader, res.PrimaryEntity)
+	if isPutRelative {
+		c.JSON(http.StatusOK, PutRelativeResponse{
+			Name: res.Name,
+			Url:  "http://docker.host.internal:5212/explorer/viewer?uri=",
+		})
+	}
 	return nil
 }
 
@@ -306,32 +334,34 @@ func (service *WopiService) FileInfo(c *gin.Context) (*WopiFileInfo, error) {
 	}
 
 	canEdit := file.PrimaryEntityID() == targetEntity.ID() && file.OwnerID() == user.ID && uri.FileSystem() == constants.FileSystemMy
+	cantPutRelative := !canEdit
 	siteUrl := settings.SiteURL(c)
 	info := &WopiFileInfo{
-		BaseFileName:           file.DisplayName(),
-		Version:                hashid.EncodeEntityID(hasher, targetEntity.ID()),
-		BreadcrumbBrandName:    settings.SiteBasic(c).Name,
-		BreadcrumbBrandUrl:     siteUrl.String(),
-		FileSharingPostMessage: file.OwnerID() == user.ID,
-		EnableShare:            file.OwnerID() == user.ID,
-		FileVersionPostMessage: true,
-		ClosePostMessage:       true,
-		PostMessageOrigin:      "*",
-		FileNameMaxLength:      dbfs.MaxFileNameLength,
-		LastModifiedTime:       file.UpdatedAt().Format(time.RFC3339),
-		IsAnonymousUser:        inventory.IsAnonymousUser(user),
-		UserFriendlyName:       user.Nick,
-		UserId:                 hashid.EncodeUserID(hasher, user.ID),
-		ReadOnly:               !canEdit,
-		Size:                   targetEntity.Size(),
-		OwnerId:                hashid.EncodeUserID(hasher, file.OwnerID()),
-		SupportsRename:         true,
-		SupportsReviewing:      true,
-		SupportsLocks:          true,
-		UserCanReview:          canEdit,
-		UserCanWrite:           canEdit,
-		BreadcrumbFolderName:   uri.Dir(),
-		BreadcrumbFolderUrl:    routes.FrontendHomeUrl(siteUrl, uri.DirUri().String()).String(),
+		BaseFileName:            file.DisplayName(),
+		Version:                 hashid.EncodeEntityID(hasher, targetEntity.ID()),
+		BreadcrumbBrandName:     settings.SiteBasic(c).Name,
+		BreadcrumbBrandUrl:      siteUrl.String(),
+		FileSharingPostMessage:  file.OwnerID() == user.ID,
+		EnableShare:             file.OwnerID() == user.ID,
+		FileVersionPostMessage:  true,
+		ClosePostMessage:        true,
+		PostMessageOrigin:       "*",
+		FileNameMaxLength:       dbfs.MaxFileNameLength,
+		LastModifiedTime:        file.UpdatedAt().Format(time.RFC3339),
+		IsAnonymousUser:         inventory.IsAnonymousUser(user),
+		UserFriendlyName:        user.Nick,
+		UserId:                  hashid.EncodeUserID(hasher, user.ID),
+		ReadOnly:                !canEdit,
+		Size:                    targetEntity.Size(),
+		OwnerId:                 hashid.EncodeUserID(hasher, file.OwnerID()),
+		SupportsRename:          true,
+		SupportsReviewing:       true,
+		SupportsLocks:           true,
+		UserCanReview:           canEdit,
+		UserCanWrite:            canEdit,
+		UserCanNotWriteRelative: cantPutRelative,
+		BreadcrumbFolderName:    uri.Dir(),
+		BreadcrumbFolderUrl:     routes.FrontendHomeUrl(siteUrl, uri.DirUri().String()).String(),
 	}
 
 	return info, nil

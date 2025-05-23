@@ -1,10 +1,11 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/cloudreve/Cloudreve/v4/pkg/wopi"
 	"github.com/cloudreve/Cloudreve/v4/service/explorer"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 // CheckFileInfo Get file info
@@ -34,7 +35,7 @@ func GetFile(c *gin.Context) {
 // PutFile Puts file content
 func PutFile(c *gin.Context) {
 	service := &explorer.WopiService{}
-	err := service.PutContent(c)
+	err := service.PutContent(c, false)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		c.Header(wopi.ServerErrorHeader, err.Error())
@@ -65,14 +66,17 @@ func ModifyFile(c *gin.Context) {
 		if err == nil {
 			return
 		}
+	case wopi.MethodPutRelative:
+		err = service.PutContent(c, true)
+		if err == nil {
+			return
+		}
 	default:
 		c.Status(http.StatusNotImplemented)
 		return
 	}
 
-	if err != nil {
-		c.Status(http.StatusInternalServerError)
-		c.Header(wopi.ServerErrorHeader, err.Error())
-		return
-	}
+	c.Status(http.StatusInternalServerError)
+	c.Header(wopi.ServerErrorHeader, err.Error())
+	return
 }

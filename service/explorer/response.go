@@ -26,6 +26,11 @@ import (
 	"github.com/samber/lo"
 )
 
+type PutRelativeResponse struct {
+	Name string
+	Url  string
+}
+
 type DirectLinkResponse struct {
 	Link    string `json:"link"`
 	FileUrl string `json:"file_url"`
@@ -174,10 +179,11 @@ type WopiFileInfo struct {
 	OwnerId          string
 
 	// Permission
-	ReadOnly      bool
-	UserCanRename bool
-	UserCanReview bool
-	UserCanWrite  bool
+	ReadOnly                bool
+	UserCanRename           bool
+	UserCanReview           bool
+	UserCanWrite            bool
+	UserCanNotWriteRelative bool
 
 	SupportsRename    bool
 	SupportsReviewing bool
