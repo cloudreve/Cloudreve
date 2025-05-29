@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
+	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
@@ -606,6 +607,38 @@ func (f *DBFS) MoveOrCopy(ctx context.Context, path []*fs.URI, dst *fs.URI, isCo
 	}
 
 	return ae.Aggregate()
+}
+
+func (f *DBFS) GetFileFromDirectLink(ctx context.Context, dl *ent.DirectLink) (fs.File, error) {
+	fileModel, err := dl.Edges.FileOrErr()
+	if err != nil {
+		return nil, err
+	}
+
+	owner, err := fileModel.Edges.OwnerOrErr()
+	if err != nil {
+		return nil, err
+	}
+
+	// File owner must be active
+	if owner.Status != user.StatusActive {
+		return nil, fs.ErrDirectLinkInvalid.WithError(fmt.Errorf("file owner is not active"))
+	}
+
+	file := newFile(nil, fileModel)
+
+	// Traverse to the root file
+	baseNavigator := newBaseNavigator(f.fileClient, defaultFilter, f.user, f.hasher, f.settingClient.DBFS(ctx))
+	root, err := baseNavigator.findRoot(ctx, file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find root file: %w", err)
+	}
+
+	if root.Name() != inventory.RootFolderName {
+		return nil, serializer.NewError(serializer.CodeNotFound, "direct link not found", err)
+	}
+
+	return file, nil
 }
 
 func (f *DBFS) deleteEntity(ctx context.Context, target *File, entityId int) (inventory.StorageDiff, error) {

@@ -137,7 +137,7 @@ func NewFileManager(dep dependency.Dep, u *ent.User) FileManager {
 		user:     u,
 		settings: dep.SettingProvider(),
 		fs: dbfs.NewDatabaseFS(u, dep.FileClient(), dep.ShareClient(), dep.Logger(), dep.LockSystem(),
-			dep.SettingProvider(), dep.StoragePolicyClient(), dep.HashIDEncoder(), dep.UserClient(), dep.KV(), dep.NavigatorStateKV()),
+			dep.SettingProvider(), dep.StoragePolicyClient(), dep.HashIDEncoder(), dep.UserClient(), dep.KV(), dep.NavigatorStateKV(), dep.DirectLinkClient()),
 		kv:           dep.KV(),
 		config:       config,
 		auth:         dep.GeneralAuth(),

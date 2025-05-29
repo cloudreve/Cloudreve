@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/ent"
-	"github.com/cloudreve/Cloudreve/v4/ent/user"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cluster/routes"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/driver"
@@ -147,34 +146,19 @@ func (m *manager) GetUrlForRedirectedDirectLink(ctx context.Context, dl *ent.Dir
 		opt.Apply(o)
 	}
 
-	file, err := dl.Edges.FileOrErr()
+	file, err := m.fs.GetFileFromDirectLink(ctx, dl)
 	if err != nil {
 		return "", nil, err
-	}
-
-	owner, err := file.Edges.OwnerOrErr()
-	if err != nil {
-		return "", nil, err
-	}
-
-	entities, err := file.Edges.EntitiesOrErr()
-	if err != nil {
-		return "", nil, err
-	}
-
-	// File owner must be active
-	if owner.Status != user.StatusActive {
-		return "", nil, fs.ErrDirectLinkInvalid.WithError(fmt.Errorf("file owner is not active"))
 	}
 
 	// Find primary entity
-	target, found := lo.Find(entities, func(entity *ent.Entity) bool {
-		return entity.ID == file.PrimaryEntity
+	target, found := lo.Find(file.Entities(), func(entity fs.Entity) bool {
+		return entity.ID() == file.PrimaryEntityID()
 	})
 	if !found {
 		return "", nil, fs.ErrDirectLinkInvalid.WithError(fmt.Errorf("primary entity not found"))
 	}
-	primaryEntity := fs.NewEntity(target)
+	primaryEntity := target
 
 	// Generate url
 	var (

@@ -300,25 +300,6 @@ func (n *shareNavigator) ExecuteHook(ctx context.Context, hookType fs.HookType, 
 	return nil
 }
 
-// findRoot finds the root folder of the given child.
-func (n *shareNavigator) findRoot(ctx context.Context, child *File) (*File, error) {
-	root := child
-	for {
-		newRoot, err := n.baseNavigator.walkUp(ctx, root)
-		if err != nil {
-			if !ent.IsNotFound(err) {
-				return nil, err
-			}
-
-			break
-		}
-
-		root = newRoot
-	}
-
-	return root, nil
-}
-
 func (n *shareNavigator) Walk(ctx context.Context, levelFiles []*File, limit, depth int, f WalkFunc) error {
 	return n.baseNavigator.walk(ctx, levelFiles, limit, depth, f)
 }

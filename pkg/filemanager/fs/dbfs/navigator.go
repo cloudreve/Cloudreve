@@ -197,6 +197,25 @@ func (b *baseNavigator) walkNext(ctx context.Context, root *File, next string, i
 	return newFile(root, child), nil
 }
 
+// findRoot finds the root folder of the given child.
+func (b *baseNavigator) findRoot(ctx context.Context, child *File) (*File, error) {
+	root := child
+	for {
+		newRoot, err := b.walkUp(ctx, root)
+		if err != nil {
+			if !ent.IsNotFound(err) {
+				return nil, err
+			}
+
+			break
+		}
+
+		root = newRoot
+	}
+
+	return root, nil
+}
+
 func (b *baseNavigator) walkUp(ctx context.Context, child *File) (*File, error) {
 	parent, err := b.fileClient.GetParentFile(ctx, child.Model, false)
 	if err != nil {
