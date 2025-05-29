@@ -584,7 +584,8 @@ func (s *UnlockFileService) Unlock(c *gin.Context) error {
 type (
 	GetFileInfoParameterCtx struct{}
 	GetFileInfoService      struct {
-		Uri           string `form:"uri" binding:"required"`
+		Uri           string `form:"uri"`
+		ID            string `form:"id"`
 		ExtendedInfo  bool   `form:"extended"`
 		FolderSummary bool   `form:"folder_summary"`
 	}
@@ -595,6 +596,24 @@ func (s *GetFileInfoService) Get(c *gin.Context) (*FileResponse, error) {
 	user := inventory.UserFromContext(c)
 	m := manager.NewFileManager(dep, user)
 	defer m.Recycle()
+
+	if s.ID != "" && s.Uri == "" {
+		fileId, err := dep.HashIDEncoder().Decode(s.ID, hashid.FileID)
+		if err != nil {
+			return nil, serializer.NewError(serializer.CodeParamErr, "unknown file id", err)
+		}
+
+		file, err := m.TraverseFile(c, fileId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to traverse file: %w", err)
+		}
+
+		s.Uri = file.Uri(true).String()
+	}
+
+	if s.Uri == "" {
+		return nil, serializer.NewError(serializer.CodeParamErr, "uri is required", nil)
+	}
 
 	uri, err := fs.NewUriFromString(s.Uri)
 	if err != nil {

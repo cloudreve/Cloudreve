@@ -208,6 +208,7 @@ func (service *AdminListService) Files(c *gin.Context) (*ListFileResponse, error
 			return GetFileResponse{
 				File:       file,
 				UserHashID: hashid.EncodeUserID(hasher, file.OwnerID),
+				FileHashID: hashid.EncodeFileID(hasher, file.ID),
 			}
 		}),
 	}, nil
@@ -251,6 +252,7 @@ func (service *SingleFileService) Get(c *gin.Context) (*GetFileResponse, error) 
 	return &GetFileResponse{
 		File:          file,
 		UserHashID:    hashid.EncodeUserID(hasher, file.OwnerID),
+		FileHashID:    hashid.EncodeFileID(hasher, file.ID),
 		DirectLinkMap: directLinkMap,
 	}, nil
 }

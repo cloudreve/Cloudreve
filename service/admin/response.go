@@ -54,6 +54,7 @@ type ListFileResponse struct {
 type GetFileResponse struct {
 	*ent.File
 	UserHashID    string         `json:"user_hash_id,omitempty"`
+	FileHashID    string         `json:"file_hash_id,omitempty"`
 	DirectLinkMap map[int]string `json:"direct_link_map,omitempty"`
 }
 

@@ -277,6 +277,10 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 	return share, nil
 }
 
+func (m *manager) TraverseFile(ctx context.Context, fileID int) (fs.File, error) {
+	return m.fs.TraverseFile(ctx, fileID)
+}
+
 func getEntityDisplayName(f fs.File, e fs.Entity) string {
 	switch e.Type() {
 	case types.EntityTypeThumbnail:
