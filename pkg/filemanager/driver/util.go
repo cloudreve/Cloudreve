@@ -2,10 +2,11 @@ package driver
 
 import (
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v4/ent"
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/cloudreve/Cloudreve/v4/ent"
 )
 
 func ApplyProxyIfNeeded(policy *ent.StoragePolicy, srcUrl *url.URL) (*url.URL, error) {
@@ -16,7 +17,12 @@ func ApplyProxyIfNeeded(policy *ent.StoragePolicy, srcUrl *url.URL) (*url.URL, e
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse proxy URL: %w", err)
 		}
-		proxy.Path = path.Join(proxy.Path, strings.TrimPrefix(srcUrl.Path, "/"))
+		if proxy.Path != "" && proxy.Path != "/" {
+			proxy.Path = path.Join(proxy.Path, strings.TrimPrefix(srcUrl.Path, "/"))
+		} else {
+			proxy.RawPath = srcUrl.RawPath
+			proxy.Path = srcUrl.Path
+		}
 		q := proxy.Query()
 		if len(q) == 0 {
 			proxy.RawQuery = srcUrl.RawQuery
