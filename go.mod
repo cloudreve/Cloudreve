@@ -39,7 +39,7 @@ require (
 	github.com/juju/ratelimit v1.0.1
 	github.com/lib/pq v1.10.9
 	github.com/mholt/archiver/v4 v4.0.0-alpha.6
-	github.com/mojocn/base64Captcha v0.0.0-20190801020520-752b1cd608b2
+	github.com/mojocn/base64Captcha v1.3.6
 	github.com/pquerna/otp v1.2.0
 	github.com/qiniu/go-sdk/v7 v7.19.0
 	github.com/rafaeljusto/redigomock v0.0.0-20191117212112-00b2509252a1
@@ -53,7 +53,7 @@ require (
 	github.com/ua-parser/uap-go v0.0.0-20250213224047-9c035f085b90
 	github.com/upyun/go-sdk v2.1.0+incompatible
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410
+	golang.org/x/image v0.13.0
 	golang.org/x/time v0.5.0
 	golang.org/x/tools v0.24.0
 	modernc.org/sqlite v1.28.0
