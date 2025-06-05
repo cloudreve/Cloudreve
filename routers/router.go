@@ -701,6 +701,11 @@ func initMasterRouter(dep dependency.Dep) *gin.Engine {
 				controllers.FromJSON[explorer.GetDirectLinkService](explorer.GetDirectLinkParamCtx{}),
 				middleware.ValidateBatchFileCount(dep, explorer.GetDirectLinkParamCtx{}),
 				controllers.GetSource)
+			// Patch view
+			file.PATCH("view",
+				controllers.FromJSON[explorer.PatchViewService](explorer.PatchViewParameterCtx{}),
+				controllers.PatchView,
+			)
 		}
 
 		// 分享相关

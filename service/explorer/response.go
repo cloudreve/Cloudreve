@@ -207,11 +207,12 @@ type ListResponse struct {
 	// It persists some intermedia state so that the following request don't need to query database again.
 	// All the operations under this directory that supports context hint should carry this value in header
 	// as X-Cr-Context-Hint.
-	ContextHint           *uuid.UUID     `json:"context_hint"`
-	RecursionLimitReached bool           `json:"recursion_limit_reached,omitempty"`
-	MixedType             bool           `json:"mixed_type"`
-	SingleFileView        bool           `json:"single_file_view,omitempty"`
-	StoragePolicy         *StoragePolicy `json:"storage_policy,omitempty"`
+	ContextHint           *uuid.UUID          `json:"context_hint"`
+	RecursionLimitReached bool                `json:"recursion_limit_reached,omitempty"`
+	MixedType             bool                `json:"mixed_type"`
+	SingleFileView        bool                `json:"single_file_view,omitempty"`
+	StoragePolicy         *StoragePolicy      `json:"storage_policy,omitempty"`
+	View                  *types.ExplorerView `json:"view,omitempty"`
 }
 
 type FileResponse struct {
@@ -233,10 +234,11 @@ type FileResponse struct {
 }
 
 type ExtendedInfo struct {
-	StoragePolicy *StoragePolicy `json:"storage_policy,omitempty"`
-	StorageUsed   int64          `json:"storage_used"`
-	Shares        []Share        `json:"shares,omitempty"`
-	Entities      []Entity       `json:"entities,omitempty"`
+	StoragePolicy *StoragePolicy      `json:"storage_policy,omitempty"`
+	StorageUsed   int64               `json:"storage_used"`
+	Shares        []Share             `json:"shares,omitempty"`
+	Entities      []Entity            `json:"entities,omitempty"`
+	View          *types.ExplorerView `json:"view,omitempty"`
 }
 
 type StoragePolicy struct {
@@ -274,6 +276,7 @@ type Share struct {
 	// Only viewable by owner
 	IsPrivate bool   `json:"is_private,omitempty"`
 	Password  string `json:"password,omitempty"`
+	ShareView bool   `json:"share_view,omitempty"`
 
 	// Only viewable if explicitly unlocked by owner
 	SourceUri string `json:"source_uri,omitempty"`
@@ -306,6 +309,7 @@ func BuildShare(s *ent.Share, base *url.URL, hasher hashid.Encoder, requester *e
 
 	if requester.ID == owner.ID {
 		res.IsPrivate = s.Password != ""
+		res.ShareView = s.Props != nil && s.Props.ShareView
 	}
 
 	return &res
@@ -323,6 +327,7 @@ func BuildListResponse(ctx context.Context, u *ent.User, parent fs.File, res *fs
 		MixedType:             res.MixedType,
 		SingleFileView:        res.SingleFileView,
 		StoragePolicy:         BuildStoragePolicy(res.StoragePolicy, hasher),
+		View:                  res.View,
 	}
 
 	if !res.Parent.IsNil() {
@@ -382,7 +387,7 @@ func BuildExtendedInfo(ctx context.Context, u *ent.User, f fs.File, hasher hashi
 		ext.Shares = lo.Map(extendedInfo.Shares, func(s *ent.Share, index int) Share {
 			return *BuildShare(s, base, hasher, u, u, f.DisplayName(), f.Type(), true, false)
 		})
-
+		ext.View = extendedInfo.View
 	}
 
 	return ext

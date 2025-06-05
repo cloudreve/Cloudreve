@@ -31,6 +31,8 @@ const (
 	FieldExpires = "expires"
 	// FieldRemainDownloads holds the string denoting the remain_downloads field in the database.
 	FieldRemainDownloads = "remain_downloads"
+	// FieldProps holds the string denoting the props field in the database.
+	FieldProps = "props"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeFile holds the string denoting the file edge name in mutations.
@@ -64,6 +66,7 @@ var Columns = []string{
 	FieldDownloads,
 	FieldExpires,
 	FieldRemainDownloads,
+	FieldProps,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "shares"

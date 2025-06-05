@@ -97,6 +97,8 @@ type (
 		GetFileFromDirectLink(ctx context.Context, dl *ent.DirectLink) (File, error)
 		// TraverseFile traverses a file to its root file, return the file with linked root.
 		TraverseFile(ctx context.Context, fileID int) (File, error)
+		// PatchProps patches the props of a file.
+		PatchProps(ctx context.Context, uri *URI, props *types.FileProps, delete bool) error
 	}
 
 	UploadManager interface {
@@ -165,6 +167,7 @@ type (
 		FolderSummary() *FolderSummary
 		Capabilities() *boolset.BooleanSet
 		IsRootFolder() bool
+		View() *types.ExplorerView
 	}
 
 	Entities []Entity
@@ -187,6 +190,7 @@ type (
 		StorageUsed           int64
 		Shares                []*ent.Share
 		EntityStoragePolicies map[int]*ent.StoragePolicy
+		View                  *types.ExplorerView
 	}
 
 	FolderSummary struct {
@@ -215,6 +219,7 @@ type (
 		MixedType             bool
 		SingleFileView        bool
 		StoragePolicy         *ent.StoragePolicy
+		View                  *types.ExplorerView
 	}
 
 	// NavigatorProps is the properties of current filesystem.

@@ -480,6 +480,16 @@ func RemainDownloadsNotNil() predicate.Share {
 	return predicate.Share(sql.FieldNotNull(FieldRemainDownloads))
 }
 
+// PropsIsNil applies the IsNil predicate on the "props" field.
+func PropsIsNil() predicate.Share {
+	return predicate.Share(sql.FieldIsNull(FieldProps))
+}
+
+// PropsNotNil applies the NotNil predicate on the "props" field.
+func PropsNotNil() predicate.Share {
+	return predicate.Share(sql.FieldNotNull(FieldProps))
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.Share {
 	return predicate.Share(func(s *sql.Selector) {

@@ -14,6 +14,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/file"
 	"github.com/cloudreve/Cloudreve/v4/ent/share"
 	"github.com/cloudreve/Cloudreve/v4/ent/user"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
 // ShareCreate is the builder for creating a Share entity.
@@ -133,6 +134,12 @@ func (sc *ShareCreate) SetNillableRemainDownloads(i *int) *ShareCreate {
 	if i != nil {
 		sc.SetRemainDownloads(*i)
 	}
+	return sc
+}
+
+// SetProps sets the "props" field.
+func (sc *ShareCreate) SetProps(tp *types.ShareProps) *ShareCreate {
+	sc.mutation.SetProps(tp)
 	return sc
 }
 
@@ -315,6 +322,10 @@ func (sc *ShareCreate) createSpec() (*Share, *sqlgraph.CreateSpec) {
 	if value, ok := sc.mutation.RemainDownloads(); ok {
 		_spec.SetField(share.FieldRemainDownloads, field.TypeInt, value)
 		_node.RemainDownloads = &value
+	}
+	if value, ok := sc.mutation.Props(); ok {
+		_spec.SetField(share.FieldProps, field.TypeJSON, value)
+		_node.Props = value
 	}
 	if nodes := sc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -528,6 +539,24 @@ func (u *ShareUpsert) ClearRemainDownloads() *ShareUpsert {
 	return u
 }
 
+// SetProps sets the "props" field.
+func (u *ShareUpsert) SetProps(v *types.ShareProps) *ShareUpsert {
+	u.Set(share.FieldProps, v)
+	return u
+}
+
+// UpdateProps sets the "props" field to the value that was provided on create.
+func (u *ShareUpsert) UpdateProps() *ShareUpsert {
+	u.SetExcluded(share.FieldProps)
+	return u
+}
+
+// ClearProps clears the value of the "props" field.
+func (u *ShareUpsert) ClearProps() *ShareUpsert {
+	u.SetNull(share.FieldProps)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -717,6 +746,27 @@ func (u *ShareUpsertOne) UpdateRemainDownloads() *ShareUpsertOne {
 func (u *ShareUpsertOne) ClearRemainDownloads() *ShareUpsertOne {
 	return u.Update(func(s *ShareUpsert) {
 		s.ClearRemainDownloads()
+	})
+}
+
+// SetProps sets the "props" field.
+func (u *ShareUpsertOne) SetProps(v *types.ShareProps) *ShareUpsertOne {
+	return u.Update(func(s *ShareUpsert) {
+		s.SetProps(v)
+	})
+}
+
+// UpdateProps sets the "props" field to the value that was provided on create.
+func (u *ShareUpsertOne) UpdateProps() *ShareUpsertOne {
+	return u.Update(func(s *ShareUpsert) {
+		s.UpdateProps()
+	})
+}
+
+// ClearProps clears the value of the "props" field.
+func (u *ShareUpsertOne) ClearProps() *ShareUpsertOne {
+	return u.Update(func(s *ShareUpsert) {
+		s.ClearProps()
 	})
 }
 
@@ -1080,6 +1130,27 @@ func (u *ShareUpsertBulk) UpdateRemainDownloads() *ShareUpsertBulk {
 func (u *ShareUpsertBulk) ClearRemainDownloads() *ShareUpsertBulk {
 	return u.Update(func(s *ShareUpsert) {
 		s.ClearRemainDownloads()
+	})
+}
+
+// SetProps sets the "props" field.
+func (u *ShareUpsertBulk) SetProps(v *types.ShareProps) *ShareUpsertBulk {
+	return u.Update(func(s *ShareUpsert) {
+		s.SetProps(v)
+	})
+}
+
+// UpdateProps sets the "props" field to the value that was provided on create.
+func (u *ShareUpsertBulk) UpdateProps() *ShareUpsertBulk {
+	return u.Update(func(s *ShareUpsert) {
+		s.UpdateProps()
+	})
+}
+
+// ClearProps clears the value of the "props" field.
+func (u *ShareUpsertBulk) ClearProps() *ShareUpsertBulk {
+	return u.Update(func(s *ShareUpsert) {
+		s.ClearProps()
 	})
 }
 

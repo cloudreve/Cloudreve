@@ -7,13 +7,15 @@ import (
 // UserSetting 用户其他配置
 type (
 	UserSetting struct {
-		ProfileOff          bool        `json:"profile_off,omitempty"`
-		PreferredTheme      string      `json:"preferred_theme,omitempty"`
-		VersionRetention    bool        `json:"version_retention,omitempty"`
-		VersionRetentionExt []string    `json:"version_retention_ext,omitempty"`
-		VersionRetentionMax int         `json:"version_retention_max,omitempty"`
-		Pined               []PinedFile `json:"pined,omitempty"`
-		Language            string      `json:"email_language,omitempty"`
+		ProfileOff          bool                    `json:"profile_off,omitempty"`
+		PreferredTheme      string                  `json:"preferred_theme,omitempty"`
+		VersionRetention    bool                    `json:"version_retention,omitempty"`
+		VersionRetentionExt []string                `json:"version_retention_ext,omitempty"`
+		VersionRetentionMax int                     `json:"version_retention_max,omitempty"`
+		Pined               []PinedFile             `json:"pined,omitempty"`
+		Language            string                  `json:"email_language,omitempty"`
+		DisableViewSync     bool                    `json:"disable_view_sync,omitempty"`
+		FsViewMap           map[string]ExplorerView `json:"fs_view_map,omitempty"`
 	}
 
 	PinedFile struct {
@@ -149,6 +151,32 @@ type (
 	PolicyType string
 
 	FileProps struct {
+		View *ExplorerView `json:"view,omitempty"`
+	}
+
+	ExplorerView struct {
+		PageSize       int              `json:"page_size" binding:"min=50"`
+		Order          string           `json:"order,omitempty" binding:"max=255"`
+		OrderDirection string           `json:"order_direction,omitempty" binding:"eq=asc|eq=desc"`
+		View           string           `json:"view,omitempty" binding:"eq=list|eq=grid|eq=gallery"`
+		Thumbnail      bool             `json:"thumbnail,omitempty"`
+		GalleryWidth   int              `json:"gallery_width,omitempty" binding:"min=50,max=500"`
+		Columns        []ListViewColumn `json:"columns,omitempty" binding:"max=1000"`
+	}
+
+	ListViewColumn struct {
+		Type  int             `json:"type" binding:"min=0"`
+		Width *int            `json:"width,omitempty"`
+		Props *ColumTypeProps `json:"props,omitempty"`
+	}
+
+	ColumTypeProps struct {
+		MetadataKey string `json:"metadata_key,omitempty" binding:"max=255"`
+	}
+
+	ShareProps struct {
+		// Whether to share view setting from owner
+		ShareView bool `json:"share_view,omitempty"`
 	}
 )
 

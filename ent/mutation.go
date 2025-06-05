@@ -8958,6 +8958,7 @@ type ShareMutation struct {
 	expires             *time.Time
 	remain_downloads    *int
 	addremain_downloads *int
+	props               **types.ShareProps
 	clearedFields       map[string]struct{}
 	user                *int
 	cleareduser         bool
@@ -9467,6 +9468,55 @@ func (m *ShareMutation) ResetRemainDownloads() {
 	delete(m.clearedFields, share.FieldRemainDownloads)
 }
 
+// SetProps sets the "props" field.
+func (m *ShareMutation) SetProps(tp *types.ShareProps) {
+	m.props = &tp
+}
+
+// Props returns the value of the "props" field in the mutation.
+func (m *ShareMutation) Props() (r *types.ShareProps, exists bool) {
+	v := m.props
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProps returns the old "props" field's value of the Share entity.
+// If the Share object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShareMutation) OldProps(ctx context.Context) (v *types.ShareProps, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProps is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProps requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProps: %w", err)
+	}
+	return oldValue.Props, nil
+}
+
+// ClearProps clears the value of the "props" field.
+func (m *ShareMutation) ClearProps() {
+	m.props = nil
+	m.clearedFields[share.FieldProps] = struct{}{}
+}
+
+// PropsCleared returns if the "props" field was cleared in this mutation.
+func (m *ShareMutation) PropsCleared() bool {
+	_, ok := m.clearedFields[share.FieldProps]
+	return ok
+}
+
+// ResetProps resets all changes to the "props" field.
+func (m *ShareMutation) ResetProps() {
+	m.props = nil
+	delete(m.clearedFields, share.FieldProps)
+}
+
 // SetUserID sets the "user" edge to the User entity by id.
 func (m *ShareMutation) SetUserID(id int) {
 	m.user = &id
@@ -9579,7 +9629,7 @@ func (m *ShareMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ShareMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, share.FieldCreatedAt)
 	}
@@ -9603,6 +9653,9 @@ func (m *ShareMutation) Fields() []string {
 	}
 	if m.remain_downloads != nil {
 		fields = append(fields, share.FieldRemainDownloads)
+	}
+	if m.props != nil {
+		fields = append(fields, share.FieldProps)
 	}
 	return fields
 }
@@ -9628,6 +9681,8 @@ func (m *ShareMutation) Field(name string) (ent.Value, bool) {
 		return m.Expires()
 	case share.FieldRemainDownloads:
 		return m.RemainDownloads()
+	case share.FieldProps:
+		return m.Props()
 	}
 	return nil, false
 }
@@ -9653,6 +9708,8 @@ func (m *ShareMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldExpires(ctx)
 	case share.FieldRemainDownloads:
 		return m.OldRemainDownloads(ctx)
+	case share.FieldProps:
+		return m.OldProps(ctx)
 	}
 	return nil, fmt.Errorf("unknown Share field %s", name)
 }
@@ -9717,6 +9774,13 @@ func (m *ShareMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRemainDownloads(v)
+		return nil
+	case share.FieldProps:
+		v, ok := value.(*types.ShareProps)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProps(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Share field %s", name)
@@ -9799,6 +9863,9 @@ func (m *ShareMutation) ClearedFields() []string {
 	if m.FieldCleared(share.FieldRemainDownloads) {
 		fields = append(fields, share.FieldRemainDownloads)
 	}
+	if m.FieldCleared(share.FieldProps) {
+		fields = append(fields, share.FieldProps)
+	}
 	return fields
 }
 
@@ -9824,6 +9891,9 @@ func (m *ShareMutation) ClearField(name string) error {
 		return nil
 	case share.FieldRemainDownloads:
 		m.ClearRemainDownloads()
+		return nil
+	case share.FieldProps:
+		m.ClearProps()
 		return nil
 	}
 	return fmt.Errorf("unknown Share nullable field %s", name)
@@ -9856,6 +9926,9 @@ func (m *ShareMutation) ResetField(name string) error {
 		return nil
 	case share.FieldRemainDownloads:
 		m.ResetRemainDownloads()
+		return nil
+	case share.FieldProps:
+		m.ResetProps()
 		return nil
 	}
 	return fmt.Errorf("unknown Share field %s", name)

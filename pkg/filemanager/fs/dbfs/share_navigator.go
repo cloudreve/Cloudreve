@@ -148,6 +148,7 @@ func (n *shareNavigator) Root(ctx context.Context, path *fs.URI) (*File, error) 
 	n.shareRoot.Path[pathIndexUser] = path.Root()
 	n.shareRoot.OwnerModel = n.owner
 	n.shareRoot.IsUserRoot = true
+	n.shareRoot.disableView = (share.Props == nil || !share.Props.ShareView) && n.user.ID != n.owner.ID
 	n.shareRoot.CapabilitiesBs = n.Capabilities(false).Capability
 
 	// Check if any ancestors is deleted
@@ -302,4 +303,8 @@ func (n *shareNavigator) ExecuteHook(ctx context.Context, hookType fs.HookType, 
 
 func (n *shareNavigator) Walk(ctx context.Context, levelFiles []*File, limit, depth int, f WalkFunc) error {
 	return n.baseNavigator.walk(ctx, levelFiles, limit, depth, f)
+}
+
+func (n *shareNavigator) GetView(ctx context.Context, file *File) *types.ExplorerView {
+	return file.View()
 }

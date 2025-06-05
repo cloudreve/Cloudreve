@@ -15,6 +15,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/predicate"
 	"github.com/cloudreve/Cloudreve/v4/ent/share"
 	"github.com/cloudreve/Cloudreve/v4/ent/user"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
 // ShareUpdate is the builder for updating Share entities.
@@ -165,6 +166,18 @@ func (su *ShareUpdate) ClearRemainDownloads() *ShareUpdate {
 	return su
 }
 
+// SetProps sets the "props" field.
+func (su *ShareUpdate) SetProps(tp *types.ShareProps) *ShareUpdate {
+	su.mutation.SetProps(tp)
+	return su
+}
+
+// ClearProps clears the value of the "props" field.
+func (su *ShareUpdate) ClearProps() *ShareUpdate {
+	su.mutation.ClearProps()
+	return su
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (su *ShareUpdate) SetUserID(id int) *ShareUpdate {
 	su.mutation.SetUserID(id)
@@ -312,6 +325,12 @@ func (su *ShareUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.RemainDownloadsCleared() {
 		_spec.ClearField(share.FieldRemainDownloads, field.TypeInt)
+	}
+	if value, ok := su.mutation.Props(); ok {
+		_spec.SetField(share.FieldProps, field.TypeJSON, value)
+	}
+	if su.mutation.PropsCleared() {
+		_spec.ClearField(share.FieldProps, field.TypeJSON)
 	}
 	if su.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -526,6 +545,18 @@ func (suo *ShareUpdateOne) ClearRemainDownloads() *ShareUpdateOne {
 	return suo
 }
 
+// SetProps sets the "props" field.
+func (suo *ShareUpdateOne) SetProps(tp *types.ShareProps) *ShareUpdateOne {
+	suo.mutation.SetProps(tp)
+	return suo
+}
+
+// ClearProps clears the value of the "props" field.
+func (suo *ShareUpdateOne) ClearProps() *ShareUpdateOne {
+	suo.mutation.ClearProps()
+	return suo
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (suo *ShareUpdateOne) SetUserID(id int) *ShareUpdateOne {
 	suo.mutation.SetUserID(id)
@@ -703,6 +734,12 @@ func (suo *ShareUpdateOne) sqlSave(ctx context.Context) (_node *Share, err error
 	}
 	if suo.mutation.RemainDownloadsCleared() {
 		_spec.ClearField(share.FieldRemainDownloads, field.TypeInt)
+	}
+	if value, ok := suo.mutation.Props(); ok {
+		_spec.SetField(share.FieldProps, field.TypeJSON, value)
+	}
+	if suo.mutation.PropsCleared() {
+		_spec.ClearField(share.FieldProps, field.TypeJSON)
 	}
 	if suo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

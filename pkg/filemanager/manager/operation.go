@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
@@ -261,6 +262,10 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 		password = util.RandString(8, util.RandomLowerCases)
 	}
 
+	props := &types.ShareProps{
+		ShareView: args.ShareView,
+	}
+
 	share, err := shareClient.Upsert(ctx, &inventory.CreateShareParams{
 		OwnerID:         file.OwnerID(),
 		FileID:          file.ID(),
@@ -268,6 +273,7 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 		Expires:         args.Expire,
 		RemainDownloads: args.RemainDownloads,
 		Existed:         existed,
+		Props:           props,
 	})
 
 	if err != nil {
@@ -279,6 +285,39 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 
 func (m *manager) TraverseFile(ctx context.Context, fileID int) (fs.File, error) {
 	return m.fs.TraverseFile(ctx, fileID)
+}
+
+func (m *manager) PatchView(ctx context.Context, uri *fs.URI, view *types.ExplorerView) error {
+	if uri.PathTrimmed() == "" && uri.FileSystem() != constants.FileSystemMy && uri.FileSystem() != constants.FileSystemShare {
+		if m.user.Settings.FsViewMap == nil {
+			m.user.Settings.FsViewMap = make(map[string]types.ExplorerView)
+		}
+
+		if view == nil {
+			delete(m.user.Settings.FsViewMap, string(uri.FileSystem()))
+		} else {
+			m.user.Settings.FsViewMap[string(uri.FileSystem())] = *view
+		}
+
+		if err := m.dep.UserClient().SaveSettings(ctx, m.user); err != nil {
+			return serializer.NewError(serializer.CodeDBError, "failed to save user settings", err)
+		}
+
+		return nil
+	}
+
+	patch := &types.FileProps{
+		View: view,
+	}
+	isDelete := view == nil
+	if isDelete {
+		patch.View = &types.ExplorerView{}
+	}
+	if err := m.fs.PatchProps(ctx, uri, patch, isDelete); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getEntityDisplayName(f fs.File, e fs.Entity) string {

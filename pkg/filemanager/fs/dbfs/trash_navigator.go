@@ -3,8 +3,11 @@ package dbfs
 import (
 	"context"
 	"fmt"
+
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
@@ -13,7 +16,26 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/setting"
 )
 
-var trashNavigatorCapability = &boolset.BooleanSet{}
+var (
+	trashNavigatorCapability = &boolset.BooleanSet{}
+	defaultTrashView         = &types.ExplorerView{
+		View: "list",
+		Columns: []types.ListViewColumn{
+			{
+				Type: 0,
+			},
+			{
+				Type: 2,
+			},
+			{
+				Type: 8,
+			},
+			{
+				Type: 7,
+			},
+		},
+	}
+)
 
 // NewTrashNavigator creates a navigator for user's "trash" file system.
 func NewTrashNavigator(u *ent.User, fileClient inventory.FileClient, l logging.Logger, config *setting.DBFS,
@@ -134,4 +156,11 @@ func (n *trashNavigator) FollowTx(ctx context.Context) (func(), error) {
 
 func (n *trashNavigator) ExecuteHook(ctx context.Context, hookType fs.HookType, file *File) error {
 	return nil
+}
+
+func (n *trashNavigator) GetView(ctx context.Context, file *File) *types.ExplorerView {
+	if view, ok := n.user.Settings.FsViewMap[string(constants.FileSystemTrash)]; ok {
+		return &view
+	}
+	return defaultTrashView
 }

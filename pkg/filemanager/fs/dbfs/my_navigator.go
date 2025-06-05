@@ -106,6 +106,7 @@ func (n *myNavigator) To(ctx context.Context, path *fs.URI) (*File, error) {
 		rootPath := path.Root()
 		n.root.Path[pathIndexRoot], n.root.Path[pathIndexUser] = rootPath, rootPath
 		n.root.OwnerModel = targetUser
+		n.root.disableView = fsUid != n.user.ID
 		n.root.IsUserRoot = true
 		n.root.CapabilitiesBs = n.Capabilities(false).Capability
 	}
@@ -177,4 +178,8 @@ func (n *myNavigator) FollowTx(ctx context.Context) (func(), error) {
 
 func (n *myNavigator) ExecuteHook(ctx context.Context, hookType fs.HookType, file *File) error {
 	return nil
+}
+
+func (n *myNavigator) GetView(ctx context.Context, file *File) *types.ExplorerView {
+	return file.View()
 }

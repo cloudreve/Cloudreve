@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/cloudreve/Cloudreve/v4/application/constants"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"github.com/cloudreve/Cloudreve/v4/pkg/boolset"
 	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
@@ -138,4 +141,11 @@ func (n *sharedWithMeNavigator) FollowTx(ctx context.Context) (func(), error) {
 
 func (n *sharedWithMeNavigator) ExecuteHook(ctx context.Context, hookType fs.HookType, file *File) error {
 	return nil
+}
+
+func (n *sharedWithMeNavigator) GetView(ctx context.Context, file *File) *types.ExplorerView {
+	if view, ok := n.user.Settings.FsViewMap[string(constants.FileSystemSharedWithMe)]; ok {
+		return &view
+	}
+	return defaultView
 }

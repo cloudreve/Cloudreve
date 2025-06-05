@@ -35,6 +35,7 @@ const (
 	ContextHintTTL            = 5 * 60 // 5 minutes
 
 	folderSummaryCachePrefix = "folder_summary_"
+	defaultPageSize          = 100
 )
 
 type (
@@ -119,15 +120,44 @@ func (f *DBFS) List(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.Fi
 	searchParams := path.SearchParameters()
 	isSearching := searchParams != nil
 
-	// Validate pagination args
-	props := navigator.Capabilities(isSearching)
-	if o.PageSize > props.MaxPageSize {
-		o.PageSize = props.MaxPageSize
-	}
-
 	parent, err := f.getFileByPath(ctx, navigator, path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Parent not exist: %w", err)
+	}
+
+	pageSize := 0
+	orderDirection := ""
+	orderBy := ""
+
+	view := navigator.GetView(ctx, parent)
+	if view != nil {
+		pageSize = view.PageSize
+		orderDirection = view.OrderDirection
+		orderBy = view.Order
+	}
+
+	if o.PageSize > 0 {
+		pageSize = o.PageSize
+	}
+	if o.OrderDirection != "" {
+		orderDirection = o.OrderDirection
+	}
+	if o.OrderBy != "" {
+		orderBy = o.OrderBy
+	}
+
+	// Validate pagination args
+	props := navigator.Capabilities(isSearching)
+	if pageSize > props.MaxPageSize {
+		pageSize = props.MaxPageSize
+	} else if pageSize == 0 {
+		pageSize = defaultPageSize
+	}
+
+	if view != nil {
+		view.PageSize = pageSize
+		view.OrderDirection = orderDirection
+		view.Order = orderBy
 	}
 
 	var hintId *uuid.UUID
@@ -155,9 +185,9 @@ func (f *DBFS) List(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.Fi
 	children, err := navigator.Children(ctx, parent, &ListArgs{
 		Page: &inventory.PaginationArgs{
 			Page:                o.FsOption.Page,
-			PageSize:            o.PageSize,
-			OrderBy:             o.OrderBy,
-			Order:               inventory.OrderDirection(o.OrderDirection),
+			PageSize:            pageSize,
+			OrderBy:             orderBy,
+			Order:               inventory.OrderDirection(orderDirection),
 			UseCursorPagination: o.useCursorPagination,
 			PageToken:           o.pageToken,
 		},
@@ -188,6 +218,7 @@ func (f *DBFS) List(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.Fi
 		SingleFileView:        children.SingleFileView,
 		Parent:                parent,
 		StoragePolicy:         storagePolicy,
+		View:                  view,
 	}, nil
 }
 
@@ -268,89 +299,6 @@ func (f *DBFS) CreateEntity(ctx context.Context, file fs.File, policy *ent.Stora
 	}
 
 	return fs.NewEntity(entity), nil
-}
-
-func (f *DBFS) PatchMetadata(ctx context.Context, path []*fs.URI, metas ...fs.MetadataPatch) error {
-	ae := serializer.NewAggregateError()
-	targets := make([]*File, 0, len(path))
-	for _, p := range path {
-		navigator, err := f.getNavigator(ctx, p, NavigatorCapabilityUpdateMetadata, NavigatorCapabilityLockFile)
-		if err != nil {
-			ae.Add(p.String(), err)
-			continue
-		}
-
-		target, err := f.getFileByPath(ctx, navigator, p)
-		if err != nil {
-			ae.Add(p.String(), fmt.Errorf("failed to get target file: %w", err))
-			continue
-		}
-
-		// Require Update permission
-		if _, ok := ctx.Value(ByPassOwnerCheckCtxKey{}).(bool); !ok && target.OwnerID() != f.user.ID {
-			return fs.ErrOwnerOnly.WithError(fmt.Errorf("permission denied"))
-		}
-
-		if target.IsRootFolder() {
-			ae.Add(p.String(), fs.ErrNotSupportedAction.WithError(fmt.Errorf("cannot move root folder")))
-			continue
-		}
-
-		targets = append(targets, target)
-	}
-
-	if len(targets) == 0 {
-		return ae.Aggregate()
-	}
-
-	// Lock all targets
-	lockTargets := lo.Map(targets, func(value *File, key int) *LockByPath {
-		return &LockByPath{value.Uri(true), value, value.Type(), ""}
-	})
-	ls, err := f.acquireByPath(ctx, -1, f.user, true, fs.LockApp(fs.ApplicationUpdateMetadata), lockTargets...)
-	defer func() { _ = f.Release(ctx, ls) }()
-	if err != nil {
-		return err
-	}
-
-	metadataMap := make(map[string]string)
-	privateMap := make(map[string]bool)
-	deleted := make([]string, 0)
-	for _, meta := range metas {
-		if meta.Remove {
-			deleted = append(deleted, meta.Key)
-			continue
-		}
-		metadataMap[meta.Key] = meta.Value
-		if meta.Private {
-			privateMap[meta.Key] = meta.Private
-		}
-	}
-
-	fc, tx, ctx, err := inventory.WithTx(ctx, f.fileClient)
-	if err != nil {
-		return serializer.NewError(serializer.CodeDBError, "Failed to start transaction", err)
-	}
-
-	for _, target := range targets {
-		if err := fc.UpsertMetadata(ctx, target.Model, metadataMap, privateMap); err != nil {
-			_ = inventory.Rollback(tx)
-			return fmt.Errorf("failed to upsert metadata: %w", err)
-		}
-
-		if len(deleted) > 0 {
-			if err := fc.RemoveMetadata(ctx, target.Model, deleted...); err != nil {
-				_ = inventory.Rollback(tx)
-				return fmt.Errorf("failed to remove metadata: %w", err)
-			}
-		}
-	}
-
-	if err := inventory.Commit(tx); err != nil {
-		return serializer.NewError(serializer.CodeDBError, "Failed to commit metadata change", err)
-	}
-
-	return ae.Aggregate()
 }
 
 func (f *DBFS) SharedAddressTranslation(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.File, *fs.URI, error) {
@@ -470,6 +418,9 @@ func (f *DBFS) Get(ctx context.Context, path *fs.URI, opts ...fs.Option) (fs.Fil
 		target.FileExtendedInfo = extendedInfo
 		if target.OwnerID() == f.user.ID || f.user.Edges.Group.Permissions.Enabled(int(types.GroupPermissionIsAdmin)) {
 			target.FileExtendedInfo.Shares = target.Model.Edges.Shares
+			if target.Model.Props != nil {
+				target.FileExtendedInfo.View = target.Model.Props.View
+			}
 		}
 
 		entities := target.Entities()

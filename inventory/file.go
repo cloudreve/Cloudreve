@@ -209,6 +209,8 @@ type FileClient interface {
 	Update(ctx context.Context, file *ent.File) (*ent.File, error)
 	// ListEntities lists entities
 	ListEntities(ctx context.Context, args *ListEntityParameters) (*ListEntityResult, error)
+	// UpdateProps updates props of a file
+	UpdateProps(ctx context.Context, file *ent.File, props *types.FileProps) (*ent.File, error)
 }
 
 func NewFileClient(client *ent.Client, dbType conf.DBType, hasher hashid.Encoder) FileClient {
@@ -273,6 +275,17 @@ func (f *fileClient) Update(ctx context.Context, file *ent.File) (*ent.File, err
 	}
 
 	return q.Save(ctx)
+}
+
+func (f *fileClient) UpdateProps(ctx context.Context, file *ent.File, props *types.FileProps) (*ent.File, error) {
+	file, err := f.client.File.UpdateOne(file).
+		SetProps(props).
+		Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
 }
 
 func (f *fileClient) CountByTimeRange(ctx context.Context, start, end *time.Time) (int, error) {
@@ -552,6 +565,10 @@ func (f *fileClient) Copy(ctx context.Context, files []*ent.File, dstMap map[int
 		}
 		if file.PrimaryEntity > 0 {
 			stm.SetPrimaryEntity(file.PrimaryEntity)
+		}
+
+		if file.Props != nil && dstMap[file.FileChildren][0].OwnerID == file.OwnerID {
+			stm.SetProps(file.Props)
 		}
 
 		return stm

@@ -4,6 +4,13 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
 	"github.com/cloudreve/Cloudreve/v4/ent"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
@@ -15,12 +22,6 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/pquerna/otp/totp"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 const (
@@ -219,6 +220,7 @@ type (
 		NewPassword             *string   `json:"new_password" binding:"omitempty,min=6,max=128"`
 		TwoFAEnabled            *bool     `json:"two_fa_enabled" binding:"omitempty"`
 		TwoFACode               *string   `json:"two_fa_code" binding:"omitempty"`
+		DisableViewSync         *bool     `json:"disable_view_sync" binding:"omitempty"`
 	}
 	PatchUserSettingParamsCtx struct{}
 )
@@ -257,6 +259,11 @@ func (s *PatchUserSetting) Patch(c *gin.Context) error {
 
 	if s.VersionRetentionMax != nil {
 		u.Settings.VersionRetentionMax = *s.VersionRetentionMax
+		saveSetting = true
+	}
+
+	if s.DisableViewSync != nil {
+		u.Settings.DisableViewSync = *s.DisableViewSync
 		saveSetting = true
 	}
 

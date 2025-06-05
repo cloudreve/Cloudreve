@@ -120,8 +120,6 @@ func (s *GetDirectLinkService) Get(c *gin.Context) ([]DirectLinkResponse, error)
 	return BuildDirectLinkResponse(res), err
 }
 
-const defaultPageSize = 100
-
 type (
 	// ListFileParameterCtx define key fore ListFileService
 	ListFileParameterCtx struct{}
@@ -130,7 +128,7 @@ type (
 	ListFileService struct {
 		Uri            string `uri:"uri" form:"uri" json:"uri" binding:"required"`
 		Page           int    `uri:"page" form:"page" json:"page" binding:"min=0"`
-		PageSize       int    `uri:"page_size" form:"page_size" json:"page_size" binding:"min=10"`
+		PageSize       int    `uri:"page_size" form:"page_size" json:"page_size"`
 		OrderBy        string `uri:"order_by" form:"order_by" json:"order_by"`
 		OrderDirection string `uri:"order_direction" form:"order_direction" json:"order_direction"`
 		NextPageToken  string `uri:"next_page_token" form:"next_page_token" json:"next_page_token"`
@@ -150,10 +148,6 @@ func (service *ListFileService) List(c *gin.Context) (*ListResponse, error) {
 	}
 
 	pageSize := service.PageSize
-	if pageSize == 0 {
-		pageSize = defaultPageSize
-	}
-
 	streamed := false
 	hasher := dep.HashIDEncoder()
 	parent, res, err := m.List(c, uri, &manager.ListArgs{
@@ -668,5 +662,31 @@ func RedirectDirectLink(c *gin.Context, name string) error {
 
 	c.Redirect(http.StatusFound, res)
 	c.Header("Cache-Control", fmt.Sprintf("public, max-age=%d", int(earliestExpire.Sub(time.Now()).Seconds())))
+	return nil
+}
+
+type (
+	PatchViewParameterCtx struct{}
+	PatchViewService      struct {
+		Uri  string              `json:"uri" binding:"required"`
+		View *types.ExplorerView `json:"view"`
+	}
+)
+
+func (s *PatchViewService) Patch(c *gin.Context) error {
+	dep := dependency.FromContext(c)
+	user := inventory.UserFromContext(c)
+	m := manager.NewFileManager(dep, user)
+	defer m.Recycle()
+
+	uri, err := fs.NewUriFromString(s.Uri)
+	if err != nil {
+		return serializer.NewError(serializer.CodeParamErr, "unknown uri", err)
+	}
+
+	if err := m.PatchView(c, uri, s.View); err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -53,6 +53,8 @@ type (
 		FollowTx(ctx context.Context) (func(), error)
 		// ExecuteHook performs custom operations before or after certain actions.
 		ExecuteHook(ctx context.Context, hookType fs.HookType, file *File) error
+		// GetView returns the view setting of the given file.
+		GetView(ctx context.Context, file *File) *types.ExplorerView
 	}
 
 	State interface{}
@@ -100,6 +102,7 @@ const (
 	NavigatorCapability_CommunityPlacehodler8
 	NavigatorCapability_CommunityPlacehodler9
 	NavigatorCapabilityEnterFolder
+	NavigatorCapabilityModifyProps
 
 	searchTokenSeparator = "|"
 )
@@ -120,6 +123,7 @@ func init() {
 		NavigatorCapabilityInfo:           true,
 		NavigatorCapabilityVersionControl: true,
 		NavigatorCapabilityEnterFolder:    true,
+		NavigatorCapabilityModifyProps:    true,
 	}, myNavigatorCapability)
 	boolset.Sets(map[NavigatorCapability]bool{
 		NavigatorCapabilityDownloadFile:   true,
@@ -129,6 +133,7 @@ func init() {
 		NavigatorCapabilityInfo:           true,
 		NavigatorCapabilityVersionControl: true,
 		NavigatorCapabilityEnterFolder:    true,
+		NavigatorCapabilityModifyProps:    true,
 	}, shareNavigatorCapability)
 	boolset.Sets(map[NavigatorCapability]bool{
 		NavigatorCapabilityListChildren: true,

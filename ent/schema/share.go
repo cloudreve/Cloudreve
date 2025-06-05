@@ -5,6 +5,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
 // Share holds the schema definition for the Share entity.
@@ -30,6 +31,7 @@ func (Share) Fields() []ent.Field {
 		field.Int("remain_downloads").
 			Nillable().
 			Optional(),
+		field.JSON("props", &types.ShareProps{}).Optional(),
 	}
 }
 

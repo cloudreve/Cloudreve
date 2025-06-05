@@ -22,13 +22,20 @@ func init() {
 	gob.Register(map[int]*File{})
 }
 
-var filePool = &sync.Pool{
-	New: func() any {
-		return &File{
-			Children: make(map[string]*File),
-		}
-	},
-}
+var (
+	filePool = &sync.Pool{
+		New: func() any {
+			return &File{
+				Children: make(map[string]*File),
+			}
+		},
+	}
+	defaultView = &types.ExplorerView{
+		PageSize:  defaultPageSize,
+		View:      "grid",
+		Thumbnail: true,
+	}
+)
 
 type (
 	File struct {
@@ -42,7 +49,8 @@ type (
 		FileExtendedInfo  *fs.FileExtendedInfo
 		FileFolderSummary *fs.FolderSummary
 
-		mu *sync.Mutex
+		disableView bool
+		mu          *sync.Mutex
 	}
 )
 
@@ -179,6 +187,31 @@ func (f *File) Uri(isRoot bool) *fs.URI {
 	}
 
 	return parent.Path[index].Join(elements...)
+}
+
+// View returns the view setting of the file, can be inherited from parent.
+func (f *File) View() *types.ExplorerView {
+	// If owner has disabled view sync, return nil
+	owner := f.Owner()
+	if owner != nil && owner.Settings != nil && owner.Settings.DisableViewSync {
+		return nil
+	}
+
+	// If navigator has disabled view sync, return nil
+	userRoot := f.UserRoot()
+	if userRoot == nil || userRoot.disableView {
+		return nil
+	}
+
+	current := f
+	for current != nil {
+		if current.Model.Props != nil && current.Model.Props.View != nil {
+			return current.Model.Props.View
+		}
+		current = current.Parent
+	}
+
+	return defaultView
 }
 
 // UserRoot return the root file from user's view.

@@ -3,6 +3,7 @@ package inventory
 import (
 	"context"
 	"fmt"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -62,6 +63,7 @@ type (
 		Expires         *time.Time
 		OwnerID         int
 		FileID          int
+		Props           *types.ShareProps
 	}
 
 	ListShareArgs struct {
@@ -122,6 +124,10 @@ func (c *shareClient) Upsert(ctx context.Context, params *CreateShareParams) (*e
 			createQuery.ClearExpires()
 		}
 
+		if params.Props != nil {
+			createQuery.SetProps(params.Props)
+		}
+
 		return createQuery.Save(ctx)
 	}
 
@@ -137,6 +143,9 @@ func (c *shareClient) Upsert(ctx context.Context, params *CreateShareParams) (*e
 	}
 	if params.Expires != nil {
 		query.SetNillableExpires(params.Expires)
+	}
+	if params.Props != nil {
+		query.SetProps(params.Props)
 	}
 
 	return query.Save(ctx)

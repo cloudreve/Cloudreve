@@ -388,3 +388,15 @@ func DeleteVersion(c *gin.Context) {
 
 	c.JSON(200, serializer.Response{})
 }
+
+func PatchView(c *gin.Context) {
+	service := ParametersFromContext[*explorer.PatchViewService](c, explorer.PatchViewParameterCtx{})
+	err := service.Patch(c)
+	if err != nil {
+		c.JSON(200, serializer.Err(c, err))
+		c.Abort()
+		return
+	}
+
+	c.JSON(200, serializer.Response{})
+}

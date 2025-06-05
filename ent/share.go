@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/file"
 	"github.com/cloudreve/Cloudreve/v4/ent/share"
 	"github.com/cloudreve/Cloudreve/v4/ent/user"
+	"github.com/cloudreve/Cloudreve/v4/inventory/types"
 )
 
 // Share is the model entity for the Share schema.
@@ -35,6 +37,8 @@ type Share struct {
 	Expires *time.Time `json:"expires,omitempty"`
 	// RemainDownloads holds the value of the "remain_downloads" field.
 	RemainDownloads *int `json:"remain_downloads,omitempty"`
+	// Props holds the value of the "props" field.
+	Props *types.ShareProps `json:"props,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ShareQuery when eager-loading is set.
 	Edges        ShareEdges `json:"edges"`
@@ -85,6 +89,8 @@ func (*Share) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case share.FieldProps:
+			values[i] = new([]byte)
 		case share.FieldID, share.FieldViews, share.FieldDownloads, share.FieldRemainDownloads:
 			values[i] = new(sql.NullInt64)
 		case share.FieldPassword:
@@ -166,6 +172,14 @@ func (s *Share) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.RemainDownloads = new(int)
 				*s.RemainDownloads = int(value.Int64)
+			}
+		case share.FieldProps:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field props", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &s.Props); err != nil {
+					return fmt.Errorf("unmarshal field props: %w", err)
+				}
 			}
 		case share.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -256,6 +270,9 @@ func (s *Share) String() string {
 		builder.WriteString("remain_downloads=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("props=")
+	builder.WriteString(fmt.Sprintf("%v", s.Props))
 	builder.WriteByte(')')
 	return builder.String()
 }

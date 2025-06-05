@@ -75,6 +75,8 @@ type (
 		CastStoragePolicyOnSlave(ctx context.Context, policy *ent.StoragePolicy) *ent.StoragePolicy
 		// GetStorageDriver gets storage driver for given policy
 		GetStorageDriver(ctx context.Context, policy *ent.StoragePolicy) (driver.Handler, error)
+		// PatchView patches the view setting of a file
+		PatchView(ctx context.Context, uri *fs.URI, view *types.ExplorerView) error
 	}
 
 	ShareManagement interface {
@@ -111,6 +113,7 @@ type (
 		IsPrivate       bool
 		RemainDownloads int
 		Expire          *time.Time
+		ShareView       bool
 	}
 )
 
