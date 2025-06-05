@@ -20,11 +20,13 @@ builds:
       - linux
       - windows
       - darwin
+      - freebsd
 
     goarch:
       - amd64
       - arm
       - arm64
+      - loong64
 
     goarm:
       - 5
@@ -38,6 +40,12 @@ builds:
         goarm: 6
       - goos: windows
         goarm: 7
+      - goos: windows
+        goarch: loong64
+      - goos: freebsd
+        goarch: loong64
+      - goos: freebsd
+        goarch: arm
 
 archives:
   - formats: ["tar.gz"]
