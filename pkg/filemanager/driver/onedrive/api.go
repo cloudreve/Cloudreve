@@ -4,16 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/chunk"
-	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/chunk/backoff"
-	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
-	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/chunk"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/chunk/backoff"
+	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
+	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 )
 
 const (
@@ -76,31 +77,50 @@ func (client *client) ListChildren(ctx context.Context, path string) ([]FileInfo
 		requestURL = client.getRequestURL("root:/" + dst + ":/children")
 	}
 
-	res, err := client.requestWithStr(ctx, "GET", requestURL+"?$top=999999999", "", 200)
-	if err != nil {
-		retried := 0
-		if v, ok := ctx.Value(RetryCtx{}).(int); ok {
-			retried = v
+	// Add pagination parameter
+	requestURL += "?$top=5000"
+
+	var allFiles []FileInfo
+
+	for {
+		res, err := client.requestWithStr(ctx, "GET", requestURL, "", 200)
+		if err != nil {
+			retried := 0
+			if v, ok := ctx.Value(RetryCtx{}).(int); ok {
+				retried = v
+			}
+			if retried < ListRetry {
+				retried++
+				client.l.Debug("Failed to list path %q: %s, will retry in 5 seconds.", path, err)
+				time.Sleep(time.Duration(5) * time.Second)
+				return client.ListChildren(context.WithValue(ctx, RetryCtx{}, retried), path)
+			}
+			return nil, err
 		}
-		if retried < ListRetry {
-			retried++
-			client.l.Debug("Failed to list path %q: %s, will retry in 5 seconds.", path, err)
-			time.Sleep(time.Duration(5) * time.Second)
-			return client.ListChildren(context.WithValue(ctx, RetryCtx{}, retried), path)
+
+		var (
+			decodeErr error
+			fileInfo  ListResponse
+		)
+		decodeErr = json.Unmarshal([]byte(res), &fileInfo)
+		if decodeErr != nil {
+			return nil, decodeErr
 		}
-		return nil, err
+
+		// Append current page results
+		allFiles = append(allFiles, fileInfo.Value...)
+
+		// Check if there's a next page
+		if fileInfo.NextLink == "" {
+			break
+		}
+
+		// Use the next link for the next iteration
+		client.l.Debug("Load next page, next link: %s", fileInfo.NextLink)
+		requestURL = fileInfo.NextLink
 	}
 
-	var (
-		decodeErr error
-		fileInfo  ListResponse
-	)
-	decodeErr = json.Unmarshal([]byte(res), &fileInfo)
-	if decodeErr != nil {
-		return nil, decodeErr
-	}
-
-	return fileInfo.Value, nil
+	return allFiles, nil
 }
 
 // Meta 根据资源ID或文件路径获取文件元信息

@@ -94,8 +94,9 @@ type ThumbResponse struct {
 
 // ListResponse 列取子项目响应
 type ListResponse struct {
-	Value   []FileInfo `json:"value"`
-	Context string     `json:"@odata.context"`
+	Value    []FileInfo `json:"value"`
+	Context  string     `json:"@odata.context"`
+	NextLink string     `json:"@odata.nextLink,omitempty"`
 }
 
 // oauthEndpoint OAuth接口地址
