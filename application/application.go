@@ -73,6 +73,9 @@ func (s *server) Start() error {
 	s.kv = s.dep.KV()
 	// delete all cached settings
 	_ = s.kv.Delete(setting.KvSettingPrefix)
+	if memKv, ok := s.kv.(*cache.MemoStore); ok {
+		memKv.GarbageCollect(s.logger)
+	}
 
 	// TODO: make sure redis is connected in dep before user traffic.
 	if s.config.System().Mode == conf.MasterMode {

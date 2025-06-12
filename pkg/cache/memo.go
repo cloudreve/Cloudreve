@@ -3,12 +3,13 @@ package cache
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
-	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cloudreve/Cloudreve/v4/pkg/logging"
+	"github.com/cloudreve/Cloudreve/v4/pkg/util"
 )
 
 // MemoStore 内存存储驱动
@@ -55,11 +56,11 @@ func getValue(item any, ok bool) (any, bool) {
 }
 
 // GarbageCollect 回收已过期的缓存
-func (store *MemoStore) GarbageCollect() {
+func (store *MemoStore) GarbageCollect(l logging.Logger) {
 	store.Store.Range(func(key, value any) bool {
 		if item, ok := value.(itemWithTTL); ok {
 			if item.Expires > 0 && item.Expires < time.Now().Unix() {
-				util.Log().Debug("Cache %q is garbage collected.", key.(string))
+				l.Debug("Cache %q is garbage collected.", key.(string))
 				store.Store.Delete(key)
 			}
 		}

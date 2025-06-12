@@ -13,6 +13,7 @@ import (
 	"github.com/cloudreve/Cloudreve/v4/ent/task"
 	"github.com/cloudreve/Cloudreve/v4/inventory"
 	"github.com/cloudreve/Cloudreve/v4/inventory/types"
+	"github.com/cloudreve/Cloudreve/v4/pkg/cache"
 	"github.com/cloudreve/Cloudreve/v4/pkg/crontab"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs"
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/fs/dbfs"
@@ -296,6 +297,12 @@ const (
 func CronCollectTrashBin(ctx context.Context) {
 	dep := dependency.FromContext(ctx)
 	l := dep.Logger()
+
+	kv := dep.KV()
+	if memKv, ok := kv.(*cache.MemoStore); ok {
+		memKv.GarbageCollect(l)
+	}
+
 	fm := NewFileManager(dep, inventory.UserFromContext(ctx)).(*manager)
 	pageSize := dep.SettingProvider().DBFS(ctx).MaxPageSize
 	batch := 0
