@@ -28,7 +28,7 @@ func (f *DBFS) PatchProps(ctx context.Context, uri *fs.URI, props *types.FilePro
 
 	// Lock target
 	lr := &LockByPath{target.Uri(true), target, target.Type(), ""}
-	ls, err := f.acquireByPath(ctx, -1, f.user, false, fs.LockApp(fs.ApplicationUpdateMetadata), lr)
+	ls, err := f.acquireByPath(ctx, -1, f.user, true, fs.LockApp(fs.ApplicationUpdateMetadata), lr)
 	defer func() { _ = f.Release(ctx, ls) }()
 	if err != nil {
 		return err

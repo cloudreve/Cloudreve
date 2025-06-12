@@ -198,7 +198,7 @@ func (s *RefreshTokenService) Delete(c *gin.Context) (string, error) {
 	// Block root token
 	if claims.RootTokenID != nil {
 		tokenSettings := dep.SettingProvider().TokenAuth(c)
-		dep.KV().Set(fmt.Sprintf("%s%s", auth.RevokeTokenPrefix, claims.RootTokenID.String()), true, int(tokenSettings.AccessTokenTTL.Seconds()+10))
+		dep.KV().Set(fmt.Sprintf("%s%s", auth.RevokeTokenPrefix, claims.RootTokenID.String()), true, int(tokenSettings.RefreshTokenTTL.Seconds()+10))
 	}
 
 	return "", nil
