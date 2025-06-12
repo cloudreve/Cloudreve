@@ -166,6 +166,21 @@ type (
 	}
 )
 
+// toASCIISafeFilename converts a filename to ASCII-safe version by replacing
+// non-ASCII characters and special characters with underscores.
+// This is used for the fallback filename parameter in Content-Disposition header.
+func toASCIISafeFilename(filename string) string {
+	asciiFilename := ""
+	for _, r := range filename {
+		if r <= 127 && r >= 32 && r != '"' && r != '\\' {
+			asciiFilename += string(r)
+		} else {
+			asciiFilename += "_"
+		}
+	}
+	return asciiFilename
+}
+
 // NewEntitySource creates a new EntitySource.
 func NewEntitySource(
 	e fs.Entity,
@@ -249,9 +264,21 @@ func (f *entitySource) Serve(w http.ResponseWriter, r *http.Request, opts ...Ent
 	w.Header().Set("Etag", "\""+hashid.EncodeEntityID(f.hasher, f.e.ID())+"\"")
 
 	if f.o.IsDownload {
-		encodedFilename := url.PathEscape(f.o.DisplayName)
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s",
-			f.o.DisplayName, encodedFilename))
+		// Properly handle non-ASCII characters in filename according to RFC 6266
+		displayName := f.o.DisplayName
+		asciiFilename := toASCIISafeFilename(displayName)
+
+		// RFC 6266 compliant filename* encoding
+		encodedFilename := url.QueryEscape(displayName)
+
+		if displayName == asciiFilename {
+			// Filename contains only ASCII characters, use simple form
+			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", displayName))
+		} else {
+			// Filename contains non-ASCII characters, use both parameters
+			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+				asciiFilename, encodedFilename))
+		}
 	}
 
 	done, rangeReq := checkPreconditions(w, r, etag)
