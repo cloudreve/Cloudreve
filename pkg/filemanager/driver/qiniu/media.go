@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/cloudreve/Cloudreve/v4/pkg/filemanager/driver"
 	"github.com/cloudreve/Cloudreve/v4/pkg/mediameta"
 	"github.com/cloudreve/Cloudreve/v4/pkg/request"
 	"github.com/samber/lo"
-	"math"
-	"net/http"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -101,7 +103,9 @@ func (handler *Driver) extractImageMeta(ctx context.Context, path string) ([]dri
 
 func (handler *Driver) extractMediaInfo(ctx context.Context, path string, param string) (string, error) {
 	mediaInfoExpire := time.Now().Add(mediaInfoTTL)
-	ediaInfoUrl := handler.signSourceURL(fmt.Sprintf("%s?%s", path, param), &mediaInfoExpire)
+	ediaInfoUrl := handler.signSourceURL(path, url.Values{
+		param: []string{},
+	}, &mediaInfoExpire)
 	resp, err := handler.httpClient.
 		Request(http.MethodGet, ediaInfoUrl, nil, request.WithContext(ctx)).
 		CheckHTTPResponse(http.StatusOK).

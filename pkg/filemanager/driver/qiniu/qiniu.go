@@ -274,10 +274,11 @@ func (handler *Driver) Delete(ctx context.Context, files ...string) ([]string, e
 // Thumb 获取文件缩略图
 func (handler *Driver) Thumb(ctx context.Context, expire *time.Time, ext string, e fs.Entity) (string, error) {
 	w, h := handler.settings.ThumbSize(ctx)
-
-	thumb := fmt.Sprintf("%s?imageView2/1/w/%d/h/%d", e.Source(), w, h)
 	return handler.signSourceURL(
-		thumb,
+		e.Source(),
+		url.Values{
+			fmt.Sprintf("imageView2/1/w/%d/h/%d", w, h): []string{},
+		},
 		expire,
 	), nil
 }
@@ -307,24 +308,36 @@ func (handler *Driver) Source(ctx context.Context, e fs.Entity, args *driver.Get
 		query.Add(trafficLimitParam, fmt.Sprintf("%d", args.Speed))
 	}
 
-	if len(query) > 0 {
-		path = path + "?" + query.Encode()
-	}
-
 	// 取得原始文件地址
-	return handler.signSourceURL(path, args.Expire), nil
+	return handler.signSourceURL(path, query, args.Expire), nil
 }
 
-func (handler *Driver) signSourceURL(path string, expire *time.Time) string {
+func (handler *Driver) signSourceURL(path string, query url.Values, expire *time.Time) string {
 	var sourceURL string
-	if handler.policy.IsPrivate {
-		deadline := time.Now().Add(time.Duration(24) * time.Hour * 365 * 20).Unix()
-		if expire != nil {
-			deadline = expire.Unix()
+	deadline := time.Now().Add(time.Duration(24) * time.Hour * 365 * 20).Unix()
+	if expire != nil {
+		deadline = expire.Unix()
+	}
+
+	// If only one query key with empty value, use RawQuery
+	firstKey := ""
+	for key := range query {
+		firstKey = key
+		break
+	}
+
+	if len(query) == 1 && query.Get(firstKey) == "" {
+		if handler.policy.IsPrivate {
+			sourceURL = storage.MakePrivateURLv2WithQueryString(handler.mac, handler.policy.Settings.ProxyServer, path, firstKey, deadline)
+		} else {
+			sourceURL = storage.MakePublicURLv2WithQueryString(handler.policy.Settings.ProxyServer, path, firstKey)
 		}
-		sourceURL = storage.MakePrivateURL(handler.mac, handler.policy.Settings.ProxyServer, path, deadline)
 	} else {
-		sourceURL = storage.MakePublicURL(handler.policy.Settings.ProxyServer, path)
+		if handler.policy.IsPrivate {
+			sourceURL = storage.MakePrivateURLv2WithQuery(handler.mac, handler.policy.Settings.ProxyServer, path, query, deadline)
+		} else {
+			sourceURL = storage.MakePublicURLv2WithQuery(handler.policy.Settings.ProxyServer, path, query)
+		}
 	}
 	return sourceURL
 }
