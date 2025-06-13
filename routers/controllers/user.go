@@ -373,24 +373,6 @@ func UserSearch(c *gin.Context) {
 	})
 }
 
-// GetGroupList list all groups for options
-func GetGroupList(c *gin.Context) {
-	u, err := user.ListAllGroups(c)
-	if err != nil {
-		c.JSON(200, serializer.Err(c, err))
-		c.Abort()
-		return
-	}
-
-	hasher := dependency.FromContext(c).HashIDEncoder()
-	c.JSON(200, serializer.Response{
-		Data: lo.Map(u, func(item *ent.Group, index int) *user.Group {
-			g := user.BuildGroup(item, hasher)
-			return user.RedactedGroup(g)
-		}),
-	})
-}
-
 // ListPublicShare lists all public shares for given user
 func ListPublicShare(c *gin.Context) {
 	service := ParametersFromContext[*share.ListShareService](c, share.ListShareParamCtx{})

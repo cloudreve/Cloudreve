@@ -1101,12 +1101,6 @@ func initMasterRouter(dep dependency.Dep) *gin.Engine {
 				}
 			}
 
-			group := auth.Group("group")
-			{
-				// list all groups for options
-				group.GET("list", controllers.GetGroupList)
-			}
-
 			// WebDAV and devices
 			devices := auth.Group("devices")
 			{
