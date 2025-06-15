@@ -2,6 +2,7 @@ package share
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/application/dependency"
@@ -28,6 +29,14 @@ type (
 	ShareCreateParamCtx struct{}
 )
 
+const (
+	PasswordMaxLength = 32 // 分享密码最大长度
+)
+
+var (
+	PasswordRegexp = regexp.MustCompile("^[a-zA-Z0-9]*$")
+)
+
 // Upsert 创建或更新分享
 func (service *ShareCreateService) Upsert(c *gin.Context, existed int) (string, error) {
 	dep := dependency.FromContext(c)
@@ -49,6 +58,16 @@ func (service *ShareCreateService) Upsert(c *gin.Context, existed int) (string, 
 	if service.Expire > 0 {
 		expires = new(time.Time)
 		*expires = time.Now().Add(time.Duration(service.Expire) * time.Second)
+	}
+
+	// Validate password if provided
+	if service.Password != "" {
+		if len(service.Password) > PasswordMaxLength {
+			return "", serializer.NewError(serializer.CodeParamErr, "Password too long", nil)
+		}
+		if !PasswordRegexp.MatchString(service.Password) {
+			return "", serializer.NewError(serializer.CodeParamErr, "Invalid password format", nil)
+		}
 	}
 
 	share, err := m.CreateOrUpdateShare(c, uri, &manager.CreateShareArgs{
