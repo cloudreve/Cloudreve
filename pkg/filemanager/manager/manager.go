@@ -111,6 +111,7 @@ type (
 	CreateShareArgs struct {
 		ExistedShareID  int
 		IsPrivate       bool
+		Password        string
 		RemainDownloads int
 		Expire          *time.Time
 		ShareView       bool

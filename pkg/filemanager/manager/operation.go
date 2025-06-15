@@ -259,7 +259,10 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 
 	password := ""
 	if args.IsPrivate {
-		password = util.RandString(8, util.RandomLowerCases)
+		password = args.Password
+		if password == "" {
+			password = util.RandString(8, util.RandomLowerCases)
+		}
 	}
 
 	props := &types.ShareProps{
