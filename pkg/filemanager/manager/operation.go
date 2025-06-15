@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cloudreve/Cloudreve/v4/application/constants"
@@ -260,7 +261,7 @@ func (l *manager) CreateOrUpdateShare(ctx context.Context, path *fs.URI, args *C
 	password := ""
 	if args.IsPrivate {
 		password = args.Password
-		if password == "" {
+		if strings.TrimSpace(password) == "" {
 			password = util.RandString(8, util.RandomLowerCases)
 		}
 	}
