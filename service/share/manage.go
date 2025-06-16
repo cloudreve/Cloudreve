@@ -20,7 +20,7 @@ type (
 	ShareCreateService struct {
 		Uri             string `json:"uri" binding:"required"`
 		IsPrivate       bool   `json:"is_private"`
-		Password        string `json:"password" binding:"max=32,alphanum,omitempty"`
+		Password        string `json:"password" binding:"omitempty,max=32,alphanum"`
 		RemainDownloads int    `json:"downloads"`
 		Expire          int    `json:"expire"`
 		ShareView       bool   `json:"share_view"`
