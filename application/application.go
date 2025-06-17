@@ -166,7 +166,7 @@ func (s *server) Start() error {
 		return nil
 	}
 
-	api.POST("/api/v1/ice", s.runIce)
+	api.POST("/api/v4/p2p/signal", s.handleSignal)
 
 	go func() {
 		s.logger.Info("Listening HTTP/3 to : \"%v\"", h3Server.Addr)
@@ -247,7 +247,7 @@ func (s *server) runUnix(server *http.Server) error {
 	return server.Serve(listener)
 }
 
-func (s *server) runIce(c *gin.Context) {
+func (s *server) handleSignal(c *gin.Context) {
 	var req struct {
 		Addr string `json:"addr"`
 	}
