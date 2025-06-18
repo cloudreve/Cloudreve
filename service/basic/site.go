@@ -28,8 +28,8 @@ type SiteConfig struct {
 	ReCaptchaKey     string              `json:"captcha_ReCaptchaKey,omitempty"`
 	CaptchaType      setting.CaptchaType `json:"captcha_type,omitempty"`
 	TurnstileSiteID  string              `json:"turnstile_site_id,omitempty"`
-	CapInstanceURL   string              `json:"cap_instance_url,omitempty"`
-	CapKeyID         string              `json:"cap_key_id,omitempty"`
+	CapInstanceURL   string              `json:"captcha_cap_instance_url,omitempty"`
+	CapKeyID         string              `json:"captcha_cap_key_id,omitempty"`
 	RegisterEnabled  bool                `json:"register_enabled,omitempty"`
 	TosUrl           string              `json:"tos_url,omitempty"`
 	PrivacyPolicyUrl string              `json:"privacy_policy_url,omitempty"`
