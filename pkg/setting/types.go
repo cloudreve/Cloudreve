@@ -28,6 +28,7 @@ const (
 	CaptchaReCaptcha = CaptchaType("recaptcha")
 	CaptchaTcaptcha  = CaptchaType("tcaptcha")
 	CaptchaTurnstile = CaptchaType("turnstile")
+	CaptchaCap       = CaptchaType("cap")
 )
 
 type ReCaptcha struct {
@@ -45,6 +46,12 @@ type TcCaptcha struct {
 type Turnstile struct {
 	Key    string
 	Secret string
+}
+
+type Cap struct {
+	InstanceURL string
+	KeyID       string
+	KeySecret   string
 }
 
 type SMTP struct {

@@ -38,6 +38,8 @@ type (
 		TcCaptcha(ctx context.Context) *TcCaptcha
 		// TurnstileCaptcha returns the Cloudflare Turnstile settings.
 		TurnstileCaptcha(ctx context.Context) *Turnstile
+		// CapCaptcha returns the Cap settings.
+		CapCaptcha(ctx context.Context) *Cap
 		// EmailActivationEnabled returns true if email activation is required.
 		EmailActivationEnabled(ctx context.Context) bool
 		// DefaultGroup returns the default group ID for new users.
@@ -635,6 +637,14 @@ func (s *settingProvider) TurnstileCaptcha(ctx context.Context) *Turnstile {
 	return &Turnstile{
 		Secret: s.getString(ctx, "captcha_turnstile_site_secret", ""),
 		Key:    s.getString(ctx, "captcha_turnstile_site_key", ""),
+	}
+}
+
+func (s *settingProvider) CapCaptcha(ctx context.Context) *Cap {
+	return &Cap{
+		InstanceURL: s.getString(ctx, "captcha_cap_instance_url", ""),
+		KeyID:       s.getString(ctx, "captcha_cap_key_id", ""),
+		KeySecret:   s.getString(ctx, "captcha_cap_key_secret", ""),
 	}
 }
 
